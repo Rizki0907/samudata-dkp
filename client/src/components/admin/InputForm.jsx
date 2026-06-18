@@ -189,7 +189,7 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
         <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
           <p className="text-xs text-muted-foreground font-medium mb-1">Estimasi Total Nilai (Otomatis)</p>
           <p className="text-lg font-bold text-primary">
-            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(nilaiTotal * 1000)}
+            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(nilaiTotal)}
           </p>
         </div>
 
