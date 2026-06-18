@@ -2,7 +2,7 @@
 
 Proyek ini adalah sistem dashboard kelautan dan perikanan Provinsi Jawa Timur, dibangun menggunakan arsitektur **Monorepo** (Frontend dengan React + Vite, Backend dengan Node.js + Express + Prisma).
 
-## 🚀 Cara Memulai (Panduan Anggota Tim)
+##  Cara Memulai (Panduan Anggota Tim)
 
 Ikuti langkah-langkah di bawah ini untuk menjalankan proyek di laptop masing-masing:
 
@@ -42,7 +42,7 @@ Buka browser di `http://localhost:5173`.
 
 ---
 
-## 📂 Pembagian Tugas Per Sektor
+##  Pembagian Tugas Per Sektor
 
 Jika Anda kebagian mengerjakan sektor tertentu (misal: *Budidaya*, *Garam*, *Ekspor*, dll), fokuskan pekerjaan Anda pada bagian berikut:
 
