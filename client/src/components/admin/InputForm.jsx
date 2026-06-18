@@ -155,7 +155,7 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
 
         {/* Nominal */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Volume (Ton)</label>
+          <label className="text-sm font-medium text-foreground">Volume (Kg)</label>
           <input 
             type="number" 
             name="volume"

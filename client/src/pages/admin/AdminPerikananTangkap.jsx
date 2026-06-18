@@ -91,7 +91,7 @@ export default function AdminPerikananTangkap() {
       accessorKey: 'komoditas'
     },
     {
-      header: 'Volume (Ton)',
+      header: 'Volume (Kg)',
       accessorKey: 'volume',
       cell: info => info.getValue().toLocaleString('id-ID')
     },

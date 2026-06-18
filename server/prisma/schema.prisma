@@ -23,8 +23,8 @@ model PerikananTangkap {
   gt_kapal      String
   alat_tangkap  String
   komoditas     String
-  volume        Float    // ton
-  harga         Float    // rupiah per ton
+  volume        Float    // kg
+  harga         Float    // rupiah per kg
   nilai         Float    // otomatis: volume × harga
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
