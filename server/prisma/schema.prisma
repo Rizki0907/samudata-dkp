@@ -1,13 +1,49 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// Tabel utama perikanan tangkap harian
+model PerikananTangkap {
+  id            Int      @id @default(autoincrement())
+  tanggal       DateTime
+  jam_labuh     String
+  jam_bongkar   String
+  nama_kapal    String
+  gt_kapal      String
+  alat_tangkap  String
+  komoditas     String
+  volume        Float    // ton
+  harga         Float    // rupiah per ton
+  nilai         Float    // otomatis: volume × harga
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
+// Tabel untuk file upload sektor lain (metadata)
+model FileUpload {
+  id          Int      @id @default(autoincrement())
+  sektor      String   // "budidaya", "garam", "ekspor", dst
+  nama_file   String
+  path_file   String
+  ukuran      Int      // bytes
+  tahun       Int?
+  wilayah     String?
+  uploaded_at DateTime @default(now())
+}
+
+// Tabel setting/konfigurasi (untuk kode admin, dll)
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
 }
