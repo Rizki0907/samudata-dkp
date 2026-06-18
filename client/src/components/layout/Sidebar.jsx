@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { 
   Waves, Sprout, Fish, Package, Beaker, Globe, 

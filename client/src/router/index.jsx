@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import PlaceholderPage from '../pages/PlaceholderPage';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 
 // Protected Route Guard for Admin
 const AdminRoute = ({ children }) => {

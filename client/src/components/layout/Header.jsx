@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { ShieldAlert, User as UserIcon } from 'lucide-react';
 
 export default function Header() {
