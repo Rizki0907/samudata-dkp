@@ -5,10 +5,25 @@ import PlaceholderPage from '../pages/PlaceholderPage';
 import AdminPerikananTangkap from '../pages/admin/AdminPerikananTangkap';
 import { useAuthStore } from '@/store/authStore';
 
+// Public Pages
+import PerikananTangkap from '../pages/user/PerikananTangkap';
+import KelautanPesisir from '../pages/user/KelautanPesisir';
+import Budidaya from '../pages/user/Budidaya';
+import PengelolaanPemasaran from '../pages/user/PengelolaanPemasaran';
+import Garam from '../pages/user/Garam';
+import Ekspor from '../pages/user/Ekspor';
+
+// Admin Pages
+import AdminKelautanPesisir from '../pages/admin/AdminKelautanPesisir';
+import AdminBudidaya from '../pages/admin/AdminBudidaya';
+import AdminPengelolaanPemasaran from '../pages/admin/AdminPengelolaanPemasaran';
+import AdminGaram from '../pages/admin/AdminGaram';
+import AdminEkspor from '../pages/admin/AdminEkspor';
+
 // Protected Route Guard for Admin
 const AdminRoute = ({ children }) => {
-  const { user } = useAuthStore();
-  if (user?.role !== 'admin') {
+  const { isAuthenticated, role } = useAuthStore();
+  if (!isAuthenticated || role !== 'admin') {
     return <Navigate to="/" replace />;
   }
   return children;
@@ -33,12 +48,12 @@ export const router = createBrowserRouter([
     element: <UserRoute><DashboardLayout /></UserRoute>,
     children: [
       { index: true, element: <PlaceholderPage title="Overview Publik" /> },
-      { path: 'perikanan-tangkap', element: <PlaceholderPage title="Perikanan Tangkap (Publik)" /> },
-      { path: 'kelautan-pesisir', element: <PlaceholderPage title="Kelautan & Pesisir (Publik)" /> },
-      { path: 'budidaya', element: <PlaceholderPage title="Budidaya (Publik)" /> },
-      { path: 'pengelolaan', element: <PlaceholderPage title="Pengelolaan & Pemasaran (Publik)" /> },
-      { path: 'garam', element: <PlaceholderPage title="Garam (Publik)" /> },
-      { path: 'ekspor', element: <PlaceholderPage title="Ekspor (Publik)" /> },
+      { path: 'perikanan-tangkap', element: <PerikananTangkap /> },
+      { path: 'kelautan-pesisir', element: <KelautanPesisir /> },
+      { path: 'budidaya', element: <Budidaya /> },
+      { path: 'pengelolaan', element: <PengelolaanPemasaran /> },
+      { path: 'garam', element: <Garam /> },
+      { path: 'ekspor', element: <Ekspor /> },
     ],
   },
   {
@@ -47,11 +62,11 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <PlaceholderPage title="Overview Admin" /> },
       { path: 'perikanan-tangkap', element: <AdminPerikananTangkap /> },
-      { path: 'kelautan-pesisir', element: <PlaceholderPage title="Admin - Kelautan & Pesisir" /> },
-      { path: 'budidaya', element: <PlaceholderPage title="Admin - Budidaya" /> },
-      { path: 'pengelolaan', element: <PlaceholderPage title="Admin - Pengelolaan & Pemasaran" /> },
-      { path: 'garam', element: <PlaceholderPage title="Admin - Garam" /> },
-      { path: 'ekspor', element: <PlaceholderPage title="Admin - Ekspor" /> },
+      { path: 'kelautan-pesisir', element: <AdminKelautanPesisir /> },
+      { path: 'budidaya', element: <AdminBudidaya /> },
+      { path: 'pengelolaan', element: <AdminPengelolaanPemasaran /> },
+      { path: 'garam', element: <AdminGaram /> },
+      { path: 'ekspor', element: <AdminEkspor /> },
     ],
   },
   {
