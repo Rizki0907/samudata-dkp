@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 216 60% 10%; /* #0A1628 */
+    --foreground: 206 70% 95%; /* #E8F4FD */
+
+    --card: 221 64% 16%; /* #0F2044 */
+    --card-foreground: 206 70% 95%;
+
+    --popover: 220 59% 21%; /* #162B55 */
+    --popover-foreground: 206 70% 95%;
+
+    --primary: 190 100% 50%; /* #00D4FF */
+    --primary-foreground: 216 60% 10%;
+
+    --secondary: 191 100% 40%; /* #00A8CC */
+    --secondary-foreground: 216 60% 10%;
+
+    --muted: 220 59% 21%;
+    --muted-foreground: 212 33% 66%; /* #8BA7C7 */
+
+    --accent: 41 100% 47%; /* #F0A500 */
+    --accent-foreground: 216 60% 10%;
+
+    --destructive: 0 100% 66%; /* #FF5252 */
+    --destructive-foreground: 216 60% 10%;
+
+    --success: 151 100% 45%; /* #00E676 */
+    --success-foreground: 216 60% 10%;
+
+    --border: 219 57% 27%; /* #1E3A6E */
+    --input: 219 57% 27%;
+    --ring: 190 100% 50%;
+
+    --radius: 1rem; /* rounded-2xl */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
