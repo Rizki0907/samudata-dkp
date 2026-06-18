@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { ShieldAlert, User, Lock, Loader2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
