@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import PlaceholderPage from '../pages/PlaceholderPage';
+import AdminPerikananTangkap from '../pages/admin/AdminPerikananTangkap';
 import { useAuthStore } from '@/store/authStore';
 
 // Protected Route Guard for Admin
@@ -45,7 +46,7 @@ export const router = createBrowserRouter([
     element: <AdminRoute><DashboardLayout /></AdminRoute>,
     children: [
       { index: true, element: <PlaceholderPage title="Overview Admin" /> },
-      { path: 'perikanan-tangkap', element: <PlaceholderPage title="Admin - Perikanan Tangkap" /> },
+      { path: 'perikanan-tangkap', element: <AdminPerikananTangkap /> },
       { path: 'kelautan-pesisir', element: <PlaceholderPage title="Admin - Kelautan & Pesisir" /> },
       { path: 'budidaya', element: <PlaceholderPage title="Admin - Budidaya" /> },
       { path: 'pengelolaan', element: <PlaceholderPage title="Admin - Pengelolaan & Pemasaran" /> },

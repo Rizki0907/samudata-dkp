@@ -22,16 +22,21 @@ export default function LandingPage() {
     setLoading(true);
     setError(false);
     
-    // Simulate API call for Phase 1
-    setTimeout(() => {
-      if (adminCode === 'SAMUDATA2025DKP') {
-        loginAsAdmin('dummy-jwt-token-for-now');
+    try {
+      // Import api at the top if not imported yet
+      // For now, we can use fetch or the api service
+      const api = (await import('@/services/api')).default;
+      const res = await api.post('/auth/login', { adminCode });
+      
+      if (res.data.success) {
+        loginAsAdmin(res.data.token);
         navigate('/admin');
-      } else {
-        setError(true);
       }
+    } catch (err) {
+      setError(true);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
