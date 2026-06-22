@@ -3,7 +3,7 @@ const prisma = require('../utils/prisma');
 // GET all data (with filters)
 const getAllData = async (req, res) => {
   try {
-    const { startDate, endDate, komoditas, alat_tangkap, gt_kapal } = req.query;
+    const { startDate, endDate, komoditas, alat_tangkap, gt_kapal, pelabuhan } = req.query;
     
     // Build filter query
     const where = {};
@@ -16,6 +16,7 @@ const getAllData = async (req, res) => {
     if (komoditas) where.komoditas = komoditas;
     if (alat_tangkap) where.alat_tangkap = alat_tangkap;
     if (gt_kapal) where.gt_kapal = gt_kapal;
+    if (pelabuhan) where.pelabuhan = pelabuhan;
 
     const data = await prisma.perikananTangkap.findMany({
       where,
@@ -32,7 +33,7 @@ const getAllData = async (req, res) => {
 // POST new data [ADMIN]
 const createData = async (req, res) => {
   try {
-    const { tanggal, jam_labuh, jam_bongkar, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
+    const { tanggal, jam_labuh, jam_bongkar, pelabuhan, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
     
     // Calculate nilai automatically
     const nilai = parseFloat(volume) * parseFloat(harga);
@@ -42,6 +43,7 @@ const createData = async (req, res) => {
         tanggal: new Date(tanggal),
         jam_labuh,
         jam_bongkar,
+        pelabuhan,
         nama_kapal,
         gt_kapal,
         alat_tangkap,
@@ -63,7 +65,7 @@ const createData = async (req, res) => {
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tanggal, jam_labuh, jam_bongkar, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
+    const { tanggal, jam_labuh, jam_bongkar, pelabuhan, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
     
     const nilai = parseFloat(volume) * parseFloat(harga);
 
@@ -73,6 +75,7 @@ const updateData = async (req, res) => {
         tanggal: tanggal ? new Date(tanggal) : undefined,
         jam_labuh,
         jam_bongkar,
+        pelabuhan,
         nama_kapal,
         gt_kapal,
         alat_tangkap,
@@ -131,6 +134,23 @@ const getStats = async (req, res) => {
       orderBy: { _sum: { volume: 'desc' } }
     });
 
+    const byPelabuhan = await prisma.perikananTangkap.groupBy({
+      by: ['pelabuhan'],
+      _sum: { volume: true },
+      where,
+      orderBy: { _sum: { volume: 'desc' } }
+    });
+
+    // Aggregate by Date for trend
+    const byTanggal = await prisma.$queryRaw`
+      SELECT DATE(tanggal) as date, SUM(volume) as total_volume, SUM(nilai) as total_nilai
+      FROM "PerikananTangkap"
+      WHERE 1=1
+      ${startDate && endDate ? prisma.$queryRaw`AND tanggal >= ${new Date(startDate)} AND tanggal <= ${new Date(endDate)}` : prisma.$empty}
+      GROUP BY DATE(tanggal)
+      ORDER BY DATE(tanggal) ASC
+    `;
+
     res.status(200).json({ 
       success: true, 
       data: {
@@ -140,7 +160,13 @@ const getStats = async (req, res) => {
           total_trip: totalVolume._count.id || 0,
           avg_volume_per_trip: totalVolume._count.id > 0 ? (totalVolume._sum.volume / totalVolume._count.id) : 0
         },
-        komoditas: byKomoditas
+        komoditas: byKomoditas,
+        pelabuhan: byPelabuhan,
+        tren: byTanggal.map(t => ({
+          date: t.date.toISOString().split('T')[0],
+          volume: Number(t.total_volume),
+          nilai: Number(t.total_nilai)
+        }))
       }
     });
   } catch (error) {

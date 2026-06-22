@@ -1,3 +1,13 @@
+export const PELABUHAN_OPTIONS = [
+  'PPN Brondong',
+  'PPN Prigi',
+  'PPP Muncar',
+  'PPP Mayangan',
+  'PPP Pondokdadap',
+  'PPP Puger',
+  'PPP Tamperan'
+];
+
 export const GT_KAPAL_OPTIONS = [
   "< 5 GT", 
   "5-10 GT", 

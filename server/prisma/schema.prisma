@@ -17,8 +17,9 @@ datasource db {
 model PerikananTangkap {
   id            Int      @id @default(autoincrement())
   tanggal       DateTime
-  jam_labuh     String
-  jam_bongkar   String
+  jam_labuh     String?
+  jam_bongkar   String?
+  pelabuhan     String
   nama_kapal    String
   gt_kapal      String
   alat_tangkap  String

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS } from '@/utils/constants';
+import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS } from '@/utils/constants';
 import { Loader2, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,7 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
     jam_labuh: '',
     jam_bongkar: '',
     nama_kapal: '',
+    pelabuhan: PELABUHAN_OPTIONS[0],
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     komoditas: KOMODITAS_OPTIONS[0],
@@ -23,6 +24,7 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
         jam_labuh: initialData.jam_labuh || '',
         jam_bongkar: initialData.jam_bongkar || '',
         nama_kapal: initialData.nama_kapal || '',
+        pelabuhan: initialData.pelabuhan || PELABUHAN_OPTIONS[0],
         gt_kapal: initialData.gt_kapal || GT_KAPAL_OPTIONS[0],
         alat_tangkap: initialData.alat_tangkap || ALAT_TANGKAP_OPTIONS[0],
         komoditas: initialData.komoditas || KOMODITAS_OPTIONS[0],
@@ -114,6 +116,18 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
             onChange={handleChange}
             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Pelabuhan Pendaratan</label>
+          <select 
+            name="pelabuhan"
+            value={formData.pelabuhan}
+            onChange={handleChange}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm appearance-none"
+          >
+            {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
         </div>
 
         <div className="space-y-2">

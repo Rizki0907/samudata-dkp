@@ -83,6 +83,10 @@ export default function AdminPerikananTangkap() {
       )
     },
     {
+      header: 'Pelabuhan',
+      accessorKey: 'pelabuhan'
+    },
+    {
       header: 'Alat Tangkap',
       accessorKey: 'alat_tangkap'
     },
