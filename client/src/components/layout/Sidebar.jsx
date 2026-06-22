@@ -8,13 +8,13 @@ import {
 } from 'lucide-react';
 
 const USER_MENUS = [
-  { title: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-  { title: 'Perikanan Tangkap', path: '/dashboard/perikanan-tangkap', icon: Fish },
-  { title: 'Kelautan & Pesisir', path: '/dashboard/kelautan-pesisir', icon: Waves },
-  { title: 'Budidaya', path: '/dashboard/budidaya', icon: Sprout },
-  { title: 'Pengelolaan', path: '/dashboard/pengelolaan', icon: Package },
-  { title: 'Garam', path: '/dashboard/garam', icon: Beaker },
-  { title: 'Ekspor', path: '/dashboard/ekspor', icon: Globe },
+  { title: 'Overview', path: '/user', icon: LayoutDashboard },
+  { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Fish },
+  { title: 'Kelautan & Pesisir', path: '/user/kelautan-pesisir', icon: Waves },
+  { title: 'Budidaya', path: '/user/budidaya', icon: Sprout },
+  { title: 'Pengelolaan', path: '/user/pengelolaan', icon: Package },
+  { title: 'Garam', path: '/user/garam', icon: Beaker },
+  { title: 'Ekspor', path: '/user/ekspor', icon: Globe },
 ];
 
 const ADMIN_MENUS = [

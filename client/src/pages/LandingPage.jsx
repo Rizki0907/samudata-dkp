@@ -14,7 +14,7 @@ export default function LandingPage() {
 
   const handleUserLogin = () => {
     loginAsUser();
-    navigate('/dashboard');
+    navigate('/user');
   };
 
   const handleAdminSubmit = async (e) => {

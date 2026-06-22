@@ -6,6 +6,7 @@ import AdminPerikananTangkap from '../pages/admin/AdminPerikananTangkap';
 import { useAuthStore } from '@/store/authStore';
 
 // Public Pages
+import Overview from '../pages/user/Overview';
 import PerikananTangkap from '../pages/user/PerikananTangkap';
 import KelautanPesisir from '../pages/user/KelautanPesisir';
 import Budidaya from '../pages/user/Budidaya';
@@ -44,10 +45,10 @@ export const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
-    path: '/dashboard',
-    element: <UserRoute><DashboardLayout /></UserRoute>,
+    path: '/user',
+    element: <DashboardLayout role="user" />,
     children: [
-      { index: true, element: <PlaceholderPage title="Overview Publik" /> },
+      { index: true, element: <Overview /> },
       { path: 'perikanan-tangkap', element: <PerikananTangkap /> },
       { path: 'kelautan-pesisir', element: <KelautanPesisir /> },
       { path: 'budidaya', element: <Budidaya /> },
@@ -58,9 +59,13 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <AdminRoute><DashboardLayout /></AdminRoute>,
+    element: (
+      <AdminRoute>
+        <DashboardLayout role="admin" />
+      </AdminRoute>
+    ),
     children: [
-      { index: true, element: <PlaceholderPage title="Overview Admin" /> },
+      { index: true, element: <Overview /> },
       { path: 'perikanan-tangkap', element: <AdminPerikananTangkap /> },
       { path: 'kelautan-pesisir', element: <AdminKelautanPesisir /> },
       { path: 'budidaya', element: <AdminBudidaya /> },
