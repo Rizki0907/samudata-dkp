@@ -74,11 +74,11 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Main Data Section - 2 Column Clean Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Main Data Section - Masonry Layout */}
+      <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
         
         {/* Card 1: Perikanan Tangkap */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
               <Ship className="w-8 h-8" />
@@ -106,14 +106,14 @@ export default function Overview() {
         </div>
 
         {/* Card 2: Perikanan Budidaya */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
               <Fish className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Perikanan Budidaya</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
+          <div className="flex flex-col gap-8">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produksi (Kg)</p>
               <p className="text-3xl font-extrabold text-foreground">{stats.budidaya.produksi.toLocaleString('id-ID')}</p>
@@ -126,38 +126,38 @@ export default function Overview() {
         </div>
 
         {/* Card 3: Pengolahan & Pemasaran */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all xl:row-span-2">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-orange-500/10 text-orange-500 rounded-2xl">
               <Package className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Pengolahan & Pemasaran</h2>
           </div>
-          <div className="flex flex-col gap-8">
+          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Unit Pengolahan</p>
               <p className="text-3xl font-extrabold text-foreground">10.841</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produk Olahan (Ton)</p>
-              <p className="text-3xl font-extrabold text-foreground">1.163.182</p>
-            </div>
-            <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Unit Pemasar</p>
               <p className="text-3xl font-extrabold text-foreground">21.579</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produk Olahan (Ton)</p>
+              <p className="text-3xl font-extrabold text-foreground">1.163.182</p>
             </div>
           </div>
         </div>
 
         {/* Card 4: Garam */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-slate-500/50 hover:shadow-xl hover:shadow-slate-500/5 transition-all">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-slate-500/50 hover:shadow-xl hover:shadow-slate-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-slate-500/10 text-slate-500 rounded-2xl">
               <Droplets className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Potensi Garam</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
+          <div className="flex flex-col gap-8">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produksi (Ton)</p>
               <p className="text-3xl font-extrabold text-foreground">329.102</p>
@@ -170,14 +170,14 @@ export default function Overview() {
         </div>
 
         {/* Card 5: Kelautan & Pesisir */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-teal-500/50 hover:shadow-xl hover:shadow-teal-500/5 transition-all">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-teal-500/50 hover:shadow-xl hover:shadow-teal-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-teal-500/10 text-teal-500 rounded-2xl">
               <Map className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Kelautan & Pesisir</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
+          <div className="flex flex-col gap-8">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Konservasi</p>
               <p className="text-3xl font-extrabold text-foreground">{stats.kelautan.konservasi}</p>
@@ -190,14 +190,14 @@ export default function Overview() {
         </div>
 
         {/* Card 6: Ekspor */}
-        <div className="bg-card border border-border rounded-3xl p-8 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all xl:col-span-2">
+        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
               <Globe className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Kinerja Ekspor</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
+          <div className="flex flex-col gap-8">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Volume (Ton)</p>
               <p className="text-3xl font-extrabold text-foreground">356.491</p>
@@ -212,7 +212,7 @@ export default function Overview() {
       </div>
 
       {/* Visual / Highlights Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-border/50">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-border/50">
         {/* Special Card 1: Fisherman Illustration */}
         <div className="rounded-3xl overflow-hidden relative group border border-border min-h-[300px] shadow-lg">
           <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${imgFisherman})` }} />
