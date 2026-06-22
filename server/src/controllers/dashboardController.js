@@ -28,8 +28,9 @@ const getOverviewStats = async (req, res) => {
       pembudidaya: 0
     };
 
-    // === 3. PENGOLAHAN (Data Kosong Sementara) ===
+    // === 3. PENGOLAHAN & PEMASARAN (Data Kosong Sementara) ===
     const pemasaran = {
+      ekspor: 0,
       pemasar: 0,
       pengolahan: 0,
       produk: 0
@@ -41,27 +42,13 @@ const getOverviewStats = async (req, res) => {
       petambak: 0
     };
 
-    // === 5. KELAUTAN & PESISIR (Data Kosong Sementara) ===
-    const kelautan = {
-      konservasi: 0,
-      pulau: 0
-    };
-
-    // === 6. EKSPOR (Data Kosong Sementara) ===
-    const ekspor = {
-      volume: 0,
-      nilai: 0
-    };
-
     res.status(200).json({
       success: true,
       data: {
         tangkap,
         budidaya,
         pemasaran,
-        garam,
-        kelautan,
-        ekspor
+        garam
       }
     });
   } catch (error) {

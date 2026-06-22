@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/services/api';
-import { Ship, Fish, Package, Droplets, Map, Globe, Loader2 } from 'lucide-react';
+import { Ship, Fish, Package, Droplets, Loader2 } from 'lucide-react';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 // Import Assets
 import oceanBg from '@/assets/ocean_bg.png';
@@ -14,10 +15,8 @@ export default function Overview() {
   const [stats, setStats] = useState({
     tangkap: { produksi: 0 },
     budidaya: { produksi: 0, pembudidaya: 0 },
-    pemasaran: { pemasar: 0, pengolahan: 0, produk: 0 },
-    garam: { produksi: 0, petambak: 0 },
-    kelautan: { konservasi: 0, pulau: 0 },
-    ekspor: { volume: 0, nilai: 0 }
+    pemasaran: { ekspor: 0, pemasar: 0, pengolahan: 0, produk: 0 },
+    garam: { produksi: 0, petambak: 0 }
   });
 
   useEffect(() => {
@@ -74,137 +73,101 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Main Data Section - Masonry Layout */}
-      <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+      {/* Bento Grid 2-Column Layout (V1 Style with Inner Boxes) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Card 1: Perikanan Tangkap */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
               <Ship className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Perikanan Tangkap</h2>
+            <h2 className="text-2xl font-bold text-foreground">Potensi Perikanan Tangkap</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produksi (Kg)</p>
-              <p className="text-3xl font-extrabold text-foreground">{stats.tangkap.produksi.toLocaleString('id-ID')}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap (Kg)</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.tangkap.produksi.toLocaleString('id-ID')}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Kapal (Unit)</p>
-              <p className="text-3xl font-extrabold text-foreground">52.211</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Kapal Perikanan (Unit)</p>
+              <p className="text-2xl font-bold text-blue-600">52.211</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Pelabuhan</p>
-              <p className="text-3xl font-extrabold text-foreground">22</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Pelabuhan (Unit)</p>
+              <p className="text-2xl font-bold text-blue-600">22</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Nelayan (Orang)</p>
-              <p className="text-3xl font-extrabold text-foreground">217.209</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Nelayan (Orang)</p>
+              <p className="text-2xl font-bold text-blue-600">217.209</p>
             </div>
           </div>
         </div>
 
         {/* Card 2: Perikanan Budidaya */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
+        <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
               <Fish className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Perikanan Budidaya</h2>
+            <h2 className="text-2xl font-bold text-foreground">Potensi Perikanan Budidaya</h2>
           </div>
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produksi (Kg)</p>
-              <p className="text-3xl font-extrabold text-foreground">{stats.budidaya.produksi.toLocaleString('id-ID')}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Kg)</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.produksi.toLocaleString('id-ID')}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Pembudidaya</p>
-              <p className="text-3xl font-extrabold text-foreground">159.981</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Pembudidaya (Orang)</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.pembudidaya.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>
 
         {/* Card 3: Pengolahan & Pemasaran */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-orange-500/10 text-orange-500 rounded-2xl">
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
               <Package className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Pengolahan & Pemasaran</h2>
           </div>
-          <div className="grid grid-cols-2 gap-y-8 gap-x-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Unit Pengolahan</p>
-              <p className="text-3xl font-extrabold text-foreground">10.841</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Volume Ekspor (Kg)</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.ekspor.toLocaleString('id-ID')}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Unit Pemasar</p>
-              <p className="text-3xl font-extrabold text-foreground">21.579</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Unit Pemasar (Unit)</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.pemasar.toLocaleString('id-ID')}</p>
             </div>
-            <div className="col-span-2">
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produk Olahan (Ton)</p>
-              <p className="text-3xl font-extrabold text-foreground">1.163.182</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Unit Pengolahan (Unit)</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.pengolahan.toLocaleString('id-ID')}</p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Produk Olahan (Kg)</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.produk.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>
 
         {/* Card 4: Garam */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-slate-500/50 hover:shadow-xl hover:shadow-slate-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-slate-500/10 text-slate-500 rounded-2xl">
+        <div className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 border border-slate-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-slate-500 text-white rounded-xl shadow-lg shadow-slate-500/30 group-hover:scale-110 transition-transform">
               <Droplets className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Potensi Garam</h2>
           </div>
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Produksi (Ton)</p>
-              <p className="text-3xl font-extrabold text-foreground">329.102</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Produksi Garam (Kg)</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi.toLocaleString('id-ID')}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Petambak</p>
-              <p className="text-3xl font-extrabold text-foreground">6.831</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 5: Kelautan & Pesisir */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-teal-500/50 hover:shadow-xl hover:shadow-teal-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-teal-500/10 text-teal-500 rounded-2xl">
-              <Map className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground">Kelautan & Pesisir</h2>
-          </div>
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Konservasi</p>
-              <p className="text-3xl font-extrabold text-foreground">{stats.kelautan.konservasi}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Pulau Kecil</p>
-              <p className="text-3xl font-extrabold text-foreground">504</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 6: Ekspor */}
-        <div className="break-inside-avoid bg-card border border-border rounded-3xl p-8 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
-              <Globe className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground">Kinerja Ekspor</h2>
-          </div>
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Volume (Ton)</p>
-              <p className="text-3xl font-extrabold text-foreground">356.491</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wider">Nilai Ekspor</p>
-              <p className="text-3xl font-extrabold text-foreground">{stats.ekspor.nilai || 0}</p>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Petambak Garam (Orang)</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>
