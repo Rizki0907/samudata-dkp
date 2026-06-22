@@ -142,14 +142,12 @@ const getStats = async (req, res) => {
     });
 
     // Aggregate by Date for trend
-    const byTanggal = await prisma.$queryRaw`
-      SELECT DATE(tanggal) as date, SUM(volume) as total_volume, SUM(nilai) as total_nilai
-      FROM "PerikananTangkap"
-      WHERE 1=1
-      ${startDate && endDate ? prisma.$queryRaw`AND tanggal >= ${new Date(startDate)} AND tanggal <= ${new Date(endDate)}` : prisma.$empty}
-      GROUP BY DATE(tanggal)
-      ORDER BY DATE(tanggal) ASC
-    `;
+    const byTanggal = await prisma.perikananTangkap.groupBy({
+      by: ['tanggal'],
+      _sum: { volume: true, nilai: true },
+      where,
+      orderBy: { tanggal: 'asc' }
+    });
 
     res.status(200).json({ 
       success: true, 
@@ -163,9 +161,9 @@ const getStats = async (req, res) => {
         komoditas: byKomoditas,
         pelabuhan: byPelabuhan,
         tren: byTanggal.map(t => ({
-          date: t.date.toISOString().split('T')[0],
-          volume: Number(t.total_volume),
-          nilai: Number(t.total_nilai)
+          date: t.tanggal.toISOString().split('T')[0],
+          volume: Number(t._sum.volume),
+          nilai: Number(t._sum.nilai)
         }))
       }
     });
