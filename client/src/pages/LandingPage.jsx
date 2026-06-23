@@ -21,13 +21,13 @@ export default function LandingPage() {
     e.preventDefault();
     setLoading(true);
     setError(false);
-    
+
     try {
       // Import api at the top if not imported yet
       // For now, we can use fetch or the api service
       const api = (await import('@/services/api')).default;
       const res = await api.post('/auth/login', { adminCode });
-      
+
       if (res.data.success) {
         loginAsAdmin(res.data.token);
         navigate('/admin');
@@ -88,8 +88,8 @@ export default function LandingPage() {
       {/* Admin Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div 
-            className="absolute inset-0" 
+          <div
+            className="absolute inset-0"
             onClick={() => setShowModal(false)}
           />
           <div className={cn(
@@ -100,7 +100,7 @@ export default function LandingPage() {
               <Lock className="w-6 h-6 text-accent" />
               Otentikasi Admin
             </h3>
-            
+
             <form onSubmit={handleAdminSubmit}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
@@ -127,7 +127,7 @@ export default function LandingPage() {
                   </p>
                 )}
               </div>
-              
+
               <div className="flex gap-3 justify-end">
                 <button
                   type="button"
@@ -150,7 +150,8 @@ export default function LandingPage() {
       )}
 
       {/* Global Style for shake animation */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
