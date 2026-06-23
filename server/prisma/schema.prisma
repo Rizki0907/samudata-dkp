@@ -49,3 +49,21 @@ model Setting {
   key   String @unique
   value String
 }
+
+// Tabel ekspor hasil perikanan
+model Ekspor {
+  id                  Int      @id @default(autoincrement())
+  bulan               String
+  tahun               String
+  tanggal_ekspor      DateTime
+  nama_eksportir      String
+  kategori_komoditas  String
+  nama_komoditas      String
+  volume              Float    
+  satuan_volume       String   
+  mata_uang           String   @default("USD")
+  nilai               Float    
+  negara_tujuan       String
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+}
