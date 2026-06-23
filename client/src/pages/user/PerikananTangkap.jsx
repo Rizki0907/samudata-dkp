@@ -24,7 +24,6 @@ export default function PerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch both raw data for table and stats for KPI/Charts concurrently
       const [dataRes, statsRes] = await Promise.all([
         api.get('/perikanan-tangkap'),
         api.get('/perikanan-tangkap/stats')
@@ -45,7 +44,6 @@ export default function PerikananTangkap() {
     fetchData();
   }, []);
 
-  // Columns for public DataTable
   const columns = useMemo(() => [
     {
       header: 'Tanggal',
@@ -91,7 +89,6 @@ export default function PerikananTangkap() {
     }
   ], []);
 
-  // ECharts Option for Komoditas (Bar Chart)
   const komoditasChartOption = useMemo(() => {
     const categories = stats.komoditas.map(item => item.komoditas);
     const values = stats.komoditas.map(item => item._sum.volume || 0);
@@ -103,20 +100,21 @@ export default function PerikananTangkap() {
       },
       grid: {
         left: '3%',
-        right: '4%',
-        bottom: '3%',
+        right: '15%',
+        bottom: '8%',
         containLabel: true
       },
       xAxis: {
         type: 'value',
         name: 'Volume (Kg)',
-        nameTextStyle: { color: '#888' },
-        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+        nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' },
+        axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' },
+        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } }
       },
       yAxis: {
         type: 'category',
         data: categories,
-        axisLabel: { color: '#666', fontWeight: 500 }
+        axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' }
       },
       series: [
         {
@@ -124,12 +122,15 @@ export default function PerikananTangkap() {
           type: 'bar',
           data: values,
           itemStyle: {
-            color: '#3b82f6', // Tailwind blue-500
+            color: '#3b82f6',
             borderRadius: [0, 4, 4, 0]
           },
           label: {
             show: true,
             position: 'right',
+            color: '#ffffff',
+            fontSize: 13,
+            fontWeight: 'bold',
             formatter: '{c} Kg'
           }
         }
@@ -137,7 +138,6 @@ export default function PerikananTangkap() {
     };
   }, [stats.komoditas]);
 
-  // ECharts Option for Pelabuhan (Bar Chart)
   const pelabuhanChartOption = useMemo(() => {
     const categories = stats.pelabuhan.map(item => item.pelabuhan);
     const values = stats.pelabuhan.map(item => item._sum.volume || 0);
@@ -147,22 +147,31 @@ export default function PerikananTangkap() {
         trigger: 'axis',
         axisPointer: { type: 'shadow' }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Kg)' },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#666', fontWeight: 500 } },
+      grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
+      xAxis: { 
+        type: 'value', 
+        name: 'Volume (Kg)',
+        nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' },
+        axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' },
+        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } }
+      },
+      yAxis: { 
+        type: 'category', 
+        data: categories, 
+        axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' } 
+      },
       series: [
         {
           name: 'Volume',
           type: 'bar',
           data: values,
           itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', formatter: '{c} Kg' }
+          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: '{c} Kg' }
         }
       ]
     };
   }, [stats.pelabuhan]);
 
-  // ECharts Option for Tren Harian (Line Chart with DataZoom)
   const trenChartOption = useMemo(() => {
     const dates = stats.tren.map(t => t.date);
     const volumes = stats.tren.map(t => t.volume);
@@ -177,8 +186,19 @@ export default function PerikananTangkap() {
         }
       },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: dates },
-      yAxis: { type: 'value', name: 'Volume (Kg)' },
+      xAxis: { 
+        type: 'category', 
+        boundaryGap: false, 
+        data: dates,
+        axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }
+      },
+      yAxis: { 
+        type: 'value', 
+        name: 'Volume (Kg)',
+        nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' },
+        axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' },
+        splitLine: { lineStyle: { color: '#334155' } }
+      },
       dataZoom: [
         { type: 'inside', start: 0, end: 100 },
         { start: 0, end: 100 }
@@ -330,8 +350,6 @@ export default function PerikananTangkap() {
         <DataTable 
           columns={columns} 
           data={data}
-          // Perhatikan bahwa kita TIDAK MENGIRIM props onEdit dan onDelete ke sini,
-          // sehingga tombol Aksi Admin tidak akan muncul di halaman publik ini.
         />
       </div>
 
