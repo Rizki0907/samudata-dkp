@@ -11,14 +11,14 @@ import PerikananTangkap from '../pages/user/PerikananTangkap';
 import KelautanPesisir from '../pages/user/KelautanPesisir';
 import Budidaya from '../pages/user/Budidaya';
 import PengolahanPemasaran from '../pages/user/PengolahanPemasaran';
-import Garam from '../pages/user/Garam';
+
 import Ekspor from '../pages/user/Ekspor';
 
 // Admin Pages
 import AdminKelautanPesisir from '../pages/admin/AdminKelautanPesisir';
 import AdminBudidaya from '../pages/admin/AdminBudidaya';
 import AdminPengolahanPemasaran from '../pages/admin/AdminPengolahanPemasaran';
-import AdminGaram from '../pages/admin/AdminGaram';
+
 import AdminEkspor from '../pages/admin/AdminEkspor';
 
 // Protected Route Guard for Admin
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
       { path: 'kelautan-pesisir', element: <KelautanPesisir /> },
       { path: 'budidaya', element: <Budidaya /> },
       { path: 'pengolahan-pemasaran', element: <PengolahanPemasaran /> },
-      { path: 'garam', element: <Garam /> },
+
       { path: 'ekspor', element: <Ekspor /> },
     ],
   },
@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
       { path: 'kelautan-pesisir', element: <AdminKelautanPesisir /> },
       { path: 'budidaya', element: <AdminBudidaya /> },
       { path: 'pengolahan-pemasaran', element: <AdminPengolahanPemasaran /> },
-      { path: 'garam', element: <AdminGaram /> },
+
       { path: 'ekspor', element: <AdminEkspor /> },
     ],
   },

@@ -13,7 +13,7 @@ const USER_MENUS = [
   { title: 'Kelautan & Pesisir', path: '/user/kelautan-pesisir', icon: Waves },
   { title: 'Budidaya', path: '/user/budidaya', icon: Sprout },
   { title: 'Pengolahan & Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
-  { title: 'Garam', path: '/user/garam', icon: Beaker },
+
   { title: 'Ekspor', path: '/user/ekspor', icon: Globe },
 ];
 
@@ -23,7 +23,7 @@ const ADMIN_MENUS = [
   { title: 'Kelautan & Pesisir', path: '/admin/kelautan-pesisir', icon: Waves },
   { title: 'Budidaya', path: '/admin/budidaya', icon: Sprout },
   { title: 'Pengolahan & Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
-  { title: 'Garam', path: '/admin/garam', icon: Beaker },
+
   { title: 'Ekspor', path: '/admin/ekspor', icon: Globe },
 ];
 
