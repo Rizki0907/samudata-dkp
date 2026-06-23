@@ -61,8 +61,7 @@ model Ekspor {
   nama_komoditas      String
   volume              Float    
   satuan_volume       String   
-  mata_uang           String   @default("USD")
-  nilai               Float    
+  nilai_usd           Float    
   negara_tujuan       String
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt

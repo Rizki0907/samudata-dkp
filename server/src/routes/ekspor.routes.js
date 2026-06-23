@@ -5,11 +5,13 @@ const {
   getAllData,
   createData,
   updateData,
-  deleteData
+  deleteData,
+  getStats
 } = require('../controllers/eksporController');
 
 // Public routes
 router.get('/', getAllData);
+router.get('/stats', getStats);
 
 // Protected routes (Admin only)
 router.post('/', verifyToken, createData);

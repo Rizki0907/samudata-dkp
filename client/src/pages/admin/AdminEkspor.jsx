@@ -107,16 +107,9 @@ export default function AdminEkspor() {
       }
     },
     {
-      header: 'Nilai',
-      accessorKey: 'nilai',
-      cell: info => {
-        const val = info.getValue();
-        const mataUang = info.row.original.mata_uang;
-        if (mataUang === 'IDR') {
-          return formatRupiah(val);
-        }
-        return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-      }
+      header: 'Nilai (USD)',
+      accessorKey: 'nilai_usd',
+      cell: info => `$${info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2 })}`
     }
   ], []);
 

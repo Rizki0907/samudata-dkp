@@ -42,8 +42,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     nama_komoditas: '',
     volume: '',
     satuan_volume: 'KG', // default for Segar dan Olahan
-    mata_uang: 'USD',
-    nilai: '',
+    nilai_usd: '',
     negara_tujuan: '',
     negara_lainnya: ''
   });
@@ -64,8 +63,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         nama_komoditas: initialData.nama_komoditas || '',
         volume: initialData.volume || '',
         satuan_volume: initialData.satuan_volume || 'KG',
-        mata_uang: initialData.mata_uang || 'USD',
-        nilai: initialData.nilai || '',
+        nilai_usd: initialData.nilai_usd || '',
         negara_tujuan: isNegaraPredefined ? initialData.negara_tujuan : 'Lainnya',
         negara_lainnya: !isNegaraPredefined ? initialData.negara_tujuan : ''
       });
@@ -109,10 +107,10 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
       newErrors.volume = 'Volume harus berupa angka';
     }
 
-    if (!formData.nilai) {
-      newErrors.nilai = 'Nilai wajib diisi';
-    } else if (isNaN(formData.nilai)) {
-      newErrors.nilai = 'Nilai harus berupa angka';
+    if (!formData.nilai_usd) {
+      newErrors.nilai_usd = 'Nilai (USD) wajib diisi';
+    } else if (isNaN(formData.nilai_usd)) {
+      newErrors.nilai_usd = 'Nilai harus berupa angka desimal';
     }
 
     if (!formData.negara_tujuan) {
@@ -303,34 +301,19 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Nilai</label>
-              <div className="flex gap-2">
-                <div className="w-28">
-                  <select 
-                    name="mata_uang" 
-                    value={formData.mata_uang} 
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-input bg-muted px-3 py-2 outline-none"
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="IDR">IDR (Rp)</option>
-                  </select>
-                </div>
-                <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {formData.mata_uang === 'USD' ? '$' : 'Rp'}
-                  </span>
-                  <input 
-                    type="text" 
-                    name="nilai" 
-                    value={formData.nilai} 
-                    onChange={handleChange}
-                    placeholder="Misal: 45000.50"
-                    className={cn("w-full rounded-lg border bg-background pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai ? "border-destructive" : "border-input")}
-                  />
-                </div>
+              <label className="block text-sm font-medium mb-2">Nilai (USD)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <input 
+                  type="text" 
+                  name="nilai_usd" 
+                  value={formData.nilai_usd} 
+                  onChange={handleChange}
+                  placeholder="Misal: 45000.50"
+                  className={cn("w-full rounded-lg border bg-background pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_usd ? "border-destructive" : "border-input")}
+                />
               </div>
-              {errors.nilai && <p className="text-xs text-destructive mt-1">{errors.nilai}</p>}
+              {errors.nilai_usd && <p className="text-xs text-destructive mt-1">{errors.nilai_usd}</p>}
             </div>
           </div>
         </section>
