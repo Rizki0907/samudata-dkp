@@ -10,14 +10,14 @@ import Overview from '../pages/user/Overview';
 import PerikananTangkap from '../pages/user/PerikananTangkap';
 import KelautanPesisir from '../pages/user/KelautanPesisir';
 import Budidaya from '../pages/user/Budidaya';
-import PengelolaanPemasaran from '../pages/user/PengelolaanPemasaran';
+import PengolahanPemasaran from '../pages/user/PengolahanPemasaran';
 import Garam from '../pages/user/Garam';
 import Ekspor from '../pages/user/Ekspor';
 
 // Admin Pages
 import AdminKelautanPesisir from '../pages/admin/AdminKelautanPesisir';
 import AdminBudidaya from '../pages/admin/AdminBudidaya';
-import AdminPengelolaanPemasaran from '../pages/admin/AdminPengelolaanPemasaran';
+import AdminPengolahanPemasaran from '../pages/admin/AdminPengolahanPemasaran';
 import AdminGaram from '../pages/admin/AdminGaram';
 import AdminEkspor from '../pages/admin/AdminEkspor';
 
@@ -52,7 +52,7 @@ export const router = createBrowserRouter([
       { path: 'perikanan-tangkap', element: <PerikananTangkap /> },
       { path: 'kelautan-pesisir', element: <KelautanPesisir /> },
       { path: 'budidaya', element: <Budidaya /> },
-      { path: 'pengelolaan', element: <PengelolaanPemasaran /> },
+      { path: 'pengolahan-pemasaran', element: <PengolahanPemasaran /> },
       { path: 'garam', element: <Garam /> },
       { path: 'ekspor', element: <Ekspor /> },
     ],
@@ -69,7 +69,7 @@ export const router = createBrowserRouter([
       { path: 'perikanan-tangkap', element: <AdminPerikananTangkap /> },
       { path: 'kelautan-pesisir', element: <AdminKelautanPesisir /> },
       { path: 'budidaya', element: <AdminBudidaya /> },
-      { path: 'pengelolaan', element: <AdminPengelolaanPemasaran /> },
+      { path: 'pengolahan-pemasaran', element: <AdminPengolahanPemasaran /> },
       { path: 'garam', element: <AdminGaram /> },
       { path: 'ekspor', element: <AdminEkspor /> },
     ],
