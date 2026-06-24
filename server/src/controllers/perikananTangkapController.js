@@ -33,28 +33,37 @@ const getAllData = async (req, res) => {
 // POST new data [ADMIN]
 const createData = async (req, res) => {
   try {
-    const { tanggal, jam_labuh, jam_bongkar, pelabuhan, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, tangkapan } = req.body;
     
-    // Calculate nilai automatically
-    const nilai = parseFloat(volume) * parseFloat(harga);
+    if (!tangkapan || tangkapan.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data tangkapan kosong' });
+    }
 
-    const newData = await prisma.perikananTangkap.create({
-      data: {
+    const records = tangkapan.map(t => {
+      const vol = parseFloat(t.volume) || 0;
+      const hrg = parseFloat(t.harga) || 0;
+      return {
+        sumber_data: sumber_data || 'PELABUHAN',
         tanggal: new Date(tanggal),
         jam_labuh,
         jam_bongkar,
         pelabuhan,
+        kabupaten_kota,
         nama_kapal,
         gt_kapal,
         alat_tangkap,
-        komoditas,
-        volume: parseFloat(volume),
-        harga: parseFloat(harga),
-        nilai
-      }
+        komoditas: t.komoditas,
+        volume: vol,
+        harga: hrg,
+        nilai: vol * hrg
+      };
     });
 
-    res.status(201).json({ success: true, message: 'Data berhasil ditambahkan', data: newData });
+    const newData = await prisma.perikananTangkap.createMany({
+      data: records
+    });
+
+    res.status(201).json({ success: true, message: 'Data berhasil ditambahkan', count: newData.count });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Gagal menambahkan data' });
@@ -65,24 +74,31 @@ const createData = async (req, res) => {
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tanggal, jam_labuh, jam_bongkar, pelabuhan, nama_kapal, gt_kapal, alat_tangkap, komoditas, volume, harga } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, tangkapan } = req.body;
     
-    const nilai = parseFloat(volume) * parseFloat(harga);
+    // Fallback: If tangkapan array exists, pick the first one since Edit only targets one row
+    const item = tangkapan && tangkapan.length > 0 ? tangkapan[0] : req.body;
+    const kom = item.komoditas;
+    const vol = item.volume ? parseFloat(item.volume) : undefined;
+    const hrg = item.harga ? parseFloat(item.harga) : undefined;
+    const nilai = (vol && hrg) ? vol * hrg : undefined;
 
     const updatedData = await prisma.perikananTangkap.update({
       where: { id: parseInt(id) },
       data: {
+        sumber_data,
         tanggal: tanggal ? new Date(tanggal) : undefined,
         jam_labuh,
         jam_bongkar,
         pelabuhan,
+        kabupaten_kota,
         nama_kapal,
         gt_kapal,
         alat_tangkap,
-        komoditas,
-        volume: volume ? parseFloat(volume) : undefined,
-        harga: harga ? parseFloat(harga) : undefined,
-        nilai: (volume && harga) ? nilai : undefined
+        komoditas: kom,
+        volume: vol,
+        harga: hrg,
+        nilai: nilai
       }
     });
 

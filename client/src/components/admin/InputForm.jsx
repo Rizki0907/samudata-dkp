@@ -91,13 +91,9 @@ export function InputForm({ initialData = null, onSubmit, onCancel, isLoading })
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      // Prototype mode: Just pass the first tangkapan so it doesn't break the current backend
       const dataToSubmit = {
         ...formData,
-        sumber_data: sumberData,
-        komoditas: formData.tangkapan[0].komoditas,
-        volume: formData.tangkapan[0].volume,
-        harga: formData.tangkapan[0].harga
+        sumber_data: sumberData
       };
       onSubmit(dataToSubmit);
     }
