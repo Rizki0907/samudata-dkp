@@ -3,9 +3,12 @@ const prisma = require('../utils/prisma');
 const getOverviewStats = async (req, res) => {
   try {
     // === 1. PERIKANAN TANGKAP ===
-    // Mengambil total volume produksi dan jumlah pendaratan unik (sebagai pendekatan jumlah kapal)
-    const tangkapStats = await prisma.perikananTangkap.aggregate({
-      _sum: { volume: true },
+    // Mengambil total volume produksi (dari DetailTangkapan) dan jumlah pendaratan unik (PerikananTangkap)
+    const tangkapVolume = await prisma.detailTangkapan.aggregate({
+      _sum: { volume: true }
+    });
+
+    const tangkapTrip = await prisma.perikananTangkap.aggregate({
       _count: { id: true }
     });
 
@@ -16,8 +19,8 @@ const getOverviewStats = async (req, res) => {
     });
 
     const tangkap = {
-      produksi: tangkapStats._sum.volume || 0,
-      kapal: tangkapStats._count.id || 0, // Asumsi 1 id/trip = 1 unit kapal untuk sementara
+      produksi: tangkapVolume._sum.volume || 0,
+      kapal: tangkapTrip._count.id || 0, // Asumsi 1 id/trip = 1 unit kapal untuk sementara
       pelabuhan: pelabuhanDistinct.length || 0,
       nelayan: 0 // Tidak ada data nelayan di skema saat ini
     };
