@@ -35,7 +35,7 @@ const getOverviewStats = async (req, res) => {
 
     // === 3. EKSPOR (Pengolahan & Pemasaran) ===
     const eksporStats = await prisma.ekspor.aggregate({
-      _sum: { volume_kg: true, nilai_usd: true }
+      _sum: { volume: true, nilai_usd: true }
     });
 
     const negaraDistinct = await prisma.ekspor.findMany({
@@ -44,7 +44,7 @@ const getOverviewStats = async (req, res) => {
     });
 
     const pemasaran = {
-      ekspor_volume: eksporStats._sum.volume_kg || 0,
+      ekspor_volume: eksporStats._sum.volume || 0,
       ekspor_nilai: eksporStats._sum.nilai_usd || 0,
       negara_tujuan: negaraDistinct.length || 0,
       pengolahan: 0,
