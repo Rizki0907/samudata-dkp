@@ -22,21 +22,36 @@ const getOverviewStats = async (req, res) => {
       nelayan: 0 // Tidak ada data nelayan di skema saat ini
     };
 
-    // === 2. PERIKANAN BUDIDAYA (Data Kosong Sementara) ===
+    // === 2. PERIKANAN BUDIDAYA ===
+    const budidayaStats = await prisma.budidaya.aggregate({
+      _sum: { produksi_ton: true },
+      _count: { id: true }
+    });
+
     const budidaya = {
-      produksi: 0,
-      pembudidaya: 0
+      produksi: budidayaStats._sum.produksi_ton || 0, // Dalam Ton
+      pembudidaya: budidayaStats._count.id || 0 // Asumsi jumlah titik/laporan
     };
 
-    // === 3. PENGOLAHAN & PEMASARAN (Data Kosong Sementara) ===
+    // === 3. EKSPOR (Pengolahan & Pemasaran) ===
+    const eksporStats = await prisma.ekspor.aggregate({
+      _sum: { volume_kg: true, nilai_usd: true }
+    });
+
+    const negaraDistinct = await prisma.ekspor.findMany({
+      select: { negara_tujuan: true },
+      distinct: ['negara_tujuan']
+    });
+
     const pemasaran = {
-      ekspor: 0,
-      pemasar: 0,
+      ekspor_volume: eksporStats._sum.volume_kg || 0,
+      ekspor_nilai: eksporStats._sum.nilai_usd || 0,
+      negara_tujuan: negaraDistinct.length || 0,
       pengolahan: 0,
       produk: 0
     };
 
-    // === 4. GARAM (Data Kosong Sementara) ===
+    // === 4. GARAM (Kelautan & Pesisir) ===
     const garam = {
       produksi: 0,
       petambak: 0

@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import PlaceholderPage from '../pages/PlaceholderPage';
 import AdminPerikananTangkap from '../pages/admin/AdminPerikananTangkap';
 import { useAuthStore } from '@/store/authStore';
 
@@ -30,14 +29,6 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Protected Route Guard for User
-const UserRoute = ({ children }) => {
-  const { user } = useAuthStore();
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  return children;
-};
 
 export const router = createBrowserRouter([
   {

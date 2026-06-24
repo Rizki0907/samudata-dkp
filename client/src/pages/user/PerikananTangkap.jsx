@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText } from 'lucide-react';
@@ -25,30 +25,30 @@ export default function PerikananTangkap() {
     tren: []
   });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      let query = '';
-      if (selectedYear) {
-        query = `?startDate=${selectedYear}-01-01&endDate=${selectedYear}-12-31`;
-      }
-      const [dataRes, statsRes] = await Promise.all([
-        api.get(`/perikanan-tangkap${query}`),
-        api.get(`/perikanan-tangkap/stats${query}`)
-      ]);
-
-      setData(dataRes.data.data);
-      if (statsRes.data.data) {
-        setStats(statsRes.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        let query = '';
+        if (selectedYear) {
+          query = `?startDate=${selectedYear}-01-01&endDate=${selectedYear}-12-31`;
+        }
+        const [dataRes, statsRes] = await Promise.all([
+          api.get(`/perikanan-tangkap${query}`),
+          api.get(`/perikanan-tangkap/stats${query}`)
+        ]);
+
+        setData(dataRes.data.data);
+        if (statsRes.data.data) {
+          setStats(statsRes.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchData();
   }, [selectedYear]);
 

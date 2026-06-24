@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { formatDate } from '@/utils/dateHelper';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -24,29 +23,29 @@ export default function Ekspor() {
     negara_tujuan: []
   });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const query = selectedYear ? `?tahun=${selectedYear}` : '';
-      const [dataRes, statsRes] = await Promise.all([
-        api.get(`/ekspor${query}`),
-        api.get(`/ekspor/stats${query}`)
-      ]);
-
-      if (dataRes.data.success) {
-        setData(dataRes.data.data);
-      }
-      if (statsRes.data.success) {
-        setStats(statsRes.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const query = selectedYear ? `?tahun=${selectedYear}` : '';
+        const [dataRes, statsRes] = await Promise.all([
+          api.get(`/ekspor${query}`),
+          api.get(`/ekspor/stats${query}`)
+        ]);
+
+        if (dataRes.data.success) {
+          setData(dataRes.data.data);
+        }
+        if (statsRes.data.success) {
+          setStats(statsRes.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchData();
   }, [selectedYear]);
 
