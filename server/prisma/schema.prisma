@@ -13,17 +13,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SumberDataPT {
+  PELABUHAN
+  PUD
+  KAB_KOTA
+}
+
 // Tabel utama perikanan tangkap harian
 model PerikananTangkap {
-  id            Int      @id @default(autoincrement())
-  tanggal       DateTime
-  jam_labuh     String?
-  jam_bongkar   String?
-  pelabuhan     String
-  nama_kapal    String
-  gt_kapal      String
-  alat_tangkap  String
-  komoditas     String
+  id              Int           @id @default(autoincrement())
+  sumber_data     SumberDataPT  @default(PELABUHAN)
+  tanggal         DateTime
+  jam_labuh       String?
+  jam_bongkar     String?
+  pelabuhan       String?
+  kabupaten_kota  String?
+  nama_kapal      String?
+  gt_kapal        String?
+  alat_tangkap    String?
+  komoditas       String
   volume        Float    // kg
   harga         Float    // rupiah per kg
   nilai         Float    // otomatis: volume × harga
