@@ -96,27 +96,43 @@ export default function AdminPerikananTangkap() {
     {
       header: 'Alat Tangkap',
       accessorKey: 'alat_tangkap'
-    },
-    {
-      header: 'Komoditas',
-      accessorKey: 'komoditas'
-    },
-    {
-      header: 'Volume (Kg)',
-      accessorKey: 'volume',
-      cell: info => info.getValue().toLocaleString('id-ID')
-    },
-    {
-      header: 'Harga (Rp/Kg)',
-      accessorKey: 'harga',
-      cell: info => formatRupiah(info.getValue())
-    },
-    {
-      header: 'Nilai Produksi (Rp)',
-      accessorKey: 'nilai',
-      cell: info => formatRupiah(info.getValue())
     }
   ], []);
+
+  const renderSubComponent = ({ row }) => {
+    const tangkapan = row.original.tangkapan || [];
+    if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
+    
+    return (
+      <div className="p-4 bg-muted/10 border-l-4 border-primary">
+        <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
+          Detail Komoditas Tangkapan
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
+            <thead className="bg-muted text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">Komoditas</th>
+                <th className="px-4 py-2 font-medium">Volume (Kg)</th>
+                <th className="px-4 py-2 font-medium text-right">Harga (Rp/Kg)</th>
+                <th className="px-4 py-2 font-medium text-right">Nilai Produksi (Rp)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-card">
+              {tangkapan.map((item, index) => (
+                <tr key={index} className="hover:bg-muted/50">
+                  <td className="px-4 py-2 font-medium">{item.komoditas}</td>
+                  <td className="px-4 py-2">{item.volume.toLocaleString('id-ID')}</td>
+                  <td className="px-4 py-2 text-right">{formatRupiah(item.harga)}</td>
+                  <td className="px-4 py-2 text-right">{formatRupiah(item.nilai)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -165,19 +181,36 @@ export default function AdminPerikananTangkap() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           exportName={`Perikanan_Tangkap_${new Date().toISOString().split('T')[0]}`}
-          formatExportData={(exportData) => exportData.map(row => ({
-            'Tanggal': row.tanggal ? row.tanggal.split('T')[0] : '',
-            'Jam Labuh': row.jam_labuh,
-            'Jam Bongkar': row.jam_bongkar,
-            'Pelabuhan': row.pelabuhan,
-            'Nama Kapal': row.nama_kapal,
-            'GT Kapal': row.gt_kapal,
-            'Alat Tangkap': row.alat_tangkap,
-            'Komoditas': row.komoditas,
-            'Volume (Kg)': row.volume,
-            'Harga (Rp/Kg)': row.harga,
-            'Nilai Produksi (Rp)': row.nilai
-          }))}
+          renderSubComponent={renderSubComponent}
+          formatExportData={(exportData) => {
+            const flattened = [];
+            exportData.forEach(row => {
+              const baseData = {
+                'Sumber Data': row.sumber_data || 'PELABUHAN',
+                'Tanggal': row.tanggal ? row.tanggal.split('T')[0] : '',
+                'Jam Labuh': row.jam_labuh || '-',
+                'Jam Bongkar': row.jam_bongkar || '-',
+                'Lokasi': row.pelabuhan || row.kabupaten_kota || '-',
+                'Nama Kapal': row.nama_kapal || '-',
+                'GT Kapal': row.gt_kapal || '-',
+                'Alat Tangkap': row.alat_tangkap || '-',
+              };
+              if (row.tangkapan && row.tangkapan.length > 0) {
+                row.tangkapan.forEach(t => {
+                  flattened.push({
+                    ...baseData,
+                    'Komoditas': t.komoditas,
+                    'Volume (Kg)': t.volume,
+                    'Harga (Rp/Kg)': t.harga,
+                    'Nilai Produksi (Rp)': t.nilai
+                  });
+                });
+              } else {
+                flattened.push(baseData);
+              }
+            });
+            return flattened;
+          }}
         />
       )}
     </div>

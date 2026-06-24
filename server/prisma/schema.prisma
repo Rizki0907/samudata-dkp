@@ -31,12 +31,22 @@ model PerikananTangkap {
   nama_kapal      String?
   gt_kapal        String?
   alat_tangkap    String?
-  komoditas       String
-  volume        Float    // kg
-  harga         Float    // rupiah per kg
-  nilai         Float    // otomatis: volume × harga
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  tangkapan       DetailTangkapan[]
+}
+
+// Tabel Anak (Detail Ikan/Komoditas per Trip)
+model DetailTangkapan {
+  id                  Int               @id @default(autoincrement())
+  perikanan_tangkap_id Int
+  komoditas           String
+  volume              Float    // kg
+  harga               Float    // rupiah per kg
+  nilai               Float    // otomatis: volume × harga
+  
+  perikananTangkap    PerikananTangkap  @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
 }
 
 // Tabel untuk file upload sektor lain (metadata)

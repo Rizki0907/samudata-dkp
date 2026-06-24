@@ -5,15 +5,17 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
-export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_kapal', exportName, formatExportData }) {
+export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_kapal', exportName, formatExportData, renderSubComponent }) {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [expanded, setExpanded] = useState({});
 
   const table = useReactTable({
     data,
@@ -22,12 +24,16 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => !!renderSubComponent,
     state: {
       sorting,
       globalFilter,
+      expanded,
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onExpandedChange: setExpanded,
   });
 
   const handleExport = () => {
@@ -82,6 +88,7 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
             <thead className="bg-muted/50 border-b border-border text-muted-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
+                  {renderSubComponent && <th className="px-4 py-4 w-10"></th>}
                   {headerGroup.headers.map((header) => {
                     return (
                       <th
@@ -111,42 +118,58 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
             <tbody className="divide-y divide-border">
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                    {(onEdit || onDelete) && (
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-2">
-                          {onEdit && (
-                            <button
-                              onClick={() => onEdit(row.original)}
-                              className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              onClick={() => onDelete(row.original)}
-                              className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                  <React.Fragment key={row.id}>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      {renderSubComponent && (
+                        <td className="px-4 py-4 w-10 whitespace-nowrap">
+                          <button
+                            onClick={row.getToggleExpandedHandler()}
+                            className="p-1.5 rounded-lg hover:bg-muted/80 text-muted-foreground transition-colors"
+                          >
+                            {row.getIsExpanded() ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </button>
+                        </td>
+                      )}
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                      {(onEdit || onDelete) && (
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-2">
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row.original)}
+                                className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(row.original)}
+                                className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {row.getIsExpanded() && renderSubComponent && (
+                      <tr className="bg-muted/10 border-b border-border">
+                        <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + 1} className="p-0">
+                          {renderSubComponent({ row })}
+                        </td>
+                      </tr>
                     )}
-                  </tr>
+                  </React.Fragment>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (renderSubComponent ? 1 : 0)} className="h-24 text-center text-muted-foreground">
                     Tidak ada data ditemukan.
                   </td>
                 </tr>

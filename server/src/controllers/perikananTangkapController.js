@@ -13,13 +13,21 @@ const getAllData = async (req, res) => {
         lte: new Date(endDate)
       };
     }
-    if (komoditas) where.komoditas = komoditas;
     if (alat_tangkap) where.alat_tangkap = alat_tangkap;
     if (gt_kapal) where.gt_kapal = gt_kapal;
     if (pelabuhan) where.pelabuhan = pelabuhan;
 
+    if (komoditas) {
+      where.tangkapan = {
+        some: { komoditas }
+      };
+    }
+
     const data = await prisma.perikananTangkap.findMany({
       where,
+      include: {
+        tangkapan: true
+      },
       orderBy: { tanggal: 'desc' }
     });
 
@@ -43,6 +51,15 @@ const createData = async (req, res) => {
       const vol = parseFloat(t.volume) || 0;
       const hrg = parseFloat(t.harga) || 0;
       return {
+        komoditas: t.komoditas,
+        volume: vol,
+        harga: hrg,
+        nilai: vol * hrg
+      };
+    });
+
+    const newData = await prisma.perikananTangkap.create({
+      data: {
         sumber_data: sumber_data || 'PELABUHAN',
         tanggal: new Date(tanggal),
         jam_labuh,
@@ -52,18 +69,14 @@ const createData = async (req, res) => {
         nama_kapal,
         gt_kapal,
         alat_tangkap,
-        komoditas: t.komoditas,
-        volume: vol,
-        harga: hrg,
-        nilai: vol * hrg
-      };
+        tangkapan: {
+          create: records
+        }
+      },
+      include: { tangkapan: true }
     });
 
-    const newData = await prisma.perikananTangkap.createMany({
-      data: records
-    });
-
-    res.status(201).json({ success: true, message: 'Data berhasil ditambahkan', count: newData.count });
+    res.status(201).json({ success: true, message: 'Data berhasil ditambahkan', data: newData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Gagal menambahkan data' });
@@ -76,13 +89,24 @@ const updateData = async (req, res) => {
     const { id } = req.params;
     const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, tangkapan } = req.body;
     
-    // Fallback: If tangkapan array exists, pick the first one since Edit only targets one row
-    const item = tangkapan && tangkapan.length > 0 ? tangkapan[0] : req.body;
-    const kom = item.komoditas;
-    const vol = item.volume ? parseFloat(item.volume) : undefined;
-    const hrg = item.harga ? parseFloat(item.harga) : undefined;
-    const nilai = (vol && hrg) ? vol * hrg : undefined;
+    // 1. Delete existing tangkapan for this trip
+    await prisma.detailTangkapan.deleteMany({
+      where: { perikanan_tangkap_id: parseInt(id) }
+    });
 
+    // 2. Format new tangkapan records
+    const records = (tangkapan || []).map(t => {
+      const vol = parseFloat(t.volume) || 0;
+      const hrg = parseFloat(t.harga) || 0;
+      return {
+        komoditas: t.komoditas,
+        volume: vol,
+        harga: hrg,
+        nilai: vol * hrg
+      };
+    });
+
+    // 3. Update trip parent and insert new childs
     const updatedData = await prisma.perikananTangkap.update({
       where: { id: parseInt(id) },
       data: {
@@ -95,11 +119,11 @@ const updateData = async (req, res) => {
         nama_kapal,
         gt_kapal,
         alat_tangkap,
-        komoditas: kom,
-        volume: vol,
-        harga: hrg,
-        nilai: nilai
-      }
+        tangkapan: {
+          create: records
+        }
+      },
+      include: { tangkapan: true }
     });
 
     res.status(200).json({ success: true, message: 'Data berhasil diupdate', data: updatedData });
@@ -113,6 +137,7 @@ const updateData = async (req, res) => {
 const deleteData = async (req, res) => {
   try {
     const { id } = req.params;
+    // Prisma Cascade delete will automatically delete DetailTangkapan
     await prisma.perikananTangkap.delete({
       where: { id: parseInt(id) }
     });
@@ -136,51 +161,76 @@ const getStats = async (req, res) => {
       };
     }
 
-    // Example aggregations
-    const totalVolume = await prisma.perikananTangkap.aggregate({
-      _sum: { volume: true, nilai: true },
-      _count: { id: true },
-      where
+    // Fetch details to compute stats in memory (since relation groupBy is tricky)
+    const details = await prisma.detailTangkapan.findMany({
+      include: {
+        perikananTangkap: true
+      },
+      where: Object.keys(where).length ? { perikananTangkap: where } : {}
     });
 
-    const byKomoditas = await prisma.perikananTangkap.groupBy({
-      by: ['komoditas'],
-      _sum: { volume: true },
-      where,
-      orderBy: { _sum: { volume: 'desc' } }
+    // KPI total
+    let totalVolume = 0;
+    let totalNilai = 0;
+    const byKomoditasMap = {};
+    const byPelabuhanMap = {};
+    const byTanggalMap = {};
+    const tripsSet = new Set();
+
+    details.forEach(d => {
+      totalVolume += d.volume;
+      totalNilai += d.nilai;
+      
+      const tripId = d.perikanan_tangkap_id;
+      tripsSet.add(tripId);
+
+      const tgl = d.perikananTangkap.tanggal.toISOString().split('T')[0];
+      const p = d.perikananTangkap.pelabuhan || d.perikananTangkap.kabupaten_kota || 'Lainnya';
+      const k = d.komoditas;
+
+      // Komoditas grouping
+      if (!byKomoditasMap[k]) byKomoditasMap[k] = 0;
+      byKomoditasMap[k] += d.volume;
+
+      // Pelabuhan grouping
+      if (!byPelabuhanMap[p]) byPelabuhanMap[p] = 0;
+      byPelabuhanMap[p] += d.volume;
+
+      // Tanggal grouping
+      if (!byTanggalMap[tgl]) byTanggalMap[tgl] = { volume: 0, nilai: 0 };
+      byTanggalMap[tgl].volume += d.volume;
+      byTanggalMap[tgl].nilai += d.nilai;
     });
 
-    const byPelabuhan = await prisma.perikananTangkap.groupBy({
-      by: ['pelabuhan'],
-      _sum: { volume: true },
-      where,
-      orderBy: { _sum: { volume: 'desc' } }
-    });
+    // Format output
+    const komoditasStats = Object.keys(byKomoditasMap)
+      .map(k => ({ komoditas: k, _sum: { volume: byKomoditasMap[k] } }))
+      .sort((a,b) => b._sum.volume - a._sum.volume);
 
-    // Aggregate by Date for trend
-    const byTanggal = await prisma.perikananTangkap.groupBy({
-      by: ['tanggal'],
-      _sum: { volume: true, nilai: true },
-      where,
-      orderBy: { tanggal: 'asc' }
-    });
+    const pelabuhanStats = Object.keys(byPelabuhanMap)
+      .map(p => ({ pelabuhan: p, _sum: { volume: byPelabuhanMap[p] } }))
+      .sort((a,b) => b._sum.volume - a._sum.volume);
+
+    const trenStats = Object.keys(byTanggalMap)
+      .sort() // chronological
+      .map(tgl => ({
+        date: tgl,
+        volume: byTanggalMap[tgl].volume,
+        nilai: byTanggalMap[tgl].nilai
+      }));
 
     res.status(200).json({ 
       success: true, 
       data: {
         kpi: {
-          total_volume: totalVolume._sum.volume || 0,
-          total_nilai: totalVolume._sum.nilai || 0,
-          total_trip: totalVolume._count.id || 0,
-          avg_volume_per_trip: totalVolume._count.id > 0 ? (totalVolume._sum.volume / totalVolume._count.id) : 0
+          total_volume: totalVolume,
+          total_nilai: totalNilai,
+          total_trip: tripsSet.size,
+          avg_volume_per_trip: tripsSet.size > 0 ? (totalVolume / tripsSet.size) : 0
         },
-        komoditas: byKomoditas,
-        pelabuhan: byPelabuhan,
-        tren: byTanggal.map(t => ({
-          date: t.tanggal.toISOString().split('T')[0],
-          volume: Number(t._sum.volume),
-          nilai: Number(t._sum.nilai)
-        }))
+        komoditas: komoditasStats,
+        pelabuhan: pelabuhanStats,
+        tren: trenStats
       }
     });
   } catch (error) {
@@ -195,6 +245,7 @@ const exportData = async (req, res) => {
   // For now, we will return JSON and frontend can use SheetJS
   try {
     const data = await prisma.perikananTangkap.findMany({
+      include: { tangkapan: true },
       orderBy: { tanggal: 'desc' }
     });
     res.status(200).json({ success: true, data });
