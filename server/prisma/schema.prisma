@@ -66,3 +66,16 @@ model Ekspor {
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 }
+
+// Tabel Budidaya Perikanan
+model Budidaya {
+  id              Int      @id @default(autoincrement())
+  kabupaten_kota  String
+  tahun           String
+  bulan           String
+  triwulan        String
+  jenis_wadah     String
+  produksi_ton    Float
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}

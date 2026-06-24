@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth.routes');
 const perikananTangkapRoutes = require('./routes/perikananTangkap.routes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const eksporRoutes = require('./routes/ekspor.routes');
+const budidayaRoutes = require('./routes/budidaya.routes');
 const app = express();
 
 // Middleware
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/perikanan-tangkap', perikananTangkapRoutes);
 app.use('/api/ekspor', eksporRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/budidaya', budidayaRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

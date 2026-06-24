@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, Globe, Box, Target, LineChart } from 'lucide-react';
+import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatDate } from '@/utils/dateHelper';
 
@@ -335,7 +335,10 @@ export default function Ekspor() {
       {/* Row 1: Treemap & Bar Ranking */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Komposisi Nilai Ekspor per Komoditas</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <Box className="w-5 h-5 text-blue-500" />
+            <h3 className="text-lg font-semibold text-foreground">Komposisi Nilai Ekspor per Komoditas</h3>
+          </div>
           {stats.treemap && stats.treemap.length > 0 ? (
             <ReactECharts option={treemapOption} style={{ height: '400px', width: '100%' }} />
           ) : (
@@ -346,7 +349,10 @@ export default function Ekspor() {
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Ranking Komoditas Berdasarkan Nilai</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-pink-500" />
+            <h3 className="text-lg font-semibold text-foreground">Ranking Komoditas Berdasarkan Nilai</h3>
+          </div>
           {stats.ranking_komoditas && stats.ranking_komoditas.length > 0 ? (
             <ReactECharts option={rankingOption} style={{ height: '400px', width: '100%' }} />
           ) : (
@@ -359,7 +365,10 @@ export default function Ekspor() {
 
       {/* Row 2: Line Chart Tren Top 5 */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <LineChart className="w-5 h-5 text-emerald-500" />
+          <h3 className="text-lg font-semibold text-foreground">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h3>
+        </div>
         {stats.monthly_data_raw && stats.monthly_data_raw.length > 0 ? (
           <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
         ) : (
@@ -372,7 +381,10 @@ export default function Ekspor() {
       {/* Row 3: Grouped Bar & Negara Tujuan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Perbandingan Volume vs Nilai per Bulan</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-5 h-5 text-purple-500" />
+            <h3 className="text-lg font-semibold text-foreground">Agregat Bulanan: Nilai dan Volume</h3>
+          </div>
           {stats.monthly_aggregate && stats.monthly_aggregate.length > 0 ? (
             <ReactECharts option={groupedBarOption} style={{ height: '400px', width: '100%' }} />
           ) : (
@@ -397,7 +409,10 @@ export default function Ekspor() {
       {/* Table Section */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Rincian Laporan Ekspor</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <FileText className="w-5 h-5 text-slate-500" />
+            <h3 className="text-lg font-semibold text-foreground">Rincian Laporan Ekspor</h3>
+          </div>
           <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
         </div>
 

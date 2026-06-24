@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, Ship, Anchor, Database, TrendingUp } from 'lucide-react';
+import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDate } from '@/utils/dateHelper';
@@ -333,7 +333,10 @@ export default function PerikananTangkap() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart Komoditas */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Volume Berdasarkan Komoditas</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <Fish className="w-5 h-5 text-blue-500" />
+            <h3 className="text-lg font-semibold text-foreground">Volume Berdasarkan Komoditas</h3>
+          </div>
           {stats.komoditas.length > 0 ? (
             <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} />
           ) : (
@@ -345,7 +348,10 @@ export default function PerikananTangkap() {
 
         {/* Chart Pelabuhan */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Volume Berdasarkan Pelabuhan</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-5 h-5 text-pink-500" />
+            <h3 className="text-lg font-semibold text-foreground">Volume Berdasarkan Pelabuhan</h3>
+          </div>
           {stats.pelabuhan.length > 0 ? (
             <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} />
           ) : (
@@ -356,9 +362,12 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* Line Chart Tren */}
+      {/* Row 2: Line Chart */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Tren Volume Pendaratan Harian</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <LineChart className="w-5 h-5 text-emerald-500" />
+          <h3 className="text-lg font-semibold text-foreground">Tren Pendaratan Ikan Harian</h3>
+        </div>
         <p className="text-sm text-muted-foreground mb-4">Anda dapat melakukan *scroll/zoom* pada grafik di bawah ini untuk data yang besar.</p>
         {stats.tren.length > 0 ? (
           <ReactECharts option={trenChartOption} style={{ height: '400px', width: '100%' }} />
@@ -372,7 +381,10 @@ export default function PerikananTangkap() {
       {/* Table Section */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Rincian Data Pendaratan</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <FileText className="w-5 h-5 text-slate-500" />
+            <h3 className="text-lg font-semibold text-foreground">Rincian Data Pendaratan Ikan</h3>
+          </div>
           <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
         </div>
         
