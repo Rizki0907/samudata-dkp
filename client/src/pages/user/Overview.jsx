@@ -147,7 +147,7 @@ export default function Overview() {
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Unit Pengolahan (UPK)</p>
-              <p className="text-2xl font-bold text-orange-600">350 <span className="text-base font-normal text-muted-foreground">Unit</span></p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.pengolahan} <span className="text-base font-normal text-muted-foreground">Unit</span></p>
             </div>
           </div>
         </div>
