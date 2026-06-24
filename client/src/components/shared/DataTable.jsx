@@ -11,7 +11,7 @@ import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit } from 'lucide-r
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
-export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_kapal' }) {
+export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_kapal', exportName, formatExportData }) {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
@@ -32,7 +32,7 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
 
   const handleExport = () => {
     // Exclude 'actions' column when exporting
-    const exportData = data.map(row => {
+    let exportData = data.map(row => {
       const newRow = { ...row };
       delete newRow.id;
       delete newRow.created_at;
@@ -40,10 +40,16 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
       return newRow;
     });
 
+    if (formatExportData) {
+      exportData = formatExportData(exportData);
+    }
+
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-    XLSX.writeFile(workbook, `Ekspor_Samudata_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    const fileName = exportName || `Export_Samudata_${new Date().toISOString().split('T')[0]}`;
+    XLSX.writeFile(workbook, `${fileName}.xlsx`);
   };
 
   return (

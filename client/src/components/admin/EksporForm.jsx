@@ -7,7 +7,8 @@ const BULAN_OPTIONS = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-const TAHUN_OPTIONS = ['2024', '2025', '2026'];
+const currentYear = new Date().getFullYear();
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 const KOMODITAS_SEGAR_OLAHAN = [
   'Ikan Lainnya', 'Udang', 'Rumput Laut', 'Ikan Tuna', 'Ikan Sardine', 'Value Added', 
@@ -36,8 +37,6 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     bulan: '',
     tahun: '',
-    tanggal_ekspor: '',
-    nama_eksportir: '',
     kategori_komoditas: 'Segar dan Olahan',
     nama_komoditas: '',
     volume: '',
@@ -57,8 +56,6 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
       setFormData({
         bulan: initialData.bulan || '',
         tahun: initialData.tahun || '',
-        tanggal_ekspor: initialData.tanggal_ekspor ? new Date(initialData.tanggal_ekspor).toISOString().split('T')[0] : '',
-        nama_eksportir: initialData.nama_eksportir || '',
         kategori_komoditas: initialData.kategori_komoditas || 'Segar dan Olahan',
         nama_komoditas: initialData.nama_komoditas || '',
         volume: initialData.volume || '',
@@ -97,8 +94,6 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     const newErrors = {};
     if (!formData.bulan) newErrors.bulan = 'Bulan wajib diisi';
     if (!formData.tahun) newErrors.tahun = 'Tahun wajib diisi';
-    if (!formData.tanggal_ekspor) newErrors.tanggal_ekspor = 'Tanggal wajib diisi';
-    if (!formData.nama_eksportir) newErrors.nama_eksportir = 'Nama Eksportir wajib diisi';
     if (!formData.nama_komoditas) newErrors.nama_komoditas = 'Komoditas wajib diisi';
     
     if (!formData.volume) {
@@ -128,6 +123,8 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     if (validate()) {
       const finalData = {
         ...formData,
+        nama_eksportir: '-',
+        tanggal_ekspor: new Date().toISOString(),
         negara_tujuan: formData.negara_tujuan === 'Lainnya' ? formData.negara_lainnya : formData.negara_tujuan
       };
       delete finalData.negara_lainnya;
@@ -182,31 +179,6 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                 {TAHUN_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Tanggal Ekspor</label>
-              <input 
-                type="date" 
-                name="tanggal_ekspor" 
-                value={formData.tanggal_ekspor} 
-                onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tanggal_ekspor ? "border-destructive" : "border-input")}
-              />
-              {errors.tanggal_ekspor && <p className="text-xs text-destructive mt-1">{errors.tanggal_ekspor}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Nama Eksportir</label>
-              <input 
-                type="text" 
-                name="nama_eksportir" 
-                value={formData.nama_eksportir} 
-                onChange={handleChange}
-                placeholder="Masukkan nama eksportir"
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nama_eksportir ? "border-destructive" : "border-input")}
-              />
-              {errors.nama_eksportir && <p className="text-xs text-destructive mt-1">{errors.nama_eksportir}</p>}
             </div>
           </div>
         </section>

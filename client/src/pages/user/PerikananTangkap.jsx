@@ -6,9 +6,13 @@ import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDate } from '@/utils/dateHelper';
 
+const currentYear = new Date().getFullYear();
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+
 export default function PerikananTangkap() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [selectedYear, setSelectedYear] = useState('');
   const [stats, setStats] = useState({
     kpi: {
       total_volume: 0,
@@ -24,9 +28,13 @@ export default function PerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      let query = '';
+      if (selectedYear) {
+        query = `?startDate=${selectedYear}-01-01&endDate=${selectedYear}-12-31`;
+      }
       const [dataRes, statsRes] = await Promise.all([
-        api.get('/perikanan-tangkap'),
-        api.get('/perikanan-tangkap/stats')
+        api.get(`/perikanan-tangkap${query}`),
+        api.get(`/perikanan-tangkap/stats${query}`)
       ]);
 
       setData(dataRes.data.data);
@@ -42,7 +50,7 @@ export default function PerikananTangkap() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const columns = useMemo(() => [
     {
@@ -51,18 +59,25 @@ export default function PerikananTangkap() {
       cell: info => formatDate(info.getValue())
     },
     {
-      header: 'Kapal',
-      accessorKey: 'nama_kapal',
-      cell: info => (
-        <div>
-          <p className="font-medium text-foreground">{info.getValue()}</p>
-          <p className="text-xs text-muted-foreground">{info.row.original.gt_kapal}</p>
-        </div>
-      )
+      header: 'Jam Labuh',
+      accessorKey: 'jam_labuh'
+    },
+    {
+      header: 'Jam Bongkar',
+      accessorKey: 'jam_bongkar'
     },
     {
       header: 'Pelabuhan',
       accessorKey: 'pelabuhan'
+    },
+    {
+      header: 'Nama Kapal',
+      accessorKey: 'nama_kapal',
+      cell: info => <p className="font-medium text-foreground">{info.getValue()}</p>
+    },
+    {
+      header: 'GT Kapal',
+      accessorKey: 'gt_kapal'
     },
     {
       header: 'Alat Tangkap',
@@ -83,7 +98,7 @@ export default function PerikananTangkap() {
       cell: info => formatRupiah(info.getValue())
     },
     {
-      header: 'Nilai Produksi',
+      header: 'Nilai Produksi (Rp)',
       accessorKey: 'nilai',
       cell: info => formatRupiah(info.getValue())
     }
@@ -237,11 +252,25 @@ export default function PerikananTangkap() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
-        <p className="text-muted-foreground mt-1">
-          Visualisasi data produksi harian perikanan tangkap pelabuhan secara publik.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
+          <p className="text-muted-foreground mt-1">
+            Visualisasi data produksi harian perikanan tangkap pelabuhan secara publik.
+          </p>
+        </div>
+        <div>
+          <select 
+            value={selectedYear} 
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
+          >
+            <option value="">Semua Tahun</option>
+            {TAHUN_OPTIONS.map(tahun => (
+              <option key={tahun} value={tahun}>{tahun}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
@@ -350,6 +379,20 @@ export default function PerikananTangkap() {
         <DataTable 
           columns={columns} 
           data={data}
+          exportName={`Perikanan_Tangkap_${new Date().toISOString().split('T')[0]}`}
+          formatExportData={(exportData) => exportData.map(row => ({
+            'Tanggal': row.tanggal ? row.tanggal.split('T')[0] : '',
+            'Jam Labuh': row.jam_labuh,
+            'Jam Bongkar': row.jam_bongkar,
+            'Pelabuhan': row.pelabuhan,
+            'Nama Kapal': row.nama_kapal,
+            'GT Kapal': row.gt_kapal,
+            'Alat Tangkap': row.alat_tangkap,
+            'Komoditas': row.komoditas,
+            'Volume (Kg)': row.volume,
+            'Harga (Rp/Kg)': row.harga,
+            'Nilai Produksi (Rp)': row.nilai
+          }))}
         />
       </div>
 

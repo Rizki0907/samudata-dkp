@@ -73,18 +73,25 @@ export default function AdminPerikananTangkap() {
       cell: info => formatDate(info.getValue())
     },
     {
-      header: 'Kapal',
-      accessorKey: 'nama_kapal',
-      cell: info => (
-        <div>
-          <p className="font-medium">{info.getValue()}</p>
-          <p className="text-xs text-muted-foreground">{info.row.original.gt_kapal}</p>
-        </div>
-      )
+      header: 'Jam Labuh',
+      accessorKey: 'jam_labuh'
+    },
+    {
+      header: 'Jam Bongkar',
+      accessorKey: 'jam_bongkar'
     },
     {
       header: 'Pelabuhan',
       accessorKey: 'pelabuhan'
+    },
+    {
+      header: 'Nama Kapal',
+      accessorKey: 'nama_kapal',
+      cell: info => <p className="font-medium">{info.getValue()}</p>
+    },
+    {
+      header: 'GT Kapal',
+      accessorKey: 'gt_kapal'
     },
     {
       header: 'Alat Tangkap',
@@ -100,7 +107,12 @@ export default function AdminPerikananTangkap() {
       cell: info => info.getValue().toLocaleString('id-ID')
     },
     {
-      header: 'Nilai Produksi',
+      header: 'Harga (Rp/Kg)',
+      accessorKey: 'harga',
+      cell: info => formatRupiah(info.getValue())
+    },
+    {
+      header: 'Nilai Produksi (Rp)',
       accessorKey: 'nilai',
       cell: info => formatRupiah(info.getValue())
     }
@@ -152,6 +164,20 @@ export default function AdminPerikananTangkap() {
           data={data}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          exportName={`Perikanan_Tangkap_${new Date().toISOString().split('T')[0]}`}
+          formatExportData={(exportData) => exportData.map(row => ({
+            'Tanggal': row.tanggal ? row.tanggal.split('T')[0] : '',
+            'Jam Labuh': row.jam_labuh,
+            'Jam Bongkar': row.jam_bongkar,
+            'Pelabuhan': row.pelabuhan,
+            'Nama Kapal': row.nama_kapal,
+            'GT Kapal': row.gt_kapal,
+            'Alat Tangkap': row.alat_tangkap,
+            'Komoditas': row.komoditas,
+            'Volume (Kg)': row.volume,
+            'Harga (Rp/Kg)': row.harga,
+            'Nilai Produksi (Rp)': row.nilai
+          }))}
         />
       )}
     </div>

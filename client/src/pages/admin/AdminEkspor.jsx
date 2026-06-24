@@ -70,22 +70,15 @@ export default function AdminEkspor() {
 
   const columns = useMemo(() => [
     {
-      header: 'Tanggal',
-      accessorKey: 'tanggal_ekspor',
-      cell: info => formatDate(info.getValue())
+      header: 'Bulan',
+      accessorKey: 'bulan'
     },
     {
-      header: 'Eksportir',
-      accessorKey: 'nama_eksportir',
-      cell: info => (
-        <div>
-          <p className="font-medium">{info.getValue()}</p>
-          <p className="text-xs text-muted-foreground">{info.row.original.negara_tujuan}</p>
-        </div>
-      )
+      header: 'Tahun',
+      accessorKey: 'tahun'
     },
     {
-      header: 'Kategori',
+      header: 'Kategori Komoditas',
       accessorKey: 'kategori_komoditas',
       cell: info => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -94,22 +87,26 @@ export default function AdminEkspor() {
       )
     },
     {
-      header: 'Komoditas',
+      header: 'Nama Komoditas',
       accessorKey: 'nama_komoditas'
     },
     {
       header: 'Volume',
       accessorKey: 'volume',
-      cell: info => {
-        const val = info.getValue().toLocaleString('id-ID');
-        const unit = info.row.original.satuan_volume;
-        return `${val} ${unit}`;
-      }
+      cell: info => info.getValue().toLocaleString('id-ID')
+    },
+    {
+      header: 'Satuan Volume',
+      accessorKey: 'satuan_volume'
     },
     {
       header: 'Nilai (USD)',
       accessorKey: 'nilai_usd',
       cell: info => `$${info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    },
+    {
+      header: 'Negara Tujuan',
+      accessorKey: 'negara_tujuan'
     }
   ], []);
 
@@ -159,6 +156,17 @@ export default function AdminEkspor() {
           data={data}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          exportName={`Ekspor_Samudata_${new Date().toISOString().split('T')[0]}`}
+          formatExportData={(exportData) => exportData.map(row => ({
+            'Bulan': row.bulan,
+            'Tahun': row.tahun,
+            'Kategori Komoditas': row.kategori_komoditas,
+            'Nama Komoditas': row.nama_komoditas,
+            'Volume': row.volume,
+            'Satuan Volume': row.satuan_volume,
+            'Nilai (USD)': row.nilai_usd,
+            'Negara Tujuan': row.negara_tujuan
+          }))}
         />
       )}
     </div>

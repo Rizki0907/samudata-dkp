@@ -3,7 +3,10 @@ const prisma = new PrismaClient();
 
 const getAllData = async (req, res) => {
   try {
+    const { tahun } = req.query;
+    const where = tahun ? { tahun } : {};
     const data = await prisma.ekspor.findMany({
+      where,
       orderBy: { tanggal_ekspor: 'desc' }
     });
     res.json({ success: true, data });

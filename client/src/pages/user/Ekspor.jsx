@@ -7,9 +7,13 @@ import { formatDate } from '@/utils/dateHelper';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+const currentYear = new Date().getFullYear();
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+
 export default function Ekspor() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [selectedYear, setSelectedYear] = useState('');
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_transaksi: 0 },
     treemap: [],
@@ -23,9 +27,10 @@ export default function Ekspor() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const query = selectedYear ? `?tahun=${selectedYear}` : '';
       const [dataRes, statsRes] = await Promise.all([
-        api.get('/ekspor'),
-        api.get('/ekspor/stats')
+        api.get(`/ekspor${query}`),
+        api.get(`/ekspor/stats${query}`)
       ]);
 
       if (dataRes.data.success) {
@@ -43,26 +48,19 @@ export default function Ekspor() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const columns = useMemo(() => [
     {
-      header: 'Tanggal',
-      accessorKey: 'tanggal_ekspor',
-      cell: info => formatDate(info.getValue())
+      header: 'Bulan',
+      accessorKey: 'bulan'
     },
     {
-      header: 'Eksportir',
-      accessorKey: 'nama_eksportir',
-      cell: info => (
-        <div>
-          <p className="font-medium text-foreground">{info.getValue()}</p>
-          <p className="text-xs text-muted-foreground">{info.row.original.negara_tujuan}</p>
-        </div>
-      )
+      header: 'Tahun',
+      accessorKey: 'tahun'
     },
     {
-      header: 'Kategori',
+      header: 'Kategori Komoditas',
       accessorKey: 'kategori_komoditas',
       cell: info => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -71,22 +69,26 @@ export default function Ekspor() {
       )
     },
     {
-      header: 'Komoditas',
+      header: 'Nama Komoditas',
       accessorKey: 'nama_komoditas'
     },
     {
       header: 'Volume',
       accessorKey: 'volume',
-      cell: info => {
-        const val = info.getValue().toLocaleString('id-ID');
-        const unit = info.row.original.satuan_volume;
-        return `${val} ${unit}`;
-      }
+      cell: info => info.getValue().toLocaleString('id-ID')
+    },
+    {
+      header: 'Satuan Volume',
+      accessorKey: 'satuan_volume'
     },
     {
       header: 'Nilai (USD)',
       accessorKey: 'nilai_usd',
       cell: info => `$${info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    },
+    {
+      header: 'Negara Tujuan',
+      accessorKey: 'negara_tujuan'
     }
   ], []);
 
@@ -270,11 +272,25 @@ export default function Ekspor() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
 
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Ekspor Perikanan</h1>
-        <p className="text-muted-foreground mt-1">
-          Visualisasi data kegiatan ekspor hasil kelautan dan perikanan Jawa Timur.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Ekspor Perikanan</h1>
+          <p className="text-muted-foreground mt-1">
+            Visualisasi data kegiatan ekspor hasil kelautan dan perikanan Jawa Timur.
+          </p>
+        </div>
+        <div>
+          <select 
+            value={selectedYear} 
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
+          >
+            <option value="">Semua Tahun</option>
+            {TAHUN_OPTIONS.map(tahun => (
+              <option key={tahun} value={tahun}>{tahun}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
@@ -308,9 +324,9 @@ export default function Ekspor() {
             <Globe className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Transaksi</p>
-            <p className="text-2xl font-bold text-foreground">
-              {stats.kpi.total_transaksi.toLocaleString('id-ID')}
+            <p className="text-sm font-medium text-muted-foreground">Top Negara Tujuan</p>
+            <p className="text-2xl font-bold text-foreground truncate max-w-[150px]">
+              {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? stats.negara_tujuan[0].negara_tujuan : '-'}
             </p>
           </div>
         </div>
@@ -320,36 +336,61 @@ export default function Ekspor() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-4">Komposisi Nilai Ekspor per Komoditas</h3>
-          <p className="text-sm text-muted-foreground mb-4">Melihat dominasi komoditas secara proporsional. Dibagi menjadi Kategori Segar/Olahan dan Hidup.</p>
-          <ReactECharts option={treemapOption} style={{ height: '400px', width: '100%' }} />
+          {stats.treemap && stats.treemap.length > 0 ? (
+            <ReactECharts option={treemapOption} style={{ height: '400px', width: '100%' }} />
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+              Belum ada data
+            </div>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Ranking Komoditas (Berdasarkan Nilai)</h3>
-          <p className="text-sm text-muted-foreground mb-4">Urutan komoditas penyumbang nilai ekspor terbesar.</p>
-          <ReactECharts option={rankingOption} style={{ height: '400px', width: '100%' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-4">Ranking Komoditas Berdasarkan Nilai</h3>
+          {stats.ranking_komoditas && stats.ranking_komoditas.length > 0 ? (
+            <ReactECharts option={rankingOption} style={{ height: '400px', width: '100%' }} />
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+              Belum ada data
+            </div>
+          )}
         </div>
       </div>
 
       {/* Row 2: Line Chart Tren Top 5 */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-foreground mb-4">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h3>
-        <p className="text-sm text-muted-foreground mb-4">Pergerakan tren 5 komoditas penyumbang nilai terbesar di sepanjang tahun. Sisanya digabung menjadi "Lainnya".</p>
-        <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
+        {stats.monthly_data_raw && stats.monthly_data_raw.length > 0 ? (
+          <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
+        ) : (
+          <div className="h-[450px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+            Belum ada data
+          </div>
+        )}
       </div>
 
       {/* Row 3: Grouped Bar & Negara Tujuan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-4">Perbandingan Volume vs Nilai per Bulan</h3>
-          <p className="text-sm text-muted-foreground mb-4">Agregat total untuk melihat rasio/anomali pergerakan Volume terhadap Nilai Ekspor.</p>
-          <ReactECharts option={groupedBarOption} style={{ height: '400px', width: '100%' }} />
+          {stats.monthly_aggregate && stats.monthly_aggregate.length > 0 ? (
+            <ReactECharts option={groupedBarOption} style={{ height: '400px', width: '100%' }} />
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+              Belum ada data
+            </div>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden">
           <h3 className="text-lg font-semibold text-foreground mb-4 mt-2">Ranking Negara Tujuan</h3>
-          <p className="text-sm text-muted-foreground mb-4">Total nilai ekspor yang dikirimkan ke berbagai belahan dunia.</p>
-          <ReactECharts option={negaraOption} style={{ height: '400px', width: '100%' }} />
+          {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? (
+            <ReactECharts option={negaraOption} style={{ height: '400px', width: '100%' }} />
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+              Belum ada data
+            </div>
+          )}
         </div>
       </div>
 
@@ -357,12 +398,23 @@ export default function Ekspor() {
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-foreground">Rincian Laporan Ekspor</h3>
-          <p className="text-sm text-muted-foreground">Data seluruh transaksi. Anda dapat melakukan pencarian dan pengurutan.</p>
+          <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
         </div>
 
         <DataTable
           columns={columns}
           data={data}
+          exportName={`Ekspor_Samudata_${new Date().toISOString().split('T')[0]}`}
+          formatExportData={(exportData) => exportData.map(row => ({
+            'Bulan': row.bulan,
+            'Tahun': row.tahun,
+            'Kategori Komoditas': row.kategori_komoditas,
+            'Nama Komoditas': row.nama_komoditas,
+            'Volume': row.volume,
+            'Satuan Volume': row.satuan_volume,
+            'Nilai (USD)': row.nilai_usd,
+            'Negara Tujuan': row.negara_tujuan
+          }))}
         />
       </div>
 
