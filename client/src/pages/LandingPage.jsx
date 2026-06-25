@@ -52,7 +52,7 @@ export default function LandingPage() {
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
-          SAMUDATA
+          SAMUDERA
         </h1>
         <p className="text-muted-foreground max-w-md mx-auto text-lg">
           Dashboard Data Kelautan & Perikanan Provinsi Jawa Timur
