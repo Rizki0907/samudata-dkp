@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { ShieldAlert, User, Lock, Loader2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logoDKP from '@/assets/logo_DKP.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -46,9 +47,12 @@ export default function LandingPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="text-center z-10 mb-12">
-        <div className="flex justify-center mb-6">
-          <div className="w-24 h-24 bg-card border border-primary/30 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(0,212,255,0.2)] overflow-hidden p-3">
-            <img src="/icon_DKP.png" alt="Logo DKP" className="w-full h-full object-contain drop-shadow-md" />
+        <div className="flex justify-center items-center gap-6 mb-6">
+          <div className="w-20 h-20 bg-card border border-primary/30 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(0,212,255,0.2)] overflow-hidden p-2">
+            <img src="/icon_DKP.png" alt="Icon DKP" className="w-full h-full object-contain drop-shadow-md" />
+          </div>
+          <div className="h-16 flex items-center">
+            <img src={logoDKP} alt="Logo DKP" className="h-full object-contain drop-shadow-md" />
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
