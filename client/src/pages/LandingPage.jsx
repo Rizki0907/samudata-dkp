@@ -47,15 +47,15 @@ export default function LandingPage() {
 
       <div className="text-center z-10 mb-12">
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 bg-card border border-primary/30 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(0,212,255,0.2)]">
-            <Waves className="w-10 h-10 text-primary" />
+          <div className="w-24 h-24 bg-card border border-primary/30 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(0,212,255,0.2)] overflow-hidden p-3">
+            <img src="/icon_DKP.png" alt="Logo DKP" className="w-full h-full object-contain drop-shadow-md" />
           </div>
         </div>
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
           SAMUDERA
         </h1>
-        <p className="text-muted-foreground max-w-md mx-auto text-lg">
-          Dashboard Data Kelautan & Perikanan Provinsi Jawa Timur
+        <p className="text-muted-foreground max-w-lg mx-auto text-lg leading-relaxed">
+          Sistem Aplikasi Manunggal Data.<br className="hidden md:block"/>Pusat Informasi Kelautan & Perikanan Provinsi Jawa Timur yang terpadu, transparan, dan akurat.
         </p>
       </div>
 

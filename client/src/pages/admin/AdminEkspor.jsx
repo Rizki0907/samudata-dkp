@@ -156,7 +156,7 @@ export default function AdminEkspor() {
           data={data}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          exportName={`Ekspor_Samudata_${new Date().toISOString().split('T')[0]}`}
+          exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
           formatExportData={(exportData) => exportData.map(row => ({
             'Bulan': row.bulan,
             'Tahun': row.tahun,

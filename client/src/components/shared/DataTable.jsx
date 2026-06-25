@@ -54,7 +54,7 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
     
-    const fileName = exportName || `Export_Samudata_${new Date().toISOString().split('T')[0]}`;
+    const fileName = exportName || `Export_Samudera_${new Date().toISOString().split('T')[0]}`;
     XLSX.writeFile(workbook, `${fileName}.xlsx`);
   };
 

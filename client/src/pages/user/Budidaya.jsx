@@ -446,7 +446,7 @@ export default function Budidaya() {
             <DataTable 
               columns={columns} 
               data={data}
-              exportName={`Budidaya_Samudata_${new Date().toISOString().split('T')[0]}`}
+              exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
               formatExportData={(exportData) => exportData.map(row => ({
                 'Tahun': row.tahun,
                 'Bulan': row.bulan,

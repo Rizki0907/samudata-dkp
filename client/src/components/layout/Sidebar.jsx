@@ -48,7 +48,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           </div>
           {!collapsed && (
             <div className="flex flex-col whitespace-nowrap">
-              <span className="font-heading font-bold text-lg leading-tight">SAMUDATA</span>
+              <span className="font-heading font-bold text-lg leading-tight">SAMUDERA</span>
               <span className="text-xs text-muted-foreground">DKP Jawa Timur</span>
             </div>
           )}
