@@ -66,7 +66,66 @@ export default function AdminBudidaya() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleApprove = async (row) => {
+    if (window.confirm(`Yakin ingin menyetujui data ini?`)) {
+      try {
+        await api.put(`/budidaya/${row.id}/status`, { status: 'APPROVED' });
+        fetchData();
+      } catch (error) {
+        console.error('Error approving data:', error);
+        alert('Gagal menyetujui data');
+      }
+    }
+  };
+
+  const handleReject = async (row) => {
+    const alasan = window.prompt('Masukkan alasan penolakan:');
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    
+    try {
+      await api.put(`/budidaya/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
+      fetchData();
+    } catch (error) {
+      console.error('Error rejecting data:', error);
+      alert('Gagal menolak data');
+    }
+  };
+
   const columns = useMemo(() => [
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: info => {
+        const status = info.getValue();
+        const alasan = info.row.original.alasan_penolakan;
+        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+        let label = 'PENDING';
+        if (status === 'APPROVED') {
+          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+          label = 'APPROVED';
+        } else if (status === 'REJECTED') {
+          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+          label = 'REJECTED';
+        }
+        
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
+              {label}
+            </span>
+            {status === 'REJECTED' && alasan && (
+              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
+                (?)
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
     {
       header: 'Tahun',
       accessorKey: 'tahun'
@@ -153,6 +212,8 @@ export default function AdminBudidaya() {
           data={data}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onApprove={handleApprove}
+          onReject={handleReject}
           exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
           formatExportData={(exportData) => exportData.map(row => ({
             'Tahun': row.tahun,

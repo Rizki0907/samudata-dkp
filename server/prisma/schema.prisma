@@ -19,6 +19,12 @@ enum SumberDataPT {
   KAB_KOTA
 }
 
+enum DataStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // Tabel utama perikanan tangkap harian
 model PerikananTangkap {
   id              Int           @id @default(autoincrement())
@@ -31,6 +37,8 @@ model PerikananTangkap {
   nama_kapal      String?
   gt_kapal        String?
   alat_tangkap    String?
+  status          DataStatus @default(PENDING)
+  alasan_penolakan String?
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
@@ -81,6 +89,8 @@ model Ekspor {
   satuan_volume       String   
   nilai_usd           Float    
   negara_tujuan       String
+  status              DataStatus @default(PENDING)
+  alasan_penolakan    String?
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 }
@@ -94,6 +104,8 @@ model Budidaya {
   triwulan        String
   jenis_wadah     String
   produksi_ton    Float
+  status          DataStatus @default(PENDING)
+  alasan_penolakan String?
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 }

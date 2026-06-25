@@ -4,7 +4,9 @@ const prisma = new PrismaClient();
 const getAllData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = tahun ? { tahun } : {};
+    const where = { status: 'APPROVED' };
+    if (tahun) where.tahun = tahun;
+
     const data = await prisma.ekspor.findMany({
       where,
       orderBy: { tanggal_ekspor: 'desc' }
@@ -12,6 +14,18 @@ const getAllData = async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching ekspor data:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const getAdminData = async (req, res) => {
+  try {
+    const data = await prisma.ekspor.findMany({
+      orderBy: { tanggal_ekspor: 'desc' }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching ekspor admin data:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -24,8 +38,11 @@ const createData = async (req, res) => {
       satuan_volume, nilai_usd, negara_tujuan 
     } = req.body;
 
+    const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
+
     const data = await prisma.ekspor.create({
       data: {
+        status: statusData,
         bulan,
         tahun,
         tanggal_ekspor: new Date(tanggal_ekspor),
@@ -55,9 +72,23 @@ const updateData = async (req, res) => {
       satuan_volume, nilai_usd, negara_tujuan 
     } = req.body;
 
+    const existing = await prisma.ekspor.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui Pusat' });
+    }
+
+    let newStatus = existing.status;
+    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      newStatus = 'PENDING';
+    }
+
     const data = await prisma.ekspor.update({
       where: { id: parseInt(id) },
       data: {
+        status: newStatus,
+        alasan_penolakan: newStatus === 'PENDING' ? null : existing.alasan_penolakan,
         bulan,
         tahun,
         tanggal_ekspor: new Date(tanggal_ekspor),
@@ -81,6 +112,13 @@ const updateData = async (req, res) => {
 const deleteData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.ekspor.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui Pusat' });
+    }
+
     await prisma.ekspor.delete({
       where: { id: parseInt(id) }
     });
@@ -94,7 +132,8 @@ const deleteData = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const { tahun } = req.query; 
-    const where = tahun ? { tahun } : {};
+    const where = { status: 'APPROVED' };
+    if (tahun) where.tahun = tahun;
 
     // 1. Treemap (komoditas by kategori)
     const komoditasGroup = await prisma.ekspor.groupBy({
@@ -172,10 +211,36 @@ const getStats = async (req, res) => {
   }
 };
 
+const updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+
+    const updated = await prisma.ekspor.update({
+      where: { id: parseInt(id) },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+
+    res.json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
+  } catch (error) {
+    console.error('Error updating ekspor status:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getAllData,
+  getAdminData,
   createData,
   updateData,
   deleteData,
-  getStats
+  getStats,
+  updateStatus
 };

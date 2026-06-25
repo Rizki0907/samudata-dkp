@@ -30,7 +30,7 @@ const ADMIN_MENUS = [
 export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout } = useAuthStore();
   const location = useLocation();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin_cabang' || user?.role === 'admin_pusat';
   const menus = isAdmin ? ADMIN_MENUS : USER_MENUS;
 
   return (

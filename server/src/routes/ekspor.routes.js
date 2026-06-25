@@ -3,10 +3,12 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/authMiddleware');
 const {
   getAllData,
+  getAdminData,
   createData,
   updateData,
   deleteData,
-  getStats
+  getStats,
+  updateStatus
 } = require('../controllers/eksporController');
 
 // Public routes
@@ -14,8 +16,10 @@ router.get('/', getAllData);
 router.get('/stats', getStats);
 
 // Protected routes (Admin only)
+router.get('/admin', verifyToken, getAdminData);
 router.post('/', verifyToken, createData);
 router.put('/:id', verifyToken, updateData);
 router.delete('/:id', verifyToken, deleteData);
+router.put('/:id/status', verifyToken, updateStatus);
 
 module.exports = router;

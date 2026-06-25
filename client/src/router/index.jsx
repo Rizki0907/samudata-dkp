@@ -23,7 +23,7 @@ import AdminEkspor from '../pages/admin/AdminEkspor';
 // Protected Route Guard for Admin
 const AdminRoute = ({ children }) => {
   const { user } = useAuthStore();
-  if (user?.role !== 'admin') {
+  if (user?.role !== 'admin_cabang' && user?.role !== 'admin_pusat') {
     return <Navigate to="/" replace />;
   }
   return children;

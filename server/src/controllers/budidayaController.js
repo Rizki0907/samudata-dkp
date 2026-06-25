@@ -14,7 +14,7 @@ const getTriwulan = (bulan) => {
 const getAllData = async (req, res) => {
   try {
     const { tahun, triwulan } = req.query;
-    const where = {};
+    const where = { status: 'APPROVED' };
     if (tahun) where.tahun = tahun;
     if (triwulan) where.triwulan = triwulan;
     
@@ -30,10 +30,23 @@ const getAllData = async (req, res) => {
   }
 };
 
+const getAdminData = async (req, res) => {
+  try {
+    const data = await prisma.budidaya.findMany({
+      orderBy: { created_at: 'desc' }
+    });
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching budidaya admin data:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 const getStats = async (req, res) => {
   try {
     const { tahun, triwulan } = req.query;
-    const where = {};
+    const where = { status: 'APPROVED' };
     if (tahun) where.tahun = tahun;
     if (triwulan) where.triwulan = triwulan;
 
@@ -137,9 +150,11 @@ const createData = async (req, res) => {
     } = req.body;
 
     const triwulan = getTriwulan(bulan);
+    const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
 
     const data = await prisma.budidaya.create({
       data: {
+        status: statusData,
         kabupaten_kota,
         tahun,
         bulan,
@@ -165,9 +180,23 @@ const updateData = async (req, res) => {
 
     const triwulan = getTriwulan(bulan);
 
+    const existing = await prisma.budidaya.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui Pusat' });
+    }
+
+    let newStatus = existing.status;
+    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      newStatus = 'PENDING';
+    }
+
     const data = await prisma.budidaya.update({
       where: { id: parseInt(id) },
       data: {
+        status: newStatus,
+        alasan_penolakan: newStatus === 'PENDING' ? null : existing.alasan_penolakan,
         kabupaten_kota,
         tahun,
         bulan,
@@ -187,6 +216,13 @@ const updateData = async (req, res) => {
 const deleteData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.budidaya.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui Pusat' });
+    }
+
     await prisma.budidaya.delete({
       where: { id: parseInt(id) }
     });
@@ -197,10 +233,36 @@ const deleteData = async (req, res) => {
   }
 };
 
+const updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+
+    const updated = await prisma.budidaya.update({
+      where: { id: parseInt(id) },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+
+    res.json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
+  } catch (error) {
+    console.error('Error updating budidaya status:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getAllData,
+  getAdminData,
   getStats,
   createData,
   updateData,
-  deleteData
+  deleteData,
+  updateStatus
 };

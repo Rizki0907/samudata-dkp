@@ -6,7 +6,7 @@ const getAllData = async (req, res) => {
     const { startDate, endDate, komoditas, alat_tangkap, gt_kapal, pelabuhan } = req.query;
     
     // Build filter query
-    const where = {};
+    const where = { status: 'APPROVED' };
     if (startDate && endDate) {
       where.tanggal = {
         gte: new Date(startDate),
@@ -38,6 +38,23 @@ const getAllData = async (req, res) => {
   }
 };
 
+// GET all data [ADMIN] - no status filter
+const getAdminData = async (req, res) => {
+  try {
+    const data = await prisma.perikananTangkap.findMany({
+      include: {
+        tangkapan: true
+      },
+      orderBy: { tanggal: 'desc' }
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data admin' });
+  }
+};
+
 // POST new data [ADMIN]
 const createData = async (req, res) => {
   try {
@@ -58,8 +75,11 @@ const createData = async (req, res) => {
       };
     });
 
+    const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
+
     const newData = await prisma.perikananTangkap.create({
       data: {
+        status: statusData,
         sumber_data: sumber_data || 'PELABUHAN',
         tanggal: new Date(tanggal),
         jam_labuh,
@@ -89,6 +109,19 @@ const updateData = async (req, res) => {
     const { id } = req.params;
     const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, tangkapan } = req.body;
     
+    // Check permission
+    const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui Pusat' });
+    }
+
+    let newStatus = existing.status;
+    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      newStatus = 'PENDING'; // reset ke pending setelah direvisi
+    }
+
     // 1. Delete existing tangkapan for this trip
     await prisma.detailTangkapan.deleteMany({
       where: { perikanan_tangkap_id: parseInt(id) }
@@ -110,6 +143,8 @@ const updateData = async (req, res) => {
     const updatedData = await prisma.perikananTangkap.update({
       where: { id: parseInt(id) },
       data: {
+        status: newStatus,
+        alasan_penolakan: newStatus === 'PENDING' ? null : existing.alasan_penolakan,
         sumber_data,
         tanggal: tanggal ? new Date(tanggal) : undefined,
         jam_labuh,
@@ -137,6 +172,13 @@ const updateData = async (req, res) => {
 const deleteData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+
+    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui Pusat' });
+    }
+
     // Prisma Cascade delete will automatically delete DetailTangkapan
     await prisma.perikananTangkap.delete({
       where: { id: parseInt(id) }
@@ -153,7 +195,7 @@ const getStats = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    const where = {};
+    const where = { status: 'APPROVED' };
     if (startDate && endDate) {
       where.tanggal = {
         gte: new Date(startDate),
@@ -245,6 +287,7 @@ const exportData = async (req, res) => {
   // For now, we will return JSON and frontend can use SheetJS
   try {
     const data = await prisma.perikananTangkap.findMany({
+      where: { status: 'APPROVED' },
       include: { tangkapan: true },
       orderBy: { tanggal: 'desc' }
     });
@@ -254,11 +297,38 @@ const exportData = async (req, res) => {
   }
 };
 
+// PUT status [ADMIN PUSAT]
+const updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+
+    const updated = await prisma.perikananTangkap.update({
+      where: { id: parseInt(id) },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+
+    res.status(200).json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Gagal mengubah status data' });
+  }
+};
+
 module.exports = {
   getAllData,
+  getAdminData,
   createData,
   updateData,
   deleteData,
   getStats,
-  exportData
+  exportData,
+  updateStatus
 };

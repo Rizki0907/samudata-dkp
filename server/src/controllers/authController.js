@@ -8,13 +8,20 @@ const loginAdmin = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Kode admin wajib diisi' });
     }
 
-    if (adminCode !== process.env.ADMIN_CODE) {
+    let role = null;
+    if (adminCode === process.env.ADMIN_CABANG_CODE) {
+      role = 'admin_cabang';
+    } else if (adminCode === process.env.ADMIN_PUSAT_CODE) {
+      role = 'admin_pusat';
+    }
+
+    if (!role) {
       return res.status(401).json({ success: false, message: 'Kode admin salah' });
     }
 
     // Generate JWT
     const token = jwt.sign(
-      { role: 'admin' },
+      { role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );

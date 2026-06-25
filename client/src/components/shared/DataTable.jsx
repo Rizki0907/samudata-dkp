@@ -8,11 +8,13 @@ import {
   getExpandedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_kapal', exportName, formatExportData, renderSubComponent }) {
+export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, searchKey = 'nama_kapal', exportName, formatExportData, renderSubComponent }) {
+  const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -109,7 +111,7 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
                       </th>
                     );
                   })}
-                  {(onEdit || onDelete) && (
+                  {(onEdit || onDelete || onApprove || onReject) && (
                     <th className="px-6 py-4 font-medium text-right">Aksi</th>
                   )}
                 </tr>
@@ -135,20 +137,43 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
-                      {(onEdit || onDelete) && (
+                      {(onEdit || onDelete || onApprove || onReject) && (
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            {onEdit && (
+                            {user?.role === 'admin_pusat' && row.original.status !== 'APPROVED' && onApprove && (
+                              <button
+                                onClick={() => onApprove(row.original)}
+                                title="Setujui Data"
+                                className="p-2 rounded-lg text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            
+                            {user?.role === 'admin_pusat' && row.original.status !== 'REJECTED' && onReject && (
+                              <button
+                                onClick={() => onReject(row.original)}
+                                title="Tolak Data"
+                                className="p-2 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {onEdit && (user?.role === 'admin_pusat' || row.original.status !== 'APPROVED') && (
                               <button
                                 onClick={() => onEdit(row.original)}
+                                title="Edit Data"
                                 className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                             )}
-                            {onDelete && (
+                            
+                            {onDelete && (user?.role === 'admin_pusat' || row.original.status !== 'APPROVED') && (
                               <button
                                 onClick={() => onDelete(row.original)}
+                                title="Hapus Data"
                                 className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -169,7 +194,7 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (renderSubComponent ? 1 : 0)} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={columns.length + (onEdit || onDelete || onApprove || onReject ? 1 : 0) + (renderSubComponent ? 1 : 0)} className="h-24 text-center text-muted-foreground">
                     Tidak ada data ditemukan.
                   </td>
                 </tr>
@@ -178,6 +203,8 @@ export function DataTable({ columns, data, onEdit, onDelete, searchKey = 'nama_k
           </table>
         </div>
       </div>
+      
+      {/* Reject Modal / Action confirmation can be handled by parent */}
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
