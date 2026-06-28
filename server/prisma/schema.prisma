@@ -109,3 +109,40 @@ model Budidaya {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 }
+
+// Tabel Budidaya Perikanan
+model Garam {
+  id               Int        @id @default(autoincrement())
+  status           DataStatus @default(PENDING)
+  alasan_penolakan String?
+
+  bulan            String     // "Januari", "Februari", dst
+  triwulan         String     // "TW 1" - "TW 4" (dihitung otomatis di controller)
+  tahun            Int
+  kabupaten_kota   String
+
+  luas_total_ha    Float      @default(0)
+  luas_produksi_ha Float      @default(0)
+  jumlah_kelompok  Int        @default(0)
+  jumlah_petambak  Int        @default(0)
+
+  produksi_k1_ton  Float      @default(0)
+  stok_k1_ton      Float      @default(0)
+  harga_k1_rp      Float      @default(0)
+
+  produksi_k2_ton  Float      @default(0)
+  stok_k2_ton      Float      @default(0)
+  harga_k2_rp      Float      @default(0)
+
+  produksi_k3_ton  Float      @default(0)
+  stok_k3_ton      Float      @default(0)
+  harga_k3_rp      Float      @default(0)
+
+  // Kalkulasi — disimpan di DB supaya query statistik cepat
+  total_produksi_ton Float    @default(0)
+  total_stok_ton     Float    @default(0)
+  produktivitas      Float    @default(0)  // Ton/Ha
+
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+}
