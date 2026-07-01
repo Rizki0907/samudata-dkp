@@ -1,1 +1,0 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { await prisma.perikananTangkap.updateMany({ data: { status: 'APPROVED' } }); await prisma.ekspor.updateMany({ data: { status: 'APPROVED' } }); await prisma.budidaya.updateMany({ data: { status: 'APPROVED' } }); console.log('Selesai update status'); } main();

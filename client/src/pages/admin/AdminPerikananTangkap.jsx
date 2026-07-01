@@ -16,7 +16,7 @@ export default function AdminPerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/perikanan-tangkap');
+      const res = await api.get('/perikanan-tangkap/admin');
       setData(res.data.data);
     } catch (error) {
       console.error('Error fetching data:', error);

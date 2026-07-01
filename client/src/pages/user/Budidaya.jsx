@@ -27,6 +27,33 @@ export default function Budidaya() {
     heatmapData: []
   });
 
+  const [filterKomoditas, setFilterKomoditas] = useState('');
+  const [filterKabupaten, setFilterKabupaten] = useState('');
+  const [filterWadah, setFilterWadah] = useState('');
+  const [filterTw, setFilterTw] = useState('');
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState('');
+
+  const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
+  const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
+  const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
+  const twOptions = useMemo(() => [...new Set(data.map(d => d.triwulan))].filter(Boolean).sort(), [data]);
+  const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
+  const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      if (filterKomoditas && item.komoditas !== filterKomoditas) return false;
+      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
+      if (filterWadah && item.jenis_wadah !== filterWadah) return false;
+      if (filterTw && item.triwulan !== filterTw) return false;
+      if (filterBulan && item.bulan !== filterBulan) return false;
+      if (filterTahun && item.tahun !== filterTahun) return false;
+      return true;
+    });
+  }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
+
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -443,9 +470,38 @@ export default function Budidaya() {
               </div>
               <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
             </div>
+
+        <div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Tahun</option>
+              {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Triwulan</option>
+              {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Bulan</option>
+              {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Kab/Kota</option>
+              {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Komoditas</option>
+              {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Wadah</option>
+              {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+
             <DataTable 
               columns={columns} 
-              data={data}
+              data={filteredData}
               exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
               formatExportData={(exportData) => exportData.map(row => ({
                 'Tahun': row.tahun,
@@ -456,6 +512,7 @@ export default function Budidaya() {
                 'Produksi (Ton)': row.produksi_ton
               }))}
             />
+              </div>
           </div>
         </div>
       )}

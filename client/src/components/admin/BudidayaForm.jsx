@@ -29,13 +29,27 @@ const JENIS_WADAH_OPTIONS = [
   'Japung/KJA Tawar'
 ];
 
+const KOMODITAS_DATA = {
+  'Ikan air tawar': ['Bandeng', 'Bawal', 'Belanak', 'Belut Sawah', 'Gabus', 'Gurame', 'Ikan Mas / Karper', 'Kerong-Kerong', 'Lele', 'Mujair', 'Nila', 'Patin', 'Tawes'],
+  'Ikan laut / payau': ['Kakap Putih', 'Kerapu Cantang', 'Kerapu Macan', 'Teri', 'Ikan betutu', 'Ikan Keting', 'Ikan Lainnya'],
+  'Lobster': ['Lobster Air Laut', 'Lobster Air Tawar / Cherax'],
+  'Udang': ['Udang Vaname', 'Udang Windu', 'Udang Galah', 'Udang Putih', 'Udang Api-Api', 'Udang Rebon', 'Udang Lainnya'],
+  'Kepiting & rajungan': ['Kepiting Bakau', 'Rajungan'],
+  'Kerang & moluska': ['Kerang Hijau', 'Kerang Darah', 'Tiram'],
+  'Rumput laut': ['Eucheuma cottonii', 'Gracilaria verrucosa']
+};
+
+
 export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
     kabupaten_kota: '',
     tahun: '',
     bulan: '',
+    kategori_komoditas: '',
+    komoditas: '',
     jenis_wadah: 'Tambak',
-    produksi_ton: ''
+    produksi_ton: '',
+    nilai_rp: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -46,15 +60,24 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
         kabupaten_kota: initialData.kabupaten_kota || '',
         tahun: initialData.tahun || '',
         bulan: initialData.bulan || '',
+        kategori_komoditas: initialData.kategori_komoditas && initialData.kategori_komoditas !== '-' ? initialData.kategori_komoditas : '',
+        komoditas: initialData.komoditas && initialData.komoditas !== '-' ? initialData.komoditas : '',
         jenis_wadah: initialData.jenis_wadah || 'Tambak',
-        produksi_ton: initialData.produksi_ton || ''
+        produksi_ton: initialData.produksi_ton || '',
+        nilai_rp: initialData.nilai_rp || ''
       });
     }
   }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'kategori_komoditas') {
+      setFormData(prev => ({ ...prev, kategori_komoditas: value, komoditas: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -65,12 +88,19 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
     if (!formData.kabupaten_kota) newErrors.kabupaten_kota = 'Kabupaten/Kota wajib diisi';
     if (!formData.tahun) newErrors.tahun = 'Tahun wajib diisi';
     if (!formData.bulan) newErrors.bulan = 'Bulan wajib diisi';
+    if (!formData.kategori_komoditas) newErrors.kategori_komoditas = 'Kategori komoditas wajib diisi';
+    if (!formData.komoditas) newErrors.komoditas = 'Komoditas wajib diisi';
     if (!formData.jenis_wadah) newErrors.jenis_wadah = 'Jenis Wadah wajib diisi';
     
     if (!formData.produksi_ton) {
       newErrors.produksi_ton = 'Produksi wajib diisi';
     } else if (isNaN(formData.produksi_ton) || parseFloat(formData.produksi_ton) < 0) {
       newErrors.produksi_ton = 'Produksi harus berupa angka valid';
+    }
+    if (!formData.nilai_rp) {
+      newErrors.nilai_rp = 'Nilai wajib diisi';
+    } else if (isNaN(formData.nilai_rp) || parseFloat(formData.nilai_rp) < 0) {
+      newErrors.nilai_rp = 'Nilai harus berupa angka valid';
     }
 
     setErrors(newErrors);
@@ -165,18 +195,66 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
               {errors.jenis_wadah && <p className="text-xs text-destructive mt-1">{errors.jenis_wadah}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Produksi (Ton)</label>
-              <input 
-                type="number" 
-                step="0.01"
-                name="produksi_ton" 
-                value={formData.produksi_ton} 
-                onChange={handleChange}
-                placeholder="Misal: 15.5"
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.produksi_ton ? "border-destructive" : "border-input")}
-              />
-              {errors.produksi_ton && <p className="text-xs text-destructive mt-1">{errors.produksi_ton}</p>}
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+              <div>
+                <label className="block text-sm font-medium mb-2">Kategori Komoditas</label>
+                <select 
+                  name="kategori_komoditas" 
+                  value={formData.kategori_komoditas} 
+                  onChange={handleChange}
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kategori_komoditas ? "border-destructive" : "border-input")}
+                >
+                  <option value="">Pilih Kategori Komoditas</option>
+                  {Object.keys(KOMODITAS_DATA).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                {errors.kategori_komoditas && <p className="text-xs text-destructive mt-1">{errors.kategori_komoditas}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Komoditas</label>
+                <select 
+                  name="komoditas" 
+                  value={formData.komoditas} 
+                  onChange={handleChange}
+                  disabled={!formData.kategori_komoditas}
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50", errors.komoditas ? "border-destructive" : "border-input")}
+                >
+                  <option value="">Pilih Komoditas</option>
+                  {formData.kategori_komoditas && KOMODITAS_DATA[formData.kategori_komoditas]?.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.komoditas && <p className="text-xs text-destructive mt-1">{errors.komoditas}</p>}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+              <div>
+                <label className="block text-sm font-medium mb-2">Produksi (Ton)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  name="produksi_ton" 
+                  value={formData.produksi_ton} 
+                  onChange={handleChange}
+                  placeholder="Misal: 15.5"
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.produksi_ton ? "border-destructive" : "border-input")}
+                />
+                {errors.produksi_ton && <p className="text-xs text-destructive mt-1">{errors.produksi_ton}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Nilai (Rp)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  name="nilai_rp" 
+                  value={formData.nilai_rp} 
+                  onChange={handleChange}
+                  placeholder="Misal: 15000000"
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_rp ? "border-destructive" : "border-input")}
+                />
+                {errors.nilai_rp && <p className="text-xs text-destructive mt-1">{errors.nilai_rp}</p>}
+              </div>
             </div>
           </div>
         </section>

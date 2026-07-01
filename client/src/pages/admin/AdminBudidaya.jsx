@@ -11,10 +11,37 @@ export default function AdminBudidaya() {
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  const [filterKomoditas, setFilterKomoditas] = useState('');
+  const [filterKabupaten, setFilterKabupaten] = useState('');
+  const [filterWadah, setFilterWadah] = useState('');
+  const [filterTw, setFilterTw] = useState('');
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState('');
+
+  const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
+  const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
+  const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
+  const twOptions = useMemo(() => [...new Set(data.map(d => d.triwulan))].filter(Boolean).sort(), [data]);
+  const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
+  const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      if (filterKomoditas && item.komoditas !== filterKomoditas) return false;
+      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
+      if (filterWadah && item.jenis_wadah !== filterWadah) return false;
+      if (filterTw && item.triwulan !== filterTw) return false;
+      if (filterBulan && item.bulan !== filterBulan) return false;
+      if (filterTahun && item.tahun !== filterTahun) return false;
+      return true;
+    });
+  }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
+
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/budidaya');
+      const response = await api.get('/budidaya/admin');
       if (response.data.success) {
         setData(response.data.data);
       }
@@ -111,7 +138,6 @@ export default function AdminBudidaya() {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
           label = 'REJECTED';
         }
-        
         return (
           <div className="flex items-center gap-2">
             <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
@@ -126,42 +152,15 @@ export default function AdminBudidaya() {
         );
       }
     },
-    {
-      header: 'Tahun',
-      accessorKey: 'tahun'
-    },
-    {
-      header: 'Bulan',
-      accessorKey: 'bulan'
-    },
-    {
-      header: 'Triwulan',
-      accessorKey: 'triwulan',
-      cell: info => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-          {info.getValue()}
-        </span>
-      )
-    },
-    {
-      header: 'Kabupaten/Kota',
-      accessorKey: 'kabupaten_kota',
-      cell: info => <p className="font-medium text-foreground">{info.getValue()}</p>
-    },
-    {
-      header: 'Jenis Wadah',
-      accessorKey: 'jenis_wadah',
-      cell: info => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-          {info.getValue()}
-        </span>
-      )
-    },
-    {
-      header: 'Produksi (Ton)',
-      accessorKey: 'produksi_ton',
-      cell: info => info.getValue().toLocaleString('id-ID')
-    }
+    { header: 'Tahun', accessorKey: 'tahun' },
+    { header: 'Bulan', accessorKey: 'bulan' },
+    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{info.getValue()}</span>) },
+    { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
+    { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
+    { header: 'Komoditas', accessorKey: 'komoditas' },
+    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
+    { header: 'Produksi (Ton)', accessorKey: 'produksi_ton', cell: info => info.getValue().toLocaleString('id-ID') },
+    { header: 'Nilai (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
   ], []);
 
   return (
@@ -207,9 +206,38 @@ export default function AdminBudidaya() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : (
+
+        <div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Tahun</option>
+              {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Triwulan</option>
+              {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Bulan</option>
+              {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Kab/Kota</option>
+              {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Komoditas</option>
+              {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Wadah</option>
+              {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+
         <DataTable 
           columns={columns} 
-          data={data}
+          data={filteredData}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onApprove={handleApprove}
@@ -220,10 +248,14 @@ export default function AdminBudidaya() {
             'Bulan': row.bulan,
             'Triwulan': row.triwulan,
             'Kabupaten/Kota': row.kabupaten_kota,
+            'Kategori Komoditas': row.kategori_komoditas,
+            'Komoditas': row.komoditas,
             'Jenis Wadah': row.jenis_wadah,
-            'Produksi (Ton)': row.produksi_ton
+            'Produksi (Ton)': row.produksi_ton,
+            'Nilai (Rp)': row.nilai_rp
           }))}
         />
+        </div>
       )}
     </div>
   );

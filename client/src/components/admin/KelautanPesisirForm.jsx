@@ -34,7 +34,7 @@ const TwBadge = ({ tw }) => {
   );
 };
 
-export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState(initialData || {
     bulan: 'Januari',
     tahun: new Date().getFullYear(),

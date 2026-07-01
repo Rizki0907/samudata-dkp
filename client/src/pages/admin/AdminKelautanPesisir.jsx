@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Loader2, Map, Waves, TreePine, Trash2, X, Save, FlaskConical, Layers, BarChart3, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { GaramForm } from '@/components/admin/GaramForm';
+import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 
 // ─── MOCK DEPENDENCIES (hapus & ganti import asli saat deploy) ───────────────
 const formatRupiah = (angka) => {
@@ -592,7 +592,7 @@ export default function AdminKelautanPesisir() {
       {isFormOpen ? (
         activeTab === 'garam' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <GaramForm
+            <KelautanPesisirForm
               initialData={editingData}
               isLoading={submitLoading}
               onSubmit={handleCreateOrUpdate}

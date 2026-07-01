@@ -39,8 +39,9 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
   });
 
   const handleExport = () => {
-    // Exclude 'actions' column when exporting
-    let exportData = data.map(row => {
+    // Exclude 'actions' column when exporting, and only export filtered data
+    const rowsToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    let exportData = rowsToExport.map(row => {
       const newRow = { ...row };
       delete newRow.id;
       delete newRow.created_at;
