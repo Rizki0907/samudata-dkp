@@ -42,12 +42,9 @@ const getTriwulan = (bulan) => {
 };
 
 const KAB_KOTA_JATIM = [
-  "Bangkalan", "Banyuwangi", "Blitar", "Bojonegoro", "Bondowoso", "Gresik", "Jember",
-  "Jombang", "Kediri", "Lamongan", "Lumajang", "Madiun", "Magetan", "Malang",
-  "Mojokerto", "Nganjuk", "Ngawi", "Pacitan", "Pamekasan", "Pasuruan", "Ponorogo",
-  "Probolinggo", "Sampang", "Sidoarjo", "Situbondo", "Sumenep", "Trenggalek", "Tuban", "Tulungagung",
-  "Kota Batu", "Kota Blitar", "Kota Kediri", "Kota Madiun", "Kota Malang", "Kota Mojokerto",
-  "Kota Pasuruan", "Kota Probolinggo", "Kota Surabaya"
+  "Bangkalan", "Blitar", "Gresik", "Kota Pasuruan", "Lamongan",
+  "PT. Garam", "Pamekasan", "Pasuruan", "Probolinggo", "Sampang",
+  "Sidoarjo", "Situbondo", "Sumenep", "Surabaya", "Tuban"
 ];
 
 const DUMMY_MANGROVE = [
@@ -384,8 +381,8 @@ export default function AdminKelautanPesisir() {
       cell: info => <span className="text-[#c8dff0]">{formatBulan(info.getValue())}</span>
     },
     {
-      header: 'TW', accessorKey: 'triwulan',
-      cell: info => <TwBadge tw={info.getValue()} />
+      header: <div className="text-center w-full">TW</div>, accessorKey: 'triwulan',
+      cell: info => <div className="text-center w-full"><TwBadge tw={info.getValue()} /></div>
     },
     {
       header: 'Tahun', accessorKey: 'tahun',
@@ -483,12 +480,16 @@ export default function AdminKelautanPesisir() {
                   <span className="font-semibold text-[#c8dff0]">{(k.produksi || 0).toLocaleString('id-ID')} Ton</span>
                 </div>
                 <div className="flex justify-between items-center text-[#7fb5d5]">
-                  <span>Sisa Stok:</span>
+                  <span>Stok:</span>
                   <span className={`font-semibold ${k.stokCls}`}>{(k.stok || 0).toLocaleString('id-ID')} Ton</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-[#1e3a52] mt-2">
-                  <span className="text-[#7fb5d5] text-xs">Harga Berlaku</span>
+                  <span className="text-[#7fb5d5] text-xs">Harga</span>
                   <span className="font-bold text-[#c8dff0]">{formatRupiah(k.harga)}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-[#7fb5d5] text-xs">Nilai Produksi</span>
+                  <span className="font-bold text-[#c8dff0]">{((k.produksi || 0) * (k.harga || 0)).toLocaleString('id-ID')}</span>
                 </div>
               </div>
             </div>

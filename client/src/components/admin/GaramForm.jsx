@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import { Save, Loader2, FlaskConical, X, BarChart3 } from 'lucide-react';
 
-const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const NAMA_BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const getTriwulan = (bulan) => {
   const b = bulan?.toLowerCase() ?? '';
-  if (['januari','februari','maret'].includes(b)) return 'TW 1';
-  if (['april','mei','juni'].includes(b)) return 'TW 2';
-  if (['juli','agustus','september'].includes(b)) return 'TW 3';
-  if (['oktober','november','desember'].includes(b)) return 'TW 4';
+  if (['januari', 'februari', 'maret'].includes(b)) return 'TW 1';
+  if (['april', 'mei', 'juni'].includes(b)) return 'TW 2';
+  if (['juli', 'agustus', 'september'].includes(b)) return 'TW 3';
+  if (['oktober', 'november', 'desember'].includes(b)) return 'TW 4';
   return '-';
 };
 
 const KAB_KOTA_JATIM = [
-  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember',
-  'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan', 'Malang',
-  'Mojokerto', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo',
-  'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 'Trenggalek', 'Tuban', 'Tulungagung',
-  'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang', 'Kota Mojokerto',
-  'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya'
+  'Bangkalan', 'Blitar', 'Gresik', 'Kota Pasuruan', 'Lamongan',
+  'PT. Garam', 'Pamekasan', 'Pasuruan', 'Probolinggo', 'Sampang',
+  'Sidoarjo', 'Situbondo', 'Sumenep', 'Surabaya', 'Tuban'
 ];
 
 const TwBadge = ({ tw }) => {
@@ -91,7 +88,7 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
     onSubmit(finalData);
   };
 
-  const inputCls = "w-full h-10 rounded-md border border-[#1e3a52] bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72] transition-shadow";
+  const inputCls = "w-full h-10 rounded-md border border-[#1e3a52] bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72] transition-shadow [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
   const labelCls = "text-xs font-semibold text-[#7fb5d5] uppercase tracking-wider";
 
   return (
@@ -111,27 +108,27 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Row 1: Periode & Lokasi */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 text-center">
           <div className="space-y-2">
             <label className={labelCls}>Bulan Laporan</label>
-            <select name="bulan" value={formData.bulan} onChange={handleChange} className={inputCls + " appearance-none"}>
+            <select name="bulan" value={formData.bulan} onChange={handleChange} className={inputCls + " text-center pr-10"}>
               {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-center">
             <label className={labelCls}>Triwulan</label>
             {/* Read-only, otomatis dari bulan */}
-            <div className="h-10 flex items-center">
+            <div className="h-10 flex items-center justify-center">
               <TwBadge tw={triwulan} />
             </div>
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Tahun</label>
-            <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} className={inputCls} required />
+            <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputCls + " text-center"} required />
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Kabupaten / Kota</label>
-            <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputCls + " appearance-none"} required>
+            <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputCls + " text-center pr-10"} required>
               <option value="" disabled>-- Pilih Kab/Kota --</option>
               {KAB_KOTA_JATIM.map(kab => <option key={kab} value={kab}>{kab}</option>)}
             </select>
@@ -142,19 +139,19 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 bg-[#0b1929] p-5 rounded-xl border border-[#1e3a52]">
           <div className="space-y-2">
             <label className={labelCls}>Luas Lahan Total (Ha)</label>
-            <input type="number" step="0.01" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputCls} placeholder="0" />
+            <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputCls} placeholder="0" />
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Luas Produksi (Ha)</label>
-            <input type="number" step="0.01" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={inputCls} placeholder="0" />
+            <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={inputCls} placeholder="0" />
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Jumlah Kelompok</label>
-            <input type="number" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={inputCls} placeholder="0" />
+            <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={inputCls} placeholder="0" />
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Jumlah Petambak</label>
-            <input type="number" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputCls} placeholder="0" />
+            <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputCls} placeholder="0" />
           </div>
         </div>
 
@@ -169,15 +166,19 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" name="produksi_k1_ton" value={formData.produksi_k1_ton} onChange={handleChange} className="w-full h-10 rounded-md border border-cyan-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72]" placeholder="0" />
+                <input type="number" step="0.01" min="0" name="produksi_k1_ton" value={formData.produksi_k1_ton} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Sisa Stok (Ton)</label>
-                <input type="number" step="0.01" name="stok_k1_ton" value={formData.stok_k1_ton} onChange={handleChange} className="w-full h-10 rounded-md border border-cyan-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72]" placeholder="0" />
+                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Stok (Ton)</label>
+                <input type="number" step="0.01" min="0" name="stok_k1_ton" value={formData.stok_k1_ton} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Harga Jual (Rp/Kg)</label>
-                <input type="number" name="harga_k1_rp" value={formData.harga_k1_rp} onChange={handleChange} className="w-full h-10 rounded-md border border-cyan-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72]" placeholder="Mis: 2200" />
+                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Harga (Rp)</label>
+                <input type="number" min="0" name="harga_k1_rp" value={formData.harga_k1_rp} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="Mis: 2200" />
+              </div>
+              <div className="pt-2 border-t border-cyan-500/20 flex justify-between items-center">
+                <span className="text-xs font-semibold text-cyan-400/70 uppercase">Nilai Produksi</span>
+                <span className="text-sm font-bold text-cyan-300">{(pk1 * (parseFloat(formData.harga_k1_rp) || 0)).toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
@@ -191,15 +192,19 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" name="produksi_k2_ton" value={formData.produksi_k2_ton} onChange={handleChange} className="w-full h-10 rounded-md border border-amber-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder-[#3a5a72]" placeholder="0" />
+                <input type="number" step="0.01" min="0" name="produksi_k2_ton" value={formData.produksi_k2_ton} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Sisa Stok (Ton)</label>
-                <input type="number" step="0.01" name="stok_k2_ton" value={formData.stok_k2_ton} onChange={handleChange} className="w-full h-10 rounded-md border border-amber-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder-[#3a5a72]" placeholder="0" />
+                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Stok (Ton)</label>
+                <input type="number" step="0.01" min="0" name="stok_k2_ton" value={formData.stok_k2_ton} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Harga Jual (Rp/Kg)</label>
-                <input type="number" name="harga_k2_rp" value={formData.harga_k2_rp} onChange={handleChange} className="w-full h-10 rounded-md border border-amber-500/30 bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder-[#3a5a72]" placeholder="Mis: 1700" />
+                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Harga (Rp)</label>
+                <input type="number" min="0" name="harga_k2_rp" value={formData.harga_k2_rp} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="Mis: 1700" />
+              </div>
+              <div className="pt-2 border-t border-amber-500/20 flex justify-between items-center">
+                <span className="text-xs font-semibold text-amber-400/70 uppercase">Nilai Produksi</span>
+                <span className="text-sm font-bold text-amber-300">{(pk2 * (parseFloat(formData.harga_k2_rp) || 0)).toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
@@ -213,15 +218,19 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" name="produksi_k3_ton" value={formData.produksi_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
+                <input type="number" step="0.01" min="0" name="produksi_k3_ton" value={formData.produksi_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Sisa Stok (Ton)</label>
-                <input type="number" step="0.01" name="stok_k3_ton" value={formData.stok_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
+                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Stok (Ton)</label>
+                <input type="number" step="0.01" min="0" name="stok_k3_ton" value={formData.stok_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Harga Jual (Rp/Kg)</label>
-                <input type="number" name="harga_k3_rp" value={formData.harga_k3_rp} onChange={handleChange} className={inputCls} placeholder="Kosongkan jika tdk ada" />
+                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Harga (Rp)</label>
+                <input type="number" min="0" name="harga_k3_rp" value={formData.harga_k3_rp} onChange={handleChange} className={inputCls} placeholder="Kosongkan jika tdk ada" />
+              </div>
+              <div className="pt-2 border-t border-[#1e3a52] flex justify-between items-center">
+                <span className="text-xs font-semibold text-[#7fb5d5]/70 uppercase">Nilai Produksi</span>
+                <span className="text-sm font-bold text-[#c8dff0]">{(pk3 * (parseFloat(formData.harga_k3_rp) || 0)).toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
