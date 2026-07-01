@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { InputForm } from '@/components/admin/InputForm';
+import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { Plus, Loader2 } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
@@ -217,7 +217,7 @@ export default function AdminPerikananTangkap() {
 
       {isFormOpen && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-          <InputForm
+          <PerikananTangkapForm
             initialData={editingData}
             isLoading={submitLoading}
             onSubmit={handleCreateOrUpdate}

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const budidayaController = require('../controllers/budidayaController');
+const budidayaController = require('../controllers/budidaya.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
 
 router.get('/stats', budidayaController.getStats);

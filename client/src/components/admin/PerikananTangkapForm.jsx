@@ -3,7 +3,7 @@ import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OP
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function InputForm({ initialData = null, onSubmit, onCancel, isLoading }) {
+export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, isLoading }) {
   const [sumberData, setSumberData] = useState(null); // null, 'PELABUHAN', 'PUD', 'KAB_KOTA'
   
   const [formData, setFormData] = useState({

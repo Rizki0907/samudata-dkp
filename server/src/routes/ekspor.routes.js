@@ -9,7 +9,7 @@ const {
   deleteData,
   getStats,
   updateStatus
-} = require('../controllers/eksporController');
+} = require('../controllers/ekspor.controller');
 
 // Public routes
 router.get('/', getAllData);

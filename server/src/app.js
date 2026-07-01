@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth.routes');
 const perikananTangkapRoutes = require('./routes/perikananTangkap.routes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 const eksporRoutes = require('./routes/ekspor.routes');
 const budidayaRoutes = require('./routes/budidaya.routes');
 const app = express();

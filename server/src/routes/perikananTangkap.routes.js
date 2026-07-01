@@ -10,7 +10,7 @@ const {
   getStats,
   exportData,
   updateStatus
-} = require('../controllers/perikananTangkapController');
+} = require('../controllers/perikananTangkap.controller');
 
 // Public routes
 router.get('/', getAllData);
