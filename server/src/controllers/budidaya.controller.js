@@ -26,7 +26,7 @@ const getAllData = async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching budidaya data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
@@ -39,7 +39,7 @@ const getAdminData = async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching budidaya admin data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
@@ -138,16 +138,14 @@ const getStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating budidaya stats:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
 
 const createData = async (req, res) => {
   try {
-    const { 
-      kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton 
-    } = req.body;
+    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton, kategori_komoditas, komoditas, nilai_rp } = req.body;
 
     const triwulan = getTriwulan(bulan);
     const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
@@ -156,27 +154,28 @@ const createData = async (req, res) => {
       data: {
         status: statusData,
         kabupaten_kota,
-        tahun,
+        tahun: tahun.toString(),
         bulan,
         triwulan,
         jenis_wadah,
-        produksi_ton: parseFloat(produksi_ton)
+        produksi_ton: parseFloat(produksi_ton),
+        kategori_komoditas: kategori_komoditas || '-',
+        komoditas: komoditas || '-',
+        nilai_rp: parseFloat(nilai_rp || 0)
       }
     });
 
     res.status(201).json({ success: true, data, message: 'Data berhasil ditambahkan' });
   } catch (error) {
     console.error('Error creating budidaya data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton 
-    } = req.body;
+    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton, kategori_komoditas, komoditas, nilai_rp } = req.body;
 
     const triwulan = getTriwulan(bulan);
 
@@ -198,18 +197,21 @@ const updateData = async (req, res) => {
         status: newStatus,
         alasan_penolakan: newStatus === 'PENDING' ? null : existing.alasan_penolakan,
         kabupaten_kota,
-        tahun,
+        tahun: tahun.toString(),
         bulan,
         triwulan,
         jenis_wadah,
-        produksi_ton: parseFloat(produksi_ton)
+        produksi_ton: parseFloat(produksi_ton),
+        kategori_komoditas: kategori_komoditas || '-',
+        komoditas: komoditas || '-',
+        nilai_rp: parseFloat(nilai_rp || 0)
       }
     });
 
     res.json({ success: true, data, message: 'Data berhasil diupdate' });
   } catch (error) {
     console.error('Error updating budidaya data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
@@ -229,7 +231,7 @@ const deleteData = async (req, res) => {
     res.json({ success: true, message: 'Data berhasil dihapus' });
   } catch (error) {
     console.error('Error deleting budidaya data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
@@ -253,7 +255,7 @@ const updateStatus = async (req, res) => {
     res.json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
   } catch (error) {
     console.error('Error updating budidaya status:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 

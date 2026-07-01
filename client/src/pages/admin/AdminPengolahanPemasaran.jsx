@@ -362,7 +362,7 @@ export default function AdminPengolahan() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/pengolahan-pemasaran');
+      const res = await api.get('/pengolahan-pemasaran/admin');
       setData(res.data.data);
     } catch (error) {
       console.error('Error fetching data:', error);

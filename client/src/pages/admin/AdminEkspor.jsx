@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { EksporForm } from '@/components/admin/EksporForm';
+
+const currentYear = new Date().getFullYear();
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 import { Plus, Loader2 } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
@@ -12,11 +15,13 @@ export default function AdminEkspor() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [selectedYear, setSelectedYear] = useState('');
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/ekspor');
+      const res = await api.get('/ekspor/admin');
       if (res.data.success) {
         setData(res.data.data);
       }
@@ -210,25 +215,27 @@ export default function AdminEkspor() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={data}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
-          formatExportData={(exportData) => exportData.map(row => ({
-            'Bulan': row.bulan,
-            'Tahun': row.tahun,
-            'Kategori Komoditas': row.kategori_komoditas,
-            'Nama Komoditas': row.nama_komoditas,
-            'Volume': row.volume,
-            'Satuan Volume': row.satuan_volume,
-            'Nilai (USD)': row.nilai_usd,
-            'Negara Tujuan': row.negara_tujuan
-          }))}
-        />
+        <div className="space-y-8">
+          <DataTable
+            columns={columns}
+            data={data}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
+            formatExportData={(exportData) => exportData.map(row => ({
+              'Bulan': row.bulan,
+              'Tahun': row.tahun,
+              'Kategori Komoditas': row.kategori_komoditas,
+              'Nama Komoditas': row.nama_komoditas,
+              'Volume': row.volume,
+              'Satuan Volume': row.satuan_volume,
+              'Nilai (USD)': row.nilai_usd,
+              'Negara Tujuan': row.negara_tujuan
+            }))}
+          />
+        </div>
       )}
     </div>
   );

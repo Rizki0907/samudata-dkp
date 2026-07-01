@@ -27,43 +27,43 @@ enum DataStatus {
 
 // Tabel utama perikanan tangkap harian
 model PerikananTangkap {
-  id              Int           @id @default(autoincrement())
-  sumber_data     SumberDataPT  @default(PELABUHAN)
-  tanggal         DateTime
-  jam_labuh       String?
-  jam_bongkar     String?
-  pelabuhan       String?
-  kabupaten_kota  String?
-  nama_kapal      String?
-  gt_kapal        String?
-  alat_tangkap    String?
-  status          DataStatus @default(PENDING)
+  id               Int          @id @default(autoincrement())
+  sumber_data      SumberDataPT @default(PELABUHAN)
+  tanggal          DateTime
+  jam_labuh        String?
+  jam_bongkar      String?
+  pelabuhan        String?
+  kabupaten_kota   String?
+  nama_kapal       String?
+  gt_kapal         String?
+  alat_tangkap     String?
+  status           DataStatus   @default(PENDING)
   alasan_penolakan String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
 
-  tangkapan       DetailTangkapan[]
+  tangkapan DetailTangkapan[]
 }
 
 // Tabel Anak (Detail Ikan/Komoditas per Trip)
 model DetailTangkapan {
-  id                  Int               @id @default(autoincrement())
+  id                   Int    @id @default(autoincrement())
   perikanan_tangkap_id Int
-  komoditas           String
-  volume              Float    // kg
-  harga               Float    // rupiah per kg
-  nilai               Float    // otomatis: volume × harga
-  
-  perikananTangkap    PerikananTangkap  @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
+  komoditas            String
+  volume               Float // kg
+  harga                Float // rupiah per kg
+  nilai                Float // otomatis: volume × harga
+
+  perikananTangkap PerikananTangkap @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
 }
 
 // Tabel untuk file upload sektor lain (metadata)
 model FileUpload {
   id          Int      @id @default(autoincrement())
-  sektor      String   // "budidaya", "garam", "ekspor", dst
+  sektor      String // "budidaya", "garam", "ekspor", dst
   nama_file   String
   path_file   String
-  ukuran      Int      // bytes
+  ukuran      Int // bytes
   tahun       Int?
   wilayah     String?
   uploaded_at DateTime @default(now())
@@ -78,36 +78,39 @@ model Setting {
 
 // Tabel ekspor hasil perikanan
 model Ekspor {
-  id                  Int      @id @default(autoincrement())
-  bulan               String
-  tahun               String
-  tanggal_ekspor      DateTime
-  nama_eksportir      String
-  kategori_komoditas  String
-  nama_komoditas      String
-  volume              Float    
-  satuan_volume       String   
-  nilai_usd           Float    
-  negara_tujuan       String
-  status              DataStatus @default(PENDING)
-  alasan_penolakan    String?
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  id                 Int        @id @default(autoincrement())
+  bulan              String
+  tahun              String
+  tanggal_ekspor     DateTime
+  nama_eksportir     String
+  kategori_komoditas String
+  nama_komoditas     String
+  volume             Float
+  satuan_volume      String
+  nilai_usd          Float
+  negara_tujuan      String
+  status             DataStatus @default(PENDING)
+  alasan_penolakan   String?
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
 }
 
 // Tabel Budidaya Perikanan
 model Budidaya {
-  id              Int      @id @default(autoincrement())
-  kabupaten_kota  String
-  tahun           String
-  bulan           String
-  triwulan        String
-  jenis_wadah     String
-  produksi_ton    Float
-  status          DataStatus @default(PENDING)
-  alasan_penolakan String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id                 Int        @id @default(autoincrement())
+  kabupaten_kota     String
+  tahun              String
+  bulan              String
+  triwulan           String
+  kategori_komoditas String     @default("-")
+  komoditas          String     @default("-")
+  jenis_wadah        String
+  produksi_ton       Float
+  nilai_rp           Float      @default(0)
+  status             DataStatus @default(PENDING)
+  alasan_penolakan   String?
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
 }
 
 // Tabel Budidaya Perikanan
@@ -116,33 +119,33 @@ model Garam {
   status           DataStatus @default(PENDING)
   alasan_penolakan String?
 
-  bulan            String     // "Januari", "Februari", dst
-  triwulan         String     // "TW 1" - "TW 4" (dihitung otomatis di controller)
-  tahun            Int
-  kabupaten_kota   String
+  bulan          String // "Januari", "Februari", dst
+  triwulan       String // "TW 1" - "TW 4" (dihitung otomatis di controller)
+  tahun          Int
+  kabupaten_kota String
 
-  luas_total_ha    Float      @default(0)
-  luas_produksi_ha Float      @default(0)
-  jumlah_kelompok  Int        @default(0)
-  jumlah_petambak  Int        @default(0)
+  luas_total_ha    Float @default(0)
+  luas_produksi_ha Float @default(0)
+  jumlah_kelompok  Int   @default(0)
+  jumlah_petambak  Int   @default(0)
 
-  produksi_k1_ton  Float      @default(0)
-  stok_k1_ton      Float      @default(0)
-  harga_k1_rp      Float      @default(0)
+  produksi_k1_ton Float @default(0)
+  stok_k1_ton     Float @default(0)
+  harga_k1_rp     Float @default(0)
 
-  produksi_k2_ton  Float      @default(0)
-  stok_k2_ton      Float      @default(0)
-  harga_k2_rp      Float      @default(0)
+  produksi_k2_ton Float @default(0)
+  stok_k2_ton     Float @default(0)
+  harga_k2_rp     Float @default(0)
 
-  produksi_k3_ton  Float      @default(0)
-  stok_k3_ton      Float      @default(0)
-  harga_k3_rp      Float      @default(0)
+  produksi_k3_ton Float @default(0)
+  stok_k3_ton     Float @default(0)
+  harga_k3_rp     Float @default(0)
 
   // Kalkulasi — disimpan di DB supaya query statistik cepat
-  total_produksi_ton Float    @default(0)
-  total_stok_ton     Float    @default(0)
-  produktivitas      Float    @default(0)  // Ton/Ha
+  total_produksi_ton Float @default(0)
+  total_stok_ton     Float @default(0)
+  produktivitas      Float @default(0) // Ton/Ha
 
-  created_at       DateTime   @default(now())
-  updated_at       DateTime   @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
