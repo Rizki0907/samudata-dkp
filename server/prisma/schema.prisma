@@ -106,7 +106,8 @@ model Budidaya {
   kategori_komoditas String     @default("-")
   komoditas          String     @default("-")
   jenis_wadah        String
-  produksi_ton       Float
+  produksi_kg        Float      @default(0)
+  harga_rp           Float      @default(0)
   nilai_rp           Float      @default(0)
   status             DataStatus @default(PENDING)
   alasan_penolakan   String?

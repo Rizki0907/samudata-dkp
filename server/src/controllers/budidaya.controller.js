@@ -45,51 +45,73 @@ const getAdminData = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
-    const { tahun, triwulan } = req.query;
+    const { tahun, bulan } = req.query;
     const where = { status: 'APPROVED' };
     if (tahun) where.tahun = tahun;
-    if (triwulan) where.triwulan = triwulan;
+    if (bulan) where.bulan = bulan;
 
     const data = await prisma.budidaya.findMany({ where });
 
-    // 1. Produksi per Kabupaten
+    // KPI Calculation
+    let total_volume = 0;
+    let total_nilai = 0;
+    const komoditasMap = {};
+    data.forEach(item => {
+      total_volume += item.produksi_kg;
+      total_nilai += item.nilai_rp;
+      komoditasMap[item.komoditas] = (komoditasMap[item.komoditas] || 0) + item.produksi_kg;
+    });
+
+    let top_komoditas = '-';
+    let maxKomoditasProd = 0;
+    for (const [kom, prod] of Object.entries(komoditasMap)) {
+      if (prod > maxKomoditasProd) {
+        maxKomoditasProd = prod;
+        top_komoditas = kom;
+      }
+    }
+    const kpi = { total_volume, top_komoditas, total_nilai };
+
+    // 1. Produksi dan Nilai per Kabupaten
     const kabMap = {};
     data.forEach(item => {
-      kabMap[item.kabupaten_kota] = (kabMap[item.kabupaten_kota] || 0) + item.produksi_ton;
+      if (!kabMap[item.kabupaten_kota]) kabMap[item.kabupaten_kota] = { produksi: 0, nilai: 0 };
+      kabMap[item.kabupaten_kota].produksi += item.produksi_kg;
+      kabMap[item.kabupaten_kota].nilai += item.nilai_rp;
     });
     const produksiPerKabupaten = Object.entries(kabMap)
+      .map(([name, stats]) => ({ name, produksi: stats.produksi, nilai: stats.nilai }))
+      .sort((a, b) => b.produksi - a.produksi);
+
+    // 2. Komposisi Wadah
+    const wadahMap = {};
+    data.forEach(item => {
+      wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + item.produksi_kg;
+    });
+    const komposisiWadah = Object.entries(wadahMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // Get Top 5 Kabupaten for Tren Bulanan
-    const top5Kab = produksiPerKabupaten.slice(0, 5).map(k => k.name);
+    // Get Top 5 Wadah for Tren Bulanan
+    const top5Wadah = komposisiWadah.slice(0, 5).map(w => w.name);
 
-    // 2. Tren Bulanan (Top 5 + Lainnya)
+    // 3. Tren Bulanan (Top 5 Wadah + Lainnya)
     const BULAN_ORDER = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const trenBulanan = BULAN_ORDER.map(bulan => {
       const monthData = { bulan, Lainnya: 0 };
-      top5Kab.forEach(k => monthData[k] = 0);
+      top5Wadah.forEach(w => monthData[w] = 0);
       return monthData;
     });
 
     data.forEach(item => {
       const bIndex = BULAN_ORDER.indexOf(item.bulan);
       if (bIndex === -1) return;
-      if (top5Kab.includes(item.kabupaten_kota)) {
-        trenBulanan[bIndex][item.kabupaten_kota] += item.produksi_ton;
+      if (top5Wadah.includes(item.jenis_wadah)) {
+        trenBulanan[bIndex][item.jenis_wadah] += item.produksi_kg;
       } else {
-        trenBulanan[bIndex].Lainnya += item.produksi_ton;
+        trenBulanan[bIndex].Lainnya += item.produksi_kg;
       }
     });
-
-    // 3. Komposisi Wadah
-    const wadahMap = {};
-    data.forEach(item => {
-      wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + item.produksi_ton;
-    });
-    const komposisiWadah = Object.entries(wadahMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
 
     // 4. Heatmap Kabupaten x Bulan (Normalisasi Min-Max per baris)
     const heatmapRaw = {};
@@ -99,7 +121,7 @@ const getStats = async (req, res) => {
       }
       const bIndex = BULAN_ORDER.indexOf(item.bulan);
       if (bIndex !== -1) {
-        heatmapRaw[item.kabupaten_kota][bIndex].produksi += item.produksi_ton;
+        heatmapRaw[item.kabupaten_kota][bIndex].produksi += item.produksi_kg;
       }
     });
 
@@ -129,9 +151,10 @@ const getStats = async (req, res) => {
     res.json({
       success: true,
       stats: {
+        kpi,
         produksiPerKabupaten,
         trenBulanan,
-        top5Kab,
+        top5Wadah,
         komposisiWadah,
         heatmapData
       }
@@ -145,10 +168,12 @@ const getStats = async (req, res) => {
 
 const createData = async (req, res) => {
   try {
-    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton, kategori_komoditas, komoditas, nilai_rp } = req.body;
+    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_kg, kategori_komoditas, komoditas, harga_rp } = req.body;
 
     const triwulan = getTriwulan(bulan);
     const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
+
+    const computedNilai = parseFloat(produksi_kg || 0) * parseFloat(harga_rp || 0);
 
     const data = await prisma.budidaya.create({
       data: {
@@ -158,10 +183,11 @@ const createData = async (req, res) => {
         bulan,
         triwulan,
         jenis_wadah,
-        produksi_ton: parseFloat(produksi_ton),
+        produksi_kg: parseFloat(produksi_kg || 0),
+        harga_rp: parseFloat(harga_rp || 0),
         kategori_komoditas: kategori_komoditas || '-',
         komoditas: komoditas || '-',
-        nilai_rp: parseFloat(nilai_rp || 0)
+        nilai_rp: computedNilai
       }
     });
 
@@ -175,7 +201,7 @@ const createData = async (req, res) => {
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_ton, kategori_komoditas, komoditas, nilai_rp } = req.body;
+    const { kabupaten_kota, tahun, bulan, jenis_wadah, produksi_kg, kategori_komoditas, komoditas, harga_rp } = req.body;
 
     const triwulan = getTriwulan(bulan);
 
@@ -191,6 +217,8 @@ const updateData = async (req, res) => {
       newStatus = 'PENDING';
     }
 
+    const computedNilai = parseFloat(produksi_kg || 0) * parseFloat(harga_rp || 0);
+
     const data = await prisma.budidaya.update({
       where: { id: parseInt(id) },
       data: {
@@ -201,10 +229,11 @@ const updateData = async (req, res) => {
         bulan,
         triwulan,
         jenis_wadah,
-        produksi_ton: parseFloat(produksi_ton),
+        produksi_kg: parseFloat(produksi_kg || 0),
+        harga_rp: parseFloat(harga_rp || 0),
         kategori_komoditas: kategori_komoditas || '-',
         komoditas: komoditas || '-',
-        nilai_rp: parseFloat(nilai_rp || 0)
+        nilai_rp: computedNilai
       }
     });
 

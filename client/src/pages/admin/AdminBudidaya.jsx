@@ -159,8 +159,9 @@ export default function AdminBudidaya() {
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
-    { header: 'Produksi (Ton)', accessorKey: 'produksi_ton', cell: info => info.getValue().toLocaleString('id-ID') },
-    { header: 'Nilai (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
+    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID') },
+    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } },
+    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
   ], []);
 
   return (
@@ -251,8 +252,9 @@ export default function AdminBudidaya() {
             'Kategori Komoditas': row.kategori_komoditas,
             'Komoditas': row.komoditas,
             'Jenis Wadah': row.jenis_wadah,
-            'Produksi (Ton)': row.produksi_ton,
-            'Nilai (Rp)': row.nilai_rp
+            'Produksi (KG)': row.produksi_kg,
+            'Harga (Rp)': row.harga_rp,
+            'Nilai Total (Rp)': row.nilai_rp
           }))}
         />
         </div>

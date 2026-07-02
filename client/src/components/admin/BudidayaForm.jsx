@@ -3,12 +3,12 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const KABUPATEN_KOTA_OPTIONS = [
-  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 
-  'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan', 
-  'Malang', 'Mojokerto', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan', 
-  'Ponorogo', 'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 
+  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
+  'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan',
+  'Malang', 'Mojokerto', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan',
+  'Ponorogo', 'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep',
   'Trenggalek', 'Tuban', 'Tulungagung',
-  'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang', 
+  'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang',
   'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya'
 ];
 
@@ -48,8 +48,8 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
     kategori_komoditas: '',
     komoditas: '',
     jenis_wadah: 'Tambak',
-    produksi_ton: '',
-    nilai_rp: ''
+    produksi_kg: '',
+    harga_rp: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -63,15 +63,15 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
         kategori_komoditas: initialData.kategori_komoditas && initialData.kategori_komoditas !== '-' ? initialData.kategori_komoditas : '',
         komoditas: initialData.komoditas && initialData.komoditas !== '-' ? initialData.komoditas : '',
         jenis_wadah: initialData.jenis_wadah || 'Tambak',
-        produksi_ton: initialData.produksi_ton || '',
-        nilai_rp: initialData.nilai_rp || ''
+        produksi_kg: initialData.produksi_kg || '',
+        harga_rp: initialData.harga_rp || ''
       });
     }
   }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'kategori_komoditas') {
       setFormData(prev => ({ ...prev, kategori_komoditas: value, komoditas: '' }));
     } else {
@@ -91,16 +91,16 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
     if (!formData.kategori_komoditas) newErrors.kategori_komoditas = 'Kategori komoditas wajib diisi';
     if (!formData.komoditas) newErrors.komoditas = 'Komoditas wajib diisi';
     if (!formData.jenis_wadah) newErrors.jenis_wadah = 'Jenis Wadah wajib diisi';
-    
-    if (!formData.produksi_ton) {
-      newErrors.produksi_ton = 'Produksi wajib diisi';
-    } else if (isNaN(formData.produksi_ton) || parseFloat(formData.produksi_ton) < 0) {
-      newErrors.produksi_ton = 'Produksi harus berupa angka valid';
+
+    if (!formData.produksi_kg) {
+      newErrors.produksi_kg = 'Produksi wajib diisi';
+    } else if (isNaN(formData.produksi_kg) || parseFloat(formData.produksi_kg) < 0) {
+      newErrors.produksi_kg = 'Produksi harus berupa angka valid';
     }
-    if (!formData.nilai_rp) {
-      newErrors.nilai_rp = 'Nilai wajib diisi';
-    } else if (isNaN(formData.nilai_rp) || parseFloat(formData.nilai_rp) < 0) {
-      newErrors.nilai_rp = 'Nilai harus berupa angka valid';
+    if (!formData.harga_rp) {
+      newErrors.harga_rp = 'Harga wajib diisi';
+    } else if (isNaN(formData.harga_rp) || parseFloat(formData.harga_rp) < 0) {
+      newErrors.harga_rp = 'Harga harus berupa angka valid';
     }
 
     setErrors(newErrors);
@@ -132,9 +132,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-2">Kabupaten/Kota</label>
-              <select 
-                name="kabupaten_kota" 
-                value={formData.kabupaten_kota} 
+              <select
+                name="kabupaten_kota"
+                value={formData.kabupaten_kota}
                 onChange={handleChange}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kabupaten_kota ? "border-destructive" : "border-input")}
               >
@@ -146,9 +146,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
             <div>
               <label className="block text-sm font-medium mb-2">Bulan</label>
-              <select 
-                name="bulan" 
-                value={formData.bulan} 
+              <select
+                name="bulan"
+                value={formData.bulan}
                 onChange={handleChange}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.bulan ? "border-destructive" : "border-input")}
               >
@@ -160,9 +160,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <select 
-                name="tahun" 
-                value={formData.tahun} 
+              <select
+                name="tahun"
+                value={formData.tahun}
                 onChange={handleChange}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tahun ? "border-destructive" : "border-input")}
               >
@@ -184,9 +184,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
               <label className="block text-sm font-medium mb-2">Jenis Wadah</label>
-              <select 
-                name="jenis_wadah" 
-                value={formData.jenis_wadah} 
+              <select
+                name="jenis_wadah"
+                value={formData.jenis_wadah}
                 onChange={handleChange}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.jenis_wadah ? "border-destructive" : "border-input")}
               >
@@ -198,9 +198,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               <div>
                 <label className="block text-sm font-medium mb-2">Kategori Komoditas</label>
-                <select 
-                  name="kategori_komoditas" 
-                  value={formData.kategori_komoditas} 
+                <select
+                  name="kategori_komoditas"
+                  value={formData.kategori_komoditas}
                   onChange={handleChange}
                   className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kategori_komoditas ? "border-destructive" : "border-input")}
                 >
@@ -212,9 +212,9 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
               <div>
                 <label className="block text-sm font-medium mb-2">Komoditas</label>
-                <select 
-                  name="komoditas" 
-                  value={formData.komoditas} 
+                <select
+                  name="komoditas"
+                  value={formData.komoditas}
                   onChange={handleChange}
                   disabled={!formData.kategori_komoditas}
                   className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50", errors.komoditas ? "border-destructive" : "border-input")}
@@ -230,52 +230,62 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               <div>
-                <label className="block text-sm font-medium mb-2">Produksi (Ton)</label>
-                <input 
-                  type="number" 
+                <label className="block text-sm font-medium mb-2">Produksi (KG)</label>
+                <input
+                  type="number"
                   step="0.01"
-                  name="produksi_ton" 
-                  value={formData.produksi_ton} 
+                  name="produksi_kg"
+                  value={formData.produksi_kg}
                   onChange={handleChange}
                   placeholder="Misal: 15.5"
-                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.produksi_ton ? "border-destructive" : "border-input")}
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.produksi_kg ? "border-destructive" : "border-input")}
                 />
-                {errors.produksi_ton && <p className="text-xs text-destructive mt-1">{errors.produksi_ton}</p>}
+                {errors.produksi_kg && <p className="text-xs text-destructive mt-1">{errors.produksi_kg}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Nilai (Rp)</label>
-                <input 
-                  type="number" 
+                <label className="block text-sm font-medium mb-2">Harga (Rp)</label>
+                <input
+                  type="number"
                   step="0.01"
-                  name="nilai_rp" 
-                  value={formData.nilai_rp} 
+                  name="harga_rp"
+                  value={formData.harga_rp}
                   onChange={handleChange}
-                  placeholder="Misal: 15000000"
-                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_rp ? "border-destructive" : "border-input")}
+                  placeholder="Misal: 15000"
+                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.harga_rp ? "border-destructive" : "border-input")}
                 />
-                {errors.nilai_rp && <p className="text-xs text-destructive mt-1">{errors.nilai_rp}</p>}
+                {errors.harga_rp && <p className="text-xs text-destructive mt-1">{errors.harga_rp}</p>}
               </div>
             </div>
           </div>
         </section>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="px-5 py-2.5 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-5 py-2.5 rounded-xl font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20"
-          >
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data'}
-          </button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-border">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col justify-center min-w-[200px]">
+            <span className="text-xs font-medium text-muted-foreground mb-1">Estimasi Total Nilai Semua Budidaya</span>
+            <span className="text-lg font-bold text-primary">
+              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                (parseFloat(formData.produksi_kg) || 0) * (parseFloat(formData.harga_rp) || 0)
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-5 py-2.5 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 flex-1 sm:flex-none text-center"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-5 py-2.5 rounded-xl font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex justify-center items-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20 flex-1 sm:flex-none"
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data'}
+            </button>
+          </div>
         </div>
       </form>
     </div>

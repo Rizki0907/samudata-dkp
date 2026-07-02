@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, TrendingUp, MapPin, Fish, FileText } from 'lucide-react';
+import { Loader2, TrendingUp, MapPin, Fish, FileText, Box, LineChart } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
@@ -18,13 +18,14 @@ export default function Budidaya() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
-  const [selectedTriwulan, setSelectedTriwulan] = useState('');
+  const [selectedBulan, setSelectedBulan] = useState('');
   const [stats, setStats] = useState({
     produksiPerKabupaten: [],
     trenBulanan: [],
-    top5Kab: [],
+    top5Wadah: [],
     komposisiWadah: [],
-    heatmapData: []
+    heatmapData: [],
+    kpi: { total_volume: 0, top_komoditas: '-', total_nilai: 0 }
   });
 
   const [filterKomoditas, setFilterKomoditas] = useState('');
@@ -33,6 +34,7 @@ export default function Budidaya() {
   const [filterTw, setFilterTw] = useState('');
   const [filterBulan, setFilterBulan] = useState('');
   const [filterTahun, setFilterTahun] = useState('');
+  const [barFilter, setBarFilter] = useState('produksi');
 
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
   const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
@@ -59,10 +61,10 @@ export default function Budidaya() {
         setLoading(true);
         const params = new URLSearchParams();
         if (selectedYear) params.append('tahun', selectedYear);
-        if (selectedTriwulan) params.append('triwulan', selectedTriwulan);
-        
+        if (selectedBulan) params.append('bulan', selectedBulan);
+
         const query = `?${params.toString()}`;
-        
+
         const [dataRes, statsRes] = await Promise.all([
           api.get(`/budidaya${query}`),
           api.get(`/budidaya/stats${query}`)
@@ -82,7 +84,7 @@ export default function Budidaya() {
     };
 
     fetchData();
-  }, [selectedYear, selectedTriwulan]);
+  }, [selectedYear, selectedBulan]);
 
   const columns = useMemo(() => [
     {
@@ -121,15 +123,16 @@ export default function Budidaya() {
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
-    { header: 'Produksi (Ton)', accessorKey: 'produksi_ton', cell: info => info.getValue().toLocaleString('id-ID') },
-    { header: 'Nilai (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
+    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID') },
+    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } },
+    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
   ], []);
 
   // 1. Peta Choropleth Jawa Timur (Log Scale)
   const mapOption = useMemo(() => {
     const mapData = stats.produksiPerKabupaten.map(item => ({
       name: item.name,
-      value: item.value
+      value: item.produksi
     }));
 
     // Find max value to set visualMap (Sumenep dominates, so use log scale or piecewise)
@@ -146,7 +149,7 @@ export default function Budidaya() {
         trigger: 'item',
         formatter: (params) => {
           const val = params.value || 0;
-          return `${params.name}<br/>Total Produksi: <b>${val.toLocaleString('id-ID')} Ton</b>`;
+          return `${params.name}<br/>Total Produksi: <b>${val.toLocaleString('id-ID')} KG</b>`;
         }
       },
       visualMap: {
@@ -188,15 +191,39 @@ export default function Budidaya() {
 
   // 2. Bar Chart Top Kabupaten
   const barOption = useMemo(() => {
-    // Top 10 to fit in the chart
-    const top10 = [...stats.produksiPerKabupaten].slice(0, 10).reverse();
+    // Sort based on barFilter and get Top 10
+    const sortedData = [...stats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
+    const top10 = sortedData.slice(0, 10).reverse();
+
+    const isProduksi = barFilter === 'produksi';
+    const seriesName = isProduksi ? 'Produksi (KG)' : 'Nilai Total (Rp)';
+    const formatter = isProduksi ?
+      val => val.toLocaleString('id-ID') + ' KG' :
+      val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          const val = params[0].value || 0;
+          return `${params[0].name}<br/>${seriesName}: <b>${formatter(val)}</b>`;
+        }
+      },
+      grid: { left: '3%', right: '4%', top: '5%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
-        axisLabel: { color: '#94a3b8' }
+        axisLabel: {
+          color: '#94a3b8',
+          formatter: (val) => {
+            if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T';
+            if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M';
+            if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt';
+            if (val >= 1000) return (val / 1000).toFixed(1) + 'rb';
+            return val;
+          }
+        }
       },
       yAxis: {
         type: 'category',
@@ -205,9 +232,9 @@ export default function Budidaya() {
       },
       series: [
         {
-          name: 'Produksi (Ton)',
+          name: seriesName,
           type: 'bar',
-          data: top10.map(d => d.value),
+          data: top10.map(d => d[barFilter]),
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: '#0ea5e9' },
@@ -218,16 +245,16 @@ export default function Budidaya() {
         }
       ]
     };
-  }, [stats.produksiPerKabupaten]);
+  }, [stats.produksiPerKabupaten, barFilter]);
 
   // 3. Line Chart Tren Bulanan
   const lineOption = useMemo(() => {
-    const seriesData = stats.top5Kab.map(kab => ({
-      name: kab,
+    const seriesData = stats.top5Wadah.map(wadah => ({
+      name: wadah,
       type: 'line',
       smooth: true,
       symbolSize: 6,
-      data: stats.trenBulanan.map(m => m[kab] || 0)
+      data: stats.trenBulanan.map(m => m[wadah] || 0)
     }));
 
     // Add Lainnya
@@ -244,7 +271,7 @@ export default function Budidaya() {
     return {
       tooltip: { trigger: 'axis' },
       legend: {
-        data: [...stats.top5Kab, 'Lainnya'],
+        data: [...stats.top5Wadah, 'Lainnya'],
         textStyle: { color: '#cbd5e1' },
         top: 0
       },
@@ -262,7 +289,7 @@ export default function Budidaya() {
       },
       series: seriesData
     };
-  }, [stats.trenBulanan, stats.top5Kab]);
+  }, [stats.trenBulanan, stats.top5Wadah]);
 
   // 4. Treemap Komposisi Wadah
   const treemapOption = useMemo(() => {
@@ -275,15 +302,21 @@ export default function Budidaya() {
       tooltip: {
         formatter: (info) => {
           const val = info.value || 0;
-          return `<b>${info.name}</b><br/>Total Produksi: ${val.toLocaleString('id-ID')} Ton`;
+          return `<b>${info.name}</b><br/>Total Produksi: ${val.toLocaleString('id-ID')} KG`;
         }
       },
       series: [{
         type: 'treemap',
+        width: '100%',
+        height: '100%',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
         roam: false,
         nodeClick: false,
         breadcrumb: { show: false },
-        label: { show: true, formatter: '{b}\n\n{c} Ton', color: '#fff', fontWeight: 'bold' },
+        label: { show: true, formatter: '{b}\n\n{c} KG', color: '#fff', fontWeight: 'bold' },
         itemStyle: { borderColor: '#0f172a', gapWidth: 2 },
         data: data,
         colorMappingBy: 'value',
@@ -322,7 +355,7 @@ export default function Budidaya() {
           const xIndex = params.data[0];
           const yIndex = params.data[1];
           const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0;
-          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} Ton`;
+          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} KG`;
         }
       },
       grid: { left: '15%', right: '2%', top: '5%', bottom: '15%' },
@@ -368,22 +401,16 @@ export default function Budidaya() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Budidaya Perikanan</h1>
-          <p className="text-muted-foreground mt-1">
-            Data produksi dan sebaran budidaya perikanan per wilayah dan waktu.
-          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <select
-            value={selectedTriwulan}
-            onChange={(e) => setSelectedTriwulan(e.target.value)}
+            value={selectedBulan}
+            onChange={(e) => setSelectedBulan(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
           >
-            <option value="">Semua Triwulan</option>
-            <option value="TW 1">TW 1 (Jan-Mar)</option>
-            <option value="TW 2">TW 2 (Apr-Jun)</option>
-            <option value="TW 3">TW 3 (Jul-Sep)</option>
-            <option value="TW 4">TW 4 (Okt-Des)</option>
+            <option value="">Semua Bulan</option>
+            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <select
             value={selectedYear}
@@ -402,9 +429,48 @@ export default function Budidaya() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* KPI Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
+                <Box className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Top Komoditas</p>
+                <p className="text-xl font-bold text-foreground leading-tight">
+                  {stats.kpi.top_komoditas}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
+                <LineChart className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.kpi.total_nilai)}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Top Visualizations Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-5 h-5 text-primary" />
                 <h2 className="text-lg font-semibold">Peta Sebaran Produksi</h2>
@@ -414,10 +480,20 @@ export default function Budidaya() {
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
-                <h2 className="text-lg font-semibold">Top Kabupaten/Kota</h2>
+            <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
+                </div>
+                <select
+                  value={barFilter}
+                  onChange={(e) => setBarFilter(e.target.value)}
+                  className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200"
+                >
+                  <option value="produksi">Produksi (KG)</option>
+                  <option value="nilai">Nilai Total (Rp)</option>
+                </select>
               </div>
               <div className="h-[450px]">
                 <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
@@ -472,52 +548,53 @@ export default function Budidaya() {
               <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
             </div>
 
-        <div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Tahun</option>
-              {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Triwulan</option>
-              {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Bulan</option>
-              {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Kab/Kota</option>
-              {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Komoditas</option>
-              {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Wadah</option>
-              {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
+            <div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+                <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Tahun</option>
+                  {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Triwulan</option>
+                  {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Bulan</option>
+                  {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Kab/Kota</option>
+                  {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Komoditas</option>
+                  {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+                <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                  <option value="">Semua Wadah</option>
+                  {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
 
-            <DataTable 
-              columns={columns} 
-              data={filteredData}
-              exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
-              formatExportData={(exportData) => exportData.map(row => ({
-                'Status': row.status,
-                'Tahun': row.tahun,
-                'Bulan': row.bulan,
-                'Triwulan': row.triwulan,
-                'Kabupaten/Kota': row.kabupaten_kota,
-                'Kategori Komoditas': row.kategori_komoditas,
-                'Komoditas': row.komoditas,
-                'Jenis Wadah': row.jenis_wadah,
-                'Produksi (Ton)': row.produksi_ton,
-                'Nilai (Rp)': row.nilai_rp
-              }))}
-            />
-          </div>
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
+                formatExportData={(exportData) => exportData.map(row => ({
+                  'Status': row.status,
+                  'Tahun': row.tahun,
+                  'Bulan': row.bulan,
+                  'Triwulan': row.triwulan,
+                  'Kabupaten/Kota': row.kabupaten_kota,
+                  'Kategori Komoditas': row.kategori_komoditas,
+                  'Komoditas': row.komoditas,
+                  'Jenis Wadah': row.jenis_wadah,
+                  'Produksi (KG)': row.produksi_kg,
+                  'Harga (Rp)': row.harga_rp,
+                  'Nilai Total (Rp)': row.nilai_rp
+                }))}
+              />
+            </div>
           </div>
         </div>
       )}

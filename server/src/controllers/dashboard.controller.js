@@ -31,12 +31,12 @@ const getOverviewStats = async (req, res) => {
     // === 2. PERIKANAN BUDIDAYA ===
     const budidayaStats = await prisma.budidaya.aggregate({
       where: { status: 'APPROVED' },
-      _sum: { produksi_ton: true },
+      _sum: { produksi_kg: true },
       _count: { id: true }
     });
 
     const budidaya = {
-      produksi: budidayaStats._sum.produksi_ton || 0, // Dalam Ton
+      produksi: budidayaStats._sum.produksi_kg || 0, // Dalam KG
       pembudidaya: budidayaStats._count.id || 0 // Asumsi jumlah titik/laporan
     };
 
