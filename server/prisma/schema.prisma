@@ -37,6 +37,7 @@ model PerikananTangkap {
   nama_kapal       String?
   gt_kapal         String?
   alat_tangkap     String?
+  logistik         String?
   status           DataStatus   @default(PENDING)
   alasan_penolakan String?
   created_at       DateTime     @default(now())

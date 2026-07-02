@@ -13,6 +13,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     nama_kapal: '',
     pelabuhan: PELABUHAN_OPTIONS[0],
     kabupaten_kota: '',
+    logistik: '',
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     tangkapan: [
@@ -32,6 +33,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         nama_kapal: initialData.nama_kapal || '',
         pelabuhan: initialData.pelabuhan || PELABUHAN_OPTIONS[0],
         kabupaten_kota: initialData.kabupaten_kota || '',
+        logistik: initialData.logistik || '',
         gt_kapal: initialData.gt_kapal || GT_KAPAL_OPTIONS[0],
         alat_tangkap: initialData.alat_tangkap || ALAT_TANGKAP_OPTIONS[0],
         tangkapan: [
@@ -141,8 +143,8 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               <MapPin className="w-8 h-8" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-bold text-foreground">Kabupaten/Kota</h3>
-              <p className="text-sm text-muted-foreground mt-1">Data rekapan atau estimasi dari Dinas Kab/Kota.</p>
+              <h3 className="text-lg font-bold text-foreground">Non Pelabuhan</h3>
+              <p className="text-sm text-muted-foreground mt-1">Data rekapan atau estimasi dari Dinas Non Pelabuhan.</p>
             </div>
           </button>
         </div>
@@ -169,7 +171,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               sumberData === 'PUD' ? "bg-emerald-500/10 text-emerald-500" :
               "bg-orange-500/10 text-orange-500"
             )}>
-              {isPelabuhan ? 'Pelabuhan' : sumberData === 'PUD' ? 'PUD' : 'Kabupaten/Kota'}
+              {isPelabuhan ? 'Pelabuhan' : sumberData === 'PUD' ? 'PUD' : 'Non Pelabuhan'}
             </span>
           </h2>
           <p className="text-sm text-muted-foreground mt-1">Isi formulir pendaratan ikan harian secara lengkap.</p>
@@ -214,7 +216,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               </div>
             ) : (
               <div>
-                <label className="block text-sm font-medium mb-2">Kabupaten/Kota</label>
+                <label className="block text-sm font-medium mb-2">Non Pelabuhan</label>
                 <input 
                   type="text" 
                   name="kabupaten_kota"
@@ -290,6 +292,19 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   >
                     {GT_KAPAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">Data Operasional / Logistik</label>
+                  <input 
+                    type="text" 
+                    name="logistik"
+                    placeholder="Cth: Es 10 Balok, Solar 200 Liter, Umpan 5 Kg"
+                    value={formData.logistik}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Isi detail logistik keberangkatan jika ada.</p>
                 </div>
               </>
             )}

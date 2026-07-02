@@ -255,6 +255,7 @@ export default function AdminPerikananTangkap() {
                 'Nama Kapal': row.nama_kapal || '-',
                 'GT Kapal': row.gt_kapal || '-',
                 'Alat Tangkap': row.alat_tangkap || '-',
+                'Logistik': row.logistik || '-',
               };
               if (row.tangkapan && row.tangkapan.length > 0) {
                 row.tangkapan.forEach(t => {
