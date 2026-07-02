@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Loader2, Map, Waves, TreePine, Trash2, X, Save, FlaskConical, Layers, BarChart3, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
+import { DataTable } from '@/components/shared/DataTable';
 
 // ─── MOCK DEPENDENCIES (hapus & ganti import asli saat deploy) ───────────────
 const formatRupiah = (angka) => {
@@ -67,21 +68,24 @@ const STATUS_LABELS = {
 };
 
 const StatusBadge = ({ status, alasan }) => {
-  const styleMap = {
-    APPROVED_PROGRAM: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    APPROVED_BIDANG:  'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    REJECTED:         'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    PENDING:          'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  };
-  const cls = styleMap[status] ?? styleMap.PENDING;
-  const label = STATUS_LABELS[status] ?? STATUS_LABELS.PENDING;
+  let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+  let label = 'PENDING';
+  if (status === 'APPROVED_PROGRAM' || status === 'APPROVED_BIDANG') {
+    colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+    label = 'APPROVED';
+  } else if (status === 'REJECTED') {
+    colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+    label = 'REJECTED';
+  }
   return (
-    <div className="flex items-center gap-1.5">
-      <span className={`px-2.5 py-1 text-xs font-bold rounded-full border whitespace-nowrap ${cls}`}>
+    <div className="flex items-center gap-2">
+      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
         {label}
       </span>
       {status === 'REJECTED' && alasan && (
-        <span className="text-xs text-rose-400 cursor-help" title={`Alasan: ${alasan}`}>(i)</span>
+        <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
+          (?)
+        </span>
       )}
     </div>
   );
@@ -95,93 +99,13 @@ const TwBadge = ({ tw }) => {
     'TW 3': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     'TW 4': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
-  const cls = colorMap[tw] ?? 'bg-[#152d45] text-[#7fb5d5] border-[#1e3a52]';
+  const cls = colorMap[tw] ?? 'bg-blue-100 text-blue-800 border-blue-200';
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{tw ?? '-'}</span>
+    <span className={`px-2.5 py-0.5 rounded text-xs font-medium border ${cls}`}>{tw ?? '-'}</span>
   );
 };
 
-// ── DATA TABLE ─────────────────────────────────────────────────────────────────
-const DataTable = ({ columns, data, onEdit, onDelete, onApprove, onReject, renderSubComponent }) => {
-  const [expandedRow, setExpandedRow] = useState(null);
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[#1e3a52]">
-      <table className="w-full text-sm text-left">
-        <thead className="bg-[#152d45] text-[#7fb5d5] border-b border-[#1e3a52]">
-          <tr>
-            {columns.map((col, i) => (
-              <th key={i} className="px-4 py-3.5 font-semibold whitespace-nowrap tracking-wider text-xs uppercase">{col.header}</th>
-            ))}
-            <th className="px-4 py-3.5 font-semibold text-right tracking-wider text-xs uppercase">Aksi</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[#1e3a52]">
-          {data.map((row, i) => (
-            <React.Fragment key={i}>
-              <tr
-                className={`cursor-pointer transition-colors hover:bg-[#152d45]/60 ${expandedRow === i ? 'bg-[#152d45]/40' : 'bg-[#0f2236]'}`}
-                onClick={() => setExpandedRow(expandedRow === i ? null : i)}
-              >
-                {columns.map((col, j) => (
-                  <td key={j} className="px-4 py-3 whitespace-nowrap text-[#c8dff0]">
-                    {col.cell
-                      ? col.cell({ getValue: () => col.accessorFn ? col.accessorFn(row) : row[col.accessorKey], row: { original: row } })
-                      : row[col.accessorKey]}
-                  </td>
-                ))}
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-3">
-                    {/* Approve/Reject muncul selama belum disetujui penuh oleh Program ataupun ditolak */}
-                    {(row.status === 'PENDING' || row.status === 'APPROVED_BIDANG') && onApprove && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onApprove(row); }}
-                        className="text-emerald-400 hover:text-emerald-300 transition-colors"
-                        title={row.status === 'PENDING' ? 'Setujui (Bidang)' : 'Setujui (Program)'}
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                    {(row.status === 'PENDING' || row.status === 'APPROVED_BIDANG') && onReject && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onReject(row); }}
-                        className="text-rose-400 hover:text-rose-300 transition-colors"
-                        title="Tolak"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(row); }} className="text-cyan-400 font-medium hover:text-cyan-200 transition-colors text-xs">Edit</button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(row); }} className="text-rose-400 font-medium hover:text-rose-300 transition-colors text-xs">Hapus</button>
-                  </div>
-                </td>
-              </tr>
-              {expandedRow === i && renderSubComponent && (
-                <tr className="bg-[#0b1929]/80">
-                  <td colSpan={columns.length + 1} className="p-0 border-b border-[#1e3a52]">
-                    <div className="animate-in slide-in-from-top-2 duration-200">
-                      {renderSubComponent({ row: { original: row } })}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </React.Fragment>
-          ))}
-          {data.length === 0 && (
-            <tr>
-              <td colSpan={columns.length + 1} className="p-16 text-center text-[#7fb5d5] bg-[#0f2236]">
-                <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">Belum ada data tersedia.</p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-
+// ── DATA TABLE (Imported from shared components) ─────────────────────────────────────────────────────────────────
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────────
 export default function AdminKelautanPesisir() {
@@ -296,21 +220,10 @@ export default function AdminKelautanPesisir() {
     }
   };
 
-  // ── EKSPOR EXCEL ───────────────────────────────────────────────────────────
-  const handleExportExcel = () => {
-    const currentData = activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : dataTerumbuKarang;
-
-    if (!currentData || currentData.length === 0) {
-      alert('Tidak ada data untuk diekspor.');
-      return;
-    }
-
-    let formattedData = [];
-    let sheetName = '';
-
+  // ── EKSPOR EXCEL FORMATTER ───────────────────────────────────────────────────
+  const handleFormatExport = (dataToExport) => {
     if (activeTab === 'garam') {
-      sheetName = 'Data Garam';
-      formattedData = currentData.map(row => ({
+      return dataToExport.map(row => ({
         'Status': STATUS_LABELS[row.status] ?? row.status,
         'Bulan': formatBulan(row.bulan),
         'Triwulan': row.triwulan,
@@ -334,8 +247,7 @@ export default function AdminKelautanPesisir() {
         'Produktivitas (Ton/Ha)': row.produktivitas,
       }));
     } else if (activeTab === 'mangrove') {
-      sheetName = 'Data Mangrove';
-      formattedData = currentData.map(row => ({
+      return dataToExport.map(row => ({
         'Status': STATUS_LABELS[row.status] ?? row.status,
         'Tahun': row.tahun,
         'Kabupaten/Kota': row.kabupaten_kota,
@@ -348,8 +260,7 @@ export default function AdminKelautanPesisir() {
         'Jumlah Bibit Ditanam': row.jumlah_bibit_ditanam,
       }));
     } else {
-      sheetName = 'Terumbu Karang';
-      formattedData = currentData.map(row => ({
+      return dataToExport.map(row => ({
         'Status': STATUS_LABELS[row.status] ?? row.status,
         'Tahun': row.tahun,
         'Kabupaten/Kota': row.kabupaten_kota,
@@ -361,13 +272,6 @@ export default function AdminKelautanPesisir() {
         'Keterangan Ancaman': row.keterangan_ancaman,
       }));
     }
-
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-    const fileName = `${sheetName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
   };
 
   // ── COLUMNS ────────────────────────────────────────────────────────────────
@@ -378,7 +282,7 @@ export default function AdminKelautanPesisir() {
     },
     {
       header: 'Bulan', accessorKey: 'bulan',
-      cell: info => <span className="text-[#c8dff0]">{formatBulan(info.getValue())}</span>
+      cell: info => <span className="text-foreground">{formatBulan(info.getValue())}</span>
     },
     {
       header: <div className="text-center w-full">TW</div>, accessorKey: 'triwulan',
@@ -386,7 +290,7 @@ export default function AdminKelautanPesisir() {
     },
     {
       header: 'Tahun', accessorKey: 'tahun',
-      cell: info => <span className="font-bold text-[#c8dff0] bg-[#152d45] px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span>
+      cell: info => <span className="font-bold text-foreground bg-muted px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span>
     },
     {
       header: 'Kab/Kota', accessorKey: 'kabupaten_kota',
@@ -412,19 +316,19 @@ export default function AdminKelautanPesisir() {
 
   const columnsMangrove = useMemo(() => [
     { header: 'Status', accessorKey: 'status', cell: info => <StatusBadge status={info.getValue()} alasan={info.row.original.alasan_penolakan} /> },
-    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-semibold text-[#c8dff0]">{info.getValue()}</span> },
+    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-semibold text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-emerald-400">{info.getValue()}</p> },
-    { header: 'Kecamatan', accessorKey: 'kecamatan', cell: info => <span className="text-[#c8dff0]">{info.getValue()}</span> },
-    { header: 'Luas Total (Ha)', accessorKey: 'luas_total_ha', cell: info => <span className="text-[#c8dff0]">{(info.getValue() || 0).toLocaleString('id-ID')}</span> },
+    { header: 'Kecamatan', accessorKey: 'kecamatan', cell: info => <span className="text-foreground">{info.getValue()}</span> },
+    { header: 'Luas Total (Ha)', accessorKey: 'luas_total_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID')}</span> },
     { header: 'Rehabilitasi (Ha)', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="text-cyan-400 font-medium">{(info.getValue() || 0).toLocaleString('id-ID')}</span> }
   ], []);
 
   const columnsKarang = useMemo(() => [
     { header: 'Status', accessorKey: 'status', cell: info => <StatusBadge status={info.getValue()} alasan={info.row.original.alasan_penolakan} /> },
-    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-semibold text-[#c8dff0]">{info.getValue()}</span> },
+    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-semibold text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
-    { header: 'Lokasi Perairan', accessorKey: 'lokasi_perairan', cell: info => <span className="text-[#c8dff0]">{info.getValue()}</span> },
-    { header: 'Tutupan Hidup', accessorKey: 'tutupan_hidup_persen', cell: info => <span className="font-medium text-[#c8dff0]">{info.getValue()}%</span> },
+    { header: 'Lokasi Perairan', accessorKey: 'lokasi_perairan', cell: info => <span className="text-foreground">{info.getValue()}</span> },
+    { header: 'Tutupan Hidup', accessorKey: 'tutupan_hidup_persen', cell: info => <span className="font-medium text-foreground">{info.getValue()}%</span> },
     {
       header: 'Kondisi', accessorKey: 'kategori_status',
       cell: info => {
@@ -439,63 +343,63 @@ export default function AdminKelautanPesisir() {
   const renderSubGaram = ({ row }) => {
     const d = row.original;
     return (
-      <div className="p-6 bg-[#0b1929]/70 border-l-4 border-cyan-500">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 pb-5 border-b border-[#1e3a52] text-sm">
-          <div className="bg-[#0f2236] p-3.5 rounded-xl border border-[#1e3a52]">
-            <span className="text-[#7fb5d5] text-xs font-semibold block mb-1 uppercase tracking-wider">Luas Produksi</span>
-            <span className="font-bold text-[#c8dff0] text-xl">{(d.luas_produksi_ha || 0).toLocaleString('id-ID')} <span className="text-xs font-medium text-[#7fb5d5]">Ha</span></span>
+      <div className="p-6 bg-card/70 border-l-4 border-cyan-500">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 pb-5 border-b border-border text-sm">
+          <div className="bg-card p-3.5 rounded-xl border border-border">
+            <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">Luas Produksi</span>
+            <span className="font-bold text-foreground text-xl">{(d.luas_produksi_ha || 0).toLocaleString('id-ID')} <span className="text-xs font-medium text-muted-foreground">Ha</span></span>
           </div>
-          <div className="bg-[#0f2236] p-3.5 rounded-xl border border-emerald-500/30 relative overflow-hidden">
+          <div className="bg-card p-3.5 rounded-xl border border-emerald-500/30 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/10 rounded-bl-full"></div>
             <span className="text-emerald-400 text-xs font-bold block mb-1 uppercase tracking-wider">Produktivitas Lahan</span>
             <span className="font-bold text-emerald-300 text-xl">{(d.produktivitas || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} <span className="text-xs font-medium text-emerald-400/70">Ton/Ha</span></span>
           </div>
-          <div className="bg-[#0f2236] p-3.5 rounded-xl border border-[#1e3a52]">
-            <span className="text-[#7fb5d5] text-xs font-semibold block mb-1 uppercase tracking-wider">Jml Kelompok</span>
-            <span className="font-bold text-[#c8dff0] text-xl">{d.jumlah_kelompok || 0} <span className="text-xs font-medium text-[#7fb5d5]">Pok</span></span>
+          <div className="bg-card p-3.5 rounded-xl border border-border">
+            <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">Jml Kelompok</span>
+            <span className="font-bold text-foreground text-xl">{d.jumlah_kelompok || 0} <span className="text-xs font-medium text-muted-foreground">Pok</span></span>
           </div>
-          <div className="bg-[#0f2236] p-3.5 rounded-xl border border-[#1e3a52]">
-            <span className="text-[#7fb5d5] text-xs font-semibold block mb-1 uppercase tracking-wider">Jml Petambak</span>
-            <span className="font-bold text-[#c8dff0] text-xl">{d.jumlah_petambak || 0} <span className="text-xs font-medium text-[#7fb5d5]">Org</span></span>
+          <div className="bg-card p-3.5 rounded-xl border border-border">
+            <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">Jml Petambak</span>
+            <span className="font-bold text-foreground text-xl">{d.jumlah_petambak || 0} <span className="text-xs font-medium text-muted-foreground">Org</span></span>
           </div>
         </div>
-        <h4 className="text-xs font-bold text-[#7fb5d5] mb-4 tracking-widest uppercase flex items-center gap-2">
+        <h4 className="text-xs font-bold text-muted-foreground mb-4 tracking-widest uppercase flex items-center gap-2">
           <Layers className="w-3.5 h-3.5" /> Rincian Produksi, Stok &amp; Harga per Kualitas
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           {[
             { label: 'KUALITAS 1', badge: 'Tinggi', color: 'cyan', produksi: d.produksi_k1_ton, stok: d.stok_k1_ton, harga: d.harga_k1_rp, borderCls: 'border-cyan-500/20', accentCls: 'bg-cyan-500', stokCls: 'text-cyan-400', headCls: 'text-cyan-300', badgeCls: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
             { label: 'KUALITAS 2', badge: 'Menengah', color: 'amber', produksi: d.produksi_k2_ton, stok: d.stok_k2_ton, harga: d.harga_k2_rp, borderCls: 'border-amber-500/20', accentCls: 'bg-amber-500', stokCls: 'text-amber-400', headCls: 'text-amber-300', badgeCls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-            { label: 'KUALITAS 3', badge: 'Rendah', color: 'slate', produksi: d.produksi_k3_ton, stok: d.stok_k3_ton, harga: d.harga_k3_rp, borderCls: 'border-[#1e3a52]', accentCls: 'bg-[#7fb5d5]/40', stokCls: 'text-[#c8dff0]', headCls: 'text-[#7fb5d5]', badgeCls: 'text-[#7fb5d5] bg-[#152d45] border-[#1e3a52]' },
+            { label: 'KUALITAS 3', badge: 'Rendah', color: 'slate', produksi: d.produksi_k3_ton, stok: d.stok_k3_ton, harga: d.harga_k3_rp, borderCls: 'border-border', accentCls: 'bg-[#7fb5d5]/40', stokCls: 'text-foreground', headCls: 'text-muted-foreground', badgeCls: 'text-muted-foreground bg-muted border-border' },
           ].map(k => (
-            <div key={k.label} className={`bg-[#0f2236] p-4 rounded-xl border ${k.borderCls} relative overflow-hidden`}>
+            <div key={k.label} className={`bg-card p-4 rounded-xl border ${k.borderCls} relative overflow-hidden`}>
               <div className={`absolute top-0 left-0 w-1 h-full ${k.accentCls}`}></div>
               <h5 className={`font-bold ${k.headCls} mb-3 flex items-center justify-between`}>
                 {k.label}
                 <span className={`text-xs font-normal px-2 py-0.5 rounded-full border ${k.badgeCls}`}>{k.badge}</span>
               </h5>
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-[#7fb5d5]">
+                <div className="flex justify-between items-center text-muted-foreground">
                   <span>Produksi:</span>
-                  <span className="font-semibold text-[#c8dff0]">{(k.produksi || 0).toLocaleString('id-ID')} Ton</span>
+                  <span className="font-semibold text-foreground">{(k.produksi || 0).toLocaleString('id-ID')} Ton</span>
                 </div>
-                <div className="flex justify-between items-center text-[#7fb5d5]">
+                <div className="flex justify-between items-center text-muted-foreground">
                   <span>Stok:</span>
                   <span className={`font-semibold ${k.stokCls}`}>{(k.stok || 0).toLocaleString('id-ID')} Ton</span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t border-[#1e3a52] mt-2">
-                  <span className="text-[#7fb5d5] text-xs">Harga</span>
-                  <span className="font-bold text-[#c8dff0]">{formatRupiah(k.harga)}</span>
+                <div className="flex justify-between items-center pt-2 border-t border-border mt-2">
+                  <span className="text-muted-foreground text-xs">Harga</span>
+                  <span className="font-bold text-foreground">{formatRupiah(k.harga)}</span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-[#7fb5d5] text-xs">Nilai Produksi</span>
-                  <span className="font-bold text-[#c8dff0]">{((k.produksi || 0) * (k.harga || 0)).toLocaleString('id-ID')}</span>
+                  <span className="text-muted-foreground text-xs">Nilai Produksi</span>
+                  <span className="font-bold text-foreground">{((k.produksi || 0) * (k.harga || 0)).toLocaleString('id-ID')}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap gap-3 pt-4 border-t border-[#1e3a52]">
+        <div className="mt-4 flex flex-wrap gap-3 pt-4 border-t border-border">
           <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
             <span className="text-xs text-emerald-400/70 uppercase tracking-wider">Total Produksi</span>
             <span className="font-bold text-emerald-400">{(d.total_produksi_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span>
@@ -510,39 +414,31 @@ export default function AdminKelautanPesisir() {
   };
 
   const renderSubMangrove = ({ row }) => (
-    <div className="p-5 text-emerald-300 bg-[#0b1929]/70 border-l-4 border-emerald-500">
+    <div className="p-5 text-emerald-300 bg-card/70 border-l-4 border-emerald-500">
       Detail Mangrove {row.original.kabupaten_kota}...
     </div>
   );
   const renderSubKarang = ({ row }) => (
-    <div className="p-5 text-cyan-300 bg-[#0b1929]/70 border-l-4 border-cyan-500">
+    <div className="p-5 text-cyan-300 bg-card/70 border-l-4 border-cyan-500">
       Detail Karang {row.original.kabupaten_kota}...
     </div>
   );
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 bg-[#0b1929] min-h-screen text-[#c8dff0]">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-cyan-400/70 uppercase tracking-widest mb-1.5">Dinas Kelautan &amp; Perikanan — Jawa Timur</p>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Bidang Kelautan &amp; Pesisir</h1>
-          <p className="text-[#7fb5d5] mt-1.5 text-sm">Kelola laporan produksi Garam, status Mangrove, dan Terumbu Karang.</p>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Data Kelautan &amp; Pesisir</h1>
+          <p className="text-muted-foreground mt-1">Kelola laporan produksi Garam, status Mangrove, dan Terumbu Karang.</p>
         </div>
         {!isFormOpen && (
           <div className="flex items-center gap-3">
             <button
-              onClick={handleExportExcel}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/30 text-sm whitespace-nowrap"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              Ekspor Excel
-            </button>
-            <button
               onClick={() => { setEditingData(null); setIsFormOpen(true); }}
-              className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-700/30 text-sm whitespace-nowrap"
+              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               Tambah Data {activeTab === 'garam' ? 'Garam' : activeTab === 'mangrove' ? 'Mangrove' : 'Karang'}
@@ -554,17 +450,17 @@ export default function AdminKelautanPesisir() {
       {/* Delete Modal */}
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0f2236] border border-[#1e3a52] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 text-rose-400">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 text-rose-500">
               <Trash2 className="w-5 h-5" />
               <h3 className="text-lg font-bold">Konfirmasi Hapus</h3>
             </div>
-            <p className="text-[#7fb5d5] text-sm mb-6">
-              Yakin ingin menghapus data <strong className="text-[#c8dff0]">{itemToDelete.kabupaten_kota}</strong>? Tindakan ini tidak dapat dibatalkan.
+            <p className="text-muted-foreground text-sm mb-6">
+              Yakin ingin menghapus data <strong className="text-foreground">{itemToDelete.kabupaten_kota}</strong>? Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-[#152d45] text-[#7fb5d5] hover:bg-[#1e3a52] text-sm transition-colors">Batal</button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-rose-600 hover:bg-rose-500 text-white text-sm transition-colors shadow-lg shadow-rose-700/30">Ya, Hapus Data</button>
+              <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-secondary text-secondary-foreground hover:opacity-80 text-sm transition-opacity">Batal</button>
+              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm transition-colors shadow-lg">Ya, Hapus Data</button>
             </div>
           </div>
         </div>
@@ -572,11 +468,11 @@ export default function AdminKelautanPesisir() {
 
       {/* Tabs */}
       {!isFormOpen && (
-        <div className="flex overflow-x-auto border-b border-[#1e3a52] gap-1">
+        <div className="flex overflow-x-auto border-b border-border gap-1">
           {[
-            { key: 'garam',          label: 'Data Garam',    icon: <Map className="w-4 h-4" />,      active: 'border-cyan-500 text-cyan-300 bg-cyan-500/10',    inactive: 'text-[#7fb5d5] hover:bg-[#152d45]' },
-            { key: 'mangrove',       label: 'Data Mangrove', icon: <TreePine className="w-4 h-4" />, active: 'border-emerald-500 text-emerald-300 bg-emerald-500/10', inactive: 'text-[#7fb5d5] hover:bg-[#152d45]' },
-            { key: 'terumbu_karang', label: 'Terumbu Karang',icon: <Waves className="w-4 h-4" />,   active: 'border-cyan-400 text-cyan-200 bg-cyan-400/10',    inactive: 'text-[#7fb5d5] hover:bg-[#152d45]' },
+            { key: 'garam',          label: 'Data Garam',    icon: <Map className="w-4 h-4" />,      active: 'border-primary text-primary bg-primary/10',    inactive: 'text-muted-foreground hover:bg-muted/50' },
+            { key: 'mangrove',       label: 'Data Mangrove', icon: <TreePine className="w-4 h-4" />, active: 'border-primary text-primary bg-primary/10', inactive: 'text-muted-foreground hover:bg-muted/50' },
+            { key: 'terumbu_karang', label: 'Terumbu Karang',icon: <Waves className="w-4 h-4" />,   active: 'border-primary text-primary bg-primary/10',    inactive: 'text-muted-foreground hover:bg-muted/50' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -601,17 +497,17 @@ export default function AdminKelautanPesisir() {
             />
           </div>
         ) : (
-          <div className="bg-[#0f2236] border border-[#1e3a52] p-12 rounded-2xl text-center shadow-sm">
-            <p className="text-[#7fb5d5] text-sm">Form untuk {activeTab} sedang disiapkan.</p>
-            <button onClick={() => setIsFormOpen(false)} className="mt-4 px-6 py-2 border border-[#1e3a52] rounded-lg hover:bg-[#152d45] font-medium text-sm text-[#c8dff0] transition-colors">Kembali</button>
+          <div className="bg-card border border-border p-12 rounded-2xl text-center shadow-sm">
+            <p className="text-muted-foreground text-sm">Form untuk {activeTab} sedang disiapkan.</p>
+            <button onClick={() => setIsFormOpen(false)} className="mt-4 px-6 py-2 border border-border rounded-lg hover:bg-muted/50 font-medium text-sm text-foreground transition-colors">Kembali</button>
           </div>
         )
       ) : (
-        <div className="bg-[#0f2236] rounded-2xl border border-[#1e3a52] overflow-hidden shadow-xl shadow-black/20">
+        <div className="space-y-4">
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-              <p className="text-[#7fb5d5] text-sm">Memuat data...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground text-sm">Memuat data...</p>
             </div>
           ) : (
             <DataTable
@@ -622,6 +518,8 @@ export default function AdminKelautanPesisir() {
               onApprove={handleApprove}
               onReject={handleReject}
               renderSubComponent={activeTab === 'garam' ? renderSubGaram : activeTab === 'mangrove' ? renderSubMangrove : renderSubKarang}
+              exportName={`Data_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`}
+              formatExportData={handleFormatExport}
             />
           )}
         </div>
