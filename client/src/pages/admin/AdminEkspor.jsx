@@ -18,6 +18,26 @@ export default function AdminEkspor() {
   const [stats, setStats] = useState(null);
   const [selectedYear, setSelectedYear] = useState('');
 
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState('');
+  const [filterKomoditas, setFilterKomoditas] = useState('');
+  const [filterNegara, setFilterNegara] = useState('');
+
+  const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
+  const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
+  const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.nama_komoditas))].filter(Boolean).sort(), [data]);
+  const negaraOptions = useMemo(() => [...new Set(data.map(d => d.negara_tujuan))].filter(Boolean).sort(), [data]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      if (filterBulan && item.bulan !== filterBulan) return false;
+      if (filterTahun && item.tahun !== filterTahun) return false;
+      if (filterKomoditas && item.nama_komoditas !== filterKomoditas) return false;
+      if (filterNegara && item.negara_tujuan !== filterNegara) return false;
+      return true;
+    });
+  }, [data, filterBulan, filterTahun, filterKomoditas, filterNegara]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -215,10 +235,29 @@ export default function AdminEkspor() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Tahun</option>
+              {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Bulan</option>
+              {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Komoditas</option>
+              {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+            <select value={filterNegara} onChange={(e) => setFilterNegara(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="">Semua Negara Tujuan</option>
+              {negaraOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+
           <DataTable
             columns={columns}
-            data={data}
+            data={filteredData}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onApprove={handleApprove}

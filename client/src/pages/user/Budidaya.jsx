@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { Loader2, TrendingUp, MapPin, Fish, FileText } from 'lucide-react';
@@ -53,75 +53,76 @@ export default function Budidaya() {
     });
   }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
 
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (selectedYear) params.append('tahun', selectedYear);
-      if (selectedTriwulan) params.append('triwulan', selectedTriwulan);
-      
-      const query = `?${params.toString()}`;
-      
-      const [dataRes, statsRes] = await Promise.all([
-        api.get(`/budidaya${query}`),
-        api.get(`/budidaya/stats${query}`)
-      ]);
-
-      if (dataRes.data.success) {
-        setData(dataRes.data.data);
-      }
-      if (statsRes.data.success) {
-        setStats(statsRes.data.stats);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (selectedYear) params.append('tahun', selectedYear);
+        if (selectedTriwulan) params.append('triwulan', selectedTriwulan);
+        
+        const query = `?${params.toString()}`;
+        
+        const [dataRes, statsRes] = await Promise.all([
+          api.get(`/budidaya${query}`),
+          api.get(`/budidaya/stats${query}`)
+        ]);
+
+        if (dataRes.data.success) {
+          setData(dataRes.data.data);
+        }
+        if (statsRes.data.success) {
+          setStats(statsRes.data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, [selectedYear, selectedTriwulan]);
 
   const columns = useMemo(() => [
     {
-      header: 'Tahun',
-      accessorKey: 'tahun'
+      header: 'Status',
+      accessorKey: 'status',
+      cell: info => {
+        const status = info.getValue();
+        const alasan = info.row.original.alasan_penolakan;
+        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+        let label = 'PENDING';
+        if (status === 'APPROVED') {
+          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+          label = 'APPROVED';
+        } else if (status === 'REJECTED') {
+          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+          label = 'REJECTED';
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
+              {label}
+            </span>
+            {status === 'REJECTED' && alasan && (
+              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
+                (?)
+              </span>
+            )}
+          </div>
+        );
+      }
     },
-    {
-      header: 'Bulan',
-      accessorKey: 'bulan'
-    },
-    {
-      header: 'Triwulan',
-      accessorKey: 'triwulan',
-      cell: info => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-          {info.getValue()}
-        </span>
-      )
-    },
-    {
-      header: 'Kabupaten/Kota',
-      accessorKey: 'kabupaten_kota',
-      cell: info => <p className="font-medium text-foreground">{info.getValue()}</p>
-    },
-    {
-      header: 'Jenis Wadah',
-      accessorKey: 'jenis_wadah',
-      cell: info => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-          {info.getValue()}
-        </span>
-      )
-    },
-    {
-      header: 'Produksi (Ton)',
-      accessorKey: 'produksi_ton',
-      cell: info => info.getValue().toLocaleString('id-ID')
-    }
+    { header: 'Tahun', accessorKey: 'tahun' },
+    { header: 'Bulan', accessorKey: 'bulan' },
+    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{info.getValue()}</span>) },
+    { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
+    { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
+    { header: 'Komoditas', accessorKey: 'komoditas' },
+    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
+    { header: 'Produksi (Ton)', accessorKey: 'produksi_ton', cell: info => info.getValue().toLocaleString('id-ID') },
+    { header: 'Nilai (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
   ], []);
 
   // 1. Peta Choropleth Jawa Timur (Log Scale)
@@ -504,15 +505,19 @@ export default function Budidaya() {
               data={filteredData}
               exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
               formatExportData={(exportData) => exportData.map(row => ({
+                'Status': row.status,
                 'Tahun': row.tahun,
                 'Bulan': row.bulan,
                 'Triwulan': row.triwulan,
                 'Kabupaten/Kota': row.kabupaten_kota,
+                'Kategori Komoditas': row.kategori_komoditas,
+                'Komoditas': row.komoditas,
                 'Jenis Wadah': row.jenis_wadah,
-                'Produksi (Ton)': row.produksi_ton
+                'Produksi (Ton)': row.produksi_ton,
+                'Nilai (Rp)': row.nilai_rp
               }))}
             />
-              </div>
+          </div>
           </div>
         </div>
       )}
