@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, searchKey = 'nama_kapal', exportName, formatExportData, renderSubComponent }) {
+export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -39,8 +39,14 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
   });
 
   const handleExport = () => {
-    // Exclude 'actions' column when exporting, and only export filtered data
     const rowsToExport = table.getFilteredRowModel().rows.map(row => row.original);
+    
+    if (onCustomExport) {
+      onCustomExport(rowsToExport);
+      return;
+    }
+
+    // Exclude 'actions' column when exporting, and only export filtered data
     let exportData = rowsToExport.map(row => {
       const newRow = { ...row };
       delete newRow.id;
