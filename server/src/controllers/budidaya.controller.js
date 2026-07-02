@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const ExcelJS = require('exceljs');
 
 // Helper function to calculate Triwulan (TW) from Bulan
 const getTriwulan = (bulan) => {
@@ -288,6 +289,118 @@ const updateStatus = async (req, res) => {
   }
 };
 
+const exportRingkasanWadah = async (req, res) => {
+  try {
+    const { tahun } = req.query;
+    if (!tahun) {
+      return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
+    }
+
+    const data = await prisma.budidaya.findMany({
+      where: { tahun: tahun, status: 'APPROVED' }
+    });
+
+    const distinctWadahData = await prisma.budidaya.groupBy({
+      by: ['jenis_wadah'],
+      where: { status: 'APPROVED' }
+    });
+    const uniqueWadah = distinctWadahData.map(d => d.jenis_wadah).filter(Boolean).sort();
+
+    const kabMap = {};
+    data.forEach(item => {
+      const kab = item.kabupaten_kota.toUpperCase();
+      if (!kabMap[kab]) {
+        kabMap[kab] = { jumlah: 0 };
+        uniqueWadah.forEach(w => kabMap[kab][w] = 0);
+      }
+      const wadahKey = item.jenis_wadah;
+      const tonase = item.produksi_kg; // Keep as KG
+      if (wadahKey && uniqueWadah.includes(wadahKey)) {
+         kabMap[kab][wadahKey] += tonase;
+      }
+      kabMap[kab].jumlah += tonase;
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Data Budidaya');
+    const totalCols = uniqueWadah.length + 2;
+
+    // Row 1-2: Judul
+    sheet.mergeCells(1, 1, 1, totalCols);
+    sheet.getCell(1, 1).value = `REKAPITULASI DATA PRODUKSI PERIKANAN BUDIDAYA PROVINSI JAWA TIMUR TAHUN ${tahun}`;
+    sheet.getCell(1, 1).font = { bold: true, size: 14 };
+    sheet.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    sheet.mergeCells(2, 1, 2, totalCols);
+    sheet.getCell(2, 1).value = `BERDASARKAN JENIS WADAH`;
+    sheet.getCell(2, 1).font = { bold: true, size: 12 };
+    sheet.getCell(2, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Row 3: Satuan
+    sheet.getCell(3, totalCols).value = 'Satuan : KG';
+    sheet.getCell(3, totalCols).font = { italic: true };
+    sheet.getCell(3, totalCols).alignment = { horizontal: 'right' };
+
+    // Row 4: Headers
+    const headers = ['KABUPATEN/KOTA', 'JUMLAH', ...uniqueWadah.map(w => w.toUpperCase())];
+    headers.forEach((h, i) => {
+      const cell = sheet.getCell(4, i + 1);
+      cell.value = h;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    // Totals
+    const totals = { jumlah: 0 };
+    uniqueWadah.forEach(w => totals[w] = 0);
+
+    const sortedKab = Object.keys(kabMap).sort();
+    sortedKab.forEach(k => {
+      totals.jumlah += kabMap[k].jumlah;
+      uniqueWadah.forEach(w => totals[w] += kabMap[k][w]);
+    });
+
+    // Row 5: JUMLAH TOTAL
+    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah];
+    uniqueWadah.forEach(w => totalRowValues.push(totals[w]));
+
+    const totalRow = sheet.getRow(5);
+    totalRow.values = totalRowValues;
+    totalRow.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    // Row 6-dst: Data
+    let currentRow = 6;
+    sortedKab.forEach(k => {
+      const v = kabMap[k];
+      const rowValues = [k, v.jumlah];
+      uniqueWadah.forEach(w => rowValues.push(v[w]));
+      
+      const row = sheet.getRow(currentRow);
+      row.values = rowValues;
+      row.eachCell((cell) => {
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+      currentRow++;
+    });
+
+    sheet.getColumn(1).width = 25;
+    for(let i=2; i<=totalCols; i++) sheet.getColumn(i).width = 15;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=data_produksi_perikanan_${tahun}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting wadah:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getAllData,
   getAdminData,
@@ -295,5 +408,6 @@ module.exports = {
   createData,
   updateData,
   deleteData,
-  updateStatus
+  updateStatus,
+  exportRingkasanWadah
 };

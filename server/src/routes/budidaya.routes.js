@@ -3,6 +3,7 @@ const router = express.Router();
 const budidayaController = require('../controllers/budidaya.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
 
+router.get('/export-wadah', budidayaController.exportRingkasanWadah);
 router.get('/stats', budidayaController.getStats);
 router.get('/', budidayaController.getAllData);
 

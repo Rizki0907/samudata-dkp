@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, TrendingUp, MapPin, Fish, FileText, Box, LineChart } from 'lucide-react';
+import { Loader2, TrendingUp, MapPin, Fish, FileText, Box, LineChart, Download, X } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
@@ -35,6 +35,11 @@ export default function Budidaya() {
   const [filterBulan, setFilterBulan] = useState('');
   const [filterTahun, setFilterTahun] = useState('');
   const [barFilter, setBarFilter] = useState('produksi');
+  
+  // Export Modal State
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportYear, setExportYear] = useState(currentYear.toString());
+  const [exportLoading, setExportLoading] = useState(false);
 
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
   const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
@@ -540,12 +545,21 @@ export default function Budidaya() {
 
           {/* Data Table */}
           <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <FileText className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Rincian Data Produksi Budidaya</h3>
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="w-5 h-5 text-slate-500" />
+                  <h3 className="text-lg font-semibold text-foreground">Rincian Data Produksi Budidaya</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
               </div>
-              <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <Download className="w-4 h-4" />
+                Ekspor Ringkasan Wadah
+              </button>
             </div>
 
             <div>
@@ -594,6 +608,70 @@ export default function Budidaya() {
                   'Nilai Total (Rp)': row.nilai_rp
                 }))}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold">Ekspor Ringkasan Wadah</h3>
+              <button onClick={() => setShowExportModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Pilih Tahun Ekspor</label>
+                <select
+                  value={exportYear}
+                  onChange={(e) => setExportYear(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                >
+                  {TAHUN_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                File Excel akan berisikan rekapitulasi jumlah produksi berdasarkan wadah untuk semua kabupaten/kota pada tahun yang dipilih.
+              </p>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+                  disabled={exportLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      setExportLoading(true);
+                      const response = await api.get(`/budidaya/export-wadah?tahun=${exportYear}`, { responseType: 'blob' });
+                      const url = window.URL.createObjectURL(new Blob([response.data]));
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', `data_produksi_perikanan_${exportYear}.xlsx`);
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                      setShowExportModal(false);
+                    } catch (error) {
+                      console.error(error);
+                      alert('Gagal mengunduh file.');
+                    } finally {
+                      setExportLoading(false);
+                    }
+                  }}
+                  disabled={exportLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                >
+                  {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {exportLoading ? 'Mengunduh...' : 'Unduh Excel'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
