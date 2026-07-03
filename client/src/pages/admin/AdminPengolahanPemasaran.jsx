@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, Loader2, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Loader2, Plus, Save } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 
@@ -95,6 +95,9 @@ const BULAN_OPTIONS = [
 
 const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
+
+const FILTER_SELECT_CLASS =
+  'w-full rounded-full border border-border bg-background px-5 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10';
 
 const NUMERIC_FIELDS = [
   'tahun',
@@ -1375,29 +1378,31 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
             />
           </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 md:max-w-sm">
-            <ReadOnlyMetric label="Total Seluruh Tenaga Kerja" value={totalTenagaKerja} suffix=" Orang" />
-          </div>
         </div>
       </SectionCard>
 
-      <div className="flex flex-col-reverse justify-end gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          <X className="h-4 w-4" />
-          Batal
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Simpan Data
-        </button>
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="w-full rounded-2xl border border-primary/20 bg-primary/5 p-4 md:max-w-sm">
+          <ReadOnlyMetric label="Total Seluruh Tenaga Kerja" value={totalTenagaKerja} suffix=" Orang" />
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex items-center justify-center rounded-xl border border-transparent px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan Data
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -1599,6 +1604,119 @@ export default function AdminPengolahanPemasaran() {
     [],
   );
 
+  const dataPreview = loading ? (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ) : (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <select
+          value={filterTahun}
+          onChange={event => setFilterTahun(event.target.value)}
+          className={FILTER_SELECT_CLASS}
+        >
+          <option value="">Semua Tahun</option>
+          {tahunOptions.map(option => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterKabupaten}
+          onChange={event => setFilterKabupaten(event.target.value)}
+          className={FILTER_SELECT_CLASS}
+        >
+          <option value="">Semua Kabupaten/Kota</option>
+          {KABUPATEN_KOTA_OPTIONS.map(option => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterJenisKegiatan}
+          onChange={event => setFilterJenisKegiatan(event.target.value)}
+          className={FILTER_SELECT_CLASS}
+        >
+          <option value="">Semua Jenis Kegiatan</option>
+          <option value="Pengolahan">Pengolahan</option>
+          <option value="Pemasaran">Pemasaran</option>
+        </select>
+
+        <select
+          value={filterSkalaUsaha}
+          onChange={event => setFilterSkalaUsaha(event.target.value)}
+          className={FILTER_SELECT_CLASS}
+        >
+          <option value="">Semua Skala Usaha</option>
+          <option value="Mikro">Mikro</option>
+          <option value="Kecil">Kecil</option>
+          <option value="Menengah">Menengah</option>
+          <option value="Besar">Besar</option>
+        </select>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={filteredData}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
+      />
+    </div>
+  );
+
+  if (isFormOpen) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setIsFormOpen(false);
+              setEditingData(null);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            title="Kembali"
+            aria-label="Kembali ke halaman utama"
+            className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <div>
+            <h1 className="font-heading text-3xl font-bold text-foreground">
+              Kelola Data Pengolahan & Pemasaran
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              Input dan kelola data statistik unit usaha pengolahan serta pemasaran hasil perikanan.
+            </p>
+          </div>
+        </div>
+
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+          <PengolahanPemasaranForm
+            initialData={editingData}
+            isLoading={submitLoading}
+            onSubmit={handleCreateOrUpdate}
+            onCancel={() => {
+              setIsFormOpen(false);
+              setEditingData(null);
+            }}
+          />
+        </div>
+
+        {dataPreview}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1611,116 +1729,21 @@ export default function AdminPengolahanPemasaran() {
           </p>
         </div>
 
-        {!isFormOpen ? (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingData(null);
-              setIsFormOpen(true);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
-          >
-            <Plus className="h-5 w-5" />
-            Tambah Data Baru
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setIsFormOpen(false);
-              setEditingData(null);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Kembali ke Halaman Utama
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setEditingData(null);
+            setIsFormOpen(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+        >
+          <Plus className="h-5 w-5" />
+          Tambah Data Baru
+        </button>
       </div>
 
-      {isFormOpen ? (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-          <PengolahanPemasaranForm
-            initialData={editingData}
-            isLoading={submitLoading}
-            onSubmit={handleCreateOrUpdate}
-            onCancel={() => {
-              setIsFormOpen(false);
-              setEditingData(null);
-            }}
-          />
-        </div>
-      ) : null}
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4">
-            <select
-              value={filterTahun}
-              onChange={event => setFilterTahun(event.target.value)}
-              className={INPUT_CLASS}
-            >
-              <option value="">Semua Tahun</option>
-              {tahunOptions.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterKabupaten}
-              onChange={event => setFilterKabupaten(event.target.value)}
-              className={INPUT_CLASS}
-            >
-              <option value="">Semua Kabupaten/Kota</option>
-              {KABUPATEN_KOTA_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterJenisKegiatan}
-              onChange={event => setFilterJenisKegiatan(event.target.value)}
-              className={INPUT_CLASS}
-            >
-              <option value="">Semua Jenis Kegiatan</option>
-              <option value="Pengolahan">Pengolahan</option>
-              <option value="Pemasaran">Pemasaran</option>
-            </select>
-
-            <select
-              value={filterSkalaUsaha}
-              onChange={event => setFilterSkalaUsaha(event.target.value)}
-              className={INPUT_CLASS}
-            >
-              <option value="">Semua Skala Usaha</option>
-              <option value="Mikro">Mikro</option>
-              <option value="Kecil">Kecil</option>
-              <option value="Menengah">Menengah</option>
-              <option value="Besar">Besar</option>
-            </select>
-          </div>
-
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onApprove={handleApprove}
-            onReject={handleReject}
-            exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
-          />
-        </div>
-      )}
+      {dataPreview}
     </div>
   );
 }
