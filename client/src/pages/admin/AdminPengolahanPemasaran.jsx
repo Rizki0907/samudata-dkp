@@ -726,7 +726,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
 
       <SectionCard
         title={initialData ? 'Edit Data Pengolahan & Pemasaran' : 'Tambah Data Pengolahan & Pemasaran'}
-        description="Pilih klasifikasi kegiatan terlebih dahulu. Isian teks manual otomatis diubah menjadi huruf kapital."
+        description="Pilih klasifikasi jenis terlebih dahulu, lalu isi formulir berikut dengan lengkap."
       >
         <div className="space-y-5">
           <ChoiceButtons
@@ -1105,7 +1105,6 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
       <SectionCard
         number="6"
         title="Metrik Produksi & Biaya"
-        description="Nilai tahunan dihitung otomatis berdasarkan periode produksi, jumlah bulan, dan jumlah hari produksi."
       >
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1302,7 +1301,6 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
       <SectionCard
         number="8"
         title="Ketenagakerjaan"
-        description="Total seluruh tenaga kerja dijumlahkan otomatis dari sepuluh isian di bawah."
       >
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
