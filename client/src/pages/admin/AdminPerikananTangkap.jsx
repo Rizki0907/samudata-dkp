@@ -211,21 +211,36 @@ export default function AdminPerikananTangkap() {
     const pelabuhanName = filterWilayah.toUpperCase();
     const dateStr = filterTahun ? (filterBulan ? `${filterBulan}/${filterTahun}` : filterTahun) : 'Semua Waktu';
     
+    let summaryDateStr = dateStr;
+    if (filterTahun && filterBulan) {
+       summaryDateStr = 'BULAN INI';
+    } else if (filterTahun) {
+       summaryDateStr = 'TAHUN INI';
+    } else {
+       summaryDateStr = 'SELURUH WAKTU';
+    }
+    
     // Rows
     const row0 = [`REKAPITULASI DATA LAYANAN PELABUHAN ${pelabuhanName}`];
     const row1 = [`Hari, Tgl / Bln / Thn : ${dateStr}`];
     const row2 = [];
     const row3 = ['1. PRODUKSI PELABUHAN'];
     
-    const row4 = ['NO', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Catatan', 'Total Produksi', '', 'I k a n'];
-    const row5 = ['', '', '', '', '', '', '', '', '', '', '', ''];
-    const row6 = ['', '', '', '', '', '', '', '', '', '', 'Volume', 'Nilai'];
+    const row4 = ['NO', 'TANGGAL', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Catatan', 'Total Produksi', '', 'I k a n'];
+    const row5 = ['', '', '', '', '', '', '', '', '', '', '', '', ''];
+    const row6 = ['', '', '', '', '', '', '', '', '', '', '', 'Volume', 'Nilai'];
     
+    const komoditasTotalMap = {};
     const komoditasArray = KOMODITAS_OPTIONS;
     komoditasArray.forEach(kom => {
       row5.push(kom, '', '');
       row6.push('Vol', 'Harga', 'Nilai');
+      komoditasTotalMap[kom] = { vol: 0, nilai: 0 };
     });
+
+    let totalKeseluruhanVol = 0;
+    let totalKeseluruhanNilai = 0;
+    const apiSummaryMap = {};
 
     const dataRows = filteredData.map((row, idx) => {
       let totalVol = 0;
@@ -241,15 +256,29 @@ export default function AdminPerikananTangkap() {
             harga: t.harga,
             nilai: t.nilai
           };
+          
+          if (komoditasTotalMap[t.komoditas]) {
+            komoditasTotalMap[t.komoditas].vol += Number(t.volume) || 0;
+            komoditasTotalMap[t.komoditas].nilai += Number(t.nilai) || 0;
+          }
         });
       }
 
+      totalKeseluruhanVol += totalVol;
+      totalKeseluruhanNilai += totalNilai;
+
+      const apiName = row.alat_tangkap || 'Tidak Diketahui';
+      if (!apiSummaryMap[apiName]) apiSummaryMap[apiName] = { vol: 0, nilai: 0 };
+      apiSummaryMap[apiName].vol += totalVol;
+      apiSummaryMap[apiName].nilai += totalNilai;
+
       const baseRow = [
         idx + 1,
+        row.tanggal ? formatDate(row.tanggal) : '-',
         row.jam_labuh || '-',
         row.jam_bongkar || '-',
         'Hasil Tangkapan',
-        '718',
+        '', // WPPNRI dikosongkan sesuai permintaan
         row.nama_kapal || '-',
         row.gt_kapal || '-',
         row.alat_tangkap || '-',
@@ -269,11 +298,71 @@ export default function AdminPerikananTangkap() {
       return baseRow;
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([row0, row1, row2, row3, row4, row5, row6, ...dataRows]);
+    // Baris Total Tangkapan & Nilai di akhir data
+    const rowTotal1 = ['TOTAL TANGKAPAN', '', '', '', '', '', '', '', '', '', '', totalKeseluruhanVol, ''];
+    const rowTotal2 = ['Nilai', '', '', '', '', '', '', '', '', '', '', '', totalKeseluruhanNilai];
+    
+    // Padding sisa kolom komoditas agar format border tetap rapi
+    komoditasArray.forEach(kom => {
+      const tot = komoditasTotalMap[kom];
+      if (tot.vol > 0 || tot.nilai > 0) {
+        rowTotal1.push(tot.vol, '', '');
+        rowTotal2.push('', '', tot.nilai);
+      } else {
+        rowTotal1.push('-', '-', '-');
+        rowTotal2.push('-', '-', '-');
+      }
+    });
+
+    const emptyRow = [];
+    
+    // Tabel TOTAL PENDARATAN IKAN API
+    const summaryHeader1 = [`TOTAL PENDARATAN IKAN ${summaryDateStr}`];
+    const summaryHeader2 = ['No.', 'Alat Penangkapan Ikan', 'Pendaratan Langsung', '', 'Alih Muat', ''];
+    const summaryHeader3 = ['', '', 'Volume (Kg)', 'Nilai (Rp)', 'Volume (Kg)', 'Nilai (Rp)'];
+    
+    const summaryRows = [];
+    let summaryIndex = 1;
+    Object.keys(apiSummaryMap).sort().forEach(apiName => {
+      summaryRows.push([
+        summaryIndex++,
+        apiName.toUpperCase(),
+        apiSummaryMap[apiName].vol,
+        apiSummaryMap[apiName].nilai,
+        '-',
+        '-'
+      ]);
+    });
+    
+    const summaryTotalRow = ['Total Produksi', '', totalKeseluruhanVol, totalKeseluruhanNilai, '-', '-'];
+    const summaryPengangkutRow = [summaryIndex, 'PENGANGKUT', '', '', '', ''];
+
+    const allRowsToRender = [
+      row0, row1, row2, row3, row4, row5, row6, 
+      ...dataRows, 
+      rowTotal1, rowTotal2, 
+      emptyRow, emptyRow,
+      summaryHeader1, summaryHeader2, summaryHeader3,
+      ...summaryRows,
+      summaryTotalRow,
+      summaryPengangkutRow
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
 
     const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
     const boldCenter = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
     const normalCenter = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
+    
+    // Style khusus untuk baris bawah
+    const totalRowStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
+    const totalRowStyle2 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
+    const summaryHeaderStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
+    const summaryDataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
+    const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } }; // Merah redup
+    const summaryGreenStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
+
+    const summaryStartRowIndex = 7 + dataRows.length + 4; // index 0-based
 
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -284,7 +373,26 @@ export default function AdminPerikananTangkap() {
         if (R === 0) ws[cellRef].s = { font: { bold: true, sz: 14 } };
         else if (R === 3) ws[cellRef].s = { font: { bold: true } };
         else if (R >= 4 && R <= 6) ws[cellRef].s = boldCenter;
-        else if (R >= 7) ws[cellRef].s = normalCenter;
+        else if (R >= 7 && R < 7 + dataRows.length) ws[cellRef].s = normalCenter;
+        else if (R === 7 + dataRows.length) {
+            // TOTAL TANGKAPAN (Seluruh Kolom)
+            ws[cellRef].s = totalRowStyle1; 
+        } else if (R === 7 + dataRows.length + 1) {
+            // Nilai (Seluruh Kolom)
+            ws[cellRef].s = totalRowStyle2;
+        } else if (R === summaryStartRowIndex || R === summaryStartRowIndex + 1 || R === summaryStartRowIndex + 2) {
+            // SUMMARY HEADER
+            if (C <= 5) ws[cellRef].s = summaryHeaderStyle1;
+        } else if (R > summaryStartRowIndex + 2 && R < summaryStartRowIndex + 3 + summaryRows.length) {
+            // SUMMARY DATA
+            if (C <= 5) ws[cellRef].s = summaryDataStyle;
+        } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
+            // SUMMARY TOTAL
+            if (C <= 5) ws[cellRef].s = summaryTotalStyle;
+        } else if (R === summaryStartRowIndex + 4 + summaryRows.length) {
+            // SUMMARY PENGANGKUT
+            if (C <= 5) ws[cellRef].s = summaryGreenStyle;
+        }
       }
     }
 
@@ -299,18 +407,35 @@ export default function AdminPerikananTangkap() {
       { s: { r: 4, c: 7 }, e: { r: 6, c: 7 } },
       { s: { r: 4, c: 8 }, e: { r: 6, c: 8 } },
       { s: { r: 4, c: 9 }, e: { r: 6, c: 9 } },
-      { s: { r: 4, c: 10 }, e: { r: 5, c: 11 } },
-      { s: { r: 4, c: 12 }, e: { r: 4, c: 11 + komoditasArray.length * 3 } }
+      { s: { r: 4, c: 10 }, e: { r: 6, c: 10 } },
+      { s: { r: 4, c: 11 }, e: { r: 5, c: 12 } },
+      { s: { r: 4, c: 13 }, e: { r: 4, c: 12 + komoditasArray.length * 3 } }
     ];
     
-    let currentCol = 12;
+    let currentCol = 13;
     komoditasArray.forEach(() => {
       merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 2 } });
       currentCol += 3;
     });
+
+    // Merge TOTAL TANGKAPAN (dari NO ke Catatan)
+    merges.push({ s: { r: 7 + dataRows.length, c: 0 }, e: { r: 7 + dataRows.length, c: 10 } });
+    // Merge Nilai (dari NO ke Total Produksi Volume)
+    merges.push({ s: { r: 7 + dataRows.length + 1, c: 0 }, e: { r: 7 + dataRows.length + 1, c: 11 } });
+
+    // Merges for summary table
+    merges.push({ s: { r: summaryStartRowIndex, c: 0 }, e: { r: summaryStartRowIndex, c: 5 } });
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 0 }, e: { r: summaryStartRowIndex + 2, c: 0 } }); // No.
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 1 }, e: { r: summaryStartRowIndex + 2, c: 1 } }); // Alat Penangkapan Ikan
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 2 }, e: { r: summaryStartRowIndex + 1, c: 3 } }); // Pendaratan Langsung
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 4 }, e: { r: summaryStartRowIndex + 1, c: 5 } }); // Alih Muat
+
+    merges.push({ s: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 0 }, e: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 1 } }); // Total Produksi
+    merges.push({ s: { r: summaryStartRowIndex + 4 + summaryRows.length, c: 1 }, e: { r: summaryStartRowIndex + 4 + summaryRows.length, c: 5 } }); // Pengangkut merge
+
     ws['!merges'] = merges;
 
-    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 20 }];
+    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 20 }];
     komoditasArray.forEach(() => colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 12 }));
     ws['!cols'] = colWidths;
 
@@ -592,8 +717,8 @@ export default function AdminPerikananTangkap() {
                 onCustomExport={(exportData) => {
                   const komoditasArray = KOMODITAS_OPTIONS;
 
-                  const headerRow1 = ['Nama Kapal', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
-                  const headerRow2 = ['', '', '', '', '', '', ''];
+                  const headerRow1 = ['Tanggal', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', ''];
                   
                   komoditasArray.forEach(kom => {
                     headerRow1.push(kom, '', '');
@@ -618,6 +743,9 @@ export default function AdminPerikananTangkap() {
                     }
 
                     const baseRow = [
+                      row.tanggal ? row.tanggal.split('T')[0] : '-',
+                      row.jam_labuh || '-',
+                      row.jam_bongkar || '-',
                       row.nama_kapal || '-',
                       row.gt_kapal || '-',
                       row.alat_tangkap || '-',
@@ -653,9 +781,9 @@ export default function AdminPerikananTangkap() {
                       if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
 
                       if (R === 0) {
-                        ws[cellRef].s = C > 6 ? komoditasHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 9 ? komoditasHeaderStyle : headerStyle;
                       } else if (R === 1) {
-                        ws[cellRef].s = C > 6 ? subHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 9 ? subHeaderStyle : headerStyle;
                       } else {
                         ws[cellRef].s = dataStyle;
                       }
@@ -663,18 +791,18 @@ export default function AdminPerikananTangkap() {
                   }
 
                   const merges = [];
-                  for (let i = 0; i <= 6; i++) {
+                  for (let i = 0; i <= 9; i++) {
                     merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
                   }
                   
-                  let currentCol = 7;
+                  let currentCol = 10;
                   komoditasArray.forEach(() => {
                     merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
                     currentCol += 3;
                   });
                   ws['!merges'] = merges;
 
-                  const colWidths = [{ wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
+                  const colWidths = [{ wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
                   komoditasArray.forEach(() => {
                     colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
                   });
