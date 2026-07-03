@@ -1359,8 +1359,11 @@ export default function AdminPengolahanPemasaran() {
       const response = await api.get('/pengolahan-pemasaran/admin');
       setData(response.data?.data ?? []);
     } catch (error) {
-      console.error('Error fetching pengolahan & pemasaran:', error);
-      alert('Gagal mengambil data pengolahan dan pemasaran.');
+      console.error(
+        'Error fetching pengolahan & pemasaran:',
+        error.response?.data || error.message
+      );
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -1384,10 +1387,13 @@ export default function AdminPengolahanPemasaran() {
       setEditingData(null);
       await fetchData();
     } catch (error) {
-      console.error('Error saving pengolahan & pemasaran:', error);
-      alert('Gagal menyimpan data. Periksa kembali isian atau struktur endpoint backend.');
+      console.error(
+        'Error fetching pengolahan & pemasaran:',
+        error.response?.data || error.message
+      );
+      setData([]);
     } finally {
-      setSubmitLoading(false);
+      setLoading(false);
     }
   };
 
