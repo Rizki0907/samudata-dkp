@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Loader2, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Loader2, Plus, Save, X } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 
@@ -76,6 +76,8 @@ const PERIZINAN_OPTIONS = [
 
 const SERTIFIKAT_BANGUNAN_OPTIONS = ['IMB/PBG', 'Lokasi/Domisili', 'Tidak Ada'];
 const SERTIFIKAT_PRODUK_OPTIONS = ['SKP', 'HALAL', 'SNI', 'HACCP', 'MD'];
+const STATUS_COLD_STORAGE_OPTIONS = ['Milik Pribadi', 'Sewa', 'Tidak Ada'];
+const PEMBERI_PINJAMAN_OPTIONS = ['Bank', 'Koperasi', 'Lainnya'];
 const BULAN_OPTIONS = [
   'Januari',
   'Februari',
@@ -147,8 +149,69 @@ const TENAGA_KERJA_FIELDS = [
   'tenaga_kerja_tidak_tetap_perempuan_2',
 ];
 
+const GROUPED_NUMERIC_FIELDS = new Set(
+  NUMERIC_FIELDS.filter(key => !['tahun', 'tahun_berdiri'].includes(key)),
+);
+
+const formatNumericInputValue = value => {
+  const raw = String(value ?? '')
+    .replace(/\./g, '')
+    .replace(/[^0-9,]/g, '');
+
+  if (!raw) return '';
+
+  const [integerPart = '', ...decimalParts] = raw.split(',');
+  const cleanInteger = integerPart.replace(/^0+(?=\d)/, '') || '0';
+  const groupedInteger = cleanInteger.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  if (decimalParts.length === 0) return groupedInteger;
+
+  const decimalPart = decimalParts.join('').slice(0, 2);
+  return `${groupedInteger},${decimalPart}`;
+};
+
+const formatInitialNumericValue = value => {
+  if (value === '' || value === null || value === undefined) return '';
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toLocaleString('id-ID', {
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    });
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  if (/^-?\d+(\.\d+)?$/.test(raw)) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      return parsed.toLocaleString('id-ID', {
+        maximumFractionDigits: 2,
+        useGrouping: true,
+      });
+    }
+  }
+
+  return formatNumericInputValue(raw);
+};
+
 const toNumber = value => {
-  const parsed = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  let normalized = String(value ?? '').trim().replace(/\s/g, '');
+  if (!normalized) return 0;
+
+  if (normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (/^-?\d{1,3}(\.\d{3})+$/.test(normalized)) {
+    normalized = normalized.replace(/\./g, '');
+  }
+
+  normalized = normalized.replace(/[^0-9.-]/g, '');
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -173,7 +236,8 @@ const normalizePinjaman = value => {
   return '';
 };
 
-const createInitialForm = initialData => ({
+const createInitialForm = initialData => {
+  const form = {
   tahun: initialData?.tahun ?? new Date().getFullYear(),
   jenis_kegiatan: initialData?.jenis_kegiatan ?? '',
   skala_usaha: initialData?.skala_usaha ?? '',
@@ -238,7 +302,6 @@ const createInitialForm = initialData => ({
 
   nama_bahan_baku: initialData?.nama_bahan_baku ?? '',
   total_bahan_baku_per_periode_kg: initialData?.total_bahan_baku_per_periode_kg ?? '',
-  asal_bahan_baku: initialData?.asal_bahan_baku ?? '',
   asal_bahan_baku_kabupaten_kota: initialData?.asal_bahan_baku_kabupaten_kota ?? '',
   provinsi_asal_bahan_baku: initialData?.provinsi_asal_bahan_baku ?? '',
   asal_negara_bahan_baku: initialData?.asal_negara_bahan_baku ?? '',
@@ -250,7 +313,6 @@ const createInitialForm = initialData => ({
   pasar_luar_jatim_per_tahun_kg: initialData?.pasar_luar_jatim_per_tahun_kg ?? '',
   pasar_luar_negeri_per_tahun_kg:
     initialData?.pasar_luar_negeri_per_tahun_kg ?? '',
-  tujuan_pemasaran: initialData?.tujuan_pemasaran ?? '',
   tujuan_pemasaran_kabupaten_kota:
     initialData?.tujuan_pemasaran_kabupaten_kota ?? '',
   provinsi_tujuan_pemasaran: initialData?.provinsi_tujuan_pemasaran ?? '',
@@ -274,7 +336,14 @@ const createInitialForm = initialData => ({
     initialData?.tenaga_kerja_tidak_tetap_laki_laki_2 ?? '',
   tenaga_kerja_tidak_tetap_perempuan_2:
     initialData?.tenaga_kerja_tidak_tetap_perempuan_2 ?? '',
-});
+  };
+
+  GROUPED_NUMERIC_FIELDS.forEach(key => {
+    form[key] = formatInitialNumericValue(form[key]);
+  });
+
+  return form;
+};
 
 function StatusBadge({ status, alasan }) {
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
@@ -487,13 +556,23 @@ function ReadOnlyMetric({ label, value, suffix = '' }) {
 
 function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel }) {
   const [form, setForm] = useState(() => createInitialForm(initialData));
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     setForm(createInitialForm(initialData));
+    setFormError('');
   }, [initialData]);
 
   const setValue = key => event => {
-    setForm(previous => ({ ...previous, [key]: event.target.value }));
+    const rawValue = event.target.value;
+
+    const nextValue = GROUPED_NUMERIC_FIELDS.has(key)
+      ? formatNumericInputValue(rawValue)
+      : ['tahun', 'tahun_berdiri'].includes(key)
+        ? rawValue.replace(/\D/g, '').slice(0, 4)
+        : rawValue;
+
+    setForm(previous => ({ ...previous, [key]: nextValue }));
   };
 
   const setUppercase = key => event => {
@@ -592,7 +671,8 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
     event.preventDefault();
 
     if (!form.jenis_kegiatan || !form.skala_usaha) {
-      window.alert('Jenis kegiatan dan skala usaha wajib dipilih.');
+      setFormError('Jenis kegiatan dan skala usaha wajib dipilih.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -600,7 +680,8 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
       form.jenis_kegiatan === 'Pengolahan' &&
       !form.jenis_kegiatan_pengolahan
     ) {
-      window.alert('Jenis pengolahan wajib dipilih.');
+      setFormError('Jenis pengolahan wajib dipilih.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -608,9 +689,12 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
       form.jenis_kegiatan === 'Pemasaran' &&
       !form.jenis_kegiatan_pemasaran
     ) {
-      window.alert('Jenis pemasaran wajib dipilih.');
+      setFormError('Jenis pemasaran wajib dipilih.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
+    setFormError('');
 
     const payload = {
       ...form,
@@ -631,6 +715,12 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {formError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {formError}
+        </div>
+      ) : null}
+
       <SectionCard
         title={initialData ? 'Edit Data Pengolahan & Pemasaran' : 'Tambah Data Pengolahan & Pemasaran'}
         description="Pilih klasifikasi kegiatan terlebih dahulu. Isian teks manual otomatis diubah menjadi huruf kapital."
@@ -713,7 +803,8 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
             label="Alamat Detail"
             value={form.alamat}
             onChange={setUppercase('alamat')}
-            placeholder="RT, RW, NAMA JALAN, NO. BANGUNAN"
+            placeholder="CONTOH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
+            helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
             className="md:col-span-2"
             required
           />
@@ -800,7 +891,8 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
                 label="Alamat Detail 2"
                 value={form.alamat_2}
                 onChange={setUppercase('alamat_2')}
-                placeholder="RT, RW, NAMA JALAN, NO. BANGUNAN"
+                placeholder="CONTOH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
+                helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
                 className="md:col-span-2 xl:col-span-3"
               />
             </div>
@@ -825,11 +917,12 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
               inputMode="decimal"
               placeholder="0"
             />
-            <Field
+            <SelectField
               label="Status Cold Storage"
               value={form.status_cold_storage}
-              onChange={setUppercase('status_cold_storage')}
-              placeholder="MILIK PRIBADI / SEWA / TIDAK ADA"
+              onChange={setValue('status_cold_storage')}
+              options={STATUS_COLD_STORAGE_OPTIONS}
+              placeholder="Pilih status cold storage"
             />
             <Field
               label="Aset Cold Storage (Rp)"
@@ -939,11 +1032,12 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
                 inputMode="numeric"
                 placeholder="0"
               />
-              <Field
+              <SelectField
                 label="Pemberi Pinjaman"
                 value={form.pemberi_pinjaman}
-                onChange={setUppercase('pemberi_pinjaman')}
-                placeholder="BANK / KOPERASI / LAINNYA"
+                onChange={setValue('pemberi_pinjaman')}
+                options={PEMBERI_PINJAMAN_OPTIONS}
+                placeholder="Pilih pemberi pinjaman"
               />
               <Field
                 label="Tanggal Akad Pinjaman"
@@ -1121,12 +1215,6 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
                 placeholder="0"
               />
               <Field
-                label="Asal Bahan Baku"
-                value={form.asal_bahan_baku}
-                onChange={setUppercase('asal_bahan_baku')}
-                placeholder="DALAM DAERAH / LUAR DAERAH"
-              />
-              <Field
                 label="Asal Bahan Baku (Kabupaten/Kota)"
                 value={form.asal_bahan_baku_kabupaten_kota}
                 onChange={setUppercase('asal_bahan_baku_kabupaten_kota')}
@@ -1184,12 +1272,6 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
                 onChange={setValue('pasar_luar_negeri_per_tahun_kg')}
                 inputMode="decimal"
                 placeholder="0"
-              />
-              <Field
-                label="Tujuan Pemasaran"
-                value={form.tujuan_pemasaran}
-                onChange={setUppercase('tujuan_pemasaran')}
-                placeholder="WILAYAH TUJUAN PEMASARAN"
               />
               <Field
                 label="Tujuan Pemasaran (Kabupaten/Kota)"
@@ -1299,7 +1381,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
         </div>
       </SectionCard>
 
-      <div className="sticky bottom-4 z-10 flex flex-col-reverse justify-end gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:flex-row">
+      <div className="flex flex-col-reverse justify-end gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row">
         <button
           type="button"
           onClick={onCancel}
@@ -1388,12 +1470,11 @@ export default function AdminPengolahanPemasaran() {
       await fetchData();
     } catch (error) {
       console.error(
-        'Error fetching pengolahan & pemasaran:',
-        error.response?.data || error.message
+        'Error saving pengolahan & pemasaran:',
+        error.response?.data || error.message,
       );
-      setData([]);
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   };
 
@@ -1543,7 +1624,20 @@ export default function AdminPengolahanPemasaran() {
             <Plus className="h-5 w-5" />
             Tambah Data Baru
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setIsFormOpen(false);
+              setEditingData(null);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Kembali ke Halaman Utama
+          </button>
+        )}
       </div>
 
       {isFormOpen ? (
