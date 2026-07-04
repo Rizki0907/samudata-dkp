@@ -622,7 +622,7 @@ export default function AdminPerikananTangkap() {
       dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
       series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
     };
-  }, [stats.tren]);
+  }, [computedStats.tren]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
