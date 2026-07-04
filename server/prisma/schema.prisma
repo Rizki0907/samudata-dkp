@@ -21,6 +21,7 @@ enum SumberDataPT {
 
 enum DataStatus {
   PENDING
+  APPROVED_BIDANG
   APPROVED
   REJECTED
 }

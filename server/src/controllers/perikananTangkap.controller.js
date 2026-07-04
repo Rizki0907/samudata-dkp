@@ -228,7 +228,9 @@ const getStats = async (req, res) => {
       const tripId = d.perikanan_tangkap_id;
       tripsSet.add(tripId);
 
-      const tgl = d.perikananTangkap.tanggal.toISOString().split('T')[0];
+      // Ambil format YYYY-MM untuk agregasi bulanan
+      const fullDate = d.perikananTangkap.tanggal.toISOString().split('T')[0];
+      const tgl = fullDate.substring(0, 7);
       const p = d.perikananTangkap.pelabuhan || d.perikananTangkap.kabupaten_kota || 'Lainnya';
       const k = d.komoditas;
 
