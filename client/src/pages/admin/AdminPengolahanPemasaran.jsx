@@ -3,7 +3,6 @@ import { ArrowLeft, ChevronDown, Loader2, Plus, Save } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 
-// Daftar wilayah mengikuti penamaan pada file HASIL ANALISIS STATISTIK 2025.
 const KABUPATEN_KOTA_OPTIONS = [
   'KAB. PACITAN',
   'KAB. PONOROGO',
@@ -97,7 +96,7 @@ const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
 const FILTER_SELECT_CLASS =
-  'w-full rounded-full border border-border bg-background px-5 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10';
+  'w-full rounded-full border border-border bg-card px-5 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10';
 
 const NUMERIC_FIELDS = [
   'tahun',
@@ -241,7 +240,7 @@ const normalizePinjaman = value => {
 
 const createInitialForm = initialData => {
   const form = {
-  tahun: initialData?.tahun ?? new Date().getFullYear(),
+  tahun: initialData?.tahun ?? '',
   jenis_kegiatan: initialData?.jenis_kegiatan ?? '',
   skala_usaha: initialData?.skala_usaha ?? '',
   jenis_kegiatan_pengolahan: initialData?.jenis_kegiatan_pengolahan ?? '',
@@ -384,10 +383,14 @@ function SectionCard({ number, title, description, children }) {
               {number}
             </span>
           ) : null}
-          <div>
-            <h2 className="font-heading text-base font-semibold text-foreground">{title}</h2>
+          <div className="min-w-0">
+            <div className="flex min-h-8 items-center">
+              <h2 className="font-heading text-base font-semibold leading-none text-foreground">
+                {title}
+              </h2>
+            </div>
             {description ? (
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
             ) : null}
           </div>
         </div>
@@ -404,11 +407,12 @@ function Field({
   placeholder,
   type = 'text',
   inputMode,
-  required = false,
+  required = true,
   disabled = false,
   readOnly = false,
   className = '',
   helpText,
+  maxLength,
 }) {
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
@@ -422,7 +426,8 @@ function Field({
         value={value ?? ''}
         onChange={onChange}
         placeholder={placeholder}
-        required={required}
+        maxLength={maxLength}
+        required={required && !disabled && !readOnly}
         disabled={disabled}
         readOnly={readOnly}
         className={INPUT_CLASS}
@@ -438,7 +443,7 @@ function SelectField({
   onChange,
   options,
   placeholder = 'Pilih opsi',
-  required = false,
+  required = true,
   className = '',
 }) {
   return (
@@ -467,7 +472,7 @@ function SelectField({
   );
 }
 
-function ChoiceButtons({ label, value, options, onChange, required = false, columns = 2 }) {
+function ChoiceButtons({ label, value, options, onChange, required = true, columns = 2 }) {
   const gridClass = columns === 4 ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-2';
 
   return (
@@ -499,7 +504,7 @@ function ChoiceButtons({ label, value, options, onChange, required = false, colu
   );
 }
 
-function CheckboxGroup({ label, values, options, onToggle, columns = 3, helpText }) {
+function CheckboxGroup({ label, values, options, onToggle, columns = 3, helpText, required = true }) {
   const gridClass =
     columns === 4
       ? 'sm:grid-cols-2 xl:grid-cols-4'
@@ -509,7 +514,10 @@ function CheckboxGroup({ label, values, options, onToggle, columns = 3, helpText
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+        {required ? <span className="ml-1 text-rose-500">*</span> : null}
+      </div>
       <div className={`grid grid-cols-1 gap-2 ${gridClass}`}>
         {options.map(option => {
           const checked = values.includes(option);
@@ -670,8 +678,113 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
     [form],
   );
 
+  const validateRequiredFields = () => {
+    const requiredTextFields = [
+      ['Tahun', form.tahun],
+      ['Kabupaten/Kota', form.kabupaten_kota],
+      ['Kecamatan', form.kecamatan],
+      ['Desa/Kelurahan', form.desa],
+      ['Alamat Detail', form.alamat],
+      ['Nama UPI', form.nama_upi],
+      ['Nomor Telepon', form.nomor_telepon],
+      ['Tahun Berdiri', form.tahun_berdiri],
+      ['Nama Pemilik', form.nama_pemilik],
+      ['Jenis Kelamin', form.jenis_kelamin],
+      ['Nomor Telepon Pemilik', form.nomor_telepon_2],
+      ['Kabupaten 2', form.kabupaten_kota_2],
+      ['Kecamatan 2', form.kecamatan_2],
+      ['Desa 2', form.desa_2],
+      ['Alamat Detail 2', form.alamat_2],
+      ['Nilai Aset', form.nilai_aset_rp],
+      ['Cold Storage', form.cold_storage_kg],
+      ['Status Cold Storage', form.status_cold_storage],
+      ['Aset Cold Storage', form.aset_cold_storage_rp],
+      ['Sertifikat Lahan', form.sertifikat_lahan],
+      ['Status Lahan Usaha', form.status_lahan_usaha],
+      ['Luas Lahan', form.luas_lahan_m2],
+      ['Nilai Lahan', form.nilai_lahan_rp],
+      ['Biaya Sewa Per Tahun', form.biaya_sewa_per_tahun_rp],
+      ['Luas Bangunan', form.luas_bangunan_m2],
+      ['Nilai Bangunan', form.nilai_bangunan_rp],
+      ['Jumlah Modal Sendiri', form.jumlah_modal_sendiri_rp],
+      ['Jumlah Laba Ditanam', form.jumlah_laba_ditanam_rp],
+      ['Pinjaman Modal', form.pinjaman_modal],
+      ['Nama Merek', form.nama_merek],
+      ['Jenis Produk', form.jenis_produk],
+      ['Sertifikat BPOM', form.sertifikat_bpom],
+      ['Periode Produksi', form.periode_produksi],
+      ['Biaya Produksi Per Periode', form.biaya_produksi_per_periode_rp],
+      ['Biaya Lain-Lain Per Periode', form.biaya_lain_lain_per_periode_rp],
+      ['Hasil Produksi Per Periode', form.hasil_produksi_per_periode_kg],
+      ['Kapasitas Per Periode', form.kapasitas_per_periode_kg],
+      ['Harga Jual', form.harga_jual_rp_kg],
+      ['Jumlah Total Bulan Produksi Per Tahun', form.jumlah_total_bulan_produksi_per_tahun],
+      ['Nama Bahan Baku', form.nama_bahan_baku],
+      ['Total Bahan Baku Per Periode', form.total_bahan_baku_per_periode_kg],
+      ['Asal Bahan Baku Kabupaten/Kota', form.asal_bahan_baku_kabupaten_kota],
+      ['Provinsi Asal Bahan Baku', form.provinsi_asal_bahan_baku],
+      ['Asal Negara Bahan Baku', form.asal_negara_bahan_baku],
+      ['Total Pemasaran Per Tahun', form.total_pemasaran_per_tahun_kg],
+      ['Pasar Dalam Kota/Kab Per Tahun', form.pasar_dalam_kota_kab_per_tahun_kg],
+      ['Pasar Kota Dalam Jatim Per Tahun', form.pasar_kota_dalam_jatim_per_tahun_kg],
+      ['Pasar Luar Jatim Per Tahun', form.pasar_luar_jatim_per_tahun_kg],
+      ['Pasar Luar Negeri Per Tahun', form.pasar_luar_negeri_per_tahun_kg],
+      ['Tujuan Pemasaran Kabupaten/Kota', form.tujuan_pemasaran_kabupaten_kota],
+      ['Provinsi Tujuan Pemasaran', form.provinsi_tujuan_pemasaran],
+      ['Negara Tujuan Pemasaran', form.negara_tujuan_pemasaran],
+      ['Tenaga Kerja Tetap Laki-Laki', form.tenaga_kerja_tetap_laki_laki],
+      ['Tenaga Kerja Tetap Perempuan', form.tenaga_kerja_tetap_perempuan],
+      ['Tenaga Kerja Tidak Tetap Laki-Laki', form.tenaga_kerja_tidak_tetap_laki_laki],
+      ['Tenaga Kerja Tidak Tetap Perempuan', form.tenaga_kerja_tidak_tetap_perempuan],
+      ['Tenaga Kerja Keluarga Laki-Laki', form.tenaga_kerja_keluarga_laki_laki],
+      ['Tenaga Kerja Keluarga Perempuan', form.tenaga_kerja_keluarga_perempuan],
+      ['Tenaga Kerja Tetap 2 Laki-Laki', form.tenaga_kerja_tetap_laki_laki_2],
+      ['Tenaga Kerja Tetap 2 Perempuan', form.tenaga_kerja_tetap_perempuan_2],
+      ['Tenaga Kerja Tidak Tetap 2 Laki-Laki', form.tenaga_kerja_tidak_tetap_laki_laki_2],
+      ['Tenaga Kerja Tidak Tetap 2 Perempuan', form.tenaga_kerja_tidak_tetap_perempuan_2],
+    ];
+
+    if (form.periode_produksi !== 'Bulanan') {
+      requiredTextFields.push(['Jumlah Hari Produksi Per Bulan', form.jumlah_hari_produksi_per_bulan]);
+    }
+
+    if (form.pinjaman_modal === 'Ya') {
+      requiredTextFields.push(
+        ['Jumlah Pinjaman', form.jumlah_pinjaman_rp],
+        ['Pemberi Pinjaman', form.pemberi_pinjaman],
+        ['Tanggal Akad Pinjaman', form.tanggal_akad_pinjaman],
+        ['Tenor Pinjaman', form.tenor_pinjaman_tahun],
+      );
+    }
+
+    const emptyField = requiredTextFields.find(([, value]) => String(value ?? '').trim() === '');
+    if (emptyField) return `${emptyField[0]} wajib diisi.`;
+
+    if (!/^\d{4}$/.test(String(form.tahun))) {
+      return 'Tahun wajib diisi 4 angka, contoh 2026.';
+    }
+
+    if (form.tahun_berdiri && !/^\d{4}$/.test(String(form.tahun_berdiri))) {
+      return 'Tahun Berdiri wajib diisi 4 angka, contoh 2020.';
+    }
+
+    if (!form.perizinan.length) return 'Sertifikat Perizinan Usaha wajib dipilih.';
+    if (!form.sertifikat_bangunan.length) return 'Sertifikat Bangunan wajib dipilih.';
+    if (!form.sertifikat_umum.length) return 'Sertifikat Produk wajib dipilih.';
+    if (!form.bulan_produksi.length) return 'Bulan Produksi wajib dipilih.';
+
+    return '';
+  };
+
   const handleSubmit = event => {
     event.preventDefault();
+
+    const requiredMessage = validateRequiredFields();
+    if (requiredMessage) {
+      setFormError(requiredMessage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     if (!form.jenis_kegiatan || !form.skala_usaha) {
       setFormError('Jenis kegiatan dan skala usaha wajib dipilih.');
@@ -726,7 +839,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
 
       <SectionCard
         title={initialData ? 'Edit Data Pengolahan & Pemasaran' : 'Tambah Data Pengolahan & Pemasaran'}
-        description="Pilih klasifikasi jenis terlebih dahulu, lalu isi formulir berikut dengan lengkap."
+        description="Pilih jenis kegiatan terlebih dahulu, lalu isi formulir berikut dengan lengkap."
       >
         <div className="space-y-5">
           <ChoiceButtons
@@ -777,7 +890,8 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
             value={form.tahun}
             onChange={setValue('tahun')}
             inputMode="numeric"
-            placeholder="2026"
+            placeholder="YYYY"
+            maxLength={4}
             required
           />
           <SelectField
@@ -806,7 +920,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
             label="Alamat Detail"
             value={form.alamat}
             onChange={setUppercase('alamat')}
-            placeholder="CONTOH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
+            placeholder="CTH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
             helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
             className="md:col-span-2"
             required
@@ -830,7 +944,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
             value={form.tahun_berdiri}
             onChange={setValue('tahun_berdiri')}
             inputMode="numeric"
-            placeholder="2020"
+            placeholder="YYYY"
           />
         </div>
       </SectionCard>
@@ -894,7 +1008,7 @@ function PengolahanPemasaranForm({ initialData, isLoading, onSubmit, onCancel })
                 label="Alamat Detail 2"
                 value={form.alamat_2}
                 onChange={setUppercase('alamat_2')}
-                placeholder="CONTOH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
+                placeholder="CTH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
                 helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
                 className="md:col-span-2 xl:col-span-3"
               />
