@@ -16,8 +16,7 @@ export default function PerikananTangkap() {
   const [data, setData] = useState([]);
   
   // Super Filters State
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState(currentYear.toString());
   const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
@@ -37,7 +36,6 @@ export default function PerikananTangkap() {
         // even if the backend doesn't fully support all these filters yet.
         const queryParams = new URLSearchParams();
         if (filterTahun) queryParams.append('tahun', filterTahun);
-        if (filterBulan) queryParams.append('bulan', filterBulan);
         if (filterCabang) queryParams.append('cabang', filterCabang);
         if (filterKomoditas) queryParams.append('komoditas', filterKomoditas);
         if (filterWilayah) queryParams.append('wilayah', filterWilayah);
@@ -61,70 +59,74 @@ export default function PerikananTangkap() {
     };
     
     fetchData();
-  }, [filterTahun, filterBulan, filterCabang, filterKomoditas, filterWilayah]);
+  }, [filterTahun, filterCabang, filterKomoditas, filterWilayah]);
+
+  const aggregatedData = useMemo(() => {
+    const map = {};
+    data.forEach(row => {
+      const bln = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
+      const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      const cabang = row.sumber_data || 'PELABUHAN';
+      
+      if(row.tangkapan) {
+        row.tangkapan.forEach(t => {
+          const kom = t.komoditas;
+          const key = `${bln}_${pel}_${kom}`;
+          if(!map[key]) {
+            map[key] = { bulan: bln, pelabuhan: pel, sumber_data: cabang, komoditas: kom, volume: 0, nilai: 0 };
+          }
+          map[key].volume += Number(t.volume) || 0;
+          map[key].nilai += Number(t.nilai) || 0;
+        });
+      }
+    });
+    return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
+  }, [data]);
 
   const columns = useMemo(() => [
     {
-      header: 'Tanggal',
-      accessorKey: 'tanggal',
-      cell: info => formatDate(info.getValue())
+      header: 'Bulan / Tahun',
+      accessorKey: 'bulan',
+      cell: info => {
+        const val = info.getValue();
+        if(val === 'Unknown') return val;
+        const [y, m] = val.split('-');
+        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
+      }
     },
     {
       header: 'Cabang',
       accessorKey: 'sumber_data',
       cell: info => {
-        const val = info.getValue() || 'PELABUHAN';
+        const val = info.getValue();
         if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pelabuhan</span>;
         if (val === 'PUD') return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">PUD</span>;
         return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Kab/Kota</span>;
       }
     },
     {
-      header: 'Lokasi (Pelabuhan/Kab)',
-      accessorKey: 'pelabuhan',
-      cell: info => info.getValue() || info.row.original.kabupaten_kota || '-'
+      header: 'Wilayah / Lokasi',
+      accessorKey: 'pelabuhan'
     },
     {
-      header: 'Nama Kapal',
-      accessorKey: 'nama_kapal',
-      cell: info => <p className="font-medium text-foreground">{info.getValue() || '-'}</p>
+      header: 'Komoditas',
+      accessorKey: 'komoditas',
+      cell: info => <p className="font-medium text-foreground">{info.getValue()}</p>
+    },
+    {
+      header: 'Total Volume (Kg)',
+      accessorKey: 'volume',
+      cell: info => info.getValue().toLocaleString('id-ID')
+    },
+    {
+      header: 'Total Nilai Produksi (Rp)',
+      accessorKey: 'nilai',
+      cell: info => formatRupiah(info.getValue())
     }
   ], []);
 
-  const renderSubComponent = ({ row }) => {
-    const tangkapan = row.original.tangkapan || [];
-    if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
-    
-    return (
-      <div className="p-4 bg-muted/10 border-l-4 border-primary">
-        <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
-          Detail Komoditas Tangkapan
-        </h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Komoditas</th>
-                <th className="px-4 py-2 font-medium">Volume (Kg)</th>
-                <th className="px-4 py-2 font-medium text-right">Harga (Rp/Kg)</th>
-                <th className="px-4 py-2 font-medium text-right">Nilai Produksi (Rp)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-card">
-              {tangkapan.map((item, index) => (
-                <tr key={index} className="hover:bg-muted/50">
-                  <td className="px-4 py-2 font-medium">{item.komoditas}</td>
-                  <td className="px-4 py-2">{item.volume.toLocaleString('id-ID')}</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(item.harga)}</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(item.nilai)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
+
 
   const komoditasChartOption = useMemo(() => {
     const categories = stats.komoditas.map(item => item.komoditas);
@@ -153,7 +155,14 @@ export default function PerikananTangkap() {
   }, [stats.pelabuhan]);
 
   const trenChartOption = useMemo(() => {
-    const dates = stats.tren.map(t => t.date);
+    const dates = stats.tren.map(t => {
+      if (!t.date) return '';
+      const parts = t.date.split('-');
+      if (parts.length < 2) return t.date;
+      const [y, m] = parts;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
+    });
     const volumes = stats.tren.map(t => t.volume);
 
     return {
@@ -237,7 +246,7 @@ export default function PerikananTangkap() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Harian</h3></div>
+        <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Bulanan</h3></div>
         {stats.tren.length > 0 ? <ReactECharts option={trenChartOption} style={{ height: '400px', width: '100%' }} /> : <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
       </div>
 
@@ -270,7 +279,7 @@ export default function PerikananTangkap() {
             <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi Data)</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cabang Sumber</label>
               <select value={filterCabang} onChange={(e) => setFilterCabang(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
@@ -285,13 +294,6 @@ export default function PerikananTangkap() {
               <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                 <option value="">Semua Tahun</option>
                 {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-              <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="">Semua Bulan</option>
-                {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
               </select>
             </div>
             <div>
@@ -321,35 +323,26 @@ export default function PerikananTangkap() {
         
         <DataTable 
           columns={columns} 
-          data={data}
-          exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
-          renderSubComponent={renderSubComponent}
+          data={aggregatedData}
+          exportName={`Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
           formatExportData={(exportData) => {
             const flattened = [];
             exportData.forEach(row => {
-              const baseData = {
-                'Sumber Data': row.sumber_data || 'PELABUHAN',
-                'Tanggal': row.tanggal ? row.tanggal.split('T')[0] : '',
-                'Jam Labuh': row.jam_labuh || '-',
-                'Jam Bongkar': row.jam_bongkar || '-',
-                'Lokasi': row.pelabuhan || row.kabupaten_kota || '-',
-                'Nama Kapal': row.nama_kapal || '-',
-                'GT Kapal': row.gt_kapal || '-',
-                'Alat Tangkap': row.alat_tangkap || '-',
-              };
-              if (row.tangkapan && row.tangkapan.length > 0) {
-                row.tangkapan.forEach(t => {
-                  flattened.push({
-                    ...baseData,
-                    'Komoditas': t.komoditas,
-                    'Volume (Kg)': t.volume,
-                    'Harga (Rp/Kg)': t.harga,
-                    'Nilai Produksi (Rp)': t.nilai
-                  });
-                });
-              } else {
-                flattened.push(baseData);
+              const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+              let formattedBulan = row.bulan;
+              if (row.bulan !== 'Unknown') {
+                 const [y, m] = row.bulan.split('-');
+                 formattedBulan = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
               }
+
+              flattened.push({
+                'Bulan / Tahun': formattedBulan,
+                'Cabang Sumber': row.sumber_data,
+                'Wilayah / Lokasi': row.pelabuhan,
+                'Komoditas': row.komoditas,
+                'Total Volume (Kg)': row.volume,
+                'Total Nilai Produksi (Rp)': row.nilai
+              });
             });
             return flattened;
           }}

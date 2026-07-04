@@ -25,7 +25,7 @@ export default function AdminPerikananTangkap() {
   
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState('data'); // 'data' or 'visual'
-  const [filterTahun, setFilterTahun] = useState('');
+  const [filterTahun, setFilterTahun] = useState(currentYear.toString());
   const [filterBulan, setFilterBulan] = useState('');
   const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
   const [filterKomoditas, setFilterKomoditas] = useState('');
@@ -105,14 +105,46 @@ export default function AdminPerikananTangkap() {
   };
 
   const handleApprove = async (row) => {
-    if (window.confirm(`Yakin ingin menyetujui data ini?`)) {
-      try {
-        await api.put(`/perikanan-tangkap/${row.id}/status`, { status: 'APPROVED' });
-        fetchData();
-      } catch (error) {
-        console.error('Error approving data:', error);
-        alert('Gagal menyetujui data');
+    let promptMsg = 'Pilih jenis validasi (Ketik angka):\\n1. Validasi Bidang\\n2. Validasi Program';
+    if (row.status === 'APPROVED_BIDANG') {
+      promptMsg = 'Data ini sudah disetujui Bidang.\\nKetik "2" untuk melanjutkan Validasi Program:';
+    } else if (row.status === 'PENDING') {
+      promptMsg = 'Data berstatus PENDING.\\nKetik "1" untuk Validasi Bidang\\nKetik "2" untuk Validasi Program';
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+
+    if (jenis === '1') {
+      if (row.status === 'APPROVED_BIDANG') {
+        alert('Data sudah divalidasi oleh Bidang sebelumnya!');
+        return;
       }
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Proses dibatalkan.');
+      return;
+    }
+
+    const confirmText = window.prompt(`Ketik "SETUJU" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.put(`/perikanan-tangkap/${row.id}/status`, { status: targetStatus });
+      fetchData();
+    } catch (error) {
+      console.error('Error approving data:', error);
+      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
     }
   };
 
@@ -157,7 +189,7 @@ export default function AdminPerikananTangkap() {
 
     filteredData.forEach(row => {
       const pelabuhan = row.pelabuhan || row.kabupaten_kota || 'Tidak Diketahui';
-      const date = row.tanggal ? row.tanggal.split('T')[0] : 'Unknown';
+      const date = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
 
       if (row.tangkapan && Array.isArray(row.tangkapan)) {
         row.tangkapan.forEach(t => {
@@ -455,7 +487,10 @@ export default function AdminPerikananTangkap() {
         let label = 'PENDING';
         if (status === 'APPROVED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'APPROVED';
+          label = 'APPROVED (PROGRAM)';
+        } else if (status === 'APPROVED_BIDANG') {
+          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+          label = 'APPROVED (BIDANG)';
         } else if (status === 'REJECTED') {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
           label = 'REJECTED';
@@ -569,7 +604,14 @@ export default function AdminPerikananTangkap() {
   }, [computedStats.pelabuhan]);
 
   const trenChartOption = useMemo(() => {
-    const dates = computedStats.tren.map(t => t.date);
+    const dates = computedStats.tren.map(t => {
+      if (!t.date) return '';
+      const parts = t.date.split('-');
+      if (parts.length < 2) return t.date;
+      const [y, m] = parts;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
+    });
     const volumes = computedStats.tren.map(t => t.volume);
 
     return {
@@ -670,13 +712,15 @@ export default function AdminPerikananTangkap() {
                   {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Bulan</option>
-                  {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
-                </select>
-              </div>
+              {activeTab === 'data' && (
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+                  <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Bulan</option>
+                    {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
                 <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
@@ -863,7 +907,7 @@ export default function AdminPerikananTangkap() {
               </div>
 
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Harian</h3></div>
+                <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Bulanan</h3></div>
                 {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption} style={{ height: '400px', width: '100%' }} /> : <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
             </div>
