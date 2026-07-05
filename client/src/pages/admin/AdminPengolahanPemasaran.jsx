@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, Loader2, Plus, Save } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Loader2, Plus, Save, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts';
+import geoJsonData from '@/assets/jawa_timur.json';
+
+// Registrasi peta Jawa Timur (aman dipanggil berkali-kali)
+echarts.registerMap('jawa_timur', geoJsonData);
 
 const KABUPATEN_KOTA_OPTIONS = [
   'KAB. PACITAN',
@@ -353,7 +359,10 @@ function StatusBadge({ status, alasan }) {
 
   if (status === 'APPROVED') {
     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-    label = 'APPROVED';
+    label = 'APPROVED (PROGRAM)';
+  } else if (status === 'APPROVED_BIDANG') {
+    colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
+    label = 'APPROVED (BIDANG)';
   } else if (status === 'REJECTED') {
     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
     label = 'REJECTED';
@@ -1552,6 +1561,320 @@ export default function AdminPengolahanPemasaran() {
   const [filterJenisKegiatan, setFilterJenisKegiatan] = useState('');
   const [filterSkalaUsaha, setFilterSkalaUsaha] = useState('');
 
+  // Tab aktif: 'table' (Tabel Data) atau 'visualisasi' (Visualisasi Statistik)
+  const [activeTab, setActiveTab] = useState('table');
+
+  // ==== Visualisasi Data (KPI, Peta, Bar Chart, Tren, Treemap, Heatmap) ====
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [barFilter, setBarFilter] = useState('produksi');
+  const [stats, setStats] = useState({
+    produksiPerKabupaten: [],
+    trenBulanan: [],
+    top5Jenis: [],
+    komposisiKegiatan: [],
+    heatmapData: [],
+    kpi: { total_volume: 0, top_jenis_produk: '-', total_nilai: 0, total_upi: 0 },
+  });
+
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true);
+      const params = new URLSearchParams();
+      if (filterTahun) params.append('tahun', filterTahun);
+      if (filterKabupaten) params.append('kabupaten_kota', filterKabupaten);
+      if (filterJenisKegiatan) params.append('jenis_kegiatan', filterJenisKegiatan);
+      if (filterSkalaUsaha) params.append('skala_usaha', filterSkalaUsaha);
+
+      const response = await api.get(`/pengolahan-pemasaran/dashboard-stats?${params.toString()}`);
+
+      if (response.data?.success) {
+        setStats({
+          produksiPerKabupaten: [],
+          trenBulanan: [],
+          top5Jenis: [],
+          komposisiKegiatan: [],
+          heatmapData: [],
+          kpi: { total_volume: 0, top_jenis_produk: '-', total_nilai: 0, total_upi: 0 },
+          ...(response.data.stats || {}),
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error.response?.data || error.message);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, [filterTahun, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha]);
+
+  // 1. Peta Choropleth Jawa Timur
+  const mapOption = useMemo(() => {
+    const mapData = stats.produksiPerKabupaten.map(item => ({
+      name: item.name,
+      value: barFilter === 'produksi' ? item.produksi : item.nilai,
+    }));
+
+    const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
+    const isProduksi = barFilter === 'produksi';
+
+    return {
+      title: {
+        text: 'Sebaran Hasil Pengolahan & Pemasaran per Kabupaten/Kota',
+        textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' },
+        left: 'center',
+        top: 10,
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params) => {
+          const val = params.value || 0;
+          const formatted = isProduksi
+            ? `${val.toLocaleString('id-ID')} KG`
+            : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+          return `${params.name}<br/>Total: <b>${formatted}</b>`;
+        },
+      },
+      visualMap: {
+        left: 'right',
+        min: 1,
+        max: maxVal || 100,
+        inRange: {
+          color: ['#0f172a', '#1e3a8a', '#3b82f6', '#93c5fd', '#34d399'],
+        },
+        text: ['Tinggi', 'Rendah'],
+        textStyle: { color: '#94a3b8' },
+        calculable: true,
+        type: 'piecewise',
+        splitNumber: 5,
+      },
+      series: [
+        {
+          name: 'Hasil Pengolahan & Pemasaran',
+          type: 'map',
+          map: 'jawa_timur',
+          roam: true,
+          label: { show: false, color: '#fff' },
+          emphasis: {
+            label: { show: true, color: '#fff' },
+            itemStyle: { areaColor: '#f59e0b' },
+          },
+          itemStyle: {
+            areaColor: '#1e293b',
+            borderColor: '#334155',
+          },
+          data: mapData,
+        },
+      ],
+    };
+  }, [stats.produksiPerKabupaten, barFilter]);
+
+  // 2. Bar Chart Top 10 Kab/Kota
+  const barOption = useMemo(() => {
+    const sortedData = [...stats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
+    const top10 = sortedData.slice(0, 10).reverse();
+
+    const isProduksi = barFilter === 'produksi';
+    const seriesName = isProduksi ? 'Hasil Produksi (KG)' : 'Nilai Hasil (Rp)';
+    const formatter = isProduksi
+      ? val => val.toLocaleString('id-ID') + ' KG'
+      : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          const val = params[0].value || 0;
+          return `${params[0].name}<br/>${seriesName}: <b>${formatter(val)}</b>`;
+        },
+      },
+      grid: { left: '3%', right: '4%', top: '5%', bottom: '3%', containLabel: true },
+      xAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
+        axisLabel: {
+          color: '#94a3b8',
+          formatter: (val) => {
+            if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T';
+            if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M';
+            if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt';
+            if (val >= 1000) return (val / 1000).toFixed(1) + 'rb';
+            return val;
+          },
+        },
+      },
+      yAxis: {
+        type: 'category',
+        data: top10.map(d => d.name),
+        axisLabel: { color: '#cbd5e1', fontSize: 11 },
+      },
+      series: [
+        {
+          name: seriesName,
+          type: 'bar',
+          data: top10.map(d => d[barFilter]),
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+              { offset: 0, color: '#f97316' },
+              { offset: 1, color: '#ea580c' },
+            ]),
+            borderRadius: [0, 4, 4, 0],
+          },
+        },
+      ],
+    };
+  }, [stats.produksiPerKabupaten, barFilter]);
+
+  // 3. Line Chart Tren Bulanan (per Jenis Produk, Top 5 + Lainnya)
+  const lineOption = useMemo(() => {
+    const seriesData = stats.top5Jenis.map(jenis => ({
+      name: jenis,
+      type: 'line',
+      smooth: true,
+      symbolSize: 6,
+      data: stats.trenBulanan.map(m => m[jenis] || 0),
+    }));
+
+    seriesData.push({
+      name: 'Lainnya',
+      type: 'line',
+      smooth: true,
+      lineStyle: { type: 'dashed', width: 2, color: '#94a3b8' },
+      itemStyle: { color: '#94a3b8' },
+      symbol: 'none',
+      data: stats.trenBulanan.map(m => m.Lainnya || 0),
+    });
+
+    return {
+      tooltip: { trigger: 'axis' },
+      legend: {
+        data: [...stats.top5Jenis, 'Lainnya'],
+        textStyle: { color: '#cbd5e1' },
+        top: 0,
+      },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: BULAN_OPTIONS,
+        axisLabel: { color: '#94a3b8', fontSize: 11, rotate: 30 },
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
+        axisLabel: { color: '#94a3b8' },
+      },
+      series: seriesData,
+    };
+  }, [stats.trenBulanan, stats.top5Jenis]);
+
+  // 4. Treemap Komposisi Jenis Kegiatan (Pengolahan & Pemasaran)
+  const treemapOption = useMemo(() => {
+    const treemapData = stats.komposisiKegiatan.map(w => ({
+      name: w.name,
+      value: w.value,
+    }));
+
+    return {
+      tooltip: {
+        formatter: (info) => {
+          const val = info.value || 0;
+          return `<b>${info.name}</b><br/>Total Hasil: ${val.toLocaleString('id-ID')} KG`;
+        },
+      },
+      series: [{
+        type: 'treemap',
+        width: '100%',
+        height: '100%',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        roam: false,
+        nodeClick: false,
+        breadcrumb: { show: false },
+        label: { show: true, formatter: '{b}\n\n{c} KG', color: '#fff', fontWeight: 'bold' },
+        itemStyle: { borderColor: '#0f172a', gapWidth: 2 },
+        data: treemapData,
+        colorMappingBy: 'value',
+        visualMap: {
+          show: false,
+          inRange: {
+            color: ['#7c2d12', '#c2410c', '#f97316', '#fb923c', '#fed7aa'],
+          },
+        },
+      }],
+    };
+  }, [stats.komposisiKegiatan]);
+
+  // 5. Heatmap Kabupaten x Bulan
+  const heatmapOption = useMemo(() => {
+    const yAxisData = [...new Set(stats.heatmapData.map(d => d.kabupaten))].sort();
+    const xAxisData = BULAN_OPTIONS;
+
+    const dataPairs = [];
+    const tooltipRawData = {};
+
+    stats.heatmapData.forEach(item => {
+      const xIndex = xAxisData.indexOf(item.bulan);
+      const yIndex = yAxisData.indexOf(item.kabupaten);
+      if (xIndex !== -1 && yIndex !== -1) {
+        dataPairs.push([xIndex, yIndex, item.normalized]);
+        tooltipRawData[`${xIndex}-${yIndex}`] = item.produksi;
+      }
+    });
+
+    return {
+      tooltip: {
+        position: 'top',
+        formatter: (params) => {
+          const xIndex = params.data[0];
+          const yIndex = params.data[1];
+          const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0;
+          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Hasil: ${rawValue.toLocaleString('id-ID')} KG`;
+        },
+      },
+      grid: { left: '15%', right: '2%', top: '5%', bottom: '15%' },
+      xAxis: {
+        type: 'category',
+        data: xAxisData,
+        splitArea: { show: true },
+        axisLabel: { color: '#cbd5e1', rotate: 45 },
+      },
+      yAxis: {
+        type: 'category',
+        data: yAxisData,
+        splitArea: { show: true },
+        axisLabel: { color: '#cbd5e1', fontSize: 10 },
+      },
+      visualMap: {
+        min: 0,
+        max: 1,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '0%',
+        inRange: {
+          color: ['#0f172a', '#3b82f6', '#2dd4bf', '#fde047', '#f43f5e'],
+        },
+        textStyle: { color: '#cbd5e1' },
+        formatter: (value) => value.toFixed(1),
+      },
+      series: [{
+        name: 'Heatmap',
+        type: 'heatmap',
+        data: dataPairs,
+        label: { show: false },
+        emphasis: {
+          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' },
+        },
+      }],
+    };
+  }, [stats.heatmapData]);
+  // ==== Akhir Visualisasi Data ====
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -1585,6 +1908,7 @@ export default function AdminPengolahanPemasaran() {
       setIsFormOpen(false);
       setEditingData(null);
       await fetchData();
+      await fetchStats();
     } catch (error) {
       console.error(
         'Error saving pengolahan & pemasaran:',
@@ -1609,6 +1933,7 @@ export default function AdminPengolahanPemasaran() {
     try {
       await api.delete(`/pengolahan-pemasaran/${row.id}`);
       await fetchData();
+      await fetchStats();
     } catch (error) {
       console.error('Error deleting pengolahan & pemasaran:', error);
       alert('Gagal menghapus data.');
@@ -1616,16 +1941,76 @@ export default function AdminPengolahanPemasaran() {
   };
 
   const handleApprove = async row => {
-    if (!window.confirm('Yakin ingin menyetujui data ini?')) return;
+    if (row.status === 'APPROVED') {
+      alert('Data sudah selesai divalidasi Program.');
+      return;
+    }
+
+    if (row.status === 'REJECTED') {
+      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+      return;
+    }
+
+    let promptMsg = '';
+
+    if (row.status === 'PENDING') {
+      promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
+    } else if (row.status === 'APPROVED_BIDANG') {
+      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
+    } else {
+      alert('Status data tidak valid.');
+      return;
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+
+    if (jenis === '1') {
+      if (row.status !== 'PENDING') {
+        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+        return;
+      }
+
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      if (row.status !== 'APPROVED_BIDANG') {
+        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+        return;
+      }
+
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Ketik 1 atau 2.');
+      return;
+    }
+
+    const confirmText = window.prompt(
+      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
+    );
+
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
 
     try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, { status: 'APPROVED' });
+      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+        status: targetStatus,
+      });
+
       await fetchData();
+      await fetchStats();
     } catch (error) {
       console.error('Error approving data:', error);
-      alert('Gagal menyetujui data.');
+      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
     }
   };
+
 
   const handleReject = async row => {
     const alasan = window.prompt('Masukkan alasan penolakan:');
@@ -1641,6 +2026,7 @@ export default function AdminPengolahanPemasaran() {
         alasan_penolakan: alasan.trim(),
       });
       await fetchData();
+      await fetchStats();
     } catch (error) {
       console.error('Error rejecting data:', error);
       alert('Gagal menolak data.');
@@ -1784,6 +2170,133 @@ export default function AdminPengolahanPemasaran() {
     </div>
   );
 
+  // ==== Blok Visualisasi Data (ditampilkan di atas tabel, hanya saat form tertutup) ====
+  const dataVisualization = (
+    <div className="space-y-6">
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
+            <Box className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Total Volume Hasil</p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Top Jenis Produk</p>
+            <p className="text-xl font-bold text-foreground leading-tight">
+              {stats.kpi.top_jenis_produk}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
+            <LineChart className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Total Nilai Hasil</p>
+            <p className="text-2xl font-bold text-foreground">
+              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.kpi.total_nilai)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Total Unit Usaha (UPI)</p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.kpi.total_upi.toLocaleString('id-ID')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Peta & Bar Chart Top 10 */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Peta Sebaran Hasil</h2>
+          </div>
+          <div className="h-[450px]">
+            <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-orange-500" />
+              <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
+            </div>
+            <select
+              value={barFilter}
+              onChange={(e) => setBarFilter(e.target.value)}
+              className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-orange-500 outline-none text-slate-200"
+            >
+              <option value="produksi">Hasil Produksi (KG)</option>
+              <option value="nilai">Nilai Hasil (Rp)</option>
+            </select>
+          </div>
+          <div className="h-[450px]">
+            <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Tren Bulanan & Treemap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <TrendingUp className="w-5 h-5 text-teal-500" />
+            <h2 className="text-lg font-semibold">Tren Hasil Bulanan</h2>
+          </div>
+          <div className="h-[350px]">
+            <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <Factory className="w-5 h-5 text-cyan-500" />
+            <h2 className="text-lg font-semibold">Komposisi Jenis Kegiatan</h2>
+          </div>
+          <div className="h-[350px]">
+            <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Heatmap */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <MapPin className="w-5 h-5 text-rose-500" />
+          <h2 className="text-lg font-semibold">Pola Musiman per Wilayah</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          Warna merepresentasikan intensitas hasil relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
+        </p>
+        <div className="h-[600px]">
+          <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+        </div>
+      </div>
+    </div>
+  );
+  // ==== Akhir Blok Visualisasi Data ====
+
   if (isFormOpen) {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1855,7 +2368,109 @@ export default function AdminPengolahanPemasaran() {
         </button>
       </div>
 
-      {dataPreview}
+      {/*
+        FIX: Tab navigation, filter (khusus tab visualisasi), dan konten (tabel/visualisasi)
+        sekarang digabung jadi SATU container card, bukan dua div terpisah.
+        Sebelumnya ada dua <div className="bg-card ..."> yang berbeda sebagai sibling di
+        dalam parent "space-y-6", sehingga Tailwind menambahkan margin-top di antara
+        keduanya dan muncul jarak/gap kosong seperti pada screenshot.
+      */}
+      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-border px-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab('table')}
+            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
+              activeTab === 'table'
+                ? 'text-primary border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            Tabel Data
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('visualisasi')}
+            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
+              activeTab === 'visualisasi'
+                ? 'text-primary border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            Visualisasi Statistik
+          </button>
+        </div>
+
+        {activeTab === 'visualisasi' && (
+          <div className="p-6 border-b border-border">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                <select
+                  value={filterTahun}
+                  onChange={(e) => setFilterTahun(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">Semua Tahun</option>
+                  {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
+                <select
+                  value={filterKabupaten}
+                  onChange={(e) => setFilterKabupaten(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">Semua Kabupaten/Kota</option>
+                  {KABUPATEN_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Kegiatan</label>
+                <select
+                  value={filterJenisKegiatan}
+                  onChange={(e) => setFilterJenisKegiatan(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">Semua Jenis Kegiatan</option>
+                  <option value="Pengolahan">Pengolahan</option>
+                  <option value="Pemasaran">Pemasaran</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Skala Usaha</label>
+                <select
+                  value={filterSkalaUsaha}
+                  onChange={(e) => setFilterSkalaUsaha(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">Semua Skala Usaha</option>
+                  <option value="Mikro">Mikro</option>
+                  <option value="Kecil">Kecil</option>
+                  <option value="Menengah">Menengah</option>
+                  <option value="Besar">Besar</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Konten Tab: tetap di dalam card yang sama, tanpa jarak kosong */}
+        <div className="p-6">
+          {activeTab === 'visualisasi' ? (
+            statsLoading ? (
+              <div className="h-64 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              dataVisualization
+            )
+          ) : (
+            dataPreview
+          )}
+        </div>
+      </div>
     </div>
   );
 }

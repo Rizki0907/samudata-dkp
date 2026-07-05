@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 
 const toStringValue = value => String(value ?? '').trim();
 
@@ -555,19 +554,116 @@ const getDashboardStats = async (req, res) => {
 
 const createData = async (req, res) => {
   try {
-    const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
-
     const data = await prisma.pengolahanPemasaran.create({
       data: {
-        status: statusData,
+        status: 'PENDING',
         ...buildPayload(req.body),
       },
     });
 
-    res.status(201).json({ success: true, data, message: 'Data berhasil ditambahkan' });
+    res.status(201).json({
+      success: true,
+      data,
+      message: 'Data berhasil ditambahkan',
+    });
   } catch (error) {
     console.error('Error creating pengolahan pemasaran data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({
+        success: false,
+        message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data',
+      });
+    }
+
+    const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status tidak valid',
+      });
+    }
+
+    const existing = await prisma.pengolahanPemasaran.findUnique({
+      where: { id: parseInt(id, 10) },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Data tidak ditemukan',
+      });
+    }
+
+    if (existing.status === 'APPROVED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Data sudah selesai divalidasi Program',
+      });
+    }
+
+    if (existing.status === 'REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Data yang ditolak harus diperbaiki terlebih dahulu',
+      });
+    }
+
+    if (status === 'APPROVED_BIDANG' && existing.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING',
+      });
+    }
+
+    if (status === 'APPROVED' && existing.status !== 'APPROVED_BIDANG') {
+      return res.status(400).json({
+        success: false,
+        message: 'Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program',
+      });
+    }
+
+    if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Alasan penolakan wajib diisi',
+      });
+    }
+
+    const updated = await prisma.pengolahanPemasaran.update({
+      where: { id: parseInt(id, 10) },
+      data: {
+        status,
+        alasan_penolakan:
+          status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Status berhasil diubah menjadi ${status}`,
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Error updating pengolahan pemasaran status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
   }
 };
 
@@ -576,38 +672,59 @@ const updateData = async (req, res) => {
     const { id } = req.params;
 
     const existing = await prisma.pengolahanPemasaran.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id, 10) },
     });
 
     if (!existing) {
-      return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+      return res.status(404).json({
+        success: false,
+        message: 'Data tidak ditemukan',
+      });
     }
 
-    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+    if (
+      ['APPROVED_BIDANG', 'APPROVED'].includes(existing.status) &&
+      req.user &&
+      req.user.role === 'admin_cabang'
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui Pusat',
+        message: 'Admin Cabang tidak dapat mengubah data yang sudah divalidasi',
       });
     }
 
     let newStatus = existing.status;
-    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+
+    if (
+      req.user &&
+      req.user.role === 'admin_cabang' &&
+      existing.status === 'REJECTED'
+    ) {
       newStatus = 'PENDING';
     }
 
     const data = await prisma.pengolahanPemasaran.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id, 10) },
       data: {
         status: newStatus,
-        alasan_penolakan: newStatus === 'PENDING' ? null : existing.alasan_penolakan,
+        alasan_penolakan:
+          newStatus === 'PENDING' ? null : existing.alasan_penolakan,
         ...buildPayload(req.body),
       },
     });
 
-    res.json({ success: true, data, message: 'Data berhasil diupdate' });
+    res.json({
+      success: true,
+      data,
+      message: 'Data berhasil diupdate',
+    });
   } catch (error) {
     console.error('Error updating pengolahan pemasaran data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
   }
 };
 
@@ -637,45 +754,6 @@ const deleteData = async (req, res) => {
     res.json({ success: true, message: 'Data berhasil dihapus' });
   } catch (error) {
     console.error('Error deleting pengolahan pemasaran data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-const updateStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, alasan_penolakan } = req.body;
-
-    if (!req.user || req.user.role !== 'admin_pusat') {
-      return res.status(403).json({
-        success: false,
-        message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data',
-      });
-    }
-
-    const allowedStatuses = ['PENDING', 'APPROVED', 'APPROVED_BIDANG', 'REJECTED'];
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: 'Status tidak valid' });
-    }
-
-    if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Alasan penolakan wajib diisi',
-      });
-    }
-
-    const updated = await prisma.pengolahanPemasaran.update({
-      where: { id: parseInt(id) },
-      data: {
-        status,
-        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null,
-      },
-    });
-
-    res.json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
-  } catch (error) {
-    console.error('Error updating pengolahan pemasaran status:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
