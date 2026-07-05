@@ -31,6 +31,10 @@ export default function AdminPerikananTangkap() {
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
 
+  // Local Chart Filter for Harga
+  const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
+  const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
+
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
     komoditas: [],
@@ -207,8 +211,9 @@ export default function AdminPerikananTangkap() {
           if (!pelabuhanMap[pelabuhan]) pelabuhanMap[pelabuhan] = 0;
           pelabuhanMap[pelabuhan] += vol;
 
-          if (!trenMap[date]) trenMap[date] = 0;
-          trenMap[date] += vol;
+          if (!trenMap[date]) trenMap[date] = { volume: 0, nilai: 0 };
+          trenMap[date].volume += vol;
+          trenMap[date].nilai += nil;
         });
       }
     });
@@ -219,24 +224,66 @@ export default function AdminPerikananTangkap() {
     const komoditas = Object.entries(komoditasMap)
       .map(([k, v]) => ({ komoditas: k, _sum: { volume: v } }))
       .sort((a, b) => b._sum.volume - a._sum.volume)
-      .slice(0, 10);
+      .slice(0, 6); // Limit to top 6
 
     const pelabuhanArr = Object.entries(pelabuhanMap)
       .map(([p, v]) => ({ pelabuhan: p, _sum: { volume: v } }))
       .sort((a, b) => b._sum.volume - a._sum.volume)
-      .slice(0, 10);
+      .slice(0, 6); // Limit to top 6
 
     const tren = Object.entries(trenMap)
-      .map(([d, v]) => ({ date: d, volume: v }))
+      .map(([d, v]) => ({ date: d, volume: v.volume, nilai: v.nilai }))
       .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Perhitungan rata-rata harga untuk 1 Komoditas spesifik di Pelabuhan yang dipilih
+    let targetPelabuhan = chartHargaWilayah;
+    
+    // Jika user belum memilih wilayah spesifik, ambil Top 10 pelabuhan dengan volume tertinggi sebagai default
+    if (targetPelabuhan.length === 0) {
+      targetPelabuhan = Object.entries(pelabuhanMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10).map(p => p[0]);
+    }
+    
+    const hargaMap = {};
+    targetPelabuhan.forEach(p => {
+       hargaMap[p] = { vol: 0, nilai: 0 };
+    });
+    
+    filteredData.forEach(row => {
+       const pel = row.pelabuhan || row.kabupaten_kota || 'Tidak Diketahui';
+       if (hargaMap[pel]) {
+          if (row.tangkapan) {
+             row.tangkapan.forEach(t => {
+                if (t.komoditas === chartHargaKomoditas) {
+                   hargaMap[pel].vol += Number(t.volume) || 0;
+                   hargaMap[pel].nilai += Number(t.nilai) || 0;
+                }
+             });
+          }
+       }
+    });
+
+    const hargaSeries = [{
+       name: chartHargaKomoditas,
+       type: 'bar',
+       data: targetPelabuhan.map(pel => {
+          const stat = hargaMap[pel];
+          return stat.vol > 0 ? Math.round(stat.nilai / stat.vol) : 0;
+       }),
+       itemStyle: { color: '#f59e0b', borderRadius: [4, 4, 0, 0] },
+       label: { show: true, position: 'top', color: '#ffffff', formatter: (p) => 'Rp ' + (p.value/1000) + 'k' }
+    }];
 
     return {
       kpi: { total_volume, total_nilai, total_trip, avg_volume_per_trip },
       komoditas,
       pelabuhan: pelabuhanArr,
-      tren
+      tren,
+      hargaCategories: targetPelabuhan,
+      hargaSeries
     };
-  }, [filteredData]);
+  }, [filteredData, chartHargaKomoditas, chartHargaWilayah]);
 
   const handleExportLaporanPelabuhan = () => {
     if (!filterWilayah) return;
@@ -613,16 +660,49 @@ export default function AdminPerikananTangkap() {
       return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
     });
     const volumes = computedStats.tren.map(t => t.volume);
+    const nilais = computedStats.tren.map(t => t.nilai);
 
     return {
-      tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID')} Kg` },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#f8fafc' } },
-      yAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
-      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-      series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
+      volume: {
+        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID')} Kg` },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#f8fafc' } },
+        yAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
+        dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
+        series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
+      },
+      nilai: {
+        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#f8fafc' } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: '#334155' } } },
+        dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
+        series: [{ name: 'Nilai', type: 'line', data: nilais, smooth: true, symbolSize: 8, itemStyle: { color: '#10b981' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] } } }]
+      }
     };
   }, [computedStats.tren]);
+
+  const hargaChartOption = useMemo(() => {
+    return {
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { show: false },
+      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+      xAxis: { 
+        type: 'category', 
+        data: computedStats.hargaCategories,
+        axisLabel: { color: '#f8fafc', interval: 0, width: 90, overflow: 'break' }
+      },
+      yAxis: { 
+        type: 'value', 
+        name: 'Harga Rata-rata (Rp)', 
+        nameTextStyle: { color: '#f8fafc' }, 
+        axisLabel: { color: '#f8fafc', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
+        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
+      },
+      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
+      series: computedStats.hargaSeries
+    };
+  }, [computedStats.hargaCategories, computedStats.hargaSeries]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -906,9 +986,71 @@ export default function AdminPerikananTangkap() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Volume Pendaratan</h3></div>
+                  {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption.volume} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                </div>
+                
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Nilai Produksi</h3></div>
+                  {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption.nilai} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                </div>
+              </div>
+
+              {/* PERBANDINGAN HARGA KOMODITAS */}
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Bulanan</h3></div>
-                {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption} style={{ height: '400px', width: '100%' }} /> : <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Perbandingan Harga Komoditas (Rp/Kg)</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select value={chartHargaKomoditas} onChange={(e) => setChartHargaKomoditas(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50">
+                      {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    
+                    <div className="relative group">
+                      <button className="px-3 py-2 border rounded-lg bg-background text-sm flex items-center gap-2 hover:bg-muted transition-colors">
+                         Pilih Wilayah ({chartHargaWilayah.length > 0 ? chartHargaWilayah.length : 'Top 10'})
+                      </button>
+                      <div className="absolute top-full right-0 mt-1 w-64 bg-card border rounded-lg shadow-xl p-2 hidden group-hover:flex flex-col gap-1 max-h-64 overflow-y-auto z-50">
+                         {PELABUHAN_OPTIONS.map(opt => (
+                            <label key={opt} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+                               <input 
+                                 type="checkbox" 
+                                 className="rounded border-border text-primary focus:ring-primary"
+                                 checked={chartHargaWilayah.includes(opt)} 
+                                 onChange={(e) => {
+                                   if (e.target.checked) {
+                                      setChartHargaWilayah(prev => [...prev, opt]);
+                                   } else {
+                                      setChartHargaWilayah(prev => prev.filter(x => x !== opt));
+                                   }
+                                 }} 
+                               />
+                               <span className="text-sm truncate text-foreground">{opt}</span>
+                            </label>
+                         ))}
+                         {chartHargaWilayah.length > 0 && (
+                            <button 
+                              onClick={() => setChartHargaWilayah([])}
+                              className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium py-1 border-t"
+                            >
+                              Reset Wilayah (Kembali ke Top 10)
+                            </button>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {computedStats.hargaCategories && computedStats.hargaCategories.length > 0 ? (
+                  <ReactECharts option={hargaChartOption} style={{ height: '400px', width: '100%' }} />
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+                    Belum ada data pelabuhan untuk komoditas ini
+                  </div>
+                )}
               </div>
             </div>
           )

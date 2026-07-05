@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle } from 'lucide-react';
@@ -20,6 +22,15 @@ export default function PerikananTangkap() {
   const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
+
+  // Local Chart Filters
+  const [chartKomoditasTahun, setChartKomoditasTahun] = useState(currentYear.toString());
+  const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState('');
+  const [chartPelabuhanTahun, setChartPelabuhanTahun] = useState(currentYear.toString());
+  
+  // Local Filter for Harga
+  const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
+  const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
 
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
@@ -68,15 +79,27 @@ export default function PerikananTangkap() {
       const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
       const cabang = row.sumber_data || 'PELABUHAN';
       
+      const key = `${bln}_${pel}`;
+      if(!map[key]) {
+        map[key] = { bulan: bln, pelabuhan: pel, sumber_data: cabang, volume: 0, nilai: 0, tangkapan: [] };
+      }
+      
       if(row.tangkapan) {
         row.tangkapan.forEach(t => {
-          const kom = t.komoditas;
-          const key = `${bln}_${pel}_${kom}`;
-          if(!map[key]) {
-            map[key] = { bulan: bln, pelabuhan: pel, sumber_data: cabang, komoditas: kom, volume: 0, nilai: 0 };
-          }
           map[key].volume += Number(t.volume) || 0;
           map[key].nilai += Number(t.nilai) || 0;
+          
+          const existing = map[key].tangkapan.find(x => x.komoditas === t.komoditas);
+          if (existing) {
+             existing.volume += Number(t.volume) || 0;
+             existing.nilai += Number(t.nilai) || 0;
+          } else {
+             map[key].tangkapan.push({
+                komoditas: t.komoditas,
+                volume: Number(t.volume) || 0,
+                nilai: Number(t.nilai) || 0
+             });
+          }
         });
       }
     });
@@ -110,11 +133,6 @@ export default function PerikananTangkap() {
       accessorKey: 'pelabuhan'
     },
     {
-      header: 'Komoditas',
-      accessorKey: 'komoditas',
-      cell: info => <p className="font-medium text-foreground">{info.getValue()}</p>
-    },
-    {
       header: 'Total Volume (Kg)',
       accessorKey: 'volume',
       cell: info => info.getValue().toLocaleString('id-ID')
@@ -126,11 +144,61 @@ export default function PerikananTangkap() {
     }
   ], []);
 
+  const renderSubComponent = ({ row }) => {
+    const tangkapan = row.original.tangkapan || [];
+    if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
+    
+    return (
+      <div className="p-4 bg-muted/10 border-l-4 border-primary">
+        <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
+          Rincian Komoditas (Agregat Bulanan)
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
+            <thead className="bg-muted text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">Komoditas</th>
+                <th className="px-4 py-2 font-medium">Total Volume (Kg)</th>
+                <th className="px-4 py-2 font-medium text-right">Total Nilai Produksi (Rp)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-card">
+              {tangkapan.map((item, index) => (
+                <tr key={index} className="hover:bg-muted/50">
+                  <td className="px-4 py-2 font-medium">{item.komoditas}</td>
+                  <td className="px-4 py-2">{item.volume.toLocaleString('id-ID')}</td>
+                  <td className="px-4 py-2 text-right">{formatRupiah(item.nilai)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
+  const localKomoditas = useMemo(() => {
+    const map = {};
+    data.forEach(row => {
+      const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
+      const rowWilayah = row.pelabuhan || row.kabupaten_kota || '';
+      
+      const matchTahun = !chartKomoditasTahun || rowTahun === chartKomoditasTahun;
+      const matchWilayah = !chartKomoditasWilayah || rowWilayah === chartKomoditasWilayah;
+      
+      if (matchTahun && matchWilayah && row.tangkapan) {
+        row.tangkapan.forEach(t => {
+          if (!map[t.komoditas]) map[t.komoditas] = 0;
+          map[t.komoditas] += Number(t.volume) || 0;
+        });
+      }
+    });
+    return Object.entries(map).map(([k, v]) => ({ komoditas: k, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
+  }, [data, chartKomoditasTahun, chartKomoditasWilayah]);
 
   const komoditasChartOption = useMemo(() => {
-    const categories = stats.komoditas.map(item => item.komoditas);
-    const values = stats.komoditas.map(item => item._sum.volume || 0);
+    const categories = localKomoditas.map(item => item.komoditas);
+    const values = localKomoditas.map(item => item.volume);
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -139,11 +207,28 @@ export default function PerikananTangkap() {
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
       series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#ffffff', formatter: '{c} Kg' } }]
     };
-  }, [stats.komoditas]);
+  }, [localKomoditas]);
+
+  const localPelabuhan = useMemo(() => {
+    const map = {};
+    data.forEach(row => {
+      const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
+      const matchTahun = !chartPelabuhanTahun || rowTahun === chartPelabuhanTahun;
+      
+      if (matchTahun && row.tangkapan) {
+        const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+        if (!map[pel]) map[pel] = 0;
+        row.tangkapan.forEach(t => {
+          map[pel] += Number(t.volume) || 0;
+        });
+      }
+    });
+    return Object.entries(map).map(([p, v]) => ({ pelabuhan: p, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
+  }, [data, chartPelabuhanTahun]);
 
   const pelabuhanChartOption = useMemo(() => {
-    const categories = stats.pelabuhan.map(item => item.pelabuhan);
-    const values = stats.pelabuhan.map(item => item._sum.volume || 0);
+    const categories = localPelabuhan.map(item => item.pelabuhan);
+    const values = localPelabuhan.map(item => item.volume);
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -152,7 +237,7 @@ export default function PerikananTangkap() {
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontWeight: 'bold' } },
       series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#ffffff', formatter: '{c} Kg' } }]
     };
-  }, [stats.pelabuhan]);
+  }, [localPelabuhan]);
 
   const trenChartOption = useMemo(() => {
     const dates = stats.tren.map(t => {
@@ -164,16 +249,127 @@ export default function PerikananTangkap() {
       return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
     });
     const volumes = stats.tren.map(t => t.volume);
+    
+    // Asumsikan backend mengirimkan nilai, kalau tidak ada kita set 0 atau map berdasarkan data yang ada
+    // Note: API /stats currently doesn't return tren nilai, only volume! 
+    // We must compute it manually from local `data` for the public page, just like localPelabuhan.
+    // Let's compute it here inside trenChartOption or we can just use `stats.tren` for dates but fetch values from local map.
+    const localTrenMap = {};
+    data.forEach(row => {
+       const date = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
+       if (!localTrenMap[date]) localTrenMap[date] = { volume: 0, nilai: 0 };
+       if (row.tangkapan) {
+          row.tangkapan.forEach(t => {
+             localTrenMap[date].volume += Number(t.volume) || 0;
+             localTrenMap[date].nilai += Number(t.nilai) || 0;
+          });
+       }
+    });
+    const localDates = Object.keys(localTrenMap).sort();
+    const formattedDates = localDates.map(d => {
+       if (d === 'Unknown') return '';
+       const [y, m] = d.split('-');
+       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+       return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
+    });
+    const localVolumes = localDates.map(d => localTrenMap[d].volume);
+    const localNilais = localDates.map(d => localTrenMap[d].nilai);
 
     return {
-      tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID')} Kg` },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#f8fafc' } },
-      yAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
-      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-      series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
+      volume: {
+        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID')} Kg` },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#f8fafc' } },
+        yAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
+        dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
+        series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
+      },
+      nilai: {
+        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#f8fafc' } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: '#334155' } } },
+        dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
+        series: [{ name: 'Nilai', type: 'line', data: localNilais, smooth: true, symbolSize: 8, itemStyle: { color: '#10b981' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] } } }]
+      }
     };
-  }, [stats.tren]);
+  }, [data]);
+
+  const hargaData = useMemo(() => {
+    const pelMap = {};
+    data.forEach(row => {
+      const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      if (!pelMap[pel]) pelMap[pel] = 0;
+      if (row.tangkapan) {
+        row.tangkapan.forEach(t => {
+          pelMap[pel] += Number(t.volume) || 0;
+        });
+      }
+    });
+    
+    let targetPelabuhan = chartHargaWilayah;
+    
+    // Jika user belum memilih wilayah spesifik, ambil Top 10 pelabuhan dengan volume tertinggi sebagai default
+    if (targetPelabuhan.length === 0) {
+      targetPelabuhan = Object.entries(pelMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10).map(x => x[0]);
+    }
+
+    const hMap = {};
+    targetPelabuhan.forEach(p => {
+       hMap[p] = { vol: 0, nilai: 0 };
+    });
+    
+    data.forEach(row => {
+       const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+       if (hMap[pel]) {
+          if (row.tangkapan) {
+             row.tangkapan.forEach(t => {
+                if (t.komoditas === chartHargaKomoditas) {
+                   hMap[pel].vol += Number(t.volume) || 0;
+                   hMap[pel].nilai += Number(t.nilai) || 0;
+                }
+             });
+          }
+       }
+    });
+
+    const series = [{
+       name: chartHargaKomoditas,
+       type: 'bar',
+       data: targetPelabuhan.map(pel => {
+          const stat = hMap[pel];
+          return stat.vol > 0 ? Math.round(stat.nilai / stat.vol) : 0;
+       }),
+       itemStyle: { color: '#f59e0b', borderRadius: [4, 4, 0, 0] },
+       label: { show: true, position: 'top', color: '#ffffff', formatter: (p) => 'Rp ' + (p.value/1000) + 'k' }
+    }];
+
+    return { categories: targetPelabuhan, series };
+  }, [data, chartHargaKomoditas, chartHargaWilayah]);
+
+  const hargaChartOption = useMemo(() => {
+    return {
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { show: false },
+      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+      xAxis: { 
+        type: 'category', 
+        data: hargaData.categories,
+        axisLabel: { color: '#f8fafc', interval: 0, width: 90, overflow: 'break' }
+      },
+      yAxis: { 
+        type: 'value', 
+        name: 'Harga Rata-rata (Rp)', 
+        nameTextStyle: { color: '#f8fafc' }, 
+        axisLabel: { color: '#f8fafc', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
+        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
+      },
+      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
+      series: hargaData.series
+    };
+  }, [hargaData]);
 
   if (loading) {
     return (
@@ -235,40 +431,107 @@ export default function PerikananTangkap() {
       {/* Row 2: Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><Fish className="w-5 h-5 text-blue-500" /><h3 className="text-lg font-semibold">Volume Berdasarkan Komoditas</h3></div>
-          {stats.komoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Fish className="w-5 h-5 text-blue-500" />
+              <h3 className="text-lg font-semibold">Volume Berdasarkan Komoditas</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <select value={chartKomoditasWilayah} onChange={(e) => setChartKomoditasWilayah(e.target.value)} className="rounded-lg border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/50">
+                <option value="">Semua Wilayah</option>
+                {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={chartKomoditasTahun} onChange={(e) => setChartKomoditasTahun(e.target.value)} className="rounded-lg border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/50">
+                <option value="">Semua Tahun</option>
+                {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+          </div>
+          {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-pink-500" /><h3 className="text-lg font-semibold">Volume Berdasarkan Pelabuhan</h3></div>
-          {stats.pelabuhan.length > 0 ? <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Pendaratan Bulanan</h3></div>
-        {stats.tren.length > 0 ? <ReactECharts option={trenChartOption} style={{ height: '400px', width: '100%' }} /> : <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-      </div>
-
-      {/* PROTOTYPE: PERBANDINGAN HARGA */}
-      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 shadow-sm relative overflow-hidden group">
-        <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all"></div>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              <h3 className="text-xl font-bold text-foreground">Perbandingan Harga Komoditas</h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-pink-500" />
+              <h3 className="text-lg font-semibold">Volume Berdasarkan Pelabuhan</h3>
             </div>
-            <p className="text-muted-foreground">Pantau dan bandingkan harga ikan antar Kota/Kabupaten maupun Pelabuhan secara langsung. Fitur ini masih dalam tahap pengembangan (Prototype).</p>
+            <div>
+              <select value={chartPelabuhanTahun} onChange={(e) => setChartPelabuhanTahun(e.target.value)} className="rounded-lg border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/50">
+                <option value="">Semua Tahun</option>
+                {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full border border-border shadow-sm">
-            <AlertCircle className="w-4 h-4 text-orange-500" />
-            <span className="text-sm font-medium text-foreground">Segera Hadir (Coming Soon)</span>
+          {localPelabuhan.length > 0 ? <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Volume Pendaratan</h3></div>
+          {data.length > 0 ? <ReactECharts option={trenChartOption.volume} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+        </div>
+        
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Nilai Produksi</h3></div>
+          {data.length > 0 ? <ReactECharts option={trenChartOption.nilai} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+        </div>
+      </div>
+
+      {/* PERBANDINGAN HARGA */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Perbandingan Harga Komoditas (Rp/Kg)</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <select value={chartHargaKomoditas} onChange={(e) => setChartHargaKomoditas(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50">
+              {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+
+            <div className="relative group">
+              <button className="px-3 py-2 border rounded-lg bg-background text-sm flex items-center gap-2 hover:bg-muted transition-colors">
+                 Pilih Wilayah ({chartHargaWilayah.length > 0 ? chartHargaWilayah.length : 'Top 10'})
+              </button>
+              <div className="absolute top-full right-0 mt-1 w-64 bg-card border rounded-lg shadow-xl p-2 hidden group-hover:flex flex-col gap-1 max-h-64 overflow-y-auto z-50">
+                 {PELABUHAN_OPTIONS.map(opt => (
+                    <label key={opt} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+                       <input 
+                         type="checkbox" 
+                         className="rounded border-border text-primary focus:ring-primary"
+                         checked={chartHargaWilayah.includes(opt)} 
+                         onChange={(e) => {
+                           if (e.target.checked) {
+                              setChartHargaWilayah(prev => [...prev, opt]);
+                           } else {
+                              setChartHargaWilayah(prev => prev.filter(x => x !== opt));
+                           }
+                         }} 
+                       />
+                       <span className="text-sm truncate text-foreground">{opt}</span>
+                    </label>
+                 ))}
+                 {chartHargaWilayah.length > 0 && (
+                    <button 
+                      onClick={() => setChartHargaWilayah([])}
+                      className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium py-1 border-t"
+                    >
+                      Reset Wilayah (Kembali ke Top 10)
+                    </button>
+                 )}
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-8 h-[250px] rounded-xl border-2 border-dashed border-primary/30 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-           <p className="text-muted-foreground font-medium flex items-center gap-2"><BarChart3 className="w-5 h-5" /> Area Grafik Batang (Grouped Bar Chart) Perbandingan Harga</p>
-        </div>
+        {hargaData.categories && hargaData.categories.length > 0 ? (
+          <ReactECharts option={hargaChartOption} style={{ height: '400px', width: '100%' }} />
+        ) : (
+          <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+            Belum ada data pelabuhan untuk komoditas ini
+          </div>
+        )}
       </div>
 
       {/* Table Section with SUPER FILTERS */}
@@ -325,26 +588,108 @@ export default function PerikananTangkap() {
           columns={columns} 
           data={aggregatedData}
           exportName={`Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
-          formatExportData={(exportData) => {
-            const flattened = [];
-            exportData.forEach(row => {
-              const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+          renderSubComponent={renderSubComponent}
+          onCustomExport={async (rowsToExport) => {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Data Perikanan Tangkap');
+
+            const row1 = ['Bulan / Tahun', 'Cabang Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
+            const row2 = ['', '', '', '', ''];
+
+            const komoditasArray = KOMODITAS_OPTIONS;
+            komoditasArray.forEach(kom => {
+              row1.push(kom, '');
+              row2.push('Volume (Kg)', 'Nilai (Rp)');
+            });
+
+            sheet.addRow(row1);
+            sheet.addRow(row2);
+
+            sheet.mergeCells('A1:A2');
+            sheet.mergeCells('B1:B2');
+            sheet.mergeCells('C1:C2');
+            sheet.mergeCells('D1:D2');
+            sheet.mergeCells('E1:E2');
+
+            let currentCol = 6;
+            komoditasArray.forEach(() => {
+              sheet.mergeCells(1, currentCol, 1, currentCol + 1);
+              currentCol += 2;
+            });
+
+            for (let i = 1; i <= 2; i++) {
+              const row = sheet.getRow(i);
+              row.eachCell((cell, colNumber) => {
+                // Kolom 1-5 (Main Headers) diberi warna Kuning
+                // Kolom 6 ke atas (Komoditas) diberi warna Biru Muda
+                const bgColor = colNumber <= 5 ? 'FFFFFF00' : 'FFD9E1F2'; 
+
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+                cell.font = { bold: true };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = {
+                  top: { style: 'thin' }, left: { style: 'thin' },
+                  bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+              });
+            }
+
+            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+            rowsToExport.forEach(row => {
               let formattedBulan = row.bulan;
               if (row.bulan !== 'Unknown') {
                  const [y, m] = row.bulan.split('-');
                  formattedBulan = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
               }
 
-              flattened.push({
-                'Bulan / Tahun': formattedBulan,
-                'Cabang Sumber': row.sumber_data,
-                'Wilayah / Lokasi': row.pelabuhan,
-                'Komoditas': row.komoditas,
-                'Total Volume (Kg)': row.volume,
-                'Total Nilai Produksi (Rp)': row.nilai
+              const rowData = [
+                formattedBulan,
+                row.sumber_data,
+                row.pelabuhan,
+                row.volume || 0,
+                row.nilai || 0
+              ];
+
+              const tangkapanMap = {};
+              if (row.tangkapan) {
+                 row.tangkapan.forEach(t => { tangkapanMap[t.komoditas] = t; });
+              }
+              
+              komoditasArray.forEach(kom => {
+                 const komData = tangkapanMap[kom];
+                 rowData.push(komData ? (komData.volume || 0) : 0);
+                 rowData.push(komData ? (komData.nilai || 0) : 0);
+              });
+
+              const addedRow = sheet.addRow(rowData);
+              addedRow.eachCell((cell, colNumber) => {
+                cell.border = {
+                  top: { style: 'thin' }, left: { style: 'thin' },
+                  bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+                if (typeof cell.value === 'number') {
+                  cell.alignment = { horizontal: 'right' };
+                  if (colNumber === 5 || (colNumber > 5 && colNumber % 2 !== 0)) {
+                    cell.numFmt = '#,##0.00';
+                  } else {
+                    cell.numFmt = '#,##0';
+                  }
+                }
               });
             });
-            return flattened;
+
+            sheet.getColumn(1).width = 20;
+            sheet.getColumn(2).width = 15;
+            sheet.getColumn(3).width = 25;
+            sheet.getColumn(4).width = 20;
+            sheet.getColumn(5).width = 25;
+            for(let i = 6; i < currentCol; i++){
+               sheet.getColumn(i).width = 15;
+            }
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), `Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}.xlsx`);
           }}
         />
       </div>

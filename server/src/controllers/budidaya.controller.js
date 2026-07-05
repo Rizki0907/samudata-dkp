@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 const ExcelJS = require('exceljs');
 
 // Helper function to calculate Triwulan (TW) from Bulan
