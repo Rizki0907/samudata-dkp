@@ -45,18 +45,8 @@ export default function AdminPerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      const queryParams = new URLSearchParams();
-      if (filterTahun) queryParams.append('tahun', filterTahun);
-      if (filterBulan) queryParams.append('bulan', filterBulan);
-      if (filterCabang) queryParams.append('cabang', filterCabang);
-      if (filterKomoditas) queryParams.append('komoditas', filterKomoditas);
-      if (filterWilayah) queryParams.append('wilayah', filterWilayah);
-      
-      const query = `?${queryParams.toString()}`;
-
       const [dataRes] = await Promise.all([
-        api.get(`/perikanan-tangkap/admin${query}`)
+        api.get(`/perikanan-tangkap/admin`)
       ]);
 
       setData(dataRes.data.data || []);
@@ -69,7 +59,7 @@ export default function AdminPerikananTangkap() {
 
   useEffect(() => {
     fetchData();
-  }, [filterTahun, filterBulan, filterCabang, filterKomoditas, filterWilayah]);
+  }, []);
 
   const handleCreateOrUpdate = async (formData) => {
     try {
@@ -109,36 +99,41 @@ export default function AdminPerikananTangkap() {
   };
 
   const handleApprove = async (row) => {
-    let promptMsg = 'Pilih jenis validasi (Ketik angka):\\n1. Validasi Bidang\\n2. Validasi Program';
-    if (row.status === 'APPROVED_BIDANG') {
-      promptMsg = 'Data ini sudah disetujui Bidang.\\nKetik "2" untuk melanjutkan Validasi Program:';
-    } else if (row.status === 'PENDING') {
-      promptMsg = 'Data berstatus PENDING.\\nKetik "1" untuk Validasi Bidang\\nKetik "2" untuk Validasi Program';
-    }
-
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-
-    if (jenis === '1') {
-      if (row.status === 'APPROVED_BIDANG') {
-        alert('Data sudah divalidasi oleh Bidang sebelumnya!');
-        return;
-      }
-      targetStatus = 'APPROVED_BIDANG';
-      namaValidasi = 'BIDANG';
-    } else if (jenis === '2') {
-      targetStatus = 'APPROVED';
-      namaValidasi = 'PROGRAM';
-    } else {
-      alert('Pilihan tidak valid. Proses dibatalkan.');
+    if (row.status === 'APPROVED') {
+      alert('Data sudah divalidasi sepenuhnya (Program).');
       return;
     }
 
-    const confirmText = window.prompt(`Ketik "SETUJU" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== 'SETUJU') {
+    let promptMsg = '';
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (row.status === 'PENDING' || row.status === 'REJECTED') {
+      promptMsg = 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:';
+      const jenis = window.prompt(promptMsg);
+      if (jenis !== '1') {
+         if (jenis === '2') alert('Validasi Program ditolak! Data harus divalidasi Bidang terlebih dahulu.');
+         else if (jenis) alert('Pilihan tidak valid.');
+         return;
+      }
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+    } else if (row.status === 'APPROVED_BIDANG') {
+      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:';
+      const jenis = window.prompt(promptMsg);
+      if (jenis !== '2') {
+         if (jenis) alert('Pilihan tidak valid.');
+         return;
+      }
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC';
+    }
+
+    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
     }
@@ -166,6 +161,83 @@ export default function AdminPerikananTangkap() {
     } catch (error) {
       console.error('Error rejecting data:', error);
       alert('Gagal menolak data');
+    }
+  };
+
+  const handleBatchApprove = async (ids) => {
+    const selectedRows = data.filter(row => ids.includes(row.id));
+    
+    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (jenis === '1') {
+      const invalidRows = selectedRows.filter(row => row.status === 'APPROVED' || row.status === 'APPROVED_BIDANG');
+      if (invalidRows.length > 0) {
+        alert('Beberapa data yang dipilih sudah divalidasi Bidang/Program! Silakan pilih data yang berstatus PENDING saja.');
+        return;
+      }
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+    } else if (jenis === '2') {
+      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED_BIDANG');
+      if (invalidRows.length > 0) {
+        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED_BIDANG) terlebih dahulu.');
+        return;
+      }
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC';
+    } else {
+      alert('Pilihan tidak valid.');
+      return;
+    }
+
+    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.post(`/perikanan-tangkap/batch-status`, { ids, status: targetStatus });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch approve:', error);
+      alert(`Gagal menyetujui data secara massal: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchReject = async (ids) => {
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    try {
+      await api.post(`/perikanan-tangkap/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch reject:', error);
+      alert('Gagal menolak data secara massal');
+    }
+  };
+
+  const handleBatchDelete = async (ids) => {
+    if (window.confirm(`Yakin ingin menghapus ${ids.length} data ini?`)) {
+      try {
+        await api.post(`/perikanan-tangkap/batch-delete`, { ids });
+        fetchData();
+      } catch (error) {
+        console.error('Error batch delete:', error);
+        alert('Gagal menghapus data secara massal');
+      }
     }
   };
 
@@ -836,6 +908,9 @@ export default function AdminPerikananTangkap() {
                 onDelete={handleDelete}
                 onApprove={handleApprove}
                 onReject={handleReject}
+                onBatchApprove={handleBatchApprove}
+                onBatchReject={handleBatchReject}
+                onBatchDelete={handleBatchDelete}
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
                 onCustomExport={(exportData) => {

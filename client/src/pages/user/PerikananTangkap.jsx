@@ -24,9 +24,8 @@ export default function PerikananTangkap() {
   const [filterWilayah, setFilterWilayah] = useState('');
 
   // Local Chart Filters
-  const [chartKomoditasTahun, setChartKomoditasTahun] = useState(currentYear.toString());
+  const [chartGlobalTahun, setChartGlobalTahun] = useState(currentYear.toString());
   const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState('');
-  const [chartPelabuhanTahun, setChartPelabuhanTahun] = useState(currentYear.toString());
   
   // Local Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
@@ -43,19 +42,9 @@ export default function PerikananTangkap() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Note: For prototyping, we're building the query string to show intent, 
-        // even if the backend doesn't fully support all these filters yet.
-        const queryParams = new URLSearchParams();
-        if (filterTahun) queryParams.append('tahun', filterTahun);
-        if (filterCabang) queryParams.append('cabang', filterCabang);
-        if (filterKomoditas) queryParams.append('komoditas', filterKomoditas);
-        if (filterWilayah) queryParams.append('wilayah', filterWilayah);
-        
-        const query = `?${queryParams.toString()}`;
-
         const [dataRes, statsRes] = await Promise.all([
-          api.get(`/perikanan-tangkap`), // Fallback for prototype
-          api.get(`/perikanan-tangkap/stats`) // Fallback for prototype
+          api.get(`/perikanan-tangkap`),
+          api.get(`/perikanan-tangkap/stats`)
         ]);
 
         setData(dataRes.data.data || []);
@@ -70,11 +59,26 @@ export default function PerikananTangkap() {
     };
     
     fetchData();
-  }, [filterTahun, filterCabang, filterKomoditas, filterWilayah]);
+  }, []); // Run once on mount
+
+  const filteredData = useMemo(() => {
+    return data.filter(row => {
+      const matchTahun = !filterTahun || (row.tanggal && row.tanggal.startsWith(filterTahun));
+      const matchCabang = !filterCabang || row.sumber_data === filterCabang;
+      const matchWilayah = !filterWilayah || row.pelabuhan === filterWilayah || row.kabupaten_kota === filterWilayah;
+      
+      let matchKomoditas = true;
+      if (filterKomoditas && row.tangkapan) {
+        matchKomoditas = row.tangkapan.some(t => t.komoditas === filterKomoditas);
+      }
+
+      return matchTahun && matchCabang && matchWilayah && matchKomoditas;
+    });
+  }, [data, filterTahun, filterCabang, filterWilayah, filterKomoditas]);
 
   const aggregatedData = useMemo(() => {
     const map = {};
-    data.forEach(row => {
+    filteredData.forEach(row => {
       const bln = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
       const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
       const cabang = row.sumber_data || 'PELABUHAN';
@@ -104,7 +108,7 @@ export default function PerikananTangkap() {
       }
     });
     return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
-  }, [data]);
+  }, [filteredData]);
 
   const columns = useMemo(() => [
     {
@@ -177,13 +181,37 @@ export default function PerikananTangkap() {
     );
   };
 
+  const localKpi = useMemo(() => {
+    let total_volume = 0;
+    let total_nilai = 0;
+    let total_trip = 0;
+    data.forEach(row => {
+      const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+      if (!matchTahun) return;
+      
+      total_trip++;
+      if (row.tangkapan) {
+        row.tangkapan.forEach(t => {
+          total_volume += Number(t.volume) || 0;
+          total_nilai += Number(t.nilai) || 0;
+        });
+      }
+    });
+    return {
+      total_volume,
+      total_nilai,
+      total_trip,
+      avg_volume_per_trip: total_trip ? total_volume / total_trip : 0
+    };
+  }, [data, chartGlobalTahun]);
+
   const localKomoditas = useMemo(() => {
     const map = {};
     data.forEach(row => {
       const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
       const rowWilayah = row.pelabuhan || row.kabupaten_kota || '';
       
-      const matchTahun = !chartKomoditasTahun || rowTahun === chartKomoditasTahun;
+      const matchTahun = !chartGlobalTahun || rowTahun === chartGlobalTahun;
       const matchWilayah = !chartKomoditasWilayah || rowWilayah === chartKomoditasWilayah;
       
       if (matchTahun && matchWilayah && row.tangkapan) {
@@ -194,7 +222,7 @@ export default function PerikananTangkap() {
       }
     });
     return Object.entries(map).map(([k, v]) => ({ komoditas: k, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
-  }, [data, chartKomoditasTahun, chartKomoditasWilayah]);
+  }, [data, chartGlobalTahun, chartKomoditasWilayah]);
 
   const komoditasChartOption = useMemo(() => {
     const categories = localKomoditas.map(item => item.komoditas);
@@ -213,7 +241,7 @@ export default function PerikananTangkap() {
     const map = {};
     data.forEach(row => {
       const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
-      const matchTahun = !chartPelabuhanTahun || rowTahun === chartPelabuhanTahun;
+      const matchTahun = !chartGlobalTahun || rowTahun === chartGlobalTahun;
       
       if (matchTahun && row.tangkapan) {
         const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
@@ -224,7 +252,7 @@ export default function PerikananTangkap() {
       }
     });
     return Object.entries(map).map(([p, v]) => ({ pelabuhan: p, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
-  }, [data, chartPelabuhanTahun]);
+  }, [data, chartGlobalTahun]);
 
   const pelabuhanChartOption = useMemo(() => {
     const categories = localPelabuhan.map(item => item.pelabuhan);
@@ -256,6 +284,9 @@ export default function PerikananTangkap() {
     // Let's compute it here inside trenChartOption or we can just use `stats.tren` for dates but fetch values from local map.
     const localTrenMap = {};
     data.forEach(row => {
+       const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+       if (!matchTahun) return;
+
        const date = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
        if (!localTrenMap[date]) localTrenMap[date] = { volume: 0, nilai: 0 };
        if (row.tangkapan) {
@@ -293,11 +324,14 @@ export default function PerikananTangkap() {
         series: [{ name: 'Nilai', type: 'line', data: localNilais, smooth: true, symbolSize: 8, itemStyle: { color: '#10b981' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] } } }]
       }
     };
-  }, [data]);
+  }, [data, chartGlobalTahun]);
 
   const hargaData = useMemo(() => {
     const pelMap = {};
     data.forEach(row => {
+      const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+      if (!matchTahun) return;
+
       const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
       if (!pelMap[pel]) pelMap[pel] = 0;
       if (row.tangkapan) {
@@ -322,6 +356,9 @@ export default function PerikananTangkap() {
     });
     
     data.forEach(row => {
+       const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+       if (!matchTahun) return;
+
        const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
        if (hMap[pel]) {
           if (row.tangkapan) {
@@ -347,7 +384,7 @@ export default function PerikananTangkap() {
     }];
 
     return { categories: targetPelabuhan, series };
-  }, [data, chartHargaKomoditas, chartHargaWilayah]);
+  }, [data, chartHargaKomoditas, chartHargaWilayah, chartGlobalTahun]);
 
   const hargaChartOption = useMemo(() => {
     return {
@@ -393,38 +430,54 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
-            <p className="text-2xl font-bold text-foreground">{stats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Kg</span></p>
-          </div>
+      {/* GLOBAL CHART FILTER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/10">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">Visualisasi & Statistik</h2>
+          <p className="text-sm text-muted-foreground">Pilih tahun untuk memfilter seluruh data metrik dan grafik di bawah.</p>
         </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500"><TrendingUp className="w-6 h-6" /></div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p>
-            <p className="text-2xl font-bold text-foreground">{formatRupiah(stats.kpi.total_nilai)}</p>
-          </div>
+        <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border shadow-sm">
+          <Filter className="w-4 h-4 text-primary ml-2" />
+          <select 
+            value={chartGlobalTahun} 
+            onChange={(e) => setChartGlobalTahun(e.target.value)} 
+            className="bg-transparent border-none text-foreground text-sm font-medium outline-none pr-4 cursor-pointer focus:ring-0"
+          >
+            <option className="bg-background text-foreground" value="">Semua Tahun (All-Time)</option>
+            {TAHUN_OPTIONS.map(opt => <option className="bg-background text-foreground" key={opt} value={opt}>{opt}</option>)}
+          </select>
         </div>
+      </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500"><Ship className="w-6 h-6" /></div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Pendaratan</p>
-            <p className="text-2xl font-bold text-foreground">{stats.kpi.total_trip.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Trip</span></p>
-          </div>
+      {/* KPI Cards (Now using localKpi filtered by chartGlobalTahun) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 bg-primary/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="flex items-center gap-3 mb-2"><Database className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Volume</p></div>
+          <p className="text-3xl font-bold text-foreground">
+            {localKpi.total_volume > 1000000 ? (localKpi.total_volume / 1000000).toFixed(1) + 'M' : localKpi.total_volume.toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Kg</span>
+          </p>
         </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500"><Anchor className="w-6 h-6" /></div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Rata-rata Volume</p>
-            <p className="text-2xl font-bold text-foreground">{stats.kpi.avg_volume_per_trip.toLocaleString('id-ID', { maximumFractionDigits: 1 })} <span className="text-sm font-normal text-muted-foreground">Kg/Trip</span></p>
-          </div>
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p></div>
+          <p className="text-3xl font-bold text-foreground">
+            Rp {(localKpi.total_nilai / 1000000000).toFixed(1)} <span className="text-sm text-muted-foreground font-normal">Milyar</span>
+          </p>
+        </div>
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="flex items-center gap-3 mb-2"><Ship className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Total Trip / Laporan</p></div>
+          <p className="text-3xl font-bold text-foreground">
+            {localKpi.total_trip.toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Trip</span>
+          </p>
+        </div>
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-pink-500" /><p className="text-sm font-medium text-muted-foreground">Rata-rata Volume/Trip</p></div>
+          <p className="text-3xl font-bold text-foreground">
+            {Math.round(localKpi.avg_volume_per_trip).toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Kg/Trip</span>
+          </p>
         </div>
       </div>
 
@@ -441,13 +494,9 @@ export default function PerikananTangkap() {
                 <option value="">Semua Wilayah</option>
                 {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
-              <select value={chartKomoditasTahun} onChange={(e) => setChartKomoditasTahun(e.target.value)} className="rounded-lg border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/50">
-                <option value="">Semua Tahun</option>
-                {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
             </div>
           </div>
-          {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data di tahun ini</div>}
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -456,14 +505,8 @@ export default function PerikananTangkap() {
               <MapPin className="w-5 h-5 text-pink-500" />
               <h3 className="text-lg font-semibold">Volume Berdasarkan Pelabuhan</h3>
             </div>
-            <div>
-              <select value={chartPelabuhanTahun} onChange={(e) => setChartPelabuhanTahun(e.target.value)} className="rounded-lg border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary/50">
-                <option value="">Semua Tahun</option>
-                {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
           </div>
-          {localPelabuhan.length > 0 ? <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          {localPelabuhan.length > 0 ? <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data di tahun ini</div>}
         </div>
       </div>
 

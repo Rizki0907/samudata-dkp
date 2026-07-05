@@ -9,7 +9,9 @@ const {
   deleteData,
   getStats,
   exportData,
-  updateStatus
+  updateStatus,
+  batchStatus,
+  batchDelete
 } = require('../controllers/perikananTangkap.controller');
 
 // Public routes
@@ -23,5 +25,7 @@ router.post('/', verifyToken, createData);
 router.put('/:id', verifyToken, updateData);
 router.delete('/:id', verifyToken, deleteData);
 router.put('/:id/status', verifyToken, updateStatus);
+router.post('/batch-status', verifyToken, batchStatus);
+router.post('/batch-delete', verifyToken, batchDelete);
 
 module.exports = router;

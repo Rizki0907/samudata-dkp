@@ -325,6 +325,50 @@ const updateStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal mengubah status data' });
   }
 };
+// POST batch status [ADMIN PUSAT]
+const batchStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+    await prisma.perikananTangkap.updateMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+    res.status(200).json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Gagal mengubah status data secara massal' });
+  }
+};
+
+// POST batch delete [ADMIN PUSAT]
+const batchDelete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menghapus data' });
+    }
+    
+    // Hapus child table dulu (Tangkapan)
+    await prisma.tangkapan.deleteMany({
+      where: { perikanan_tangkap_id: { in: ids.map(id => parseInt(id)) } }
+    });
+    
+    await prisma.perikananTangkap.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+    
+    res.status(200).json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Gagal menghapus data secara massal' });
+  }
+};
 
 module.exports = {
   getAllData,
@@ -334,5 +378,7 @@ module.exports = {
   deleteData,
   getStats,
   exportData,
-  updateStatus
+  updateStatus,
+  batchStatus,
+  batchDelete
 };

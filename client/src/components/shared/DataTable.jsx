@@ -102,44 +102,8 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
 
   return (
     <div className="space-y-4">
-      {/* Batch Action Buttons */}
-      {(onBatchDelete || onBatchApprove || onBatchReject) && (
-        <div className="flex gap-2 ml-2">
-          {onBatchApprove && (
-            <button
-              onClick={handleBatchApprove}
-              disabled={selectedIds.length===0}
-              className="flex items-center gap-2 px-3 py-1 bg-emerald-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
-            >
-              <CheckCircle className="w-4 h-4"/>
-              Approve Selected
-            </button>
-          )}
-          {onBatchReject && (
-            <button
-              onClick={handleBatchReject}
-              disabled={selectedIds.length===0}
-              className="flex items-center gap-2 px-3 py-1 bg-amber-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
-            >
-              <XCircle className="w-4 h-4"/>
-              Reject Selected
-            </button>
-          )}
-          {onBatchDelete && (
-            <button
-              onClick={handleBatchDelete}
-              disabled={selectedIds.length===0}
-              className="flex items-center gap-2 px-3 py-1 bg-red-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
-            >
-              <Trash2 className="w-4 h-4"/>
-              Delete Selected
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="relative w-72">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -160,6 +124,44 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
           </button>
         </div>
       </div>
+
+      {/* Dynamic Batch Actions Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5 animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium text-primary">
+            {selectedIds.length} data terpilih
+          </span>
+          <div className="flex items-center gap-2">
+            {onBatchApprove && (
+              <button
+                onClick={handleBatchApprove}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium"
+              >
+                <CheckCircle className="w-4 h-4"/>
+                Validasi Terpilih
+              </button>
+            )}
+            {onBatchReject && (
+              <button
+                onClick={handleBatchReject}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-colors text-sm font-medium"
+              >
+                <XCircle className="w-4 h-4"/>
+                Tolak Terpilih
+              </button>
+            )}
+            {onBatchDelete && (
+              <button
+                onClick={handleBatchDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-colors text-sm font-medium"
+              >
+                <Trash2 className="w-4 h-4"/>
+                Hapus Terpilih
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Table Content */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
