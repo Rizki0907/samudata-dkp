@@ -21,9 +21,9 @@ enum SumberDataPT {
 
 enum DataStatus {
   PENDING
-  APPROVED_BIDANG
   APPROVED
   REJECTED
+  APPROVED_BIDANG
 }
 
 // Tabel utama perikanan tangkap harian
