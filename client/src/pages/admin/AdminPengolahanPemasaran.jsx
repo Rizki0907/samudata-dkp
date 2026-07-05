@@ -347,13 +347,16 @@ const createInitialForm = initialData => {
   return form;
 };
 
-function StatusBadge({ status, alasan }) {
+  function StatusBadge({ status, alasan }) {
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
   let label = 'PENDING';
 
   if (status === 'APPROVED') {
     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-    label = 'APPROVED';
+    label = 'APPROVED (PROGRAM)';
+  } else if (status === 'APPROVED_BIDANG') {
+    colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
+    label = 'APPROVED (BIDANG)';
   } else if (status === 'REJECTED') {
     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
     label = 'REJECTED';
@@ -1615,17 +1618,74 @@ export default function AdminPengolahanPemasaran() {
     }
   };
 
-  const handleApprove = async row => {
-    if (!window.confirm('Yakin ingin menyetujui data ini?')) return;
-
+  const handleApprove = async (row) => {
+    if (row.status === 'APPROVED') {
+      alert('Data sudah selesai divalidasi Program.');
+      return;
+    }
+    
+    if (row.status === 'REJECTED') {
+      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+      return;
+    }
+      
+    let promptMsg = '';
+      
+    if (row.status === 'PENDING') {
+      promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
+    } else if (row.status === 'APPROVED_BIDANG') {
+      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
+    } else {
+      alert('Status data tidak valid.');
+      return;
+    }
+    
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+    
+    let targetStatus = '';
+    let namaValidasi = '';
+    
+    if (jenis === '1') {
+      if (row.status !== 'PENDING') {
+        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+        return;
+      }
+      
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      if (row.status !== 'APPROVED_BIDANG') {
+        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+        return;
+      }
+      
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Ketik 1 atau 2.');
+      return;
+    }
+    const confirmText = window.prompt(
+      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
+    );
+    
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+    
     try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, { status: 'APPROVED' });
-      await fetchData();
+      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+        status: targetStatus,
+      });
+      
+      fetchData();
     } catch (error) {
       console.error('Error approving data:', error);
-      alert('Gagal menyetujui data.');
+      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
     }
-  };
+};
 
   const handleReject = async row => {
     const alasan = window.prompt('Masukkan alasan penolakan:');
