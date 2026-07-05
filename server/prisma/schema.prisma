@@ -273,3 +273,20 @@ model PengolahanPemasaran {
   @@index([skala_usaha])
   @@index([status, tahun, kabupaten_kota])
 }
+
+// Tabel Bulanan Perikanan Tangkap (Data Publik yang bisa divalidasi/disesuaikan)
+model DataBulananTangkap {
+  id               Int      @id @default(autoincrement())
+  bulan            String   // contoh: "2026-01"
+  sumber_data      String   // "PELABUHAN", "PUD", "KAB_KOTA"
+  pelabuhan        String
+  komoditas        String
+  volume           Float
+  nilai            Float
+  is_adjusted      Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@unique([bulan, sumber_data, pelabuhan, komoditas])
+  @@index([bulan])
+}

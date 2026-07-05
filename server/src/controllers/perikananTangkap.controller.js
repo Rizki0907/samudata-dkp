@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { syncDataBulananInternal } = require('./bulananTangkap.controller');
 
 // GET all data (with filters)
 const getAllData = async (req, res) => {
@@ -185,6 +186,11 @@ const deleteData = async (req, res) => {
     await prisma.perikananTangkap.delete({
       where: { id: parseInt(id) }
     });
+
+    if (existing.status === 'APPROVED' || existing.status === 'APPROVED_BIDANG') {
+      await syncDataBulananInternal();
+    }
+
     res.status(200).json({ success: true, message: 'Data berhasil dihapus' });
   } catch (error) {
     console.error(error);
@@ -319,6 +325,11 @@ const updateStatus = async (req, res) => {
       }
     });
 
+    // Auto-sync ke wadah publik jika ada perubahan approval
+    if (status === 'APPROVED' || status === 'REJECTED' || status === 'APPROVED_BIDANG') {
+      await syncDataBulananInternal();
+    }
+
     res.status(200).json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
   } catch (error) {
     console.error(error);
@@ -339,6 +350,12 @@ const batchStatus = async (req, res) => {
         alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
       }
     });
+
+    // Auto-sync ke wadah publik jika ada perubahan approval
+    if (status === 'APPROVED' || status === 'REJECTED' || status === 'APPROVED_BIDANG') {
+      await syncDataBulananInternal();
+    }
+
     res.status(200).json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
   } catch (error) {
     console.error(error);
@@ -363,6 +380,8 @@ const batchDelete = async (req, res) => {
       where: { id: { in: ids.map(id => parseInt(id)) } }
     });
     
+    await syncDataBulananInternal();
+
     res.status(200).json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
   } catch (error) {
     console.error(error);

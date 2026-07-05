@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth.routes');
 const perikananTangkapRoutes = require('./routes/perikananTangkap.routes');
+const bulananTangkapRoutes = require('./routes/bulananTangkap.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const eksporRoutes = require('./routes/ekspor.routes');
 const budidayaRoutes = require('./routes/budidaya.routes');
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/perikanan-tangkap', perikananTangkapRoutes);
+app.use('/api/bulanan-tangkap', bulananTangkapRoutes);
 app.use('/api/ekspor', eksporRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/budidaya', budidayaRoutes);

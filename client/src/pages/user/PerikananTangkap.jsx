@@ -42,15 +42,11 @@ export default function PerikananTangkap() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [dataRes, statsRes] = await Promise.all([
-          api.get(`/perikanan-tangkap`),
-          api.get(`/perikanan-tangkap/stats`)
+        const [dataRes] = await Promise.all([
+          api.get(`/bulanan-tangkap/publik`)
         ]);
 
         setData(dataRes.data.data || []);
-        if (statsRes.data.data) {
-          setStats(statsRes.data.data);
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -63,14 +59,10 @@ export default function PerikananTangkap() {
 
   const filteredData = useMemo(() => {
     return data.filter(row => {
-      const matchTahun = !filterTahun || (row.tanggal && row.tanggal.startsWith(filterTahun));
+      const matchTahun = !filterTahun || (row.bulan && row.bulan.startsWith(filterTahun));
       const matchCabang = !filterCabang || row.sumber_data === filterCabang;
-      const matchWilayah = !filterWilayah || row.pelabuhan === filterWilayah || row.kabupaten_kota === filterWilayah;
-      
-      let matchKomoditas = true;
-      if (filterKomoditas && row.tangkapan) {
-        matchKomoditas = row.tangkapan.some(t => t.komoditas === filterKomoditas);
-      }
+      const matchWilayah = !filterWilayah || row.pelabuhan === filterWilayah;
+      const matchKomoditas = !filterKomoditas || row.komoditas === filterKomoditas;
 
       return matchTahun && matchCabang && matchWilayah && matchKomoditas;
     });
@@ -79,8 +71,8 @@ export default function PerikananTangkap() {
   const aggregatedData = useMemo(() => {
     const map = {};
     filteredData.forEach(row => {
-      const bln = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
-      const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      const bln = row.bulan || 'Unknown';
+      const pel = row.pelabuhan || 'Lainnya';
       const cabang = row.sumber_data || 'PELABUHAN';
       
       const key = `${bln}_${pel}`;
@@ -88,23 +80,19 @@ export default function PerikananTangkap() {
         map[key] = { bulan: bln, pelabuhan: pel, sumber_data: cabang, volume: 0, nilai: 0, tangkapan: [] };
       }
       
-      if(row.tangkapan) {
-        row.tangkapan.forEach(t => {
-          map[key].volume += Number(t.volume) || 0;
-          map[key].nilai += Number(t.nilai) || 0;
-          
-          const existing = map[key].tangkapan.find(x => x.komoditas === t.komoditas);
-          if (existing) {
-             existing.volume += Number(t.volume) || 0;
-             existing.nilai += Number(t.nilai) || 0;
-          } else {
-             map[key].tangkapan.push({
-                komoditas: t.komoditas,
-                volume: Number(t.volume) || 0,
-                nilai: Number(t.nilai) || 0
-             });
-          }
-        });
+      map[key].volume += Number(row.volume) || 0;
+      map[key].nilai += Number(row.nilai) || 0;
+      
+      const existing = map[key].tangkapan.find(x => x.komoditas === row.komoditas);
+      if (existing) {
+         existing.volume += Number(row.volume) || 0;
+         existing.nilai += Number(row.nilai) || 0;
+      } else {
+         map[key].tangkapan.push({
+            komoditas: row.komoditas,
+            volume: Number(row.volume) || 0,
+            nilai: Number(row.nilai) || 0
+         });
       }
     });
     return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
@@ -129,7 +117,7 @@ export default function PerikananTangkap() {
         const val = info.getValue();
         if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pelabuhan</span>;
         if (val === 'PUD') return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">PUD</span>;
-        return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Kab/Kota</span>;
+        return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Non Pelabuhan</span>;
       }
     },
     {
@@ -186,16 +174,12 @@ export default function PerikananTangkap() {
     let total_nilai = 0;
     let total_trip = 0;
     data.forEach(row => {
-      const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+      const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
       if (!matchTahun) return;
       
       total_trip++;
-      if (row.tangkapan) {
-        row.tangkapan.forEach(t => {
-          total_volume += Number(t.volume) || 0;
-          total_nilai += Number(t.nilai) || 0;
-        });
-      }
+      total_volume += Number(row.volume) || 0;
+      total_nilai += Number(row.nilai) || 0;
     });
     return {
       total_volume,
@@ -208,17 +192,15 @@ export default function PerikananTangkap() {
   const localKomoditas = useMemo(() => {
     const map = {};
     data.forEach(row => {
-      const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
-      const rowWilayah = row.pelabuhan || row.kabupaten_kota || '';
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+      const rowWilayah = row.pelabuhan || '';
       
       const matchTahun = !chartGlobalTahun || rowTahun === chartGlobalTahun;
       const matchWilayah = !chartKomoditasWilayah || rowWilayah === chartKomoditasWilayah;
       
-      if (matchTahun && matchWilayah && row.tangkapan) {
-        row.tangkapan.forEach(t => {
-          if (!map[t.komoditas]) map[t.komoditas] = 0;
-          map[t.komoditas] += Number(t.volume) || 0;
-        });
+      if (matchTahun && matchWilayah) {
+        if (!map[row.komoditas]) map[row.komoditas] = 0;
+        map[row.komoditas] += Number(row.volume) || 0;
       }
     });
     return Object.entries(map).map(([k, v]) => ({ komoditas: k, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
@@ -240,15 +222,13 @@ export default function PerikananTangkap() {
   const localPelabuhan = useMemo(() => {
     const map = {};
     data.forEach(row => {
-      const rowTahun = row.tanggal ? row.tanggal.substring(0, 4) : '';
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       const matchTahun = !chartGlobalTahun || rowTahun === chartGlobalTahun;
       
-      if (matchTahun && row.tangkapan) {
-        const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      if (matchTahun) {
+        const pel = row.pelabuhan || 'Lainnya';
         if (!map[pel]) map[pel] = 0;
-        row.tangkapan.forEach(t => {
-          map[pel] += Number(t.volume) || 0;
-        });
+        map[pel] += Number(row.volume) || 0;
       }
     });
     return Object.entries(map).map(([p, v]) => ({ pelabuhan: p, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
@@ -268,33 +248,15 @@ export default function PerikananTangkap() {
   }, [localPelabuhan]);
 
   const trenChartOption = useMemo(() => {
-    const dates = stats.tren.map(t => {
-      if (!t.date) return '';
-      const parts = t.date.split('-');
-      if (parts.length < 2) return t.date;
-      const [y, m] = parts;
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      return `${monthNames[parseInt(m, 10) - 1]} ${y}`;
-    });
-    const volumes = stats.tren.map(t => t.volume);
-    
-    // Asumsikan backend mengirimkan nilai, kalau tidak ada kita set 0 atau map berdasarkan data yang ada
-    // Note: API /stats currently doesn't return tren nilai, only volume! 
-    // We must compute it manually from local `data` for the public page, just like localPelabuhan.
-    // Let's compute it here inside trenChartOption or we can just use `stats.tren` for dates but fetch values from local map.
     const localTrenMap = {};
     data.forEach(row => {
-       const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+       const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
        if (!matchTahun) return;
 
-       const date = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
+       const date = row.bulan ? row.bulan : 'Unknown';
        if (!localTrenMap[date]) localTrenMap[date] = { volume: 0, nilai: 0 };
-       if (row.tangkapan) {
-          row.tangkapan.forEach(t => {
-             localTrenMap[date].volume += Number(t.volume) || 0;
-             localTrenMap[date].nilai += Number(t.nilai) || 0;
-          });
-       }
+       localTrenMap[date].volume += Number(row.volume) || 0;
+       localTrenMap[date].nilai += Number(row.nilai) || 0;
     });
     const localDates = Object.keys(localTrenMap).sort();
     const formattedDates = localDates.map(d => {
@@ -329,16 +291,12 @@ export default function PerikananTangkap() {
   const hargaData = useMemo(() => {
     const pelMap = {};
     data.forEach(row => {
-      const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+      const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
       if (!matchTahun) return;
 
-      const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      const pel = row.pelabuhan || 'Lainnya';
       if (!pelMap[pel]) pelMap[pel] = 0;
-      if (row.tangkapan) {
-        row.tangkapan.forEach(t => {
-          pelMap[pel] += Number(t.volume) || 0;
-        });
-      }
+      pelMap[pel] += Number(row.volume) || 0;
     });
     
     let targetPelabuhan = chartHargaWilayah;
@@ -356,19 +314,13 @@ export default function PerikananTangkap() {
     });
     
     data.forEach(row => {
-       const matchTahun = !chartGlobalTahun || (row.tanggal && row.tanggal.startsWith(chartGlobalTahun));
+       const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
        if (!matchTahun) return;
 
-       const pel = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
-       if (hMap[pel]) {
-          if (row.tangkapan) {
-             row.tangkapan.forEach(t => {
-                if (t.komoditas === chartHargaKomoditas) {
-                   hMap[pel].vol += Number(t.volume) || 0;
-                   hMap[pel].nilai += Number(t.nilai) || 0;
-                }
-             });
-          }
+       const pel = row.pelabuhan || 'Lainnya';
+       if (hMap[pel] && row.komoditas === chartHargaKomoditas) {
+          hMap[pel].vol += Number(row.volume) || 0;
+          hMap[pel].nilai += Number(row.nilai) || 0;
        }
     });
 
@@ -592,7 +544,7 @@ export default function PerikananTangkap() {
                 <option value="">Semua Cabang</option>
                 <option value="PELABUHAN">Pelabuhan</option>
                 <option value="PUD">PUD</option>
-                <option value="KAB_KOTA">Kab/Kota</option>
+                <option value="KAB_KOTA">Non Pelabuhan</option>
               </select>
             </div>
             <div>

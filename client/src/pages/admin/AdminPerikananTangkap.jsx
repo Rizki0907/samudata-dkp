@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
+import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import { 
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
   Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle 
@@ -820,7 +821,13 @@ export default function AdminPerikananTangkap() {
               onClick={() => setActiveTab('data')}
               className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
             >
-              Tabel Data
+              Log Laporan Cabang
+            </button>
+            <button 
+              onClick={() => setActiveTab('publik')}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'publik' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+              Data Validasi Publik
             </button>
             <button 
               onClick={() => setActiveTab('visual')}
@@ -854,7 +861,7 @@ export default function AdminPerikananTangkap() {
                   <option value="">Semua Cabang</option>
                   <option value="PELABUHAN">Pelabuhan</option>
                   <option value="PUD">PUD</option>
-                  <option value="KAB_KOTA">Kab/Kota</option>
+                  <option value="KAB_KOTA">Non Pelabuhan</option>
                 </select>
               </div>
               <div>
@@ -1013,6 +1020,13 @@ export default function AdminPerikananTangkap() {
                 }}
               />
             </div>
+          ) : activeTab === 'publik' ? (
+            <DataPublikTangkap 
+               filterTahun={filterTahun}
+               filterCabang={filterCabang}
+               filterWilayah={filterWilayah}
+               filterKomoditas={filterKomoditas}
+            />
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
