@@ -235,6 +235,50 @@ const updateStatus = async (req, res) => {
   }
 };
 
+const batchStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data ID tidak valid' });
+    }
+    
+    await prisma.ekspor.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+
+    res.json({ success: true, message: `${ids.length} data berhasil diubah statusnya menjadi ${status}` });
+  } catch (error) {
+    console.error('Error batch update status:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const batchDelete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data ID tidak valid' });
+    }
+    
+    // Optional: add logic here if you want to prevent 'admin_cabang' from deleting 'APPROVED' data in batch
+    await prisma.ekspor.deleteMany({
+      where: { id: { in: ids } }
+    });
+
+    res.json({ success: true, message: `${ids.length} data berhasil dihapus` });
+  } catch (error) {
+    console.error('Error batch delete data:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getAllData,
   getAdminData,
@@ -242,5 +286,7 @@ module.exports = {
   updateData,
   deleteData,
   getStats,
-  updateStatus
+  updateStatus,
+  batchStatus,
+  batchDelete
 };

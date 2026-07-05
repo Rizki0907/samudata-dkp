@@ -4,10 +4,14 @@ const budidayaController = require('../controllers/budidaya.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
 
 router.get('/export-wadah', budidayaController.exportRingkasanWadah);
+router.get('/export-komoditas', budidayaController.exportRingkasanKomoditas);
 router.get('/stats', budidayaController.getStats);
 router.get('/', budidayaController.getAllData);
 
 // Protected routes
+router.post('/batch-status', verifyToken, budidayaController.batchStatus);
+router.post('/batch-delete', verifyToken, budidayaController.batchDelete);
+
 router.get('/admin', verifyToken, budidayaController.getAdminData);
 router.post('/', verifyToken, budidayaController.createData);
 router.put('/:id', verifyToken, budidayaController.updateData);

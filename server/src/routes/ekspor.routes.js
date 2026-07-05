@@ -8,7 +8,9 @@ const {
   updateData,
   deleteData,
   getStats,
-  updateStatus
+  updateStatus,
+  batchStatus,
+  batchDelete
 } = require('../controllers/ekspor.controller');
 
 // Public routes
@@ -16,6 +18,9 @@ router.get('/', getAllData);
 router.get('/stats', getStats);
 
 // Protected routes (Admin only)
+router.post('/batch-status', verifyToken, batchStatus);
+router.post('/batch-delete', verifyToken, batchDelete);
+
 router.get('/admin', verifyToken, getAdminData);
 router.post('/', verifyToken, createData);
 router.put('/:id', verifyToken, updateData);

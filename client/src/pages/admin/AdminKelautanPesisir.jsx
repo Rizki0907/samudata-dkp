@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Loader2, Map, Waves, TreePine, Trash2, X, Save, FlaskConical, Layers, BarChart3, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { DataTable } from '@/components/shared/DataTable';
 

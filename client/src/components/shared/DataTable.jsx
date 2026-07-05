@@ -10,14 +10,45 @@ import {
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent }) {
+export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [expanded, setExpanded] = useState({});
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = data.map((row) => row.id);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const toggleSelectRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchDelete = async () => {
+    if (onBatchDelete) await onBatchDelete(selectedIds);
+    setSelectedIds([]);
+  };
+
+  const handleBatchApprove = async () => {
+    if (onBatchApprove) await onBatchApprove(selectedIds);
+    setSelectedIds([]);
+  };
+
+  const handleBatchReject = async () => {
+    if (onBatchReject) await onBatchReject(selectedIds);
+    setSelectedIds([]);
+  };
 
   const table = useReactTable({
     data,
@@ -37,6 +68,8 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
     onGlobalFilterChange: setGlobalFilter,
     onExpandedChange: setExpanded,
   });
+
+// Duplicate block removed
 
   const handleExport = () => {
     const rowsToExport = table.getFilteredRowModel().rows.map(row => row.original);
@@ -69,7 +102,42 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
 
   return (
     <div className="space-y-4">
-      {/* Table Toolbar */}
+      {/* Batch Action Buttons */}
+      {(onBatchDelete || onBatchApprove || onBatchReject) && (
+        <div className="flex gap-2 ml-2">
+          {onBatchApprove && (
+            <button
+              onClick={handleBatchApprove}
+              disabled={selectedIds.length===0}
+              className="flex items-center gap-2 px-3 py-1 bg-emerald-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
+            >
+              <CheckCircle className="w-4 h-4"/>
+              Approve Selected
+            </button>
+          )}
+          {onBatchReject && (
+            <button
+              onClick={handleBatchReject}
+              disabled={selectedIds.length===0}
+              className="flex items-center gap-2 px-3 py-1 bg-amber-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
+            >
+              <XCircle className="w-4 h-4"/>
+              Reject Selected
+            </button>
+          )}
+          {onBatchDelete && (
+            <button
+              onClick={handleBatchDelete}
+              disabled={selectedIds.length===0}
+              className="flex items-center gap-2 px-3 py-1 bg-red-500 text-white rounded hover:opacity-90 disabled:opacity-50 transition"
+            >
+              <Trash2 className="w-4 h-4"/>
+              Delete Selected
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -81,13 +149,16 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
             className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-primary transition-colors text-sm"
           />
         </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
-        >
-          <Download className="w-4 h-4" />
-          Ekspor Excel
-        </button>
+        <div className="flex items-center gap-2">
+          {customExportButton}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Ekspor Excel
+          </button>
+        </div>
       </div>
 
       {/* Table Content */}
@@ -97,6 +168,9 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
             <thead className="bg-muted/50 border-b border-border text-muted-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
+                  {(onBatchDelete || onBatchApprove || onBatchReject) && (
+                    <th className="px-4 py-4 w-10"><input type="checkbox" onChange={toggleSelectAll} checked={selectedIds.length===data.length && data.length>0} /></th>
+                  )}
                   {renderSubComponent && <th className="px-4 py-4 w-10"></th>}
                   {headerGroup.headers.map((header) => {
                     return (
@@ -129,6 +203,11 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                 table.getRowModel().rows.map((row) => (
                   <React.Fragment key={row.id}>
                     <tr className="hover:bg-muted/30 transition-colors">
+                      {(onBatchDelete || onBatchApprove || onBatchReject) && (
+                        <td className="px-4 py-4 w-10 whitespace-nowrap">
+                          <input type="checkbox" checked={selectedIds.includes(row.original.id)} onChange={() => toggleSelectRow(row.original.id)} />
+                        </td>
+                      )}
                       {renderSubComponent && (
                         <td className="px-4 py-4 w-10 whitespace-nowrap">
                           <button
@@ -192,7 +271,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                     </tr>
                     {row.getIsExpanded() && renderSubComponent && (
                       <tr className="bg-muted/10 border-b border-border">
-                        <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + 1} className="p-0">
+                        <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (renderSubComponent ? 1 : 0) + (onBatchDelete || onBatchApprove ? 1 : 0)} className="p-0">
                           {renderSubComponent({ row })}
                         </td>
                       </tr>
@@ -201,7 +280,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length + (onEdit || onDelete || onApprove || onReject ? 1 : 0) + (renderSubComponent ? 1 : 0)} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={columns.length + (onEdit || onDelete || onApprove || onReject ? 1 : 0) + (renderSubComponent ? 1 : 0) + 1} className="h-24 text-center text-muted-foreground">
                     Tidak ada data ditemukan.
                   </td>
                 </tr>

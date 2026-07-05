@@ -71,6 +71,38 @@ export default function Ekspor() {
 
   const columns = useMemo(() => [
     {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: info => {
+        const status = info.getValue();
+        const alasan = info.row.original.alasan_penolakan;
+        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+        let label = 'PENDING';
+        if (status === 'APPROVED') {
+          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+          label = 'APPROVED (PROGRAM)';
+        } else if (status === 'APPROVED_BIDANG') {
+          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+          label = 'APPROVED (BIDANG)';
+        } else if (status === 'REJECTED') {
+          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+          label = 'REJECTED';
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
+              {label}
+            </span>
+            {status === 'REJECTED' && alasan && (
+              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
+                (?)
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
       header: 'Bulan',
       accessorKey: 'bulan'
     },
@@ -459,6 +491,7 @@ export default function Ekspor() {
             data={filteredData}
           exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
           formatExportData={(exportData) => exportData.map(row => ({
+            'Status': row.status,
             'Bulan': row.bulan,
             'Tahun': row.tahun,
             'Kategori Komoditas': row.kategori_komoditas,

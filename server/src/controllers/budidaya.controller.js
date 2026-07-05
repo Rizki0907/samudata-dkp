@@ -289,6 +289,50 @@ const updateStatus = async (req, res) => {
   }
 };
 
+const batchStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data ID tidak valid' });
+    }
+    
+    await prisma.budidaya.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+      }
+    });
+
+    res.json({ success: true, message: `${ids.length} data berhasil diubah statusnya menjadi ${status}` });
+  } catch (error) {
+    console.error('Error batch update status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDelete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data ID tidak valid' });
+    }
+    
+    // Optional: add logic here if you want to prevent 'admin_cabang' from deleting 'APPROVED' data in batch
+    await prisma.budidaya.deleteMany({
+      where: { id: { in: ids } }
+    });
+
+    res.json({ success: true, message: `${ids.length} data berhasil dihapus` });
+  } catch (error) {
+    console.error('Error batch delete data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
 const exportRingkasanWadah = async (req, res) => {
   try {
     const { tahun } = req.query;
@@ -401,6 +445,179 @@ const exportRingkasanWadah = async (req, res) => {
   }
 };
 
+const exportRingkasanKomoditas = async (req, res) => {
+  try {
+    const { tahun } = req.query;
+    if (!tahun) return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
+
+    const data = await prisma.budidaya.findMany({
+      where: { tahun: tahun, status: 'APPROVED' }
+    });
+
+    const wadahKomoditasMap = {};
+    data.forEach(item => {
+      const wadah = item.jenis_wadah || 'LAINNYA';
+      const kom = item.komoditas || 'LAINNYA';
+      if (!wadahKomoditasMap[wadah]) wadahKomoditasMap[wadah] = new Set();
+      wadahKomoditasMap[wadah].add(kom);
+    });
+
+    const sortedWadah = Object.keys(wadahKomoditasMap).sort();
+    const wadahStructure = sortedWadah.map(w => ({
+      wadah: w,
+      komoditasList: Array.from(wadahKomoditasMap[w]).sort()
+    }));
+
+    const kabMap = {};
+    data.forEach(item => {
+      const kab = item.kabupaten_kota.toUpperCase();
+      if (!kabMap[kab]) {
+        kabMap[kab] = { jumlah_total: 0 };
+        wadahStructure.forEach(ws => {
+          kabMap[kab][ws.wadah] = {};
+          ws.komoditasList.forEach(k => {
+            kabMap[kab][ws.wadah][k] = 0;
+          });
+        });
+      }
+      const wadah = item.jenis_wadah || 'LAINNYA';
+      const kom = item.komoditas || 'LAINNYA';
+      const tonase = item.produksi_kg || 0;
+      
+      if (kabMap[kab][wadah] && kabMap[kab][wadah][kom] !== undefined) {
+        kabMap[kab][wadah][kom] += tonase;
+      }
+      kabMap[kab].jumlah_total += tonase;
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Data Budidaya Komoditas');
+    
+    let totalKomoditasCols = 0;
+    wadahStructure.forEach(ws => totalKomoditasCols += ws.komoditasList.length);
+    const totalCols = totalKomoditasCols + 2; 
+
+    sheet.mergeCells(1, 1, 1, totalCols);
+    sheet.getCell(1, 1).value = `REKAPITULASI DATA PRODUKSI PERIKANAN BUDIDAYA PROVINSI JAWA TIMUR TAHUN ${tahun}`;
+    sheet.getCell(1, 1).font = { bold: true, size: 14 };
+    sheet.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    sheet.mergeCells(2, 1, 2, totalCols);
+    sheet.getCell(2, 1).value = `BERDASARKAN KOMODITAS`;
+    sheet.getCell(2, 1).font = { bold: true, size: 12 };
+    sheet.getCell(2, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    sheet.getCell(3, totalCols).value = 'Satuan : KG';
+    sheet.getCell(3, totalCols).font = { italic: true };
+    sheet.getCell(3, totalCols).alignment = { horizontal: 'right' };
+
+    sheet.getCell(4, 1).value = 'KABUPATEN/KOTA';
+    sheet.getCell(4, 1).font = { bold: true };
+    sheet.getCell(4, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(4, 1, 5, 1);
+    
+    sheet.getCell(4, 2).value = 'JUMLAH';
+    sheet.getCell(4, 2).font = { bold: true };
+    sheet.getCell(4, 2).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(4, 2, 5, 2);
+
+    let currentCol = 3;
+    wadahStructure.forEach(ws => {
+      const startCol = currentCol;
+      const endCol = startCol + ws.komoditasList.length - 1;
+      
+      sheet.getCell(4, startCol).value = ws.wadah.toUpperCase();
+      sheet.getCell(4, startCol).font = { bold: true };
+      sheet.getCell(4, startCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      
+      if (endCol > startCol) {
+        sheet.mergeCells(4, startCol, 4, endCol);
+      }
+      
+      ws.komoditasList.forEach((kom, i) => {
+        const cell = sheet.getCell(5, startCol + i);
+        cell.value = kom;
+        cell.font = { bold: true };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      });
+      
+      currentCol = endCol + 1;
+    });
+
+    for(let i=1; i<=totalCols; i++) {
+      ['A'].forEach(() => { 
+         const cell4 = sheet.getCell(4, i);
+         cell4.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+         const cell5 = sheet.getCell(5, i);
+         cell5.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+    }
+
+    const sortedKab = Object.keys(kabMap).sort();
+    
+    const totals = { jumlah_total: 0, wadah: {} };
+    wadahStructure.forEach(ws => {
+      totals.wadah[ws.wadah] = {};
+      ws.komoditasList.forEach(k => {
+        totals.wadah[ws.wadah][k] = 0;
+      });
+    });
+
+    sortedKab.forEach(k => {
+      totals.jumlah_total += kabMap[k].jumlah_total;
+      wadahStructure.forEach(ws => {
+        ws.komoditasList.forEach(kom => {
+          totals.wadah[ws.wadah][kom] += kabMap[k][ws.wadah][kom];
+        });
+      });
+    });
+
+    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah_total];
+    wadahStructure.forEach(ws => {
+      ws.komoditasList.forEach(kom => {
+        totalRowValues.push(totals.wadah[ws.wadah][kom]);
+      });
+    });
+    
+    const totalRow = sheet.getRow(6);
+    totalRow.values = totalRowValues;
+    totalRow.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    let currentRow = 7;
+    sortedKab.forEach(k => {
+      const v = kabMap[k];
+      const rowValues = [k, v.jumlah_total];
+      wadahStructure.forEach(ws => {
+        ws.komoditasList.forEach(kom => {
+          rowValues.push(v[ws.wadah][kom]);
+        });
+      });
+      
+      const row = sheet.getRow(currentRow);
+      row.values = rowValues;
+      row.eachCell((cell) => {
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+      currentRow++;
+    });
+
+    sheet.getColumn(1).width = 25;
+    for(let i=2; i<=totalCols; i++) sheet.getColumn(i).width = 15;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=data_produksi_komoditas_${tahun}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting komoditas:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   getAllData,
   getAdminData,
@@ -409,5 +626,8 @@ module.exports = {
   updateData,
   deleteData,
   updateStatus,
-  exportRingkasanWadah
+  batchStatus,
+  batchDelete,
+  exportRingkasanWadah,
+  exportRingkasanKomoditas
 };

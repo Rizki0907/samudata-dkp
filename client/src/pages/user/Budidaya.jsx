@@ -38,7 +38,8 @@ export default function Budidaya() {
   
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportYear, setExportYear] = useState(currentYear.toString());
+  const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
+  const [exportType, setExportType] = useState('wadah');
   const [exportLoading, setExportLoading] = useState(false);
 
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
@@ -102,7 +103,10 @@ export default function Budidaya() {
         let label = 'PENDING';
         if (status === 'APPROVED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'APPROVED';
+          label = 'APPROVED (PROGRAM)';
+        } else if (status === 'APPROVED_BIDANG') {
+          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+          label = 'APPROVED (BIDANG)';
         } else if (status === 'REJECTED') {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
           label = 'REJECTED';
@@ -545,55 +549,54 @@ export default function Budidaya() {
 
           {/* Data Table */}
           <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-5 h-5 text-slate-500" />
-                  <h3 className="text-lg font-semibold text-foreground">Rincian Data Produksi Budidaya</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="w-5 h-5 text-slate-500" />
+                <h3 className="text-lg font-semibold text-foreground">Rincian Data Produksi Budidaya</h3>
               </div>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium"
-              >
-                <Download className="w-4 h-4" />
-                Ekspor Ringkasan Wadah
-              </button>
+              <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+              <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Tahun</option>
+                {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Triwulan</option>
+                {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Bulan</option>
+                {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Kab/Kota</option>
+                {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Komoditas</option>
+                {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+                <option value="">Semua Wadah</option>
+                {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
             </div>
 
-            <div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-                <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Tahun</option>
-                  {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Triwulan</option>
-                  {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Bulan</option>
-                  {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Kab/Kota</option>
-                  {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Komoditas</option>
-                  {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                  <option value="">Semua Wadah</option>
-                  {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-
-              <DataTable
+            <DataTable
                 columns={columns}
                 data={filteredData}
                 exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
+                customExportButton={
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" />
+                    Ekspor Ringkasan
+                  </button>
+                }
                 formatExportData={(exportData) => exportData.map(row => ({
                   'Status': row.status,
                   'Tahun': row.tahun,
@@ -608,7 +611,6 @@ export default function Budidaya() {
                   'Nilai Total (Rp)': row.nilai_rp
                 }))}
               />
-            </div>
           </div>
         </div>
       )}
@@ -618,12 +620,25 @@ export default function Budidaya() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-6 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Ekspor Ringkasan Wadah</h3>
+              <h3 className="text-lg font-semibold">Ekspor Ringkasan Budidaya</h3>
               <button onClick={() => setShowExportModal(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                    <input type="radio" name="exportType" value="wadah" checked={exportType === 'wadah'} onChange={() => setExportType('wadah')} className="hidden" />
+                    Berdasarkan Wadah
+                  </label>
+                  <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'komoditas' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                    <input type="radio" name="exportType" value="komoditas" checked={exportType === 'komoditas'} onChange={() => setExportType('komoditas')} className="hidden" />
+                    Berdasarkan Komoditas
+                  </label>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Pilih Tahun Ekspor</label>
                 <select
@@ -635,7 +650,7 @@ export default function Budidaya() {
                 </select>
               </div>
               <p className="text-xs text-muted-foreground">
-                File Excel akan berisikan rekapitulasi jumlah produksi berdasarkan wadah untuk semua kabupaten/kota pada tahun yang dipilih.
+                File Excel akan berisikan rekapitulasi jumlah produksi berdasarkan wadah/komoditas untuk semua kabupaten/kota pada tahun yang dipilih.
               </p>
               <div className="flex justify-end gap-3 mt-6">
                 <button
@@ -649,27 +664,39 @@ export default function Budidaya() {
                   onClick={async () => {
                     try {
                       setExportLoading(true);
-                      const response = await api.get(`/budidaya/export-wadah?tahun=${exportYear}`, { responseType: 'blob' });
+                      const endpoint = exportType === 'wadah' ? '/budidaya/export-wadah' : '/budidaya/export-komoditas';
+                      const response = await api.get(`${endpoint}?tahun=${exportYear}`, {
+                        responseType: 'blob',
+                        headers: {
+                          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        }
+                      });
+                      
                       const url = window.URL.createObjectURL(new Blob([response.data]));
                       const link = document.createElement('a');
                       link.href = url;
-                      link.setAttribute('download', `data_produksi_perikanan_${exportYear}.xlsx`);
+                      link.setAttribute('download', `Rekap_Budidaya_${exportType}_${exportYear}.xlsx`);
                       document.body.appendChild(link);
                       link.click();
                       link.remove();
+                      window.URL.revokeObjectURL(url);
+                      
                       setShowExportModal(false);
                     } catch (error) {
-                      console.error(error);
-                      alert('Gagal mengunduh file.');
+                      console.error('Export error:', error);
+                      alert('Gagal mengunduh file Excel');
                     } finally {
                       setExportLoading(false);
                     }
                   }}
                   disabled={exportLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
                 >
-                  {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {exportLoading ? 'Mengunduh...' : 'Unduh Excel'}
+                  {exportLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Memproses...</>
+                  ) : (
+                    <><Download className="w-4 h-4" /> Unduh Excel</>
+                  )}
                 </button>
               </div>
             </div>
