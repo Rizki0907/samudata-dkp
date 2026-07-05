@@ -3,7 +3,9 @@ const router = express.Router();
 const pengolahanPemasaranController = require('../controllers/pengolahanpemasaran.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
 
+// Public routes
 router.get('/stats', pengolahanPemasaranController.getStats);
+router.get('/dashboard-stats', pengolahanPemasaranController.getDashboardStats); // untuk Dashboard Pengolahan & Pemasaran
 router.get('/', pengolahanPemasaranController.getAllData);
 
 // Protected routes

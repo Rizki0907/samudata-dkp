@@ -46,6 +46,11 @@ const toDateOrNull = value => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
 const TENAGA_KERJA_FIELDS = [
   'tenaga_kerja_tetap_laki_laki',
   'tenaga_kerja_tetap_perempuan',
@@ -367,6 +372,187 @@ const getStats = async (req, res) => {
   }
 };
 
+/**
+ * Endpoint khusus untuk Dashboard Pengolahan & Pemasaran (peta, bar chart, tren bulanan,
+ * treemap, dan heatmap). Dibuat terpisah dari getStats() supaya kontrak getStats() lama
+ * yang mungkin sudah dipakai di halaman lain tidak berubah.
+ *
+ * Query params yang didukung: tahun, bulan, kabupaten_kota, jenis_kegiatan, skala_usaha
+ */
+const getDashboardStats = async (req, res) => {
+  try {
+    const { tahun, bulan, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
+    const where = { status: 'APPROVED' };
+
+    if (tahun) where.tahun = toInt(tahun);
+    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
+    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
+    if (skala_usaha) where.skala_usaha = skala_usaha;
+
+    // Ambil data tahunan penuh (dipakai untuk tren bulanan & heatmap agar konteks 12 bulan tetap utuh)
+    const data = await prisma.pengolahanPemasaran.findMany({ where });
+
+    // Untuk KPI, peta, bar chart, dan treemap: bisa difilter tambahan per bulan produksi aktif
+    const filteredByBulan = bulan
+      ? data.filter(item =>
+          (item.bulan_produksi || '')
+            .split(',')
+            .map(b => b.trim())
+            .includes(bulan),
+        )
+      : data;
+
+    // 1. KPI + agregasi jenis produk (dipakai juga untuk top5Jenis)
+    let totalVolume = 0;
+    let totalNilai = 0;
+    const jenisProdukVolume = {};
+    const upiSet = new Set();
+
+    filteredByBulan.forEach(item => {
+      totalVolume += item.hasil_produksi_per_tahun_kg || 0;
+      totalNilai += item.nilai_hasil_produksi_per_tahun_rp || 0;
+
+      if (item.jenis_produk) {
+        jenisProdukVolume[item.jenis_produk] =
+          (jenisProdukVolume[item.jenis_produk] || 0) + (item.hasil_produksi_per_tahun_kg || 0);
+      }
+
+      if (item.nama_upi) {
+        upiSet.add(`${item.nama_upi}__${item.kabupaten_kota}`);
+      }
+    });
+
+    const topJenisProdukEntry = Object.entries(jenisProdukVolume).sort((a, b) => b[1] - a[1])[0];
+
+    const kpi = {
+      total_volume: totalVolume,
+      top_jenis_produk: topJenisProdukEntry ? topJenisProdukEntry[0] : '-',
+      total_nilai: totalNilai,
+      total_upi: upiSet.size,
+    };
+
+    // 2. Produksi & Nilai per Kabupaten/Kota -> untuk peta choropleth & bar chart Top 10
+    const kabupatenMap = {};
+    filteredByBulan.forEach(item => {
+      if (!item.kabupaten_kota) return;
+      if (!kabupatenMap[item.kabupaten_kota]) {
+        kabupatenMap[item.kabupaten_kota] = { name: item.kabupaten_kota, produksi: 0, nilai: 0 };
+      }
+      kabupatenMap[item.kabupaten_kota].produksi += item.hasil_produksi_per_tahun_kg || 0;
+      kabupatenMap[item.kabupaten_kota].nilai += item.nilai_hasil_produksi_per_tahun_rp || 0;
+    });
+    const produksiPerKabupaten = Object.values(kabupatenMap).sort((a, b) => b.produksi - a.produksi);
+
+    // 3. Top 5 Jenis Produk (untuk legend tren bulanan)
+    const top5Jenis = Object.entries(jenisProdukVolume)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name]) => name);
+
+    // 4. Tren Bulanan: hasil_produksi_per_tahun_kg didistribusikan rata ke setiap bulan_produksi yang aktif
+    const trenBulananMap = {};
+    MONTHS.forEach(bulanName => {
+      trenBulananMap[bulanName] = { bulan: bulanName, Lainnya: 0 };
+      top5Jenis.forEach(jenis => {
+        trenBulananMap[bulanName][jenis] = 0;
+      });
+    });
+
+    data.forEach(item => {
+      const bulanAktif = (item.bulan_produksi || '')
+        .split(',')
+        .map(b => b.trim())
+        .filter(b => MONTHS.includes(b));
+
+      if (!bulanAktif.length) return;
+
+      const volumePerBulan = (item.hasil_produksi_per_tahun_kg || 0) / bulanAktif.length;
+      const targetKey =
+        item.jenis_produk && top5Jenis.includes(item.jenis_produk) ? item.jenis_produk : 'Lainnya';
+
+      bulanAktif.forEach(bulanName => {
+        trenBulananMap[bulanName][targetKey] =
+          (trenBulananMap[bulanName][targetKey] || 0) + volumePerBulan;
+      });
+    });
+
+    const trenBulanan = MONTHS.map(bulanName => trenBulananMap[bulanName]);
+
+    // 5. Komposisi Jenis Kegiatan (treemap): gabungan jenis_kegiatan_pengolahan & jenis_kegiatan_pemasaran
+    const komposisiMap = {};
+    filteredByBulan.forEach(item => {
+      const label =
+        item.jenis_kegiatan === 'Pengolahan'
+          ? item.jenis_kegiatan_pengolahan
+          : item.jenis_kegiatan_pemasaran;
+
+      if (!label) return;
+
+      const value =
+        item.jenis_kegiatan === 'Pengolahan'
+          ? item.hasil_produksi_per_tahun_kg || 0
+          : item.total_pemasaran_per_tahun_kg || 0;
+
+      komposisiMap[label] = (komposisiMap[label] || 0) + value;
+    });
+
+    const komposisiKegiatan = Object.entries(komposisiMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // 6. Heatmap Kabupaten x Bulan (dinormalisasi per kabupaten terhadap titik tertinggi kabupaten itu sendiri)
+    const heatmapRaw = {}; // { kabupaten: { bulan: totalKg } }
+
+    data.forEach(item => {
+      if (!item.kabupaten_kota) return;
+      const bulanAktif = (item.bulan_produksi || '')
+        .split(',')
+        .map(b => b.trim())
+        .filter(b => MONTHS.includes(b));
+
+      if (!bulanAktif.length) return;
+
+      const volumePerBulan = (item.hasil_produksi_per_tahun_kg || 0) / bulanAktif.length;
+
+      if (!heatmapRaw[item.kabupaten_kota]) heatmapRaw[item.kabupaten_kota] = {};
+
+      bulanAktif.forEach(bulanName => {
+        heatmapRaw[item.kabupaten_kota][bulanName] =
+          (heatmapRaw[item.kabupaten_kota][bulanName] || 0) + volumePerBulan;
+      });
+    });
+
+    const heatmapData = [];
+    Object.entries(heatmapRaw).forEach(([kabupaten, bulanValues]) => {
+      const maxInKabupaten = Math.max(...Object.values(bulanValues), 0);
+      MONTHS.forEach(bulanName => {
+        const produksi = bulanValues[bulanName] || 0;
+        heatmapData.push({
+          kabupaten,
+          bulan: bulanName,
+          produksi,
+          normalized: maxInKabupaten > 0 ? produksi / maxInKabupaten : 0,
+        });
+      });
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        kpi,
+        produksiPerKabupaten,
+        trenBulanan,
+        top5Jenis,
+        komposisiKegiatan,
+        heatmapData,
+      },
+    });
+  } catch (error) {
+    console.error('Error generating pengolahan pemasaran dashboard stats:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
 const createData = async (req, res) => {
   try {
     const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
@@ -498,6 +684,7 @@ module.exports = {
   getAllData,
   getAdminData,
   getStats,
+  getDashboardStats,
   createData,
   updateData,
   deleteData,
