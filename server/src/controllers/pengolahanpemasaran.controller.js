@@ -668,6 +668,67 @@ const updateStatus = async (req, res) => {
   }
 };
 
+const updateData = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.pengolahanPemasaran.findUnique({
+      where: { id: parseInt(id, 10) },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Data tidak ditemukan',
+      });
+    }
+
+    if (
+      ['APPROVED_BIDANG', 'APPROVED'].includes(existing.status) &&
+      req.user &&
+      req.user.role === 'admin_cabang'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin Cabang tidak dapat mengubah data yang sudah divalidasi',
+      });
+    }
+
+    let newStatus = existing.status;
+
+    if (
+      req.user &&
+      req.user.role === 'admin_cabang' &&
+      existing.status === 'REJECTED'
+    ) {
+      newStatus = 'PENDING';
+    }
+
+    const data = await prisma.pengolahanPemasaran.update({
+      where: { id: parseInt(id, 10) },
+      data: {
+        status: newStatus,
+        alasan_penolakan:
+          newStatus === 'PENDING' ? null : existing.alasan_penolakan,
+        ...buildPayload(req.body),
+      },
+    });
+
+    res.json({
+      success: true,
+      data,
+      message: 'Data berhasil diupdate',
+    });
+  } catch (error) {
+    console.error('Error updating pengolahan pemasaran data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
 const deleteData = async (req, res) => {
   try {
     const { id } = req.params;
