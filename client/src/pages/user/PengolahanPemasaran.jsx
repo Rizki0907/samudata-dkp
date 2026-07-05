@@ -75,15 +75,29 @@ export default function PengolahanPemasaran() {
 
         const [dataRes, statsRes] = await Promise.all([
           api.get(`/pengolahan-pemasaran${query}`),
-          api.get(`/pengolahan-pemasaran/stats${query}`)
+          api.get(`/pengolahan-pemasaran/dashboard-stats${query}`)
         ]);
 
         if (dataRes.data.success) {
-          setData(dataRes.data.data);
+          setData(Array.isArray(dataRes.data.data) ? dataRes.data.data : []);
         }
         if (statsRes.data.success) {
-          setStats(statsRes.data.stats);
+          setStats({
+            produksiPerKabupaten: [],
+            trenBulanan: [],
+            top5Jenis: [],
+            komposisiKegiatan: [],
+            heatmapData: [],
+            kpi: {
+              total_volume: 0,
+              top_jenis_produk: '-',
+              total_nilai: 0,
+              total_upi: 0,
+            },
+            ...(statsRes.data.stats || {}),
+          });
         }
+
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
