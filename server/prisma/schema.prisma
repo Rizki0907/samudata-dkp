@@ -283,6 +283,8 @@ model DataBulananTangkap {
   komoditas        String
   volume           Float
   nilai            Float
+  original_volume  Float    @default(0)
+  original_nilai   Float    @default(0)
   is_adjusted      Boolean  @default(false)
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt

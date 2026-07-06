@@ -75,7 +75,7 @@ export default function PerikananTangkap() {
       const pel = row.pelabuhan || 'Lainnya';
       const cabang = row.sumber_data || 'PELABUHAN';
       
-      const key = `${bln}_${pel}`;
+      const key = `${bln}_${cabang}_${pel}`;
       if(!map[key]) {
         map[key] = { bulan: bln, pelabuhan: pel, sumber_data: cabang, volume: 0, nilai: 0, tangkapan: [] };
       }

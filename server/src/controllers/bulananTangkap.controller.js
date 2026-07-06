@@ -37,7 +37,12 @@ const syncDataBulananInternal = async () => {
       }
     }
 
-    // Reset volume & nilai = 0 untuk semua record yang belum di-adjust
+    // Reset original_volume & original_nilai = 0 untuk semua record (jaga-jaga jika data aslinya dihapus)
+    await prisma.dataBulananTangkap.updateMany({
+      data: { original_volume: 0, original_nilai: 0 }
+    });
+
+    // Reset volume & nilai = 0 HANYA untuk record yang belum di-adjust (belum disentuh admin)
     await prisma.dataBulananTangkap.updateMany({
       where: { is_adjusted: false },
       data: { volume: 0, nilai: 0 }
@@ -57,14 +62,26 @@ const syncDataBulananInternal = async () => {
       });
 
       if (!existing) {
-        await prisma.dataBulananTangkap.create({ data: item });
-      } else if (!existing.is_adjusted) {
+        await prisma.dataBulananTangkap.create({ 
+          data: {
+            ...item,
+            original_volume: item.volume,
+            original_nilai: item.nilai
+          }
+        });
+      } else {
+        const updateData = {
+          original_volume: item.volume,
+          original_nilai: item.nilai
+        };
+        // Jika belum di-adjust admin, target volume & nilai ikut diperbarui sesuai data asli
+        if (!existing.is_adjusted) {
+          updateData.volume = item.volume;
+          updateData.nilai = item.nilai;
+        }
         await prisma.dataBulananTangkap.update({
           where: { id: existing.id },
-          data: {
-            volume: item.volume,
-            nilai: item.nilai
-          }
+          data: updateData
         });
       }
     }

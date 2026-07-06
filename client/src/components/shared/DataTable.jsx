@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx-js-style';
 import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton, defaultPageSize = 10, customBatchActions }) {
+export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, canBatchApprove, canBatchReject, canBatchDelete, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton, hideDefaultExport = false, defaultPageSize = 10, customBatchActions }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -122,54 +122,63 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
         </div>
         <div className="flex items-center gap-2">
           {customExportButton}
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
-          >
-            <Download className="w-4 h-4" />
-            Ekspor Excel
-          </button>
+          {!hideDefaultExport && (
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Ekspor Excel
+            </button>
+          )}
         </div>
       </div>
 
       {/* Dynamic Batch Actions Toolbar */}
-      {selectedIds.length > 0 && (
-        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5 animate-in fade-in slide-in-from-top-2">
-          <span className="text-sm font-medium text-primary">
-            {selectedIds.length} data terpilih
-          </span>
-          <div className="flex items-center gap-2">
-            {onBatchApprove && (
-              <button
-                onClick={handleBatchApprove}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium"
-              >
-                <CheckCircle className="w-4 h-4"/>
-                Validasi Terpilih
-              </button>
-            )}
-            {onBatchReject && (
-              <button
-                onClick={handleBatchReject}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-colors text-sm font-medium"
-              >
-                <XCircle className="w-4 h-4"/>
-                Tolak Terpilih
-              </button>
-            )}
-            {onBatchDelete && (
-              <button
-                onClick={handleBatchDelete}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-colors text-sm font-medium"
-              >
-                <Trash2 className="w-4 h-4"/>
-                Hapus Terpilih
-              </button>
-            )}
-            {customBatchActions && customBatchActions(selectedIds, () => setSelectedIds([]))}
+      {selectedIds.length > 0 && (() => {
+        const selectedRows = data.filter(row => selectedIds.includes(row.id));
+        const showApprove = onBatchApprove && (!canBatchApprove || canBatchApprove(selectedRows));
+        const showReject = onBatchReject && (!canBatchReject || canBatchReject(selectedRows));
+        const showDelete = onBatchDelete && (!canBatchDelete || canBatchDelete(selectedRows));
+
+        return (
+          <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5 animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium text-primary">
+              {selectedIds.length} data terpilih
+            </span>
+            <div className="flex items-center gap-2">
+              {showApprove && (
+                <button
+                  onClick={handleBatchApprove}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors text-sm font-medium"
+                >
+                  <CheckCircle className="w-4 h-4"/>
+                  Validasi Terpilih
+                </button>
+              )}
+              {showReject && (
+                <button
+                  onClick={handleBatchReject}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-colors text-sm font-medium"
+                >
+                  <XCircle className="w-4 h-4"/>
+                  Tolak Terpilih
+                </button>
+              )}
+              {showDelete && (
+                <button
+                  onClick={handleBatchDelete}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-colors text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4"/>
+                  Hapus Terpilih
+                </button>
+              )}
+              {customBatchActions && customBatchActions(selectedIds, () => setSelectedIds([]))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Table Content */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">

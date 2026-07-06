@@ -633,16 +633,13 @@ export default function AdminPerikananTangkap() {
       cell: info => formatDate(info.getValue())
     },
     {
-      header: 'Jam Labuh',
-      accessorKey: 'jam_labuh'
-    },
-    {
-      header: 'Jam Bongkar',
-      accessorKey: 'jam_bongkar'
-    },
-    {
-      header: 'Pelabuhan',
-      accessorKey: 'pelabuhan'
+      header: 'Pelabuhan/Wilayah',
+      accessorKey: 'pelabuhan',
+      cell: info => {
+        const val = info.getValue();
+        // Fallback if pelabuhan is empty, display kabupaten_kota
+        return val || info.row.original.kabupaten_kota || '-';
+      }
     },
     {
       header: 'Nama Kapal',
@@ -915,6 +912,16 @@ export default function AdminPerikananTangkap() {
                 onBatchApprove={handleBatchApprove}
                 onBatchReject={handleBatchReject}
                 onBatchDelete={handleBatchDelete}
+                canBatchApprove={(selectedRows) => selectedRows.some(row => 
+                  (user?.role === 'admin_pusat' && row.status === 'APPROVED_BIDANG') || 
+                  (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
+                  (user?.role === 'admin_pusat' && row.status === 'PENDING')
+                )}
+                canBatchReject={(selectedRows) => selectedRows.some(row => 
+                  (user?.role === 'admin_pusat' && row.status === 'APPROVED_BIDANG') || 
+                  (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
+                  (user?.role === 'admin_pusat' && row.status === 'PENDING')
+                )}
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
                 onCustomExport={(exportData) => {
