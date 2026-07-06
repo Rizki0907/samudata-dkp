@@ -61,9 +61,15 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 4. GARAM (Kelautan & Pesisir) ===
+    const garamStats = await prisma.garam.aggregate({
+      where: { status: 'APPROVED' },
+      _sum: { total_produksi_ton: true, jumlah_petambak: true, luas_total_ha: true }
+    });
+
     const garam = {
-      produksi: 0,
-      petambak: 0
+      produksi: garamStats._sum.total_produksi_ton || 0,   // Ton
+      petambak: garamStats._sum.jumlah_petambak || 0,
+      luas_lahan: garamStats._sum.luas_total_ha || 0        // Ha
     };
 
     res.status(200).json({

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Loader2, FlaskConical, X, BarChart3 } from 'lucide-react';
+import { Save, Loader2, FlaskConical, X } from 'lucide-react';
 
 const NAMA_BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -13,23 +13,13 @@ const getTriwulan = (bulan) => {
 };
 
 const KAB_KOTA_JATIM = [
-  'Bangkalan', 'Blitar', 'Gresik', 'Kota Pasuruan', 'Lamongan',
-  'PT. Garam', 'Pamekasan', 'Pasuruan', 'Probolinggo', 'Sampang',
-  'Sidoarjo', 'Situbondo', 'Sumenep', 'Surabaya', 'Tuban'
+  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember',
+  'Jombang', 'Kediri', 'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 
+  'Kota Malang', 'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya',
+  'Lamongan', 'Lumajang', 'Madiun', 'Magetan', 'Malang', 'Mojokerto', 'Nganjuk', 
+  'Ngawi', 'PT. Garam', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo', 'Probolinggo', 
+  'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 'Trenggalek', 'Tuban', 'Tulungagung'
 ];
-
-const TwBadge = ({ tw }) => {
-  const colorMap = {
-    'TW 1': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    'TW 2': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    'TW 3': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    'TW 4': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  };
-  const cls = colorMap[tw] ?? 'bg-[#152d45] text-[#7fb5d5] border-[#1e3a52]';
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{tw ?? '-'}</span>
-  );
-};
 
 export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState(initialData || {
@@ -50,7 +40,6 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // ── LIVE KALKULASI ──────────────────────────────────────────────────────────
   const pk1 = parseFloat(formData.produksi_k1_ton) || 0;
   const pk2 = parseFloat(formData.produksi_k2_ton) || 0;
   const pk3 = parseFloat(formData.produksi_k3_ton) || 0;
@@ -63,17 +52,14 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
 
   const lp = parseFloat(formData.luas_produksi_ha) || 0;
   const produktivitas = lp > 0 ? (totalProduksi / lp) : 0;
-
-  // Triwulan otomatis dari nama bulan
   const triwulan = getTriwulan(formData.bulan);
-  // ───────────────────────────────────────────────────────────────────────────
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalData = {
       ...formData,
       tahun: parseInt(formData.tahun),
-      triwulan,                               // dikirim ke server
+      triwulan,
       luas_total_ha: parseFloat(formData.luas_total_ha) || 0,
       luas_produksi_ha: lp,
       jumlah_kelompok: parseInt(formData.jumlah_kelompok) || 0,
@@ -88,220 +74,134 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     onSubmit(finalData);
   };
 
-  const inputCls = "w-full h-10 rounded-md border border-[#1e3a52] bg-[#0b1929] text-[#c8dff0] px-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none placeholder-[#3a5a72] transition-shadow [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
-  const labelCls = "text-xs font-semibold text-[#7fb5d5] uppercase tracking-wider";
+  const inputClass = "w-full rounded-lg border bg-background px-3 py-2 text-center outline-none focus:ring-2 focus:ring-primary/50 border-input";
+  const labelClass = "block text-sm font-medium mb-2 text-center";
 
   return (
-    <div className="bg-[#0f2236] border border-[#1e3a52] rounded-2xl shadow-xl overflow-hidden">
-      {/* Form Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e3a52] bg-[#152d45]">
+    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden text-card-foreground">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-cyan-400" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FlaskConical className="w-4 h-4 text-primary" />
           </div>
-          <h2 className="text-base font-bold text-[#c8dff0]">{initialData ? 'Edit' : 'Input'} Laporan Data Garam</h2>
+          <h2 className="text-base font-bold">{initialData ? 'Edit' : 'Input'} Laporan Data Garam</h2>
         </div>
-        <button onClick={onCancel} className="p-2 hover:bg-[#0b1929] rounded-full transition-colors text-[#7fb5d5] hover:text-[#c8dff0]">
+        <button onClick={onCancel} className="p-2 hover:bg-muted rounded-full transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        {/* Row 1: Periode & Lokasi */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 text-center">
-          <div className="space-y-2">
-            <label className={labelCls}>Bulan Laporan</label>
-            <select name="bulan" value={formData.bulan} onChange={handleChange} className={inputCls + " text-center pr-10"}>
-              {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2 text-center">
-            <label className={labelCls}>Triwulan</label>
-            {/* Read-only, otomatis dari bulan */}
-            <div className="h-10 flex items-center justify-center">
-              <TwBadge tw={triwulan} />
+        <section>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div>
+              <label className={labelClass}>Bulan Laporan</label>
+              <select name="bulan" value={formData.bulan} onChange={handleChange} className={inputClass + " pr-10"}>
+                {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Triwulan</label>
+              <div className="h-10 flex items-center justify-center border border-border rounded-lg bg-muted/30 text-sm font-semibold">
+                {triwulan}
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Tahun</label>
+              <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} required />
+            </div>
+            <div>
+              <label className={labelClass}>Kabupaten / Kota</label>
+              <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputClass + " pr-10"} required>
+                <option value="" disabled>-- Pilih Kab/Kota --</option>
+                {KAB_KOTA_JATIM.map(kab => <option key={kab} value={kab}>{kab}</option>)}
+              </select>
             </div>
           </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Tahun</label>
-            <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputCls + " text-center"} required />
-          </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Kabupaten / Kota</label>
-            <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputCls + " text-center pr-10"} required>
-              <option value="" disabled>-- Pilih Kab/Kota --</option>
-              {KAB_KOTA_JATIM.map(kab => <option key={kab} value={kab}>{kab}</option>)}
-            </select>
-          </div>
-        </div>
+        </section>
 
-        {/* Row 2: Lahan & SDM */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 bg-[#0b1929] p-5 rounded-xl border border-[#1e3a52]">
-          <div className="space-y-2">
-            <label className={labelCls}>Luas Lahan Total (Ha)</label>
-            <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputCls} placeholder="0" />
-          </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Luas Produksi (Ha)</label>
-            <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={inputCls} placeholder="0" />
-          </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Jumlah Kelompok</label>
-            <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={inputCls} placeholder="0" />
-          </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Jumlah Petambak</label>
-            <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputCls} placeholder="0" />
-          </div>
-        </div>
+        <div className="h-px bg-border my-6"></div>
 
-        {/* Row 3: Detail K1, K2, K3 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* K1 */}
-          <div className="space-y-4 border border-cyan-500/30 bg-cyan-500/5 p-5 rounded-xl">
-            <div className="flex items-center gap-2 border-b border-cyan-500/20 pb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_6px_theme(colors.cyan.400)]"></span>
-              <h4 className="font-bold text-cyan-300 text-sm">Kualitas 1 — Tinggi</h4>
+        <section>
+          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
+            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
+            Lahan & SDM
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-5 items-end">
+            <div>
+              <label className={labelClass}>Luas Lahan Total (Ha)</label>
+              <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" min="0" name="produksi_k1_ton" value={formData.produksi_k1_ton} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Stok (Ton)</label>
-                <input type="number" step="0.01" min="0" name="stok_k1_ton" value={formData.stok_k1_ton} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-cyan-400/70 uppercase tracking-wider">Harga (Rp)</label>
-                <input type="number" min="0" name="harga_k1_rp" value={formData.harga_k1_rp} onChange={handleChange} className={inputCls + " border-cyan-500/30"} placeholder="Mis: 2200" />
-              </div>
-              <div className="pt-2 border-t border-cyan-500/20 flex justify-between items-center">
-                <span className="text-xs font-semibold text-cyan-400/70 uppercase">Nilai Produksi</span>
-                <span className="text-sm font-bold text-cyan-300">{(pk1 * (parseFloat(formData.harga_k1_rp) || 0)).toLocaleString('id-ID')}</span>
-              </div>
+            <div>
+              <label className={labelClass}>Luas Produksi (Ha)</label>
+              <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
-          </div>
-
-          {/* K2 */}
-          <div className="space-y-4 border border-amber-500/30 bg-amber-500/5 p-5 rounded-xl">
-            <div className="flex items-center gap-2 border-b border-amber-500/20 pb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_6px_theme(colors.amber.400)]"></span>
-              <h4 className="font-bold text-amber-300 text-sm">Kualitas 2 — Menengah</h4>
+            <div>
+              <label className={labelClass}>Jumlah Kelompok</label>
+              <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" min="0" name="produksi_k2_ton" value={formData.produksi_k2_ton} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Stok (Ton)</label>
-                <input type="number" step="0.01" min="0" name="stok_k2_ton" value={formData.stok_k2_ton} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Harga (Rp)</label>
-                <input type="number" min="0" name="harga_k2_rp" value={formData.harga_k2_rp} onChange={handleChange} className={inputCls + " border-amber-500/30"} placeholder="Mis: 1700" />
-              </div>
-              <div className="pt-2 border-t border-amber-500/20 flex justify-between items-center">
-                <span className="text-xs font-semibold text-amber-400/70 uppercase">Nilai Produksi</span>
-                <span className="text-sm font-bold text-amber-300">{(pk2 * (parseFloat(formData.harga_k2_rp) || 0)).toLocaleString('id-ID')}</span>
-              </div>
+            <div>
+              <label className={labelClass}>Jumlah Petambak</label>
+              <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
-          </div>
-
-          {/* K3 */}
-          <div className="space-y-4 border border-[#1e3a52] bg-[#0b1929]/50 p-5 rounded-xl">
-            <div className="flex items-center gap-2 border-b border-[#1e3a52] pb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#7fb5d5]"></span>
-              <h4 className="font-bold text-[#7fb5d5] text-sm">Kualitas 3 — Rendah</h4>
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Produksi (Ton)</label>
-                <input type="number" step="0.01" min="0" name="produksi_k3_ton" value={formData.produksi_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Stok (Ton)</label>
-                <input type="number" step="0.01" min="0" name="stok_k3_ton" value={formData.stok_k3_ton} onChange={handleChange} className={inputCls} placeholder="0" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#7fb5d5]/70 uppercase tracking-wider">Harga (Rp)</label>
-                <input type="number" min="0" name="harga_k3_rp" value={formData.harga_k3_rp} onChange={handleChange} className={inputCls} placeholder="Kosongkan jika tdk ada" />
-              </div>
-              <div className="pt-2 border-t border-[#1e3a52] flex justify-between items-center">
-                <span className="text-xs font-semibold text-[#7fb5d5]/70 uppercase">Nilai Produksi</span>
-                <span className="text-sm font-bold text-[#c8dff0]">{(pk3 * (parseFloat(formData.harga_k3_rp) || 0)).toLocaleString('id-ID')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── LIVE KALKULASI PANEL ─────────────────────────────────────────── */}
-        <div className="bg-[#0b1929] border border-[#1e3a52] rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-emerald-400" />
-            <h4 className="text-xs font-bold text-[#7fb5d5] uppercase tracking-widest">Kalkulasi Otomatis</h4>
-            <span className="text-xs text-[#3a5a72] ml-1">— dihitung real-time</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Total Produksi */}
-            <div className="bg-[#0f2236] rounded-xl border border-emerald-500/20 p-4 relative overflow-hidden">
-              <div className="absolute bottom-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-4 -mb-4"></div>
-              <p className="text-xs font-semibold text-emerald-400/70 uppercase tracking-wider mb-1">Total Produksi</p>
-              <p className="text-2xl font-bold text-emerald-400">{totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
-              <p className="text-xs text-[#7fb5d5] mt-0.5">Ton (K1 + K2 + K3)</p>
-              <div className="mt-3 flex gap-3 text-xs text-[#7fb5d5]">
-                <span className="text-cyan-400">{pk1.toLocaleString('id-ID')}</span>
-                <span className="opacity-40">+</span>
-                <span className="text-amber-400">{pk2.toLocaleString('id-ID')}</span>
-                <span className="opacity-40">+</span>
-                <span>{pk3.toLocaleString('id-ID')}</span>
-              </div>
-            </div>
-            {/* Total Stok */}
-            <div className="bg-[#0f2236] rounded-xl border border-amber-500/20 p-4 relative overflow-hidden">
-              <div className="absolute bottom-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-4 -mb-4"></div>
-              <p className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider mb-1">Total Stok</p>
-              <p className="text-2xl font-bold text-amber-400">{totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
-              <p className="text-xs text-[#7fb5d5] mt-0.5">Ton (K1 + K2 + K3)</p>
-              <div className="mt-3 flex gap-3 text-xs text-[#7fb5d5]">
-                <span className="text-cyan-400">{sk1.toLocaleString('id-ID')}</span>
-                <span className="opacity-40">+</span>
-                <span className="text-amber-400">{sk2.toLocaleString('id-ID')}</span>
-                <span className="opacity-40">+</span>
-                <span>{sk3.toLocaleString('id-ID')}</span>
-              </div>
-            </div>
-            {/* Produktivitas */}
-            <div className={`bg-[#0f2236] rounded-xl border p-4 relative overflow-hidden transition-colors ${lp > 0 ? 'border-cyan-500/30' : 'border-[#1e3a52]'}`}>
-              <div className={`absolute bottom-0 right-0 w-16 h-16 rounded-full -mr-4 -mb-4 ${lp > 0 ? 'bg-cyan-500/5' : 'bg-[#152d45]/50'}`}></div>
-              <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${lp > 0 ? 'text-cyan-400/70' : 'text-[#7fb5d5]/50'}`}>Produktivitas Lahan</p>
+            <div className="bg-primary/5 p-3 rounded-xl border border-primary/20 text-center flex flex-col justify-center h-full min-h-[72px]">
+              <span className="text-xs font-semibold text-primary/70 uppercase mb-1">Produktivitas Lahan</span>
               {lp > 0 ? (
-                <>
-                  <p className="text-2xl font-bold text-cyan-300">{produktivitas.toLocaleString('id-ID', { maximumFractionDigits: 3 })}</p>
-                  <p className="text-xs text-[#7fb5d5] mt-0.5">Ton/Ha</p>
-                  <p className="mt-3 text-xs text-[#7fb5d5]">
-                    <span className="text-emerald-400">{totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span>
-                    <span className="opacity-40 mx-1">÷</span>
-                    <span className="text-[#c8dff0]">{lp.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span>
-                  </p>
-                </>
+                <span className="font-bold text-primary">{produktivitas.toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span>
               ) : (
-                <>
-                  <p className="text-2xl font-bold text-[#3a5a72]">—</p>
-                  <p className="text-xs text-[#3a5a72] mt-0.5">Isi Lahan Produksi dulu</p>
-                </>
+                <span className="text-xs text-muted-foreground italic">Isi luas produksi terlebih dahulu</span>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancel} className="px-5 py-2.5 font-medium rounded-lg text-[#7fb5d5] hover:bg-[#152d45] transition-colors border border-[#1e3a52] text-sm">
+        <div className="h-px bg-border my-6"></div>
+
+        <section>
+          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
+            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
+            Kualitas Garam
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {[
+              { key: 'k1', label: 'Kualitas 1 (Tinggi)' },
+              { key: 'k2', label: 'Kualitas 2 (Menengah)' },
+              { key: 'k3', label: 'Kualitas 3 (Rendah)' },
+            ].map(k => {
+              const p = parseFloat(formData[`produksi_${k.key}_ton`]) || 0;
+              const h = parseFloat(formData[`harga_${k.key}_rp`]) || 0;
+              return (
+                <div key={k.key} className="space-y-4 border border-border bg-muted/10 p-5 rounded-xl">
+                  <h4 className="font-bold text-center text-sm">{k.label}</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Produksi (Ton)</label>
+                      <input type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Stok (Ton)</label>
+                      <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Harga (Rp/Kg)</label>
+                      <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                    </div>
+                    <div className="pt-3 border-t border-border flex justify-between items-center">
+                      <span className="text-xs font-medium text-muted-foreground">Nilai Produksi</span>
+                      <span className="text-sm font-bold">Rp {(p * h).toLocaleString('id-ID')}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <button type="button" onClick={onCancel} className="px-5 py-2.5 font-medium rounded-lg hover:bg-muted transition-colors border border-border text-sm">
             Batal
           </button>
-          <button type="submit" disabled={isLoading} className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-cyan-700/30 text-sm disabled:opacity-50">
+          <button type="submit" disabled={isLoading} className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50">
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Simpan Laporan
           </button>
@@ -310,4 +210,3 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     </div>
   );
 };
-

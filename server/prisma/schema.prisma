@@ -290,3 +290,35 @@ model DataBulananTangkap {
   @@unique([bulan, sumber_data, pelabuhan, komoditas])
   @@index([bulan])
 }
+
+// Tabel Kelautan & Pesisir: Potensi Perairan
+model PotensiPerairan {
+  id               Int        @id @default(autoincrement())
+  status           DataStatus @default(PENDING)
+  alasan_penolakan String?
+  
+  kabupaten_kota   String
+  tahun_data       Int
+
+  luas_wilayah_laut_km2       Float @default(0)
+  panjang_pantai_utara_km     Float @default(0)
+  panjang_pantai_selatan_km   Float @default(0)
+  panjang_pantai_timur_km     Float @default(0)
+  panjang_pantai_barat_km     Float @default(0)
+  luas_perairan_km2           Float @default(0)
+
+  jumlah_pulau_kecil          Int   @default(0)
+  pulau_berpenghuni           Int   @default(0)
+  pulau_tidak_berpenghuni     Int   @default(0)
+  desa_pesisir                Int   @default(0)
+  
+  luas_kawasan_konservasi_ha  Float @default(0)
+  potensi_perikanan_ton_th    Float @default(0)
+  
+  keterangan                  String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([kabupaten_kota, tahun_data])
+}
