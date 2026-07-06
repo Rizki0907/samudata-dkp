@@ -367,7 +367,7 @@ export default function Budidaya() {
           return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} KG`;
         }
       },
-      grid: { left: '15%', right: '2%', top: '5%', bottom: '15%' },
+      grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: {
         type: 'category',
         data: xAxisData,

@@ -159,7 +159,7 @@ export default function AdminBudidaya() {
       alert('Alasan penolakan wajib diisi!');
       return;
     }
-    
+
     try {
       await api.put(`/budidaya/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
       fetchData();
@@ -246,12 +246,12 @@ export default function AdminBudidaya() {
 
     const endpoint = exportType === 'wadah' ? '/budidaya/export-wadah' : '/budidaya/export-komoditas';
     const token = localStorage.getItem('token');
-    
+
     // Create a form to trigger download
     const form = document.createElement('form');
     form.method = 'GET';
     form.action = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}`;
-    
+
     const yearInput = document.createElement('input');
     yearInput.type = 'hidden';
     yearInput.name = 'tahun';
@@ -271,25 +271,25 @@ export default function AdminBudidaya() {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}?tahun=${exportYear}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
-    .then(response => {
-      if (!response.ok) throw new Error('Network response was not ok');
-      return response.blob();
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `Ringkasan_${exportType}_${exportYear}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      setIsExportModalOpen(false);
-    })
-    .catch(err => {
-      console.error('Export error:', err);
-      alert('Gagal mengunduh file');
-    });
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `Ringkasan_${exportType}_${exportYear}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        setIsExportModalOpen(false);
+      })
+      .catch(err => {
+        console.error('Export error:', err);
+        alert('Gagal mengunduh file');
+      });
   };
 
   const computedStats = useMemo(() => {
@@ -299,27 +299,27 @@ export default function AdminBudidaya() {
     const kabMap = {};
     const wadahMap = {};
     const heatmapRaw = {};
-    
+
     filteredData.forEach(item => {
       const vol = Number(item.produksi_kg) || 0;
       const nilai = Number(item.nilai_rp) || 0;
-      
+
       total_volume += vol;
       total_nilai += nilai;
-      
+
       if (item.komoditas) {
         komoditasMap[item.komoditas] = (komoditasMap[item.komoditas] || 0) + vol;
       }
-      
+
       const kab = item.kabupaten_kota || 'Tidak Diketahui';
       if (!kabMap[kab]) kabMap[kab] = { produksi: 0, nilai: 0 };
       kabMap[kab].produksi += vol;
       kabMap[kab].nilai += nilai;
-      
+
       if (item.jenis_wadah) {
         wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + vol;
       }
-      
+
       if (!heatmapRaw[kab]) {
         heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0 }));
       }
@@ -357,7 +357,7 @@ export default function AdminBudidaya() {
     filteredData.forEach(item => {
       const bIndex = MONTHS.indexOf(item.bulan);
       if (bIndex === -1) return;
-      
+
       const vol = Number(item.produksi_kg) || 0;
       if (top5Wadah.includes(item.jenis_wadah)) {
         trenBulanan[bIndex][item.jenis_wadah] += vol;
@@ -461,7 +461,7 @@ export default function AdminBudidaya() {
     });
     return {
       tooltip: { position: 'top', formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} KG`; } },
-      grid: { left: '3%', right: '4%', top: '5%', bottom: '15%', containLabel: true },
+      grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', rotate: 45 } },
       yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 } },
       visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: ['#0f172a', '#3b82f6', '#2dd4bf', '#fde047', '#f43f5e'] }, textStyle: { color: '#cbd5e1' }, formatter: (value) => value.toFixed(1) },
@@ -523,7 +523,7 @@ export default function AdminBudidaya() {
             Manajemen data produksi perikanan budidaya per Kabupaten/Kota.
           </p>
         </div>
-        
+
         {!isFormOpen && (
           <button
             onClick={() => {
@@ -558,274 +558,274 @@ export default function AdminBudidaya() {
         </div>
       ) : (
         <>
-      {/* Tabs Filter & Statistik */}
-      {!isFormOpen && (
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center gap-4 border-b border-border pb-4">
-            <button 
-              onClick={() => setActiveTab('data')}
-              className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              Tabel Data
-            </button>
-            <button 
-              onClick={() => setActiveTab('visual')}
-              className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'visual' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              Visualisasi Statistik
-            </button>
-          </div>
-
-          {/* Super Filters */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Tahun</option>
-                  {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
-                <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Triwulan</option>
-                  {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Bulan</option>
-                  {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Kab/Kota</option>
-                  {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Komoditas</option>
-                  {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Wadah</label>
-                <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Wadah</option>
-                  {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      {!isFormOpen && (
-        activeTab === 'data' ? (
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            <DataTable 
-              columns={columns} 
-              data={filteredData}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onBatchApprove={handleBatchApprove}
-              onBatchReject={handleBatchReject}
-              onBatchDelete={handleBatchDelete}
-              exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
-              customExportButton={
+          {/* Tabs Filter & Statistik */}
+          {!isFormOpen && (
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-4 border-b border-border pb-4">
                 <button
-                  onClick={() => setIsExportModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                  onClick={() => setActiveTab('data')}
+                  className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                 >
-                  <Download className="w-4 h-4" />
-                  Ekspor Ringkasan
+                  Tabel Data
                 </button>
-              }
-              formatExportData={(exportData) => exportData.map(row => ({
-                'Status': row.status,
-                'Tahun': row.tahun,
-                'Bulan': row.bulan,
-                'Triwulan': row.triwulan,
-                'Kabupaten/Kota': row.kabupaten_kota,
-                'Kategori Komoditas': row.kategori_komoditas,
-                'Komoditas': row.komoditas,
-                'Jenis Wadah': row.jenis_wadah,
-                'Produksi (KG)': row.produksi_kg,
-                'Harga (Rp)': row.harga_rp,
-                'Nilai Total (Rp)': row.nilai_rp
-              }))}
-            />
-          </div>
-        ) : (
-          <div className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
-                  <Box className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
-                  </p>
-                </div>
-              </div>
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Top Komoditas</p>
-                  <p className="text-xl font-bold text-foreground leading-tight">{computedStats.kpi.top_komoditas}</p>
-                </div>
-              </div>
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
-                  <LineChart className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(computedStats.kpi.total_nilai)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Peta Sebaran Produksi</h2>
-                </div>
-                <div className="h-[450px]">
-                  <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
-                </div>
-              </div>
-              <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-500" />
-                    <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
-                  </div>
-                  <select
-                    value={barFilter}
-                    onChange={(e) => setBarFilter(e.target.value)}
-                    className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200"
-                  >
-                    <option value="produksi">Produksi (KG)</option>
-                    <option value="nilai">Nilai Total (Rp)</option>
-                  </select>
-                </div>
-                <div className="h-[450px]">
-                  <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                  <TrendingUp className="w-5 h-5 text-teal-500" />
-                  <h2 className="text-lg font-semibold">Tren Produksi Bulanan</h2>
-                </div>
-                <div className="h-[350px]">
-                  <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
-                </div>
-              </div>
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                  <Fish className="w-5 h-5 text-cyan-500" />
-                  <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
-                </div>
-                <div className="h-[350px]">
-                  <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-5 h-5 text-rose-500" />
-                <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                Warna merepresentasikan intensitas produksi relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
-              </p>
-              <div className="h-[600px]">
-                <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
-              </div>
-            </div>
-          </div>
-        )
-      )}
-      {/* Modal Ekspor */}
-      {isExportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative">
-            <button 
-              onClick={() => setIsExportModalOpen(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold mb-4">Ekspor Data Budidaya</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
-                    <input type="radio" name="exportType" value="wadah" checked={exportType === 'wadah'} onChange={() => setExportType('wadah')} className="hidden" />
-                    Berdasarkan Wadah
-                  </label>
-                  <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'komoditas' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
-                    <input type="radio" name="exportType" value="komoditas" checked={exportType === 'komoditas'} onChange={() => setExportType('komoditas')} className="hidden" />
-                    Berdasarkan Komoditas
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Tahun Laporan</label>
-                <select 
-                  value={exportYear} 
-                  onChange={(e) => setExportYear(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none"
+                <button
+                  onClick={() => setActiveTab('visual')}
+                  className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'visual' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                 >
-                  <option value="">Pilih Tahun...</option>
-                  {tahunOptions.length > 0 ? tahunOptions.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  )) : (
-                    <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
-                  )}
-                </select>
+                  Visualisasi Statistik
+                </button>
               </div>
-              <button 
-                onClick={executeExport}
-                disabled={!exportYear}
-                className="w-full mt-4 bg-primary text-primary-foreground py-2.5 rounded-xl font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                Unduh Excel
-              </button>
+
+              {/* Super Filters */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-slate-500" />
+                    <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                    <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Tahun</option>
+                      {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
+                    <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Triwulan</option>
+                      {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+                    <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Bulan</option>
+                      {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                    <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Kab/Kota</option>
+                      {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
+                    <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Komoditas</option>
+                      {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Wadah</label>
+                    <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Wadah</option>
+                      {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      </>
+          )}
+
+          {/* Main Content */}
+          {!isFormOpen && (
+            activeTab === 'data' ? (
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+                <DataTable
+                  columns={columns}
+                  data={filteredData}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onBatchApprove={handleBatchApprove}
+                  onBatchReject={handleBatchReject}
+                  onBatchDelete={handleBatchDelete}
+                  exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
+                  customExportButton={
+                    <button
+                      onClick={() => setIsExportModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                    >
+                      <Download className="w-4 h-4" />
+                      Ekspor Ringkasan
+                    </button>
+                  }
+                  formatExportData={(exportData) => exportData.map(row => ({
+                    'Status': row.status,
+                    'Tahun': row.tahun,
+                    'Bulan': row.bulan,
+                    'Triwulan': row.triwulan,
+                    'Kabupaten/Kota': row.kabupaten_kota,
+                    'Kategori Komoditas': row.kategori_komoditas,
+                    'Komoditas': row.komoditas,
+                    'Jenis Wadah': row.jenis_wadah,
+                    'Produksi (KG)': row.produksi_kg,
+                    'Harga (Rp)': row.harga_rp,
+                    'Nilai Total (Rp)': row.nilai_rp
+                  }))}
+                />
+              </div>
+            ) : (
+              <div className="space-y-6 mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
+                      <Box className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500">
+                      <TrendingUp className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Top Komoditas</p>
+                      <p className="text-xl font-bold text-foreground leading-tight">{computedStats.kpi.top_komoditas}</p>
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
+                      <LineChart className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(computedStats.kpi.total_nilai)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                  <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      <h2 className="text-lg font-semibold">Peta Sebaran Produksi</h2>
+                    </div>
+                    <div className="h-[450px]">
+                      <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+                    </div>
+                  </div>
+                  <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-blue-500" />
+                        <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
+                      </div>
+                      <select
+                        value={barFilter}
+                        onChange={(e) => setBarFilter(e.target.value)}
+                        className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200"
+                      >
+                        <option value="produksi">Produksi (KG)</option>
+                        <option value="nilai">Nilai Total (Rp)</option>
+                      </select>
+                    </div>
+                    <div className="h-[450px]">
+                      <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-6">
+                      <TrendingUp className="w-5 h-5 text-teal-500" />
+                      <h2 className="text-lg font-semibold">Tren Produksi Bulanan</h2>
+                    </div>
+                    <div className="h-[350px]">
+                      <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Fish className="w-5 h-5 text-cyan-500" />
+                      <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+                    </div>
+                    <div className="h-[350px]">
+                      <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-5 h-5 text-rose-500" />
+                    <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Warna merepresentasikan intensitas produksi relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
+                  </p>
+                  <div className="h-[600px]">
+                    <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+          {/* Modal Ekspor */}
+          {isExportModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative">
+                <button
+                  onClick={() => setIsExportModalOpen(false)}
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h2 className="text-xl font-bold mb-4">Ekspor Data Budidaya</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                        <input type="radio" name="exportType" value="wadah" checked={exportType === 'wadah'} onChange={() => setExportType('wadah')} className="hidden" />
+                        Berdasarkan Wadah
+                      </label>
+                      <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'komoditas' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                        <input type="radio" name="exportType" value="komoditas" checked={exportType === 'komoditas'} onChange={() => setExportType('komoditas')} className="hidden" />
+                        Berdasarkan Komoditas
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tahun Laporan</label>
+                    <select
+                      value={exportYear}
+                      onChange={(e) => setExportYear(e.target.value)}
+                      className="w-full bg-background border border-border rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none"
+                    >
+                      <option value="">Pilih Tahun...</option>
+                      {tahunOptions.length > 0 ? tahunOptions.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      )) : (
+                        <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+                      )}
+                    </select>
+                  </div>
+                  <button
+                    onClick={executeExport}
+                    disabled={!exportYear}
+                    className="w-full mt-4 bg-primary text-primary-foreground py-2.5 rounded-xl font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    Unduh Excel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
