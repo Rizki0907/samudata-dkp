@@ -487,7 +487,6 @@ export default function AdminPerikananTangkap() {
     });
     
     const summaryTotalRow = ['Total Produksi', '', totalKeseluruhanVol, totalKeseluruhanNilai, '-', '-'];
-    const summaryPengangkutRow = [summaryIndex, 'PENGANGKUT', '', '', '', ''];
 
     const allRowsToRender = [
       row0, row1, row2, row3, row4, row5, row6, 
@@ -496,8 +495,7 @@ export default function AdminPerikananTangkap() {
       emptyRow, emptyRow,
       summaryHeader1, summaryHeader2, summaryHeader3,
       ...summaryRows,
-      summaryTotalRow,
-      summaryPengangkutRow
+      summaryTotalRow
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
@@ -541,14 +539,14 @@ export default function AdminPerikananTangkap() {
         } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
             // SUMMARY TOTAL
             if (C <= 5) ws[cellRef].s = summaryTotalStyle;
-        } else if (R === summaryStartRowIndex + 4 + summaryRows.length) {
-            // SUMMARY PENGANGKUT
-            if (C <= 5) ws[cellRef].s = summaryGreenStyle;
         }
       }
     }
 
     const merges = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, // REKAPITULASI...
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }, // Hari, Tanggal...
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 10 } }, // 1. PRODUKSI IKAN
       { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } },
       { s: { r: 4, c: 1 }, e: { r: 6, c: 1 } },
       { s: { r: 4, c: 2 }, e: { r: 6, c: 2 } },
@@ -583,7 +581,6 @@ export default function AdminPerikananTangkap() {
     merges.push({ s: { r: summaryStartRowIndex + 1, c: 4 }, e: { r: summaryStartRowIndex + 1, c: 5 } }); // Alih Muat
 
     merges.push({ s: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 0 }, e: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 1 } }); // Total Produksi
-    merges.push({ s: { r: summaryStartRowIndex + 4 + summaryRows.length, c: 1 }, e: { r: summaryStartRowIndex + 4 + summaryRows.length, c: 5 } }); // Pengangkut merge
 
     ws['!merges'] = merges;
 
