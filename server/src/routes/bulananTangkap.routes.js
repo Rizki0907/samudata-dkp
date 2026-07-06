@@ -11,5 +11,6 @@ router.get('/admin', verifyToken, controller.getAdminData);
 router.post('/sync', verifyToken, controller.triggerSync);
 router.put('/:id/target', verifyToken, controller.updateTarget);
 router.post('/:id/reset', verifyToken, controller.resetTarget);
+router.post('/batch-target', verifyToken, controller.batchUpdateTarget);
 
 module.exports = router;

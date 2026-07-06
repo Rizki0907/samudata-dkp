@@ -10,6 +10,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   const [editingRow, setEditingRow] = useState(null);
   const [editForm, setEditForm] = useState({ volume: 0, nilai: 0 });
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchVolumePct, setBatchVolumePct] = useState('');
+  const [batchNilaiPct, setBatchNilaiPct] = useState('');
 
   const fetchData = async () => {
     try {
@@ -62,6 +65,81 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
   };
 
+  const handleBatchAdjust = async (selectedIds, clearSelection) => {
+    if (!batchVolumePct && !batchNilaiPct) return alert("Masukkan persentase koreksi untuk Volume atau Nilai!");
+    try {
+      setSubmitLoading(true);
+      await api.post('/bulanan-tangkap/batch-target', {
+        ids: selectedIds,
+        volumePercentage: Number(batchVolumePct || 0),
+        nilaiPercentage: Number(batchNilaiPct || 0)
+      });
+      clearSelection();
+      setBatchMode(false);
+      setBatchVolumePct('');
+      setBatchNilaiPct('');
+      fetchData();
+    } catch (err) {
+      console.error('Error batch update:', err);
+      alert("Gagal melakukan koreksi massal");
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const renderCustomBatchActions = (selectedIds, clearSelection) => {
+    if (batchMode) {
+      return (
+        <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border border-border">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Taikkan/Turunkan:</span>
+          <div className="relative">
+            <input 
+              type="number" 
+              placeholder="Vol (mis: 10)" 
+              value={batchVolumePct}
+              onChange={e => setBatchVolumePct(e.target.value)}
+              className="w-28 pl-2 pr-6 py-1 text-xs border border-border bg-background rounded outline-none focus:ring-1 focus:ring-primary" 
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+          </div>
+          <div className="relative">
+            <input 
+              type="number" 
+              placeholder="Nilai (mis: 10)" 
+              value={batchNilaiPct}
+              onChange={e => setBatchNilaiPct(e.target.value)}
+              className="w-28 pl-2 pr-6 py-1 text-xs border border-border bg-background rounded outline-none focus:ring-1 focus:ring-primary" 
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+          </div>
+          <button 
+            onClick={() => handleBatchAdjust(selectedIds, clearSelection)}
+            disabled={submitLoading}
+            className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded transition disabled:opacity-50"
+          >
+            Terapkan
+          </button>
+          <button 
+            onClick={() => { setBatchMode(false); setBatchVolumePct(''); setBatchNilaiPct(''); }}
+            className="px-2 py-1 text-xs text-muted-foreground hover:bg-muted rounded transition"
+          >
+            Batal
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => setBatchMode(true)}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors text-sm font-medium shadow-sm"
+      >
+        <Edit2 className="w-4 h-4"/>
+        Koreksi Massal (%)
+      </button>
+    );
+  };
+
   const columns = useMemo(() => [
     {
       header: 'Bulan',
@@ -72,7 +150,16 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         return `${monthNames[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
       }
     },
-    { header: 'Sumber', accessorKey: 'sumber_data' },
+    { 
+      header: 'Sumber', 
+      accessorKey: 'sumber_data',
+      cell: ({ row }) => {
+        const val = row.original.sumber_data;
+        if (val === 'KAB_KOTA') return 'Non Pelabuhan';
+        if (val === 'PELABUHAN') return 'Pelabuhan';
+        return val;
+      }
+    },
     { header: 'Pelabuhan/Wilayah', accessorKey: 'pelabuhan' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     {
@@ -85,7 +172,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
               type="number" 
               value={editForm.volume}
               onChange={(e) => setEditForm({...editForm, volume: e.target.value})}
-              className="w-24 px-2 py-1 rounded border text-sm"
+              className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           );
         }
@@ -102,7 +189,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
               type="number" 
               value={editForm.nilai}
               onChange={(e) => setEditForm({...editForm, nilai: e.target.value})}
-              className="w-32 px-2 py-1 rounded border text-sm"
+              className="w-32 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           );
         }
@@ -180,6 +267,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     return <div className="p-12 flex justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>;
   }
 
+  const totalVolume = filteredData.reduce((acc, curr) => acc + (Number(curr.volume) || 0), 0);
+  const totalNilai = filteredData.reduce((acc, curr) => acc + (Number(curr.nilai) || 0), 0);
+
   return (
     <div className="space-y-4 animate-in fade-in">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-muted/30 p-4 rounded-xl border border-border">
@@ -190,12 +280,27 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
           </h3>
           <p className="text-sm text-muted-foreground mt-1">Data pada tabel inilah yang akan ditampilkan ke Halaman Publik pengguna.</p>
         </div>
+        
+        {/* Ringkasan Inline */}
+        <div className="flex items-center gap-6 bg-background px-4 py-2 rounded-lg border border-border">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground font-medium">Total Volume</span>
+            <span className="text-lg font-bold">{totalVolume.toLocaleString('id-ID')} Kg</span>
+          </div>
+          <div className="w-px h-8 bg-border"></div>
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground font-medium">Total Nilai</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatRupiah(totalNilai)}</span>
+          </div>
+        </div>
       </div>
       
       <DataTable 
         columns={columns} 
         data={filteredData}
         exportName={`Data_Validasi_Bidang_${filterTahun || 'All'}`}
+        defaultPageSize={50}
+        customBatchActions={renderCustomBatchActions}
       />
     </div>
   );

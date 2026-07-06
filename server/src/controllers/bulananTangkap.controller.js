@@ -139,11 +139,43 @@ const resetTarget = async (req, res) => {
   }
 };
 
+const batchUpdateTarget = async (req, res) => {
+  try {
+    const { ids, volumePercentage, nilaiPercentage } = req.body;
+    if (!ids || !Array.isArray(ids)) return res.status(400).json({ success: false, message: 'Invalid IDs' });
+    
+    // Convert percentages to multipliers. e.g. +10% -> 1.10, -5% -> 0.95
+    const volMultiplier = 1 + (Number(volumePercentage || 0) / 100);
+    const nilaiMultiplier = 1 + (Number(nilaiPercentage || 0) / 100);
+
+    const records = await prisma.dataBulananTangkap.findMany({
+      where: { id: { in: ids.map(id => Number(id)) } }
+    });
+
+    for (const record of records) {
+      await prisma.dataBulananTangkap.update({
+        where: { id: record.id },
+        data: {
+          volume: record.volume * volMultiplier,
+          nilai: record.nilai * nilaiMultiplier,
+          is_adjusted: true
+        }
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Batch update target berhasil' });
+  } catch (error) {
+    console.error('Error batch update target:', error);
+    res.status(500).json({ success: false, message: 'Gagal melakukan batch update' });
+  }
+};
+
 module.exports = {
   syncDataBulananInternal,
   triggerSync,
   getPublikData,
   getAdminData,
   updateTarget,
-  resetTarget
+  resetTarget,
+  batchUpdateTarget
 };

@@ -13,12 +13,14 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx-js-style';
 import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton }) {
+export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton, defaultPageSize = 10, customBatchActions }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [expanded, setExpanded] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
+
+  const hasBatchActions = !!(onBatchDelete || onBatchApprove || onBatchReject || customBatchActions);
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
@@ -59,6 +61,11 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
     getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => !!renderSubComponent,
+    initialState: {
+      pagination: {
+        pageSize: defaultPageSize,
+      },
+    },
     state: {
       sorting,
       globalFilter,
@@ -159,6 +166,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                 Hapus Terpilih
               </button>
             )}
+            {customBatchActions && customBatchActions(selectedIds, () => setSelectedIds([]))}
           </div>
         </div>
       )}
@@ -170,7 +178,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
             <thead className="bg-muted/50 border-b border-border text-muted-foreground">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-                  {(onBatchDelete || onBatchApprove || onBatchReject) && (
+                  {hasBatchActions && (
                     <th className="px-4 py-4 w-10"><input type="checkbox" onChange={toggleSelectAll} checked={selectedIds.length===data.length && data.length>0} /></th>
                   )}
                   {renderSubComponent && <th className="px-4 py-4 w-10"></th>}
@@ -205,7 +213,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                 table.getRowModel().rows.map((row) => (
                   <React.Fragment key={row.id}>
                     <tr className="hover:bg-muted/30 transition-colors">
-                      {(onBatchDelete || onBatchApprove || onBatchReject) && (
+                      {hasBatchActions && (
                         <td className="px-4 py-4 w-10 whitespace-nowrap">
                           <input type="checkbox" checked={selectedIds.includes(row.original.id)} onChange={() => toggleSelectRow(row.original.id)} />
                         </td>
@@ -273,7 +281,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                     </tr>
                     {row.getIsExpanded() && renderSubComponent && (
                       <tr className="bg-muted/10 border-b border-border">
-                        <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (renderSubComponent ? 1 : 0) + (onBatchDelete || onBatchApprove ? 1 : 0)} className="p-0">
+                        <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (renderSubComponent ? 1 : 0) + (hasBatchActions ? 1 : 0)} className="p-0">
                           {renderSubComponent({ row })}
                         </td>
                       </tr>
@@ -295,7 +303,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
       {/* Reject Modal / Action confirmation can be handled by parent */}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground mt-4 px-2">
         <div>
           Menampilkan {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} sampai{' '}
           {Math.min(
@@ -304,21 +312,34 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
           )}{' '}
           dari {table.getFilteredRowModel().rows.length} entri
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="px-4 py-2 rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+        <div className="flex items-center gap-4">
+          <select
+            value={table.getState().pagination.pageSize}
+            onChange={e => table.setPageSize(Number(e.target.value))}
+            className="bg-background border border-border rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           >
-            Sebelumnya
-          </button>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="px-4 py-2 rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
-          >
-            Selanjutnya
-          </button>
+            {[10, 25, 50, 100, 500].map(pageSize => (
+              <option key={pageSize} value={pageSize}>
+                Tampilkan {pageSize} baris
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="px-4 py-1.5 rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="px-4 py-1.5 rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
     </div>
