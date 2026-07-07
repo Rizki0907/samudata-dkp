@@ -7,7 +7,7 @@ import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, F
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDate } from '@/utils/dateHelper';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
@@ -483,7 +483,7 @@ export default function PerikananTangkap() {
           </div>
           <div className="flex items-center gap-2">
             <select value={chartHargaKomoditas} onChange={(e) => setChartHargaKomoditas(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50">
-              {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              {[...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])].map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
 
             <div className="relative group">
@@ -565,7 +565,7 @@ export default function PerikananTangkap() {
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
               <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                 <option value="">Semua Komoditas</option>
-                {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {[...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])].map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
           </div>
@@ -591,7 +591,7 @@ export default function PerikananTangkap() {
             const row1 = ['Bulan / Tahun', 'Cabang Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
             const row2 = ['', '', '', '', ''];
 
-            const komoditasArray = KOMODITAS_OPTIONS;
+            const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
             komoditasArray.forEach(kom => {
               row1.push(kom, '');
               row2.push('Volume (Kg)', 'Nilai (Rp)');

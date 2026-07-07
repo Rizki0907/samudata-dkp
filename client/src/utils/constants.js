@@ -326,3 +326,43 @@ export const KOMODITAS_OPTIONS = [
   "Udang pasir (Thenus orientalis)",
   "Udang putih vanamei (Penaeus vannamei)"
 ];
+
+// ----------------------------------------------------
+// MASTER DATA KHUSUS PUD (Perairan Umum Daratan) & KAB/KOTA
+// ----------------------------------------------------
+
+export const KAB_KOTA_OPTIONS = [
+  "Bangkalan", "Banyuwangi", "Blitar", "Bojonegoro", "Bondowoso", "Gresik", "Jember", 
+  "Jombang", "Kediri", "Kota Batu", "Kota Blitar", "Kota Kediri", "Kota Madiun", 
+  "Kota Malang", "Kota Mojokerto", "Kota Pasuruan", "Kota Probolinggo", "Kota Surabaya", 
+  "Lamongan", "Lumajang", "Madiun", "Magetan", "Malang", "Mojokerto", "Nganjuk", "Ngawi", 
+  "Pacitan", "Pamekasan", "Pasuruan", "Ponorogo", "Probolinggo", "Sampang", "Sidoarjo", 
+  "Situbondo", "Sumenep", "Trenggalek", "Tuban", "Tulungagung"
+];
+
+export const PERAIRAN_OPTIONS = [
+  "Sungai",
+  "Danau",
+  "Waduk",
+  "Rawa",
+  "Genangan Air Lainnya"
+];
+
+export const KOMODITAS_PUD_OPTIONS = [
+  "Betok", "Sidat", "Belut", "Baung", "Tapah", "Keting", "Sepat rawa", "Sepat siam", "Gabus", 
+  "Toman", "Mujair", "Nila", "Lele", "Botia", "Berukung", "Beunteur", "Bilih", "Depik", 
+  "Genggehek", "Uceng", "Hampal", "Jelawat", "Kancera", "Kendia", "Koan", "Lalang", "Lalawak", 
+  "Lukas", "Mas", "Nilem", "Parang", "Parai/Seluang", "Repang", "Salab/Lampan", "Semah", "Seren", 
+  "Tawes", "Tontong tebu", "Betutu", "Tambakan", "Sili", "Belida", "Gurame", "Siluk", "Patin jambal", 
+  "Tempe", "Bentilap", "Lais", "Lempuk", "Ikan sumpit", "Ikan lainnya", "Udang grago", "Udang galah", 
+  "Udang tawar", "Udang lainnya", "Remis", "Siput", "Binatang lunak lainnya", "Buaya", "Katak benggala", 
+  "Kodok", "Kura-kura/ Labi-labi", "Binatang air lainnya"
+];
+
+export const ALAT_TANGKAP_PUD_OPTIONS = [
+  "Jaring tarik berkantong", "Penggaruk berkapal", "Penggaruk tanpa kapal", "Anco", 
+  "Bagan berperahu atau bagan apung", "Bagan tancap", "Jala jatuh berkapal", "Jala Tebar", 
+  "Jaring insang tetap", "Jaring Insang hanyut", "Jaring insang lingkar", "Jaring insang berpancang", 
+  "Jaring insang berlapis", "Jaring insang kombinasi", "Set net", "Bubu", "Pancing ulur", 
+  "Pancing berjoran", "Rawai", "Tombak", "Ladung", "Panah", "Pukat dorong", "Seser", "Pocongan"
+];

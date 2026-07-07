@@ -39,6 +39,11 @@ model PerikananTangkap {
   gt_kapal         String?
   alat_tangkap     String?
   logistik         String?
+  // Field khusus PUD
+  jenis_perairan   String?
+  pud_populasi_alat Int?
+  pud_jumlah_sampel Int?
+  
   status           DataStatus   @default(PENDING)
   alasan_penolakan String?
   created_at       DateTime     @default(now())
@@ -55,6 +60,7 @@ model DetailTangkapan {
   volume               Float // kg
   harga                Float // rupiah per kg
   nilai                Float // otomatis: volume × harga
+  pud_tangkapan_sampel Float? // khusus PUD (kg)
 
   perikananTangkap PerikananTangkap @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
 }

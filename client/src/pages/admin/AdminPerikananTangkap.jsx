@@ -10,7 +10,7 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 
 const currentYear = new Date().getFullYear();
@@ -383,7 +383,7 @@ export default function AdminPerikananTangkap() {
     const row6 = ['', '', '', '', '', '', '', '', '', '', '', 'Volume', 'Nilai'];
     
     const komoditasTotalMap = {};
-    const komoditasArray = KOMODITAS_OPTIONS;
+    const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
     komoditasArray.forEach(kom => {
       row5.push(kom, '', '');
       row6.push('Vol', 'Harga', 'Nilai');
@@ -633,18 +633,37 @@ export default function AdminPerikananTangkap() {
       cell: info => formatDate(info.getValue())
     },
     {
+      header: 'Cabang',
+      accessorKey: 'sumber_data',
+      cell: info => {
+        const val = info.getValue() || 'PELABUHAN';
+        if (val === 'PUD') return <span className="text-emerald-500 font-medium">PUD</span>;
+        if (val === 'KAB_KOTA') return <span className="text-orange-500 font-medium">Non Pelabuhan</span>;
+        return <span className="text-blue-500 font-medium">Pelabuhan</span>;
+      }
+    },
+    {
       header: 'Pelabuhan/Wilayah',
       accessorKey: 'pelabuhan',
       cell: info => {
         const val = info.getValue();
-        // Fallback if pelabuhan is empty, display kabupaten_kota
-        return val || info.row.original.kabupaten_kota || '-';
+        const row = info.row.original;
+        if (row.sumber_data === 'PUD') {
+          return `${row.kabupaten_kota || '-'} (${row.jenis_perairan || 'PUD'})`;
+        }
+        return val || row.kabupaten_kota || '-';
       }
     },
     {
-      header: 'Nama Kapal',
+      header: 'Nama Kapal / Populasi Alat (PUD)',
       accessorKey: 'nama_kapal',
-      cell: info => <p className="font-medium">{info.getValue()}</p>
+      cell: info => {
+        const row = info.row.original;
+        if (row.sumber_data === 'PUD') {
+          return <span className="text-emerald-600 font-medium">{row.pud_populasi_alat || '-'} Unit</span>;
+        }
+        return row.nama_kapal || '-';
+      }
     },
     {
       header: 'GT Kapal',
@@ -925,10 +944,10 @@ export default function AdminPerikananTangkap() {
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
                 onCustomExport={(exportData) => {
-                  const komoditasArray = KOMODITAS_OPTIONS;
+                  const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
 
-                  const headerRow1 = ['Tanggal', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
-                  const headerRow2 = ['', '', '', '', '', '', '', '', '', ''];
+                  const headerRow1 = ['Tanggal', 'Cabang', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
                   
                   komoditasArray.forEach(kom => {
                     headerRow1.push(kom, '', '');
@@ -954,13 +973,14 @@ export default function AdminPerikananTangkap() {
 
                     const baseRow = [
                       row.tanggal ? row.tanggal.split('T')[0] : '-',
+                      row.sumber_data === 'PUD' ? 'PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Non Pelabuhan' : 'Pelabuhan'),
                       row.jam_labuh || '-',
                       row.jam_bongkar || '-',
-                      row.nama_kapal || '-',
-                      row.gt_kapal || '-',
+                      row.sumber_data === 'PUD' ? (row.pud_populasi_alat ? `${row.pud_populasi_alat} Unit` : '-') : (row.nama_kapal || '-'),
+                      row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
                       row.alat_tangkap || '-',
-                      row.pelabuhan || row.kabupaten_kota || '-',
-                      row.logistik || '-',
+                      row.sumber_data === 'PUD' ? `${row.kabupaten_kota || '-'} (${row.jenis_perairan || '-'})` : (row.pelabuhan || row.kabupaten_kota || '-'),
+                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : (row.logistik || '-'),
                       totalVol,
                       totalNilai
                     ];

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS } from '@/utils/constants';
+import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,11 +13,14 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     nama_kapal: '',
     pelabuhan: PELABUHAN_OPTIONS[0],
     kabupaten_kota: '',
+    jenis_perairan: PERAIRAN_OPTIONS[0],
+    pud_populasi_alat: '',
+    pud_jumlah_sampel: '',
     logistik: '',
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     tangkapan: [
-      { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '' }
+      { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '', pud_tangkapan_sampel: '' }
     ]
   });
 
@@ -33,14 +36,18 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         nama_kapal: initialData.nama_kapal || '',
         pelabuhan: initialData.pelabuhan || PELABUHAN_OPTIONS[0],
         kabupaten_kota: initialData.kabupaten_kota || '',
+        jenis_perairan: initialData.jenis_perairan || PERAIRAN_OPTIONS[0],
+        pud_populasi_alat: initialData.pud_populasi_alat || '',
+        pud_jumlah_sampel: initialData.pud_jumlah_sampel || '',
         logistik: initialData.logistik || '',
         gt_kapal: initialData.gt_kapal || GT_KAPAL_OPTIONS[0],
         alat_tangkap: initialData.alat_tangkap || ALAT_TANGKAP_OPTIONS[0],
         tangkapan: [
           { 
-            komoditas: initialData.komoditas || KOMODITAS_OPTIONS[0], 
+            komoditas: initialData.komoditas || (initialData.sumber_data === 'PUD' ? KOMODITAS_PUD_OPTIONS[0] : KOMODITAS_OPTIONS[0]), 
             volume: initialData.volume || '', 
-            harga: initialData.harga || '' 
+            harga: initialData.harga || '',
+            pud_tangkapan_sampel: initialData.pud_tangkapan_sampel || '' 
           }
         ]
       });
@@ -64,7 +71,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
   const addTangkapan = () => {
     setFormData(prev => ({
       ...prev,
-      tangkapan: [...prev.tangkapan, { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '' }]
+      tangkapan: [...prev.tangkapan, { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '', pud_tangkapan_sampel: '' }]
     }));
   };
 
@@ -95,15 +102,30 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     if (validate()) {
       const dataToSubmit = {
         ...formData,
-        sumber_data: sumberData
+        sumber_data: sumberData,
+        pelabuhan: isPelabuhan ? formData.pelabuhan : null,
+        kabupaten_kota: !isPelabuhan ? formData.kabupaten_kota : null,
+        nama_kapal: isPelabuhan ? formData.nama_kapal : null,
+        jam_labuh: isPelabuhan ? formData.jam_labuh : null,
+        jam_bongkar: isPelabuhan ? formData.jam_bongkar : null
       };
       onSubmit(dataToSubmit);
     }
   };
 
+  const isPelabuhan = sumberData === 'PELABUHAN';
+  const isPUD = sumberData === 'PUD';
+
+  const calculatePudVolume = (sampelVol) => {
+    const pop = parseFloat(formData.pud_populasi_alat) || 0;
+    const jml = parseFloat(formData.pud_jumlah_sampel) || 1;
+    const samp = parseFloat(sampelVol) || 0;
+    return (samp / (jml || 1)) * pop;
+  };
+
   // Kalkulasi Total Nilai
   const nilaiTotal = formData.tangkapan.reduce((total, item) => {
-    const v = parseFloat(item.volume) || 0;
+    const v = isPUD ? calculatePudVolume(item.pud_tangkapan_sampel) : (parseFloat(item.volume) || 0);
     const h = parseFloat(item.harga) || 0;
     return total + (v * h);
   }, 0);
@@ -155,10 +177,6 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
       </div>
     );
   }
-
-  // Helper boolean untuk logic hide/show
-  const isPelabuhan = sumberData === 'PELABUHAN';
-
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
       <div className="mb-6 border-b border-border pb-4 flex items-center justify-between">
@@ -215,17 +233,34 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                 </select>
               </div>
             ) : (
-              <div>
-                <label className="block text-sm font-medium mb-2">Non Pelabuhan</label>
-                <input 
-                  type="text" 
-                  name="kabupaten_kota"
-                  placeholder="Cth: Kota Surabaya"
-                  value={formData.kabupaten_kota}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Kabupaten / Kota</label>
+                  <select 
+                    name="kabupaten_kota"
+                    value={formData.kabupaten_kota}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                  >
+                    <option value="">Pilih Kabupaten/Kota</option>
+                    {KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                
+                {isPUD && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Jenis Perairan</label>
+                    <select 
+                      name="jenis_perairan"
+                      value={formData.jenis_perairan}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                    >
+                      {PERAIRAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                )}
+              </>
             )}
 
             {isPelabuhan && (
@@ -309,7 +344,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               </>
             )}
 
-            <div className={cn(!isPelabuhan && "md:col-span-2")}>
+            <div className={cn(!isPelabuhan && !isPUD && "md:col-span-2")}>
               <label className="block text-sm font-medium mb-2">Alat Tangkap</label>
               <select 
                 name="alat_tangkap"
@@ -317,9 +352,36 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                 onChange={handleChange}
                 className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
               >
-                {ALAT_TANGKAP_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {(isPUD ? ALAT_TANGKAP_PUD_OPTIONS : ALAT_TANGKAP_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
+
+            {isPUD && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Total Populasi Alat (SP-1)</label>
+                  <input 
+                    type="number" 
+                    name="pud_populasi_alat"
+                    placeholder="Total populasi alat di wilayah"
+                    value={formData.pud_populasi_alat}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Jumlah Alat Sampel</label>
+                  <input 
+                    type="number" 
+                    name="pud_jumlah_sampel"
+                    placeholder="Berapa sampel yang ditimbang?"
+                    value={formData.pud_jumlah_sampel}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -361,21 +423,38 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     onChange={(e) => handleTangkapanChange(index, 'komoditas', e.target.value)}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                   >
-                    {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {(isPUD ? KOMODITAS_PUD_OPTIONS : KOMODITAS_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
 
-                <div className="md:col-span-4">
-                  <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Volume (Kg)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" min="0"
-                    placeholder="Misal: 105.5"
-                    value={item.volume}
-                    onChange={(e) => handleTangkapanChange(index, 'volume', e.target.value)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  />
-                </div>
+                {isPUD ? (
+                  <div className="md:col-span-4">
+                    <label className="block text-xs font-medium mb-1.5 text-emerald-600 dark:text-emerald-400">Berat Sampel (Kg)</label>
+                    <input 
+                      type="number" 
+                      step="0.01" min="0"
+                      placeholder="Total sampel yg ditimbang"
+                      value={item.pud_tangkapan_sampel}
+                      onChange={(e) => handleTangkapanChange(index, 'pud_tangkapan_sampel', e.target.value)}
+                      className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/50 text-foreground placeholder:text-muted-foreground"
+                    />
+                    <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1.5">
+                      Estimasi Vol: {new Intl.NumberFormat('id-ID').format(calculatePudVolume(item.pud_tangkapan_sampel))} Kg
+                    </p>
+                  </div>
+                ) : (
+                  <div className="md:col-span-4">
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Volume (Kg)</label>
+                    <input 
+                      type="number" 
+                      step="0.01" min="0"
+                      placeholder="Misal: 105.5"
+                      value={item.volume}
+                      onChange={(e) => handleTangkapanChange(index, 'volume', e.target.value)}
+                      className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-4">
                   <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Harga (Rp / Kg)</label>

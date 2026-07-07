@@ -59,17 +59,27 @@ const getAdminData = async (req, res) => {
 // POST new data [ADMIN]
 const createData = async (req, res) => {
   try {
-    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
     
     if (!tangkapan || tangkapan.length === 0) {
       return res.status(400).json({ success: false, message: 'Data tangkapan kosong' });
     }
 
     const records = tangkapan.map(t => {
-      const vol = parseFloat(t.volume) || 0;
-      const hrg = parseFloat(t.harga) || 0;
+      const isPUD = sumber_data === 'PUD';
+      const pudTangkapSampel = parseFloat(t.pud_tangkapan_sampel) || 0;
+      let vol = parseFloat(t.volume) || 0;
+      let hrg = parseFloat(t.harga) || 0;
+      
+      if (isPUD) {
+         const popAlat = Number(pud_populasi_alat) || 0;
+         const jmlSampel = Number(pud_jumlah_sampel) || 1;
+         vol = (pudTangkapSampel / (jmlSampel || 1)) * popAlat;
+      }
+
       return {
         komoditas: t.komoditas,
+        pud_tangkapan_sampel: isPUD ? pudTangkapSampel : null,
         volume: vol,
         harga: hrg,
         nilai: vol * hrg
@@ -91,6 +101,9 @@ const createData = async (req, res) => {
         gt_kapal,
         alat_tangkap,
         logistik,
+        jenis_perairan,
+        pud_populasi_alat: Number(pud_populasi_alat) || null,
+        pud_jumlah_sampel: Number(pud_jumlah_sampel) || null,
         tangkapan: {
           create: records
         }
@@ -109,7 +122,7 @@ const createData = async (req, res) => {
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
     
     // Check permission
     const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
@@ -131,10 +144,20 @@ const updateData = async (req, res) => {
 
     // 2. Format new tangkapan records
     const records = (tangkapan || []).map(t => {
-      const vol = parseFloat(t.volume) || 0;
-      const hrg = parseFloat(t.harga) || 0;
+      const isPUD = sumber_data === 'PUD';
+      const pudTangkapSampel = parseFloat(t.pud_tangkapan_sampel) || 0;
+      let vol = parseFloat(t.volume) || 0;
+      let hrg = parseFloat(t.harga) || 0;
+      
+      if (isPUD) {
+         const popAlat = Number(pud_populasi_alat) || 0;
+         const jmlSampel = Number(pud_jumlah_sampel) || 1;
+         vol = (pudTangkapSampel / (jmlSampel || 1)) * popAlat;
+      }
+
       return {
         komoditas: t.komoditas,
+        pud_tangkapan_sampel: isPUD ? pudTangkapSampel : null,
         volume: vol,
         harga: hrg,
         nilai: vol * hrg
@@ -157,6 +180,9 @@ const updateData = async (req, res) => {
         gt_kapal,
         alat_tangkap,
         logistik,
+        jenis_perairan,
+        pud_populasi_alat: Number(pud_populasi_alat) || null,
+        pud_jumlah_sampel: Number(pud_jumlah_sampel) || null,
         tangkapan: {
           create: records
         }
