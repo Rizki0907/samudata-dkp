@@ -127,7 +127,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
             Lahan & SDM
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-5 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
             <div>
               <label className={labelClass}>Luas Lahan Total (Ha)</label>
               <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputClass} placeholder="0" />
@@ -143,14 +143,6 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             <div>
               <label className={labelClass}>Jumlah Petambak</label>
               <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputClass} placeholder="0" />
-            </div>
-            <div className="bg-primary/5 p-3 rounded-xl border border-primary/20 text-center flex flex-col justify-center h-full min-h-[72px]">
-              <span className="text-xs font-semibold text-primary/70 uppercase mb-1">Produktivitas Lahan</span>
-              {lp > 0 ? (
-                <span className="font-bold text-primary">{produktivitas.toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span>
-              ) : (
-                <span className="text-xs text-muted-foreground italic">Isi luas produksi terlebih dahulu</span>
-              )}
             </div>
           </div>
         </section>
@@ -183,17 +175,49 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
                       <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Harga (Rp/Kg)</label>
+                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Harga (Rp)</label>
                       <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={inputClass} placeholder="0" />
                     </div>
                     <div className="pt-3 border-t border-border flex justify-between items-center">
                       <span className="text-xs font-medium text-muted-foreground">Nilai Produksi</span>
-                      <span className="text-sm font-bold">Rp {(p * h).toLocaleString('id-ID')}</span>
+                      <span className="text-sm font-bold">{(p * h).toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <div className="h-px bg-border my-6"></div>
+
+        {/* ── LIVE KALKULASI PANEL ─────────────────────────────────────────── */}
+        <section>
+          <div className="bg-muted/10 border border-border rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">∑</span>
+              <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Kalkulasi Otomatis</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-background rounded-xl border border-border p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Produksi</p>
+                <p className="text-2xl font-bold text-primary">{totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Stok</p>
+                <p className="text-2xl font-bold text-primary">{totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Produktivitas Lahan</p>
+                <p className="text-2xl font-bold text-primary">
+                  {lp > 0 ? (
+                    <>{produktivitas.toLocaleString('id-ID', { maximumFractionDigits: 3 })} <span className="text-sm font-normal text-muted-foreground">Ton/Ha</span></>
+                  ) : (
+                    <span className="text-sm font-normal text-muted-foreground italic">Isi luas produksi terlebih dahulu</span>
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
