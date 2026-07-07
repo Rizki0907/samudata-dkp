@@ -198,25 +198,36 @@ const getKelautanPesisirStats = async (req, res) => {
     // GARAM STATS
     const garamWhere = { status: 'APPROVED' };
     if (tahun) garamWhere.tahun = parseInt(tahun);
-    const garamData = await prisma.garam.findMany({ where: garamWhere });
+    const garamData = await prisma.garam.findMany({ 
+      where: garamWhere,
+      orderBy: { created_at: 'desc' }
+    });
 
     let total_produksi_garam = 0;
     let total_petambak_garam = 0;
     let total_luas_lahan_garam = 0;
     
     const garamPerKota = {};
+    const seenKotaGaram = new Set();
 
     garamData.forEach(item => {
-      total_produksi_garam += item.total_produksi_ton;
-      total_petambak_garam += item.jumlah_petambak;
-      total_luas_lahan_garam += item.luas_total_ha;
-      
       const k = item.kabupaten_kota;
       if (!garamPerKota[k]) garamPerKota[k] = { produksi: 0, luas_lahan: 0, petambak: 0, kelompok: 0 };
+      
+      // Accumulate cumulative values
+      total_produksi_garam += item.total_produksi_ton;
       garamPerKota[k].produksi += item.total_produksi_ton;
-      garamPerKota[k].luas_lahan += item.luas_total_ha;
-      garamPerKota[k].petambak += item.jumlah_petambak;
-      garamPerKota[k].kelompok += item.jumlah_kelompok;
+
+      // Only take the latest non-cumulative values for the given filters
+      if (!seenKotaGaram.has(k)) {
+        seenKotaGaram.add(k);
+        total_petambak_garam += item.jumlah_petambak;
+        total_luas_lahan_garam += item.luas_total_ha;
+        
+        garamPerKota[k].luas_lahan = item.luas_total_ha;
+        garamPerKota[k].petambak = item.jumlah_petambak;
+        garamPerKota[k].kelompok = item.jumlah_kelompok;
+      }
     });
 
     // POTENSI PERAIRAN STATS

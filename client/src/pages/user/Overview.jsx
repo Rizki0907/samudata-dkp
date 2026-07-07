@@ -160,16 +160,16 @@ export default function Overview() {
             </div>
             <h2 className="text-2xl font-bold text-foreground">Kelautan & Pesisir</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Garam Total (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Garam (Ton)</p>
               <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Petambak Garam (Orang)</p>
+              <p className="text-sm text-muted-foreground mb-1">Petambak (Orang)</p>
               <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak.toLocaleString('id-ID')}</p>
             </div>
-            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+            <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam (Ha)</p>
               <p className="text-2xl font-bold text-slate-600">{stats.garam.luas_lahan.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
             </div>

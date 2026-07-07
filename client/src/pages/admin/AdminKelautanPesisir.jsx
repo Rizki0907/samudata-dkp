@@ -161,14 +161,14 @@ const exportGaramExcel = (data) => {
   const title = 'REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR';
   const subtitle = `Tahun Data: ${new Date().getFullYear()}`;
 
-  const h1 = ['No', 'Kab/Kota', 'L Total (Ha)', 'Σ Pok', 'Σ Petambak',
-    'Produksi (Ton)', '', '', 'Σ Prod (Ton)',
+  const h1 = ['No', 'Kab/Kota', 'L. Lahan (Ha)', 'L. Produksi (Ha)', 'Σ Kelompok', 'Σ Petambak',
+    'Produksi (Ton)', '', '', 'Σ Produksi (Ton)', 'Produktivitas\n(Ton/Ha)',
     'Stok (Ton)', '', '', 'Σ Stok (Ton)',
-    'Harga (Rp/Kg)', '', '',
-    'Produktivitas\n(Ton/Ha)'];
-  const h2 = ['', '', '', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', ''];
+    'Harga (Rp)', '', '', 'Nilai Produksi (Rp)', '', ''];
+  const h2 = ['', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
 
-  let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalPok = 0, totalPetambak = 0;
+  let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
+  let totalNilaiK1 = 0, totalNilaiK2 = 0, totalNilaiK3 = 0;
   let sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0;
   let countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
 
@@ -176,8 +176,18 @@ const exportGaramExcel = (data) => {
     totalProduksi += row.total_produksi_ton || 0;
     totalStok += row.total_stok_ton || 0;
     totalLuas += row.luas_total_ha || 0;
+    totalLProd += row.luas_produksi_ha || 0;
     totalPok += row.jumlah_kelompok || 0;
     totalPetambak += row.jumlah_petambak || 0;
+
+    const nk1 = (row.produksi_k1_ton || 0) * (row.harga_k1_rp || 0);
+    const nk2 = (row.produksi_k2_ton || 0) * (row.harga_k2_rp || 0);
+    const nk3 = (row.produksi_k3_ton || 0) * (row.harga_k3_rp || 0);
+
+    totalNilaiK1 += nk1;
+    totalNilaiK2 += nk2;
+    totalNilaiK3 += nk3;
+
     if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
     if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
     if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
@@ -185,12 +195,14 @@ const exportGaramExcel = (data) => {
       i + 1,
       row.kabupaten_kota,
       row.luas_total_ha?.toLocaleString('id-ID') ?? 0,
+      row.luas_produksi_ha?.toLocaleString('id-ID') ?? 0,
       row.jumlah_kelompok ?? 0,
       row.jumlah_petambak ?? 0,
       row.produksi_k1_ton?.toLocaleString('id-ID') ?? 0,
       row.produksi_k2_ton?.toLocaleString('id-ID') ?? 0,
       row.produksi_k3_ton?.toLocaleString('id-ID') ?? 0,
       row.total_produksi_ton?.toLocaleString('id-ID') ?? 0,
+      row.produktivitas?.toLocaleString('id-ID', { maximumFractionDigits: 3 }) ?? 0,
       row.stok_k1_ton?.toLocaleString('id-ID') ?? 0,
       row.stok_k2_ton?.toLocaleString('id-ID') ?? 0,
       row.stok_k3_ton?.toLocaleString('id-ID') ?? 0,
@@ -198,7 +210,9 @@ const exportGaramExcel = (data) => {
       row.harga_k1_rp?.toLocaleString('id-ID') ?? 0,
       row.harga_k2_rp?.toLocaleString('id-ID') ?? 0,
       row.harga_k3_rp?.toLocaleString('id-ID') ?? 0,
-      row.produktivitas?.toLocaleString('id-ID', { maximumFractionDigits: 3 }) ?? 0,
+      nk1.toLocaleString('id-ID'),
+      nk2.toLocaleString('id-ID'),
+      nk3.toLocaleString('id-ID'),
     ];
   });
 
@@ -209,13 +223,18 @@ const exportGaramExcel = (data) => {
   const totalRow = [
     'TOTAL', '',
     totalLuas.toLocaleString('id-ID'),
+    totalLProd.toLocaleString('id-ID'),
     totalPok,
     totalPetambak,
     '', '', '',
     totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
+    '',
     '', '', '',
     totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
-    avgK1, avgK2, avgK3, ''
+    avgK1, avgK2, avgK3,
+    totalNilaiK1.toLocaleString('id-ID'),
+    totalNilaiK2.toLocaleString('id-ID'),
+    totalNilaiK3.toLocaleString('id-ID'),
   ];
 
   const aoa = [
@@ -248,11 +267,11 @@ const exportGaramExcel = (data) => {
     const r4 = XLSX.utils.encode_cell({ c: C, r: 4 });
     if (!ws[r3]) ws[r3] = { t: 's', v: '' };
     if (!ws[r4]) ws[r4] = { t: 's', v: '' };
-    if (C <= 4) { ws[r3].s = hStyle1; ws[r4].s = hStyle1; }
-    else if (C >= 5 && C <= 8) { ws[r3].s = hProdStyle; ws[r4].s = hProdStyle; }
-    else if (C >= 9 && C <= 12) { ws[r3].s = hStokStyle; ws[r4].s = hStokStyle; }
-    else if (C >= 13 && C <= 15) { ws[r3].s = hStyle2; ws[r4].s = hStyle2; }
-    else { ws[r3].s = hProdukStyle; ws[r4].s = hProdukStyle; }
+    if (C <= 5) { ws[r3].s = hStyle1; ws[r4].s = hStyle1; } // No to Petambak
+    else if (C >= 6 && C <= 10) { ws[r3].s = hProdStyle; ws[r4].s = hProdStyle; } // Prod to Produktivitas
+    else if (C >= 11 && C <= 14) { ws[r3].s = hStokStyle; ws[r4].s = hStokStyle; } // Stok
+    else if (C >= 15 && C <= 17) { ws[r3].s = hStyle2; ws[r4].s = hStyle2; } // Harga
+    else { ws[r3].s = hProdukStyle; ws[r4].s = hProdukStyle; } // Nilai Produksi
   }
 
   const dataStart = 5;
@@ -268,32 +287,34 @@ const exportGaramExcel = (data) => {
   for (let C = range.s.c; C <= range.e.c; C++) {
     const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx });
     if (!ws[ref]) ws[ref] = { t: 's', v: '' };
-    ws[ref].s = (C === 8 || C === 12) ? totalSumStyle : totalStyle;
+    ws[ref].s = (C === 9 || C === 14) ? totalSumStyle : totalStyle;
   }
 
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },
-    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
-    { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } },
-    { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } },
-    { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } },
-    { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } },
-    { s: { r: 3, c: 5 }, e: { r: 3, c: 7 } },
-    { s: { r: 3, c: 8 }, e: { r: 4, c: 8 } },
-    { s: { r: 3, c: 9 }, e: { r: 3, c: 11 } },
-    { s: { r: 3, c: 12 }, e: { r: 4, c: 12 } },
-    { s: { r: 3, c: 13 }, e: { r: 3, c: 15 } },
-    { s: { r: 3, c: 16 }, e: { r: 4, c: 16 } },
-    { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 4 } },
-    { s: { r: totalRowIdx, c: 13 }, e: { r: totalRowIdx, c: 13 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } },
+    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // No
+    { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // Kab
+    { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // L Lahan
+    { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, // L Produksi
+    { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, // Pok
+    { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, // Petambak
+    { s: { r: 3, c: 6 }, e: { r: 3, c: 8 } }, // Prod K1..K3
+    { s: { r: 3, c: 9 }, e: { r: 4, c: 9 } }, // Jml Prod
+    { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, // Produktivitas
+    { s: { r: 3, c: 11 }, e: { r: 3, c: 13 } }, // Stok K1..K3
+    { s: { r: 3, c: 14 }, e: { r: 4, c: 14 } }, // Total Stok
+    { s: { r: 3, c: 15 }, e: { r: 3, c: 17 } }, // Harga K1..K3
+    { s: { r: 3, c: 18 }, e: { r: 3, c: 20 } }, // Nilai K1..K3
+    { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 5 } },
   ];
 
   ws['!cols'] = [
-    { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 8 }, { wch: 12 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
+    { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 16 }, { wch: 16 }, { wch: 16 },
   ];
   ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
 
@@ -418,6 +439,12 @@ export default function AdminKelautanPesisir() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Filters
+  const [filterTahun, setFilterTahun] = useState('');
+  const [filterTw, setFilterTw] = useState('');
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterKab, setFilterKab] = useState('');
 
   // Fetch garam data
   const fetchGaram = useCallback(async () => {
@@ -757,9 +784,17 @@ export default function AdminKelautanPesisir() {
   };
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
-  const activeData = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : [];
-  const activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : [];
+  const activeColumns = activeTab === 'garam' ? columnsGaram : columnsPotensi;
   const activeSubRow = activeTab === 'garam' ? renderSubGaram : activeTab === 'potensi_perairan' ? renderSubPotensi : undefined;
+
+  const filteredData = useMemo(() => {
+    let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : [];
+    if (filterTahun) result = result.filter(d => String(d.tahun || d.tahun_data) === filterTahun);
+    if (filterTw) result = result.filter(d => d.triwulan === filterTw);
+    if (filterBulan) result = result.filter(d => (d.bulan || '').toLowerCase() === filterBulan.toLowerCase());
+    if (filterKab) result = result.filter(d => (d.kabupaten_kota || '').toLowerCase() === filterKab.toLowerCase());
+    return result;
+  }, [activeTab, dataGaram, dataPotensiPerairan, filterTahun, filterTw, filterBulan, filterKab]);
 
   const handleCustomExport = (data) => {
     if (activeTab === 'garam') return exportGaramExcel(data);
@@ -880,17 +915,46 @@ export default function AdminKelautanPesisir() {
                   <p className="text-[#7fb5d5] text-sm">Memuat data...</p>
                 </div>
               ) : (activeTab === 'garam' || activeTab === 'potensi_perairan') ? (
-                <DataTable
-                  columns={activeColumns}
-                  data={activeData}
-                  onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  onDelete={(row) => setItemToDelete(row)}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  renderSubComponent={activeSubRow}
-                  exportName={`Data_${activeTab}`}
-                  onCustomExport={handleCustomExport}
-                />
+                <>
+                  {/* Filters */}
+                  <div className="p-4 border-b border-[#1e3a52] bg-[#152d45]/50 flex flex-wrap gap-4 items-center">
+                    <span className="text-sm font-medium text-[#7fb5d5]">Filter:</span>
+                    <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[120px]">
+                      <option value="">Semua Tahun</option>
+                      {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select value={filterKab} onChange={e => setFilterKab(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[150px]">
+                      <option value="">Semua Kab/Kota</option>
+                      {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                    {activeTab === 'garam' && (
+                      <>
+                        <select value={filterTw} onChange={e => setFilterTw(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[140px]">
+                          <option value="">Semua Triwulan</option>
+                          <option value="TW 1">TW 1</option><option value="TW 2">TW 2</option><option value="TW 3">TW 3</option><option value="TW 4">TW 4</option>
+                        </select>
+                        <select value={filterBulan} onChange={e => setFilterBulan(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[140px]">
+                          <option value="">Semua Bulan</option>
+                          {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </>
+                    )}
+                    {(filterTahun || filterKab || filterTw || filterBulan) && (
+                      <button onClick={() => { setFilterTahun(''); setFilterKab(''); setFilterTw(''); setFilterBulan(''); }} className="text-rose-400 hover:text-rose-300 text-sm font-medium px-3 py-1.5 rounded-lg border border-rose-900/50 hover:bg-rose-900/20 transition-colors">Reset Filter</button>
+                    )}
+                  </div>
+                  <DataTable
+                    columns={activeColumns}
+                    data={filteredData}
+                    onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    onDelete={(row) => setItemToDelete(row)}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    renderSubComponent={activeSubRow}
+                    exportName={`Data_${activeTab}`}
+                    onCustomExport={handleCustomExport}
+                  />
+                </>
               ) : (
                 <div className="p-16 text-center text-[#7fb5d5]">
                   <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
