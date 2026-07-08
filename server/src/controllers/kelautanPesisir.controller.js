@@ -1,6 +1,7 @@
 const prisma = require('../utils/prisma');
 
 const getTriwulan = (bulan) => {
+  if (!bulan) return '-';
   const bulanLower = bulan.toLowerCase();
   if (['januari', 'februari', 'maret'].includes(bulanLower)) return 'TW 1';
   if (['april', 'mei', 'juni'].includes(bulanLower)) return 'TW 2';
@@ -211,22 +212,22 @@ const getKelautanPesisirStats = async (req, res) => {
     const seenKotaGaram = new Set();
 
     garamData.forEach(item => {
-      const k = item.kabupaten_kota;
+      const k = item.kabupaten_kota || 'Tidak Diketahui';
       if (!garamPerKota[k]) garamPerKota[k] = { produksi: 0, luas_lahan: 0, petambak: 0, kelompok: 0 };
       
-      // Accumulate cumulative values
-      total_produksi_garam += item.total_produksi_ton;
-      garamPerKota[k].produksi += item.total_produksi_ton;
+      // Gunakan "|| 0" sebagai sabuk pengaman agar tidak NaN
+      const produksi = item.total_produksi_ton || 0;
+      total_produksi_garam += produksi;
+      garamPerKota[k].produksi += produksi;
 
-      // Only take the latest non-cumulative values for the given filters
       if (!seenKotaGaram.has(k)) {
         seenKotaGaram.add(k);
-        total_petambak_garam += item.jumlah_petambak;
-        total_luas_lahan_garam += item.luas_total_ha;
+        total_petambak_garam += (item.jumlah_petambak || 0);
+        total_luas_lahan_garam += (item.luas_total_ha || 0);
         
-        garamPerKota[k].luas_lahan = item.luas_total_ha;
-        garamPerKota[k].petambak = item.jumlah_petambak;
-        garamPerKota[k].kelompok = item.jumlah_kelompok;
+        garamPerKota[k].luas_lahan = (item.luas_total_ha || 0);
+        garamPerKota[k].petambak = (item.jumlah_petambak || 0);
+        garamPerKota[k].kelompok = (item.jumlah_kelompok || 0);
       }
     });
 
@@ -237,13 +238,20 @@ const getKelautanPesisirStats = async (req, res) => {
     
     const potensiPerKota = {};
     potensiData.forEach(item => {
-      const k = item.kabupaten_kota;
-      const totalPantai = item.panjang_pantai_utara_km + item.panjang_pantai_selatan_km + item.panjang_pantai_timur_km + item.panjang_pantai_barat_km;
+      const k = item.kabupaten_kota || 'Tidak Diketahui';
+      
+      // Sabuk pengaman untuk perhitungan matematika panjang pantai
+      const utara = item.panjang_pantai_utara_km || 0;
+      const selatan = item.panjang_pantai_selatan_km || 0;
+      const timur = item.panjang_pantai_timur_km || 0;
+      const barat = item.panjang_pantai_barat_km || 0;
+      const totalPantai = utara + selatan + timur + barat;
+      
       potensiPerKota[k] = {
-        pulau_kecil: item.jumlah_pulau_kecil,
+        pulau_kecil: item.jumlah_pulau_kecil || 0,
         garis_pantai: totalPantai,
-        luas_laut: item.luas_wilayah_laut_km2,
-        desa_pesisir: item.desa_pesisir
+        luas_laut: item.luas_wilayah_laut_km2 || 0,
+        desa_pesisir: item.desa_pesisir || 0
       };
     });
 
