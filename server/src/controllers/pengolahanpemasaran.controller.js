@@ -758,6 +758,132 @@ const deleteData = async (req, res) => {
   }
 };
 
+
+const batchStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({
+        success: false,
+        message: 'Hanya Admin Pusat yang dapat memvalidasi atau menolak data',
+      });
+    }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada data yang dipilih',
+      });
+    }
+
+    const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status tidak valid',
+      });
+    }
+
+    if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Alasan penolakan wajib diisi',
+      });
+    }
+
+    const parsedIds = ids
+      .map(id => parseInt(id, 10))
+      .filter(id => Number.isInteger(id));
+
+    let whereStatus = {};
+
+    if (status === 'APPROVED_BIDANG') {
+      whereStatus = { status: 'PENDING' };
+    }
+
+    if (status === 'APPROVED') {
+      whereStatus = { status: 'APPROVED_BIDANG' };
+    }
+
+    if (status === 'REJECTED') {
+      whereStatus = {
+        status: {
+          in: ['PENDING', 'APPROVED_BIDANG'],
+        },
+      };
+    }
+
+    const result = await prisma.pengolahanPemasaran.updateMany({
+      where: {
+        id: { in: parsedIds },
+        ...whereStatus,
+      },
+      data: {
+        status,
+        alasan_penolakan:
+          status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `${result.count} data berhasil diproses`,
+      count: result.count,
+    });
+  } catch (error) {
+    console.error('Error batch status pengolahan pemasaran:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const batchDelete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada data yang dipilih',
+      });
+    }
+
+    const parsedIds = ids
+      .map(id => parseInt(id, 10))
+      .filter(id => Number.isInteger(id));
+
+    const where = {
+      id: { in: parsedIds },
+    };
+
+    if (req.user?.role === 'admin_cabang') {
+      where.status = {
+        in: ['PENDING', 'REJECTED'],
+      };
+    }
+
+    const result = await prisma.pengolahanPemasaran.deleteMany({ where });
+
+    res.json({
+      success: true,
+      message: `${result.count} data berhasil dihapus`,
+      count: result.count,
+    });
+  } catch (error) {
+    console.error('Error batch delete pengolahan pemasaran:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllData,
   getAdminData,
@@ -767,4 +893,6 @@ module.exports = {
   updateData,
   deleteData,
   updateStatus,
+  batchStatus,
+  batchDelete,
 };

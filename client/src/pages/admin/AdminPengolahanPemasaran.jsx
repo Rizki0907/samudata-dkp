@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search } from 'lucide-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
 import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm';
 import ReactECharts from 'echarts-for-react';
@@ -354,6 +355,118 @@ const createInitialForm = initialData => {
   return form;
 };
 
+
+function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const normalizedValues = Array.isArray(values) ? values : [];
+  const filteredOptions = options.filter(option =>
+    String(option).toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const toggleOption = option => {
+    onChange(
+      normalizedValues.includes(option)
+        ? normalizedValues.filter(item => item !== option)
+        : [...normalizedValues, option],
+    );
+  };
+
+  const selectedText =
+    normalizedValues.length === 0
+      ? placeholder
+      : normalizedValues.length === 1
+        ? normalizedValues[0]
+        : `${normalizedValues.length} dipilih`;
+
+  return (
+    <div className="relative">
+      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen(previous => !previous)}
+        className={`${FILTER_SELECT_CLASS} flex items-center justify-between gap-3 text-left`}
+      >
+        <span className={normalizedValues.length ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
+          {selectedText}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 right-0 z-40 mt-2 rounded-2xl border border-border bg-card p-3 shadow-xl">
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              placeholder={`Cari ${label.toLowerCase()}...`}
+              className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(options)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Pilih Semua
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Bersihkan
+            </button>
+          </div>
+
+          <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+            {filteredOptions.length ? (
+              filteredOptions.map(option => {
+                const checked = normalizedValues.includes(option);
+
+                return (
+                  <label
+                    key={option}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                      checked
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleOption(option)}
+                      className="h-4 w-4 rounded border-border accent-primary"
+                    />
+                    <span className="truncate">{option}</span>
+                  </label>
+                );
+              })
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                Tidak ada pilihan yang cocok.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function StatusBadge({ status, alasan }) {
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
   let label = 'PENDING';
@@ -404,16 +517,19 @@ const getJenisDetail = row =>
     : row.jenis_kegiatan_pemasaran;
 
 export default function AdminPengolahanPemasaran() {
+  const { user } = useAuthStore();
+  const isAdminPusat = user?.role === 'admin_pusat';
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterKabupaten, setFilterKabupaten] = useState('');
-  const [filterJenisKegiatan, setFilterJenisKegiatan] = useState('');
-  const [filterSkalaUsaha, setFilterSkalaUsaha] = useState('');
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterKabupaten, setFilterKabupaten] = useState([]);
+  const [filterJenisKegiatan, setFilterJenisKegiatan] = useState([]);
+  const [filterSkalaUsaha, setFilterSkalaUsaha] = useState([]);
 
   // Tab aktif: 'table' (Tabel Data) atau 'visualisasi' (Visualisasi Statistik)
   const [activeTab, setActiveTab] = useState('table');
@@ -434,10 +550,13 @@ export default function AdminPengolahanPemasaran() {
     try {
       setStatsLoading(true);
       const params = new URLSearchParams();
-      if (filterTahun) params.append('tahun', filterTahun);
-      if (filterKabupaten) params.append('kabupaten_kota', filterKabupaten);
-      if (filterJenisKegiatan) params.append('jenis_kegiatan', filterJenisKegiatan);
-      if (filterSkalaUsaha) params.append('skala_usaha', filterSkalaUsaha);
+      // Backend dashboard-stats saat ini masih memakai filter single value.
+      // Kalau user memilih lebih dari satu opsi, filter tetap berjalan di tabel,
+      // sedangkan visualisasi tidak dipaksa mengirim format yang belum didukung backend.
+      if (filterTahun.length === 1) params.append('tahun', filterTahun[0]);
+      if (filterKabupaten.length === 1) params.append('kabupaten_kota', filterKabupaten[0]);
+      if (filterJenisKegiatan.length === 1) params.append('jenis_kegiatan', filterJenisKegiatan[0]);
+      if (filterSkalaUsaha.length === 1) params.append('skala_usaha', filterSkalaUsaha[0]);
 
       const response = await api.get(`/pengolahan-pemasaran/dashboard-stats?${params.toString()}`);
 
@@ -887,6 +1006,160 @@ export default function AdminPengolahanPemasaran() {
     }
   };
 
+
+  const handleBatchApprove = async ids => {
+    if (!isAdminPusat) {
+      alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+      return;
+    }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    const selectedIdSet = new Set(ids.map(id => String(id)));
+    const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+
+    if (!selectedRows.length) {
+      alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
+      return;
+    }
+
+    if (selectedRows.some(row => row.status === 'APPROVED')) {
+      alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
+      return;
+    }
+
+    if (selectedRows.some(row => row.status === 'REJECTED')) {
+      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+      return;
+    }
+
+    const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
+
+    if (selectedStatuses.length > 1) {
+      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED_BIDANG.');
+      return;
+    }
+
+    const currentStatus = selectedStatuses[0];
+    let promptMsg = '';
+
+    if (currentStatus === 'PENDING') {
+      promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
+    } else if (currentStatus === 'APPROVED_BIDANG') {
+      promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
+    } else {
+      alert('Status data terpilih tidak valid untuk proses validasi.');
+      return;
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+
+    if (jenis === '1') {
+      if (currentStatus !== 'PENDING') {
+        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+        return;
+      }
+
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      if (currentStatus !== 'APPROVED_BIDANG') {
+        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+        return;
+      }
+
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Ketik 1 atau 2.');
+      return;
+    }
+
+    const confirmText = window.prompt(
+      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
+    );
+
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-status', {
+        ids,
+        status: targetStatus,
+      });
+
+      await fetchData();
+      await fetchStats();
+    } catch (error) {
+      console.error('Error batch approve:', error);
+      alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchReject = async ids => {
+    if (!isAdminPusat) {
+      alert('Hanya Admin Pusat yang dapat menolak data.');
+      return;
+    }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    if (alasan === null) return;
+
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi.');
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-status', {
+        ids,
+        status: 'REJECTED',
+        alasan_penolakan: alasan.trim(),
+      });
+
+      await fetchData();
+      await fetchStats();
+    } catch (error) {
+      console.error('Error batch reject:', error);
+      alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchDelete = async ids => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    if (!window.confirm(`Yakin ingin menghapus ${ids.length} data terpilih?`)) {
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-delete', { ids });
+
+      await fetchData();
+      await fetchStats();
+    } catch (error) {
+      console.error('Error batch delete:', error);
+      alert(`Gagal menghapus data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
   const tahunOptions = useMemo(
     () =>
       [...new Set(data.map(item => String(item.tahun ?? '')).filter(Boolean))].sort(
@@ -898,10 +1171,10 @@ export default function AdminPengolahanPemasaran() {
   const filteredData = useMemo(
     () =>
       data.filter(item => {
-        if (filterTahun && String(item.tahun) !== filterTahun) return false;
-        if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
-        if (filterJenisKegiatan && item.jenis_kegiatan !== filterJenisKegiatan) return false;
-        if (filterSkalaUsaha && item.skala_usaha !== filterSkalaUsaha) return false;
+        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.jenis_kegiatan)) return false;
+        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
         return true;
       }),
     [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
@@ -926,14 +1199,27 @@ export default function AdminPengolahanPemasaran() {
         cell: info => <span className="font-medium text-foreground">{info.getValue()}</span>,
       },
       { header: 'Nama UPI', accessorKey: 'nama_upi' },
+      { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
       {
         header: 'Jenis Kegiatan',
         accessorKey: 'jenis_kegiatan',
-        cell: info => (
-          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-            {info.getValue() || '-'}
-          </span>
-        ),
+        cell: info => {
+          const value = info.getValue();
+          const colorClass =
+            value === 'Pengolahan'
+              ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+              : value === 'Pemasaran'
+                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                : 'bg-muted text-muted-foreground border-border';
+
+          return (
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
+            >
+              {value || '-'}
+            </span>
+          );
+        },
       },
       {
         header: 'Jenis Detail',
@@ -946,6 +1232,16 @@ export default function AdminPengolahanPemasaran() {
         header: 'Hasil/Tahun (Kg)',
         accessorKey: 'hasil_produksi_per_tahun_kg',
         cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
+      },
+      {
+        header: 'Nilai Hasil Produksi/Tahun (Rp)',
+        accessorKey: 'nilai_hasil_produksi_per_tahun_rp',
+        cell: info =>
+          new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+          }).format(toNumber(info.getValue())),
       },
       {
         header: 'Total Tenaga Kerja',
@@ -963,8 +1259,11 @@ export default function AdminPengolahanPemasaran() {
         data={filteredData}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onApprove={handleApprove}
-        onReject={handleReject}
+        onApprove={isAdminPusat ? handleApprove : undefined}
+        onReject={isAdminPusat ? handleReject : undefined}
+        onBatchApprove={isAdminPusat ? handleBatchApprove : undefined}
+        onBatchReject={isAdminPusat ? handleBatchReject : undefined}
+        onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
         exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
       />
     </div>
@@ -1210,73 +1509,37 @@ export default function AdminPengolahanPemasaran() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Tahun
-                  </label>
-                  <select
-                    value={filterTahun}
-                    onChange={event => setFilterTahun(event.target.value)}
-                    className={FILTER_SELECT_CLASS}
-                  >
-                    <option value="">Semua Tahun</option>
-                    {tahunOptions.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FilterMultiSelect
+                  label="Tahun"
+                  values={filterTahun}
+                  options={tahunOptions}
+                  onChange={setFilterTahun}
+                  placeholder="Semua Tahun"
+                />
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Kabupaten/Kota
-                  </label>
-                  <select
-                    value={filterKabupaten}
-                    onChange={event => setFilterKabupaten(event.target.value)}
-                    className={FILTER_SELECT_CLASS}
-                  >
-                    <option value="">Semua Kabupaten/Kota</option>
-                    {KABUPATEN_KOTA_OPTIONS.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FilterMultiSelect
+                  label="Kabupaten/Kota"
+                  values={filterKabupaten}
+                  options={KABUPATEN_KOTA_OPTIONS}
+                  onChange={setFilterKabupaten}
+                  placeholder="Semua Kabupaten/Kota"
+                />
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Jenis Kegiatan
-                  </label>
-                  <select
-                    value={filterJenisKegiatan}
-                    onChange={event => setFilterJenisKegiatan(event.target.value)}
-                    className={FILTER_SELECT_CLASS}
-                  >
-                    <option value="">Semua Jenis Kegiatan</option>
-                    <option value="Pengolahan">Pengolahan</option>
-                    <option value="Pemasaran">Pemasaran</option>
-                  </select>
-                </div>
+                <FilterMultiSelect
+                  label="Jenis Kegiatan"
+                  values={filterJenisKegiatan}
+                  options={['Pengolahan', 'Pemasaran']}
+                  onChange={setFilterJenisKegiatan}
+                  placeholder="Semua Jenis Kegiatan"
+                />
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Skala Usaha
-                  </label>
-                  <select
-                    value={filterSkalaUsaha}
-                    onChange={event => setFilterSkalaUsaha(event.target.value)}
-                    className={FILTER_SELECT_CLASS}
-                  >
-                    <option value="">Semua Skala Usaha</option>
-                    <option value="Mikro">Mikro</option>
-                    <option value="Kecil">Kecil</option>
-                    <option value="Menengah">Menengah</option>
-                    <option value="Besar">Besar</option>
-                  </select>
-                </div>
+                <FilterMultiSelect
+                  label="Skala Usaha"
+                  values={filterSkalaUsaha}
+                  options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
+                  onChange={setFilterSkalaUsaha}
+                  placeholder="Semua Skala Usaha"
+                />
               </div>
             </div>
           </div>

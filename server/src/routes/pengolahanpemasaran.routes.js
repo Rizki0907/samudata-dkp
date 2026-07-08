@@ -11,6 +11,8 @@ router.get('/', pengolahanPemasaranController.getAllData);
 // Protected routes
 router.get('/admin', verifyToken, pengolahanPemasaranController.getAdminData);
 router.post('/', verifyToken, pengolahanPemasaranController.createData);
+router.post('/batch-status', verifyToken, pengolahanPemasaranController.batchStatus);
+router.post('/batch-delete', verifyToken, pengolahanPemasaranController.batchDelete);
 router.put('/:id', verifyToken, pengolahanPemasaranController.updateData);
 router.delete('/:id', verifyToken, pengolahanPemasaranController.deleteData);
 router.put('/:id/status', verifyToken, pengolahanPemasaranController.updateStatus);
