@@ -398,7 +398,7 @@ const batchDelete = async (req, res) => {
     }
     
     // Hapus child table dulu (Tangkapan)
-    await prisma.tangkapan.deleteMany({
+    await prisma.detailTangkapan.deleteMany({
       where: { perikanan_tangkap_id: { in: ids.map(id => parseInt(id)) } }
     });
     

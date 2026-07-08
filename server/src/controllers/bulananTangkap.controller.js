@@ -85,6 +85,15 @@ const syncDataBulananInternal = async () => {
         });
       }
     }
+
+    // Cleanup: hapus baris yang kosong/yatim (tidak memiliki data mentah) bahkan jika sempat dimodifikasi admin
+    await prisma.dataBulananTangkap.deleteMany({
+      where: {
+        original_volume: 0,
+        original_nilai: 0
+      }
+    });
+
     return true;
   } catch (error) {
     console.error('Error syncing data bulanan:', error);

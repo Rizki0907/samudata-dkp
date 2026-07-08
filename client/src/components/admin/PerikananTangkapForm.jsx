@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS } from '@/utils/constants';
+import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -209,12 +209,15 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
-              <label className="block text-sm font-medium mb-2">Tanggal</label>
+              <label className="block text-sm font-medium mb-2">{isPUD ? "Bulan Laporan" : "Tanggal"}</label>
               <input 
-                type="date" 
+                type={isPUD ? "month" : "date"} 
                 name="tanggal"
-                value={formData.tanggal}
-                onChange={handleChange}
+                value={isPUD && formData.tanggal ? formData.tanggal.substring(0, 7) : formData.tanggal}
+                onChange={(e) => {
+                  const val = isPUD ? `${e.target.value}-01` : e.target.value;
+                  setFormData({ ...formData, tanggal: val });
+                }}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tanggal ? "border-destructive" : "border-input")}
               />
               {errors.tanggal && <p className="text-xs text-destructive mt-1">{errors.tanggal}</p>}
@@ -358,6 +361,17 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
             {isPUD && (
               <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Jenis Perahu / GT</label>
+                  <select 
+                    name="gt_kapal"
+                    value={formData.gt_kapal}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                  >
+                    {PUD_JENIS_PERAHU_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Total Populasi Alat (SP-1)</label>
                   <input 

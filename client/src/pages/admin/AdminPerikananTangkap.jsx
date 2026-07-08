@@ -10,14 +10,16 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
+import { useAuthStore } from '@/store/authStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 export default function AdminPerikananTangkap() {
+  const user = useAuthStore(state => state.user);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -358,6 +360,143 @@ export default function AdminPerikananTangkap() {
     };
   }, [filteredData, chartHargaKomoditas, chartHargaWilayah]);
 
+  const handleExportLaporanPUD = async () => {
+    try {
+      const dateStr = filterTahun ? (filterBulan ? `${filterBulan}/${filterTahun}` : filterTahun) : 'Semua Waktu';
+      
+      const row0 = [`REKAPITULASI DATA PRODUKSI PUD`];
+      const row1 = [`Waktu : ${dateStr}`];
+      const row2 = [];
+      const row3 = ['1. PRODUKSI PUD'];
+      
+      const row4 = ['NO', 'TANGGAL', 'CABANG SUMBER', 'WILAYAH / KABUPATEN', 'Jenis Perairan', 'Alat Tangkap', 'Populasi Alat', 'Jenis Perahu', 'Total Produksi', '', 'I k a n'];
+      const row5 = ['', '', '', '', '', '', '', '', '', '', ''];
+      const row6 = ['', '', '', '', '', '', '', '', 'Volume', 'Nilai', ''];
+      
+      const komoditasArray = [...KOMODITAS_PUD_OPTIONS];
+
+      const pudData = filteredData.filter(d => d.sumber_data === 'PUD');
+
+      const dataRows = pudData.map((row, index) => {
+        const baseRow = [
+          index + 1,
+          row.tanggal ? row.tanggal.split('T')[0] : '-',
+          'PUD',
+          row.kabupaten_kota || '-',
+          row.jenis_perairan || '-',
+          row.alat_tangkap || '-',
+          row.pud_populasi_alat || '-',
+          row.pud_jenis_perahu || '-',
+          row.volume,
+          row.nilai
+        ];
+
+        const komMap = {};
+        if (row.tangkapan) {
+          row.tangkapan.forEach(t => { 
+            komMap[t.komoditas] = { vol: t.volume, nilai: t.nilai };
+          });
+        }
+
+        komoditasArray.forEach(kom => {
+          if (komMap[kom]) {
+            baseRow.push(komMap[kom].vol, komMap[kom].nilai);
+          } else {
+            baseRow.push(0, 0);
+          }
+        });
+
+        return baseRow;
+      });
+
+      komoditasArray.forEach(kom => {
+        row4.push('', '');
+        row5.push(kom, '');
+        row6.push('Volume', 'Nilai');
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet([row0, row1, row2, row3, row4, row5, row6, ...dataRows]);
+
+      const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      const headerStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
+      const komoditasHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
+      const dataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
+      const titleStyle = { font: { bold: true, sz: 12 }, alignment: { horizontal: 'left', vertical: 'center' } };
+
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+          if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+
+          if (R < 4) {
+            if (C === 0) ws[cellRef].s = titleStyle;
+          } else if (R >= 4 && R <= 6) {
+            ws[cellRef].s = C > 9 ? komoditasHeaderStyle : headerStyle;
+          } else {
+            ws[cellRef].s = dataStyle;
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) {
+                ws[cellRef].v = '-';
+                ws[cellRef].t = 's';
+              } else {
+                ws[cellRef].z = '#,##0';
+              }
+            }
+          }
+        }
+      }
+
+      const merges = [
+        { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } },
+        { s: { r: 4, c: 1 }, e: { r: 6, c: 1 } },
+        { s: { r: 4, c: 2 }, e: { r: 6, c: 2 } },
+        { s: { r: 4, c: 3 }, e: { r: 6, c: 3 } },
+        { s: { r: 4, c: 4 }, e: { r: 6, c: 4 } },
+        { s: { r: 4, c: 5 }, e: { r: 6, c: 5 } },
+        { s: { r: 4, c: 6 }, e: { r: 6, c: 6 } },
+        { s: { r: 4, c: 7 }, e: { r: 6, c: 7 } },
+        { s: { r: 4, c: 8 }, e: { r: 4, c: 9 } },
+        { s: { r: 5, c: 8 }, e: { r: 6, c: 8 } },
+        { s: { r: 5, c: 9 }, e: { r: 6, c: 9 } }
+      ];
+      
+      let currentCol = 10;
+      komoditasArray.forEach(() => {
+        merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 1 } });
+        currentCol += 2;
+      });
+      
+      merges.push({ s: { r: 4, c: 10 }, e: { r: 4, c: currentCol - 1 } });
+      ws['!merges'] = merges;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Rekap_Sistem");
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+      // Fetch the master ZIP and inject the new excel
+      const JSZip = (await import('jszip')).default;
+      const { saveAs } = await import('file-saver');
+
+      const response = await fetch('/PUD_Master_Templates.zip');
+      if (!response.ok) throw new Error("Gagal mengambil master template PUD");
+      const blob = await response.blob();
+      
+      const zip = await JSZip.loadAsync(blob);
+      
+      // Inject Rekap Sistem PUD
+      zip.file(`REKAP_DATA_SISTEM_PUD_${dateStr.replace('/', '-')}.xlsx`, excelBuffer);
+
+      // Save Zip
+      const finalZipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(finalZipBlob, `Laporan_Master_PUD_${dateStr.replace('/', '-')}.zip`);
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal melakukan export PUD: " + err.message);
+    }
+  };
+
   const handleExportLaporanPelabuhan = () => {
     if (!filterWilayah) return;
     const pelabuhanName = filterWilayah.toUpperCase();
@@ -383,7 +522,7 @@ export default function AdminPerikananTangkap() {
     const row6 = ['', '', '', '', '', '', '', '', '', '', '', 'Volume', 'Nilai'];
     
     const komoditasTotalMap = {};
-    const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+    const komoditasArray = [...KOMODITAS_OPTIONS];
     komoditasArray.forEach(kom => {
       row5.push(kom, '', '');
       row6.push('Vol', 'Harga', 'Nilai');
@@ -501,7 +640,7 @@ export default function AdminPerikananTangkap() {
     const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
 
     const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-    const boldCenter = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
+    const boldCenter = { font: { bold: true, color: { rgb: "000000" } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
     const normalCenter = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
     
     // Style khusus untuk baris bawah
@@ -523,22 +662,47 @@ export default function AdminPerikananTangkap() {
         if (R === 0) ws[cellRef].s = { font: { bold: true, sz: 14 } };
         else if (R === 3) ws[cellRef].s = { font: { bold: true } };
         else if (R >= 4 && R <= 6) ws[cellRef].s = boldCenter;
-        else if (R >= 7 && R < 7 + dataRows.length) ws[cellRef].s = normalCenter;
-        else if (R === 7 + dataRows.length) {
+        else if (R >= 7 && R < 7 + dataRows.length) {
+            ws[cellRef].s = normalCenter;
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
+        } else if (R === 7 + dataRows.length) {
             // TOTAL TANGKAPAN (Seluruh Kolom)
             ws[cellRef].s = totalRowStyle1; 
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
         } else if (R === 7 + dataRows.length + 1) {
             // Nilai (Seluruh Kolom)
             ws[cellRef].s = totalRowStyle2;
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
         } else if (R === summaryStartRowIndex || R === summaryStartRowIndex + 1 || R === summaryStartRowIndex + 2) {
             // SUMMARY HEADER
             if (C <= 5) ws[cellRef].s = summaryHeaderStyle1;
         } else if (R > summaryStartRowIndex + 2 && R < summaryStartRowIndex + 3 + summaryRows.length) {
             // SUMMARY DATA
-            if (C <= 5) ws[cellRef].s = summaryDataStyle;
+            if (C <= 5) {
+              ws[cellRef].s = summaryDataStyle;
+              if (typeof ws[cellRef].v === 'number') {
+                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+                else ws[cellRef].z = '#,##0';
+              }
+            }
         } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
             // SUMMARY TOTAL
-            if (C <= 5) ws[cellRef].s = summaryTotalStyle;
+            if (C <= 5) {
+              ws[cellRef].s = summaryTotalStyle;
+              if (typeof ws[cellRef].v === 'number') {
+                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+                else ws[cellRef].z = '#,##0';
+              }
+            }
         }
       }
     }
@@ -857,20 +1021,30 @@ export default function AdminPerikananTangkap() {
                 <Filter className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi & Unduh Data)</h3>
               </div>
-              {filterWilayah && filterCabang === 'PELABUHAN' && (
-                <button
-                  onClick={handleExportLaporanPelabuhan}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-sm"
-                >
-                  <FileText className="w-4 h-4" />
-                  Unduh Laporan Pelabuhan
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {filterCabang === 'PUD' && (
+                  <button
+                    onClick={handleExportLaporanPUD}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Unduh Laporan Master PUD (ZIP)
+                  </button>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cabang Sumber</label>
-                <select value={filterCabang} onChange={(e) => setFilterCabang(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                <select 
+                  value={filterCabang} 
+                  onChange={(e) => {
+                    setFilterCabang(e.target.value);
+                    setFilterWilayah('');
+                    setFilterKomoditas('');
+                  }} 
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
                   <option value="">Semua Cabang</option>
                   <option value="PELABUHAN">Pelabuhan</option>
                   <option value="PUD">PUD</option>
@@ -893,20 +1067,28 @@ export default function AdminPerikananTangkap() {
                   </select>
                 </div>
               )}
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
-                <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Wilayah</option>
-                  {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Komoditas</option>
-                  {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              </div>
+              {filterCabang && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
+                    <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Wilayah</option>
+                      {filterCabang === 'PELABUHAN'
+                        ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
+                    <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Komoditas</option>
+                      {filterCabang === 'PUD'
+                        ? KOMODITAS_PUD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        : KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -925,12 +1107,18 @@ export default function AdminPerikananTangkap() {
                 columns={columns}
                 data={filteredData}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                searchable={true}
+                exportable={true}
+                onEdit={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? (row) => {
+                  setSelectedData(row);
+                  setIsFormOpen(true);
+                } : undefined}
+                onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onBatchApprove={handleBatchApprove}
                 onBatchReject={handleBatchReject}
-                onBatchDelete={handleBatchDelete}
+                onBatchDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleBatchDelete : undefined}
                 canBatchApprove={(selectedRows) => selectedRows.some(row => 
                   (user?.role === 'admin_pusat' && row.status === 'APPROVED_BIDANG') || 
                   (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
@@ -943,6 +1131,18 @@ export default function AdminPerikananTangkap() {
                 )}
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
+                customExportButton={
+                  filterWilayah && filterCabang === 'PELABUHAN' ? (
+                    <button
+                      onClick={handleExportLaporanPelabuhan}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
+                      title="Unduh Laporan Pelabuhan"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Unduh Laporan Pelabuhan
+                    </button>
+                  ) : null
+                }
                 onCustomExport={(exportData) => {
                   const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
 
@@ -1011,28 +1211,36 @@ export default function AdminPerikananTangkap() {
                       if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
 
                       if (R === 0) {
-                        ws[cellRef].s = C > 9 ? komoditasHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 10 ? komoditasHeaderStyle : headerStyle;
                       } else if (R === 1) {
-                        ws[cellRef].s = C > 9 ? subHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 10 ? subHeaderStyle : headerStyle;
                       } else {
                         ws[cellRef].s = dataStyle;
+                        if (typeof ws[cellRef].v === 'number') {
+                          if (ws[cellRef].v === 0) {
+                            ws[cellRef].v = '-';
+                            ws[cellRef].t = 's';
+                          } else {
+                            ws[cellRef].z = '#,##0';
+                          }
+                        }
                       }
                     }
                   }
 
                   const merges = [];
-                  for (let i = 0; i <= 9; i++) {
+                  for (let i = 0; i <= 10; i++) {
                     merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
                   }
                   
-                  let currentCol = 10;
+                  let currentCol = 11;
                   komoditasArray.forEach(() => {
                     merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
                     currentCol += 3;
                   });
                   ws['!merges'] = merges;
 
-                  const colWidths = [{ wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
+                  const colWidths = [{ wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
                   komoditasArray.forEach(() => {
                     colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
                   });
@@ -1111,60 +1319,7 @@ export default function AdminPerikananTangkap() {
                 </div>
               </div>
 
-              {/* PERBANDINGAN HARGA KOMODITAS */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Perbandingan Harga Komoditas (Rp/Kg)</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select value={chartHargaKomoditas} onChange={(e) => setChartHargaKomoditas(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50">
-                      {KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                    
-                    <div className="relative group">
-                      <button className="px-3 py-2 border rounded-lg bg-background text-sm flex items-center gap-2 hover:bg-muted transition-colors">
-                         Pilih Wilayah ({chartHargaWilayah.length > 0 ? chartHargaWilayah.length : 'Top 10'})
-                      </button>
-                      <div className="absolute top-full right-0 mt-1 w-64 bg-card border rounded-lg shadow-xl p-2 hidden group-hover:flex flex-col gap-1 max-h-64 overflow-y-auto z-50">
-                         {PELABUHAN_OPTIONS.map(opt => (
-                            <label key={opt} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
-                               <input 
-                                 type="checkbox" 
-                                 className="rounded border-border text-primary focus:ring-primary"
-                                 checked={chartHargaWilayah.includes(opt)} 
-                                 onChange={(e) => {
-                                   if (e.target.checked) {
-                                      setChartHargaWilayah(prev => [...prev, opt]);
-                                   } else {
-                                      setChartHargaWilayah(prev => prev.filter(x => x !== opt));
-                                   }
-                                 }} 
-                               />
-                               <span className="text-sm truncate text-foreground">{opt}</span>
-                            </label>
-                         ))}
-                         {chartHargaWilayah.length > 0 && (
-                            <button 
-                              onClick={() => setChartHargaWilayah([])}
-                              className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium py-1 border-t"
-                            >
-                              Reset Wilayah (Kembali ke Top 10)
-                            </button>
-                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {computedStats.hargaCategories && computedStats.hargaCategories.length > 0 ? (
-                  <ReactECharts option={hargaChartOption} style={{ height: '400px', width: '100%' }} />
-                ) : (
-                  <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
-                    Belum ada data pelabuhan untuk komoditas ini
-                  </div>
-                )}
-              </div>
+
             </div>
           )
         )

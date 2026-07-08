@@ -7,7 +7,7 @@ import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, F
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDate } from '@/utils/dateHelper';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS } from '@/utils/constants';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
@@ -474,60 +474,7 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* PERBANDINGAN HARGA */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Perbandingan Harga Komoditas (Rp/Kg)</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <select value={chartHargaKomoditas} onChange={(e) => setChartHargaKomoditas(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50">
-              {[...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
 
-            <div className="relative group">
-              <button className="px-3 py-2 border rounded-lg bg-background text-sm flex items-center gap-2 hover:bg-muted transition-colors">
-                 Pilih Wilayah ({chartHargaWilayah.length > 0 ? chartHargaWilayah.length : 'Top 10'})
-              </button>
-              <div className="absolute top-full right-0 mt-1 w-64 bg-card border rounded-lg shadow-xl p-2 hidden group-hover:flex flex-col gap-1 max-h-64 overflow-y-auto z-50">
-                 {PELABUHAN_OPTIONS.map(opt => (
-                    <label key={opt} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
-                       <input 
-                         type="checkbox" 
-                         className="rounded border-border text-primary focus:ring-primary"
-                         checked={chartHargaWilayah.includes(opt)} 
-                         onChange={(e) => {
-                           if (e.target.checked) {
-                              setChartHargaWilayah(prev => [...prev, opt]);
-                           } else {
-                              setChartHargaWilayah(prev => prev.filter(x => x !== opt));
-                           }
-                         }} 
-                       />
-                       <span className="text-sm truncate text-foreground">{opt}</span>
-                    </label>
-                 ))}
-                 {chartHargaWilayah.length > 0 && (
-                    <button 
-                      onClick={() => setChartHargaWilayah([])}
-                      className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium py-1 border-t"
-                    >
-                      Reset Wilayah (Kembali ke Top 10)
-                    </button>
-                 )}
-              </div>
-            </div>
-          </div>
-        </div>
-        {hargaData.categories && hargaData.categories.length > 0 ? (
-          <ReactECharts option={hargaChartOption} style={{ height: '400px', width: '100%' }} />
-        ) : (
-          <div className="h-[400px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
-            Belum ada data pelabuhan untuk komoditas ini
-          </div>
-        )}
-      </div>
 
       {/* Table Section with SUPER FILTERS */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -540,7 +487,15 @@ export default function PerikananTangkap() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cabang Sumber</label>
-              <select value={filterCabang} onChange={(e) => setFilterCabang(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+              <select 
+                value={filterCabang} 
+                onChange={(e) => {
+                  setFilterCabang(e.target.value);
+                  setFilterWilayah('');
+                  setFilterKomoditas('');
+                }} 
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+              >
                 <option value="">Semua Cabang</option>
                 <option value="PELABUHAN">Pelabuhan</option>
                 <option value="PUD">PUD</option>
@@ -554,20 +509,28 @@ export default function PerikananTangkap() {
                 {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
-              <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="">Semua Wilayah</option>
-                {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-              <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="">Semua Komoditas</option>
-                {[...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
+            {filterCabang && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
+                  <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Wilayah</option>
+                    {filterCabang === 'PELABUHAN'
+                      ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                      : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
+                  <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Komoditas</option>
+                    {filterCabang === 'PUD'
+                      ? KOMODITAS_PUD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                      : KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -664,12 +627,14 @@ export default function PerikananTangkap() {
                   bottom: { style: 'thin' }, right: { style: 'thin' }
                 };
                 if (typeof cell.value === 'number') {
-                  cell.alignment = { horizontal: 'right' };
-                  if (colNumber === 5 || (colNumber > 5 && colNumber % 2 !== 0)) {
-                    cell.numFmt = '#,##0.00';
+                  cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                  if (cell.value === 0) {
+                    cell.value = '-';
                   } else {
                     cell.numFmt = '#,##0';
                   }
+                } else {
+                  cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
               });
             });

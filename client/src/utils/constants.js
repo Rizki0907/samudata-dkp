@@ -366,3 +366,13 @@ export const ALAT_TANGKAP_PUD_OPTIONS = [
   "Jaring insang berlapis", "Jaring insang kombinasi", "Set net", "Bubu", "Pancing ulur", 
   "Pancing berjoran", "Rawai", "Tombak", "Ladung", "Panah", "Pukat dorong", "Seser", "Pocongan"
 ];
+
+export const PUD_JENIS_PERAHU_OPTIONS = [
+  'Tanpa Perahu',
+  'Perahu Tanpa Motor',
+  'Motor Tempel < 5 GT',
+  'Kapal Motor 5-10 GT',
+  'Kapal Motor 10-20 GT',
+  'Kapal Motor 20-30 GT',
+  'Kapal Motor >30 GT'
+];
