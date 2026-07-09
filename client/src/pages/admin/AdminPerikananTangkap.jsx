@@ -10,7 +10,7 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -37,6 +37,7 @@ export default function AdminPerikananTangkap() {
   // Local Chart Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
+  const [filterKabKotaChart, setFilterKabKotaChart] = useState('');
 
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
@@ -359,6 +360,152 @@ export default function AdminPerikananTangkap() {
       hargaSeries
     };
   }, [filteredData, chartHargaKomoditas, chartHargaWilayah]);
+
+  const lautVsPudData = useMemo(() => {
+    let totalLaut = 0;
+    let totalPud = 0;
+    
+    filteredData.forEach(row => {
+      let kabKota = row.pelabuhan || row.kabupaten_kota || '';
+      if (row.sumber_data === 'PELABUHAN') {
+        kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
+      }
+      
+      if (filterKabKotaChart && kabKota !== filterKabKotaChart) return;
+      
+      let vol = 0;
+      if (row.tangkapan && Array.isArray(row.tangkapan)) {
+        vol = row.tangkapan.reduce((sum, t) => sum + (Number(t.volume) || 0), 0);
+      }
+      
+      if (row.sumber_data === 'PUD') {
+        totalPud += vol;
+      } else {
+        totalLaut += vol;
+      }
+    });
+    
+    return {
+      laut: totalLaut,
+      pud: totalPud,
+      total: totalLaut + totalPud
+    };
+  }, [filteredData, filterKabKotaChart]);
+
+  const topKomoditasUnggulan = useMemo(() => {
+    const komoditasMap = {};
+    filteredData.forEach(row => {
+      let kabKota = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      if (row.sumber_data === 'PELABUHAN') {
+        kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
+      }
+      
+      if (row.tangkapan && Array.isArray(row.tangkapan)) {
+        row.tangkapan.forEach(t => {
+          const kom = t.komoditas;
+          const vol = Number(t.volume) || 0;
+          if (!komoditasMap[kom]) komoditasMap[kom] = { total: 0, wilayahMap: {} };
+          komoditasMap[kom].total += vol;
+          
+          if (!komoditasMap[kom].wilayahMap[kabKota]) komoditasMap[kom].wilayahMap[kabKota] = 0;
+          komoditasMap[kom].wilayahMap[kabKota] += vol;
+        });
+      }
+    });
+
+    const sortedKomoditas = Object.entries(komoditasMap)
+      .map(([k, v]) => ({ komoditas: k, ...v }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3);
+      
+    return sortedKomoditas.map(item => {
+      const topWilayah = Object.entries(item.wilayahMap)
+        .map(([w, vol]) => ({ wilayah: w, volume: vol }))
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 5);
+        
+      return {
+        komoditas: item.komoditas,
+        total: item.total,
+        topWilayah
+      };
+    });
+  }, [filteredData]);
+
+  const lautVsPudChartOption = useMemo(() => {
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          return params.map(p => `${p.marker} <b>${p.name}</b>: ${Intl.NumberFormat('id-ID').format(p.value)} Ton`).join('<br/>');
+        }
+      },
+      grid: { left: '5%', right: '5%', bottom: '10%', top: '20%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: ['Laut', 'PUD', 'Total'],
+        axisLabel: { color: '#f8fafc', fontWeight: 'bold', fontSize: 14 },
+        axisLine: { lineStyle: { color: '#334155' } }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Volume (Ton)',
+        nameTextStyle: { color: '#94a3b8', padding: [0, 0, 0, 20] },
+        axisLabel: { color: '#94a3b8' },
+        splitLine: { lineStyle: { type: 'dashed', color: '#1e293b' } }
+      },
+      series: [
+        {
+          name: 'Volume Produksi',
+          type: 'bar',
+          barWidth: '50%',
+          data: [
+            {
+              value: lautVsPudData.laut,
+              itemStyle: {
+                color: {
+                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1e3a8a' }]
+                },
+                borderRadius: [8, 8, 0, 0]
+              }
+            },
+            {
+              value: lautVsPudData.pud,
+              itemStyle: {
+                color: {
+                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [{ offset: 0, color: '#ef4444' }, { offset: 1, color: '#7f1d1d' }]
+                },
+                borderRadius: [8, 8, 0, 0]
+              }
+            },
+            {
+              value: lautVsPudData.total,
+              itemStyle: {
+                color: {
+                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [{ offset: 0, color: '#eab308' }, { offset: 1, color: '#713f12' }]
+                },
+                borderRadius: [8, 8, 0, 0]
+              }
+            }
+          ],
+          label: {
+            show: true,
+            position: 'top',
+            formatter: (p) => Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(p.value),
+            color: '#ffffff',
+            fontWeight: 'bold',
+            fontSize: 14
+          }
+        }
+      ]
+    };
+  }, [lautVsPudData]);
+
+
 
   const handleExportLaporanPUD = async () => {
     try {
@@ -1195,17 +1342,110 @@ export default function AdminPerikananTangkap() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4"><Fish className="w-5 h-5 text-blue-500" /><h3 className="text-lg font-semibold">Volume Berdasarkan Komoditas</h3></div>
-                  {computedStats.komoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                {/* Row 2: Charts (Laut vs PUD + Komoditas) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Laut vs PUD Comparison Chart */}
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-border pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <BarChart3 className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
+                          <p className="text-sm text-muted-foreground">Laut vs Perairan Darat (PUD)</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select 
+                          value={filterKabKotaChart} 
+                          onChange={(e) => setFilterKabKotaChart(e.target.value)} 
+                          className="bg-background border border-border text-foreground text-sm font-medium outline-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/50 w-32 truncate"
+                        >
+                          <option value="">Semua Wilayah</option>
+                          {KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {filteredData.length > 0 ? (
+                      <ReactECharts option={lautVsPudChartOption} style={{ height: '350px', width: '100%' }} />
+                    ) : (
+                      <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+                        Belum ada data
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-border pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                          <Fish className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-foreground">Komoditas Terbanyak</h3>
+                          <p className="text-sm text-muted-foreground">Total Keseluruhan</p>
+                        </div>
+                      </div>
+                    </div>
+                    {computedStats.komoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                  </div>
                 </div>
 
+                {/* Row 3: Komoditas Unggulan & Wilayah Penghasil */}
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-pink-500" /><h3 className="text-lg font-semibold">Volume Berdasarkan Pelabuhan</h3></div>
-                  {computedStats.pelabuhan.length > 0 ? <ReactECharts option={pelabuhanChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+                  <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <TrendingUp className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Distribusi kabupaten/kota dengan produksi tertinggi untuk masing-masing komoditas.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {topKomoditasUnggulan.map((item, idx) => (
+                      <div key={idx} className="bg-muted/10 border border-border rounded-xl p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="text-lg font-bold text-foreground">{item.komoditas}</h4>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Produksi</p>
+                            <p className="text-xl font-black text-amber-500 mt-1">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(item.total)} <span className="text-sm font-normal">Ton</span></p>
+                          </div>
+                          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                            <Fish className="w-5 h-5" />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3 mt-4">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Top 5 Wilayah</div>
+                          {item.topWilayah.map((w, i) => {
+                            const percent = Math.min(100, Math.round((w.volume / item.topWilayah[0].volume) * 100));
+                            return (
+                              <div key={i} className="relative">
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span className="font-medium truncate max-w-[60%]">{w.wilayah}</span>
+                                  <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(w.volume)} Ton</span>
+                                </div>
+                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${percent}%` }}></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {item.topWilayah.length === 0 && (
+                            <div className="text-sm text-muted-foreground text-center py-4">Belum ada wilayah</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {topKomoditasUnggulan.length === 0 && (
+                      <div className="col-span-3 text-center py-8 text-muted-foreground">Belum ada data komoditas</div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">

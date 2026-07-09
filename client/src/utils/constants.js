@@ -601,3 +601,26 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Kerang mutiara/Tapis-tapis"
 ];
 
+
+export const PELABUHAN_TO_KABKOTA = {
+  'Pelabuhan Perikanan Banyusangka': 'Bangkalan',
+  'Pelabuhan Perikanan Bawean': 'Gresik',
+  'Pelabuhan Perikanan Branta Pesisir': 'Pamekasan',
+  'Pelabuhan Perikanan Bulu': 'Tuban',
+  'Pelabuhan Perikanan Camplong': 'Sampang',
+  'Pelabuhan Perikanan Campurejo': 'Gresik',
+  'Pelabuhan Perikanan Grajagan': 'Banyuwangi',
+  'Pelabuhan Perikanan Lekok': 'Pasuruan',
+  'Pelabuhan Perikanan Mayangan': 'Kota Probolinggo',
+  'Pelabuhan Perikanan Muncar': 'Banyuwangi',
+  'Pelabuhan Perikanan Ngemplakrejo': 'Kota Pasuruan',
+  'Pelabuhan Perikanan Paiton': 'Probolinggo',
+  'Pelabuhan Perikanan Pancer': 'Banyuwangi',
+  'Pelabuhan Perikanan Pasongsongan': 'Sumenep',
+  'Pelabuhan Perikanan Pondokdadap': 'Malang',
+  'Pelabuhan Perikanan Popoh': 'Tulungagung',
+  'Pelabuhan Perikanan Puger': 'Jember',
+  'Pelabuhan Perikanan Sine': 'Tulungagung',
+  'Pelabuhan Perikanan Tambakrejo': 'Blitar',
+  'Pelabuhan Perikanan Tamperan': 'Pacitan'
+};
