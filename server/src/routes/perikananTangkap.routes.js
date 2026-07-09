@@ -9,6 +9,7 @@ const {
   deleteData,
   getStats,
   exportData,
+  exportPUD,
   updateStatus,
   batchStatus,
   batchDelete
@@ -18,6 +19,7 @@ const {
 router.get('/', getAllData);
 router.get('/stats', getStats);
 router.get('/export', exportData);
+router.post('/export-pud', exportPUD);
 
 // Protected routes (Admin only)
 router.get('/admin', verifyToken, getAdminData);

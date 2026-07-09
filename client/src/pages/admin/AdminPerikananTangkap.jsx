@@ -362,134 +362,30 @@ export default function AdminPerikananTangkap() {
 
   const handleExportLaporanPUD = async () => {
     try {
-      const dateStr = filterTahun ? (filterBulan ? `${filterBulan}/${filterTahun}` : filterTahun) : 'Semua Waktu';
-      
-      const row0 = [`REKAPITULASI DATA PRODUKSI PUD`];
-      const row1 = [`Waktu : ${dateStr}`];
-      const row2 = [];
-      const row3 = ['1. PRODUKSI PUD'];
-      
-      const row4 = ['NO', 'TANGGAL', 'CABANG SUMBER', 'WILAYAH / KABUPATEN', 'Jenis Perairan', 'Alat Tangkap', 'Populasi Alat', 'Jenis Perahu', 'Total Produksi', '', 'I k a n'];
-      const row5 = ['', '', '', '', '', '', '', '', '', '', ''];
-      const row6 = ['', '', '', '', '', '', '', '', 'Volume', 'Nilai', ''];
-      
-      const komoditasArray = [...KOMODITAS_PUD_OPTIONS];
-
       const pudData = filteredData.filter(d => d.sumber_data === 'PUD');
-
-      const dataRows = pudData.map((row, index) => {
-        const baseRow = [
-          index + 1,
-          row.tanggal ? row.tanggal.split('T')[0] : '-',
-          'PUD',
-          row.kabupaten_kota || '-',
-          row.jenis_perairan || '-',
-          row.alat_tangkap || '-',
-          row.pud_populasi_alat || '-',
-          row.pud_jenis_perahu || '-',
-          row.volume,
-          row.nilai
-        ];
-
-        const komMap = {};
-        if (row.tangkapan) {
-          row.tangkapan.forEach(t => { 
-            komMap[t.komoditas] = { vol: t.volume, nilai: t.nilai };
-          });
-        }
-
-        komoditasArray.forEach(kom => {
-          if (komMap[kom]) {
-            baseRow.push(komMap[kom].vol, komMap[kom].nilai);
-          } else {
-            baseRow.push(0, 0);
-          }
-        });
-
-        return baseRow;
-      });
-
-      komoditasArray.forEach(kom => {
-        row4.push('', '');
-        row5.push(kom, '');
-        row6.push('Volume', 'Nilai');
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet([row0, row1, row2, row3, row4, row5, row6, ...dataRows]);
-
-      const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-      const headerStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
-      const komoditasHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
-      const dataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
-      const titleStyle = { font: { bold: true, sz: 12 }, alignment: { horizontal: 'left', vertical: 'center' } };
-
-      const range = XLSX.utils.decode_range(ws['!ref']);
-      for (let R = range.s.r; R <= range.e.r; ++R) {
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-          if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-
-          if (R < 4) {
-            if (C === 0) ws[cellRef].s = titleStyle;
-          } else if (R >= 4 && R <= 6) {
-            ws[cellRef].s = C > 9 ? komoditasHeaderStyle : headerStyle;
-          } else {
-            ws[cellRef].s = dataStyle;
-            if (typeof ws[cellRef].v === 'number') {
-              if (ws[cellRef].v === 0) {
-                ws[cellRef].v = '-';
-                ws[cellRef].t = 's';
-              } else {
-                ws[cellRef].z = '#,##0';
-              }
-            }
-          }
-        }
+      if (pudData.length === 0) {
+        alert("Tidak ada data PUD untuk diekspor pada filter ini.");
+        return;
       }
 
-      const merges = [
-        { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } },
-        { s: { r: 4, c: 1 }, e: { r: 6, c: 1 } },
-        { s: { r: 4, c: 2 }, e: { r: 6, c: 2 } },
-        { s: { r: 4, c: 3 }, e: { r: 6, c: 3 } },
-        { s: { r: 4, c: 4 }, e: { r: 6, c: 4 } },
-        { s: { r: 4, c: 5 }, e: { r: 6, c: 5 } },
-        { s: { r: 4, c: 6 }, e: { r: 6, c: 6 } },
-        { s: { r: 4, c: 7 }, e: { r: 6, c: 7 } },
-        { s: { r: 4, c: 8 }, e: { r: 4, c: 9 } },
-        { s: { r: 5, c: 8 }, e: { r: 6, c: 8 } },
-        { s: { r: 5, c: 9 }, e: { r: 6, c: 9 } }
-      ];
+      const ids = pudData.map(d => d.id);
       
-      let currentCol = 10;
-      komoditasArray.forEach(() => {
-        merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 1 } });
-        currentCol += 2;
-      });
-      
-      merges.push({ s: { r: 4, c: 10 }, e: { r: 4, c: currentCol - 1 } });
-      ws['!merges'] = merges;
+      const response = await api.post('/perikanan-tangkap/export-pud', {
+        ids,
+        tahun: filterTahun,
+        bulan: filterBulan,
+        wilayah: filterWilayah
+      }, { responseType: 'blob' });
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Rekap_Sistem");
-      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-
-      // Fetch the master ZIP and inject the new excel
-      const JSZip = (await import('jszip')).default;
-      const { saveAs } = await import('file-saver');
-
-      const response = await fetch('/PUD_Master_Templates.zip');
-      if (!response.ok) throw new Error("Gagal mengambil master template PUD");
-      const blob = await response.blob();
-      
-      const zip = await JSZip.loadAsync(blob);
-      
-      // Inject Rekap Sistem PUD
-      zip.file(`REKAP_DATA_SISTEM_PUD_${dateStr.replace('/', '-')}.xlsx`, excelBuffer);
-
-      // Save Zip
-      const finalZipBlob = await zip.generateAsync({ type: 'blob' });
-      saveAs(finalZipBlob, `Laporan_Master_PUD_${dateStr.replace('/', '-')}.zip`);
+      // response.data is already a Blob when using axios with responseType: 'blob'
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PUHIT_${filterCabang || 'Semua'}_${filterTahun || 'All'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
 
     } catch (err) {
       console.error(err);
@@ -815,16 +711,20 @@ export default function AdminPerikananTangkap() {
         if (row.sumber_data === 'PUD') {
           return `${row.kabupaten_kota || '-'} (${row.jenis_perairan || 'PUD'})`;
         }
+        if (row.sumber_data === 'KAB_KOTA') {
+          return `${row.kabupaten_kota || '-'} (${row.pelabuhan || '-'}, WPP ${row.jenis_perairan || '-'})`;
+        }
         return val || row.kabupaten_kota || '-';
       }
     },
     {
-      header: 'Nama Kapal / Populasi Alat (PUD)',
+      header: 'Nama Kapal / Populasi Alat (PUD/KAB)',
       accessorKey: 'nama_kapal',
       cell: info => {
         const row = info.row.original;
-        if (row.sumber_data === 'PUD') {
-          return <span className="text-emerald-600 font-medium">{row.pud_populasi_alat || '-'} Unit</span>;
+        if (row.sumber_data === 'PUD' || row.sumber_data === 'KAB_KOTA') {
+          const color = row.sumber_data === 'PUD' ? 'text-emerald-600' : 'text-orange-600';
+          return <span className={`${color} font-medium`}>{row.pud_populasi_alat || '-'} Unit</span>;
         }
         return row.nama_kapal || '-';
       }
@@ -1022,13 +922,13 @@ export default function AdminPerikananTangkap() {
                 <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi & Unduh Data)</h3>
               </div>
               <div className="flex items-center gap-2">
-                {filterCabang === 'PUD' && (
+                {filterCabang === 'PUD' && filterTahun && filterTahun !== 'Semua Waktu' && filterBulan && filterBulan !== 'Semua Bulan' && filterWilayah && (
                   <button
                     onClick={handleExportLaporanPUD}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
                   >
                     <FileText className="w-4 h-4" />
-                    Unduh Laporan Master PUD (ZIP)
+                    Unduh Laporan PUD (Excel)
                   </button>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS } from '@/utils/constants';
+import { KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -115,6 +115,26 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
   const isPelabuhan = sumberData === 'PELABUHAN';
   const isPUD = sumberData === 'PUD';
+  const isKabKota = sumberData === 'KAB_KOTA';
+
+  const handleCabangSelect = (cabang) => {
+    setSumberData(cabang);
+    setFormData(prev => ({
+      ...prev,
+      pelabuhan: cabang === 'PELABUHAN' ? PELABUHAN_OPTIONS[0] : '',
+      jenis_perairan: cabang === 'PUD' ? PERAIRAN_OPTIONS[0] : '',
+      gt_kapal: cabang === 'PUD' ? PUD_JENIS_PERAHU_OPTIONS[0] : (cabang === 'KAB_KOTA' ? KAB_KOTA_GT_KAPAL_OPTIONS[0] : GT_KAPAL_OPTIONS[0]),
+      alat_tangkap: cabang === 'PUD' ? ALAT_TANGKAP_PUD_OPTIONS[0] : (cabang === 'KAB_KOTA' ? ALAT_TANGKAP_LAUT_OPTIONS[0] : ALAT_TANGKAP_OPTIONS[0]),
+      tangkapan: [
+        {
+          komoditas: cabang === 'PUD' ? KOMODITAS_PUD_OPTIONS[0] : (cabang === 'KAB_KOTA' ? KOMODITAS_LAUT_OPTIONS[0] : KOMODITAS_OPTIONS[0]),
+          volume: '',
+          harga: '',
+          pud_tangkapan_sampel: ''
+        }
+      ]
+    }));
+  };
 
   const calculatePudVolume = (sampelVol) => {
     const pop = parseFloat(formData.pud_populasi_alat) || 0;
@@ -140,7 +160,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <button onClick={() => setSumberData('PELABUHAN')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all group">
+          <button onClick={() => handleCabangSelect('PELABUHAN')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all group">
             <div className="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Anchor className="w-8 h-8" />
             </div>
@@ -150,7 +170,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
             </div>
           </button>
 
-          <button onClick={() => setSumberData('PUD')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group">
+          <button onClick={() => handleCabangSelect('PUD')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group">
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Droplets className="w-8 h-8" />
             </div>
@@ -160,7 +180,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
             </div>
           </button>
 
-          <button onClick={() => setSumberData('KAB_KOTA')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-all group">
+          <button onClick={() => handleCabangSelect('KAB_KOTA')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-all group">
             <div className="w-16 h-16 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
               <MapPin className="w-8 h-8" />
             </div>
@@ -209,13 +229,13 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
-              <label className="block text-sm font-medium mb-2">{isPUD ? "Bulan Laporan" : "Tanggal"}</label>
+              <label className="block text-sm font-medium mb-2">{(isPUD || isKabKota) ? "Bulan Laporan" : "Tanggal"}</label>
               <input 
-                type={isPUD ? "month" : "date"} 
+                type={(isPUD || isKabKota) ? "month" : "date"} 
                 name="tanggal"
-                value={isPUD && formData.tanggal ? formData.tanggal.substring(0, 7) : formData.tanggal}
+                value={(isPUD || isKabKota) && formData.tanggal ? formData.tanggal.substring(0, 7) : formData.tanggal}
                 onChange={(e) => {
-                  const val = isPUD ? `${e.target.value}-01` : e.target.value;
+                  const val = (isPUD || isKabKota) ? `${e.target.value}-01` : e.target.value;
                   setFormData({ ...formData, tanggal: val });
                 }}
                 className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tanggal ? "border-destructive" : "border-input")}
@@ -263,6 +283,32 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     </select>
                   </div>
                 )}
+                {isKabKota && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Daerah Operasi (WPP)</label>
+                      <input 
+                        type="text" 
+                        name="jenis_perairan"
+                        placeholder="Contoh: 711"
+                        value={formData.jenis_perairan}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Perairan Pantai (Pendaratan)</label>
+                      <input 
+                        type="text" 
+                        name="pelabuhan"
+                        placeholder="Nama lokasi pendaratan"
+                        value={formData.pelabuhan}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
@@ -298,13 +344,16 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
         <div className="h-px bg-border my-6"></div>
 
-        {/* SECTION 2 (Dinamic based on Cabang) */}
+        {/* SECTION 2 - DATA KAPAL */}
         <section>
-          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
-            Informasi Kapal & Alat
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+              2
+            </div>
+            <h3 className="text-xl font-semibold">Detail Kapal & Alat Tangkap</h3>
+          </div>
+
+          <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-6 pl-10", (!isPelabuhan && !isPUD && !isKabKota) ? "md:grid-cols-1" : "")}>
             {isPelabuhan && (
               <>
                 <div className="md:col-span-2">
@@ -347,7 +396,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               </>
             )}
 
-            <div className={cn(!isPelabuhan && !isPUD && "md:col-span-2")}>
+            <div className={cn(!isPelabuhan && !isPUD && !isKabKota && "md:col-span-2")}>
               <label className="block text-sm font-medium mb-2">Alat Tangkap</label>
               <select 
                 name="alat_tangkap"
@@ -355,29 +404,29 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                 onChange={handleChange}
                 className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
               >
-                {(isPUD ? ALAT_TANGKAP_PUD_OPTIONS : ALAT_TANGKAP_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {(isPUD ? ALAT_TANGKAP_PUD_OPTIONS : (isKabKota ? ALAT_TANGKAP_LAUT_OPTIONS : ALAT_TANGKAP_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
 
-            {isPUD && (
+            {(isPUD || isKabKota) && (
               <>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Jenis Perahu / GT</label>
+                  <label className="block text-sm font-medium mb-2">{isPUD ? "Jenis Perahu / GT" : "Ukuran / GT Kapal"}</label>
                   <select 
                     name="gt_kapal"
                     value={formData.gt_kapal}
                     onChange={handleChange}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                   >
-                    {PUD_JENIS_PERAHU_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {(isPUD ? PUD_JENIS_PERAHU_OPTIONS : (isKabKota ? KAB_KOTA_GT_KAPAL_OPTIONS : GT_KAPAL_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Total Populasi Alat (SP-1)</label>
+                  <label className="block text-sm font-medium mb-2">Total Populasi Alat di {isPUD ? "Wilayah" : "Kab/Kota"}</label>
                   <input 
                     type="number" 
                     name="pud_populasi_alat"
-                    placeholder="Total populasi alat di wilayah"
+                    placeholder={isPUD ? "Total populasi alat di wilayah" : "Total alat di Kab/Kota"}
                     value={formData.pud_populasi_alat}
                     onChange={handleChange}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
@@ -388,7 +437,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   <input 
                     type="number" 
                     name="pud_jumlah_sampel"
-                    placeholder="Berapa sampel yang ditimbang?"
+                    placeholder="Berapa sampel yang didata?"
                     value={formData.pud_jumlah_sampel}
                     onChange={handleChange}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
@@ -437,11 +486,11 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     onChange={(e) => handleTangkapanChange(index, 'komoditas', e.target.value)}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                   >
-                    {(isPUD ? KOMODITAS_PUD_OPTIONS : KOMODITAS_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {(isPUD ? KOMODITAS_PUD_OPTIONS : (isKabKota ? KOMODITAS_LAUT_OPTIONS : KOMODITAS_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
 
-                {isPUD ? (
+                {(isPUD || isKabKota) ? (
                   <div className="md:col-span-4">
                     <label className="block text-xs font-medium mb-1.5 text-emerald-600 dark:text-emerald-400">Berat Sampel (Kg)</label>
                     <input 

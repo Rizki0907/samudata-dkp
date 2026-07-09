@@ -1,5 +1,7 @@
 const prisma = require('../utils/prisma');
 const { syncDataBulananInternal } = require('./bulananTangkap.controller');
+const ExcelJS = require('exceljs');
+const path = require('path');
 
 // GET all data (with filters)
 const getAllData = async (req, res) => {
@@ -415,7 +417,100 @@ const batchDelete = async (req, res) => {
   }
 };
 
-module.exports = {
+  // POST export PUD
+  const exportPUD = async (req, res) => {
+    try {
+      const { ids, tahun, bulan, wilayah } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'Tidak ada data untuk diekspor' });
+      }
+
+      // Fetch the data to export
+      const data = await prisma.perikananTangkap.findMany({
+        where: { id: { in: ids } },
+        include: { tangkapan: true }
+      });
+
+      // Load Template
+      const templatePath = path.join(__dirname, '../../templates/PUHIT.xlsx');
+      const XlsxPopulate = require('xlsx-populate');
+      const wb = await XlsxPopulate.fromFileAsync(templatePath);
+
+      // Fill ISIAN sheet
+      const isianSheet = wb.sheet('ISIAN');
+      if (isianSheet) {
+        isianSheet.cell('C3').value('Jawa Timur');
+        isianSheet.cell('C5').value(wilayah || '-');
+        isianSheet.cell('C7').value('Darat / PUD');
+        isianSheet.cell('C9').value(bulan ? `${bulan}` : '-');
+        isianSheet.cell('C11').value(tahun || new Date().getFullYear());
+      }
+
+      // Fill DATA sheet
+      const dataSheet = wb.sheet('DATA');
+      if (dataSheet) {
+        // Build fish map from row 3 (which contains the names Betok, Sidat, dll.)
+        const fishMap = {}; // name -> colNumber
+        for(let c=2; c<=80; c++) {
+          const val = dataSheet.cell(3, c).value();
+          if (val && typeof val === 'string') {
+            fishMap[val.trim().toLowerCase()] = c;
+          }
+        }
+
+        // Boat type to row mapping (based on PUD_JENIS_PERAHU_OPTIONS)
+        // From observation, the rows are 4 to 15 corresponding to boat types.
+        const boatRowMap = {
+          'Tanpa Perahu': 4,
+          'Perahu Tanpa Motor': 5,
+          'Motor Tempel < 5 GT': 6,
+          'Kapal Motor 5-10 GT': 12,
+          'Kapal Motor 10-20 GT': 13,
+          'Kapal Motor 20-30 GT': 14,
+          'Kapal Motor >30 GT': 15
+        };
+
+        data.forEach(record => {
+          console.log(`Processing record ID: ${record.id}, GT: ${record.gt_kapal}`);
+          const rowNum = boatRowMap[record.gt_kapal];
+          if (!rowNum) {
+            console.log(`Unrecognized boat type: ${record.gt_kapal}`);
+            return;
+          }
+
+          record.tangkapan.forEach(t => {
+            const fishName = t.komoditas.trim().toLowerCase();
+            let colNum = fishMap[fishName];
+            
+            // Fallback for "Ikan lainnya" if specific fish not found
+            if (!colNum) colNum = fishMap['ikan lainnya'];
+            
+            if (colNum) {
+              const cell = dataSheet.cell(rowNum, colNum);
+              const currentVal = Number(cell.value()) || 0;
+              cell.value(currentVal + Number(t.volume || 0));
+              console.log(`Wrote ${t.volume} to row ${rowNum}, col ${colNum} for ${fishName}`);
+            } else {
+              console.log(`Could not find column for ${fishName} or 'ikan lainnya'`);
+            }
+          });
+        });
+      }
+
+      console.log('Finished populating, generating buffer...');
+      const buffer = await wb.outputAsync();
+      console.log('Buffer generated, size:', buffer.length);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_${wilayah || 'Semua'}_${tahun || 'All'}.xlsx"`);
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Export PUD Error:', error);
+      res.status(500).json({ success: false, message: 'Gagal mengekspor laporan PUD' });
+    }
+  };
+
+  module.exports = {
   getAllData,
   getAdminData,
   createData,
@@ -425,5 +520,6 @@ module.exports = {
   exportData,
   updateStatus,
   batchStatus,
-  batchDelete
+  batchDelete,
+  exportPUD
 };
