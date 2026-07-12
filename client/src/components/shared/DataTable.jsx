@@ -13,7 +13,32 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx-js-style';
 import { useAuthStore } from '@/store/authStore';
 
-export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject, onBatchDelete, onBatchApprove, onBatchReject, canBatchApprove, canBatchReject, canBatchDelete, searchKey = 'nama_kapal', exportName, formatExportData, onCustomExport, renderSubComponent, customExportButton, hideDefaultExport = false, defaultPageSize = 10, customBatchActions }) {
+export function DataTable({
+  columns,
+  data,
+  onEdit,
+  onDelete,
+  onApprove,
+  onReject,
+  onBatchDelete,
+  onBatchApprove,
+  onBatchReject,
+  canBatchApprove,
+  canBatchReject,
+  canBatchDelete,
+  searchKey = 'nama_kapal',
+  exportName,
+  formatExportData,
+  onCustomExport,
+  renderSubComponent,
+  customExportButton,
+  hideDefaultExport = false,
+  defaultPageSize = 10,
+  customBatchActions,
+  approvableStatuses = ['PENDING', 'APPROVED_BIDANG'],
+  rejectableStatuses = ['PENDING', 'APPROVED_BIDANG', 'APPROVED'],
+  lockedStatuses = ['APPROVED_BIDANG', 'APPROVED'],
+}) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -245,7 +270,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                       {(onEdit || onDelete || onApprove || onReject) && (
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-2">
-                            {user?.role === 'admin_pusat' && row.original.status !== 'APPROVED' && onApprove && (
+                            {user?.role === 'admin_pusat' && approvableStatuses.includes(row.original.status) && onApprove && (
                               <button
                                 onClick={() => onApprove(row.original)}
                                 title="Setujui Data"
@@ -255,7 +280,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                               </button>
                             )}
                             
-                            {user?.role === 'admin_pusat' && row.original.status !== 'REJECTED' && onReject && (
+                            {user?.role === 'admin_pusat' && rejectableStatuses.includes(row.original.status) && onReject && (
                               <button
                                 onClick={() => onReject(row.original)}
                                 title="Tolak Data"
@@ -265,7 +290,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                               </button>
                             )}
 
-                            {onEdit && (user?.role === 'admin_pusat' || row.original.status !== 'APPROVED') && (
+                            {onEdit && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && (
                               <button
                                 onClick={() => onEdit(row.original)}
                                 title="Edit Data"
@@ -275,7 +300,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onApprove, onReject
                               </button>
                             )}
                             
-                            {onDelete && (user?.role === 'admin_pusat' || row.original.status !== 'APPROVED') && (
+                            {onDelete && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && (
                               <button
                                 onClick={() => onDelete(row.original)}
                                 title="Hapus Data"

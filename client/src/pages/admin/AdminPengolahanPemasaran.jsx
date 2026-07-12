@@ -516,16 +516,45 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
   );
 }
 
+// function StatusBadge({ status, alasan }) {
+//   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
+//   let label = 'PENDING';
+
+//   if (status === 'APPROVED') {
+//     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
+//     label = 'VERIFIED';
+//   } else if (status === 'APPROVED') {
+//     colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
+//     label = 'APPROVED';
+//   } else if (status === 'REJECTED') {
+//     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
+//     label = 'REJECTED';
+//   }
+
+//   return (
+//     <div className="flex items-center gap-2">
+//       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
+//         {label}
+//       </span>
+//       {status === 'REJECTED' && alasan ? (
+//         <span className="cursor-help text-xs text-rose-500" title={`Alasan: ${alasan}`}>
+//           (?)
+//         </span>
+//       ) : null}
+//     </div>
+//   );
+// }
+
 function StatusBadge({ status, alasan }) {
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
   let label = 'PENDING';
 
   if (status === 'APPROVED') {
-    colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-    label = 'VERIFIED';
-  } else if (status === 'APPROVED') {
     colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
     label = 'APPROVED';
+  } else if (status === 'VERIFIED') {
+    colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
+    label = 'VERIFIED';
   } else if (status === 'REJECTED') {
     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
     label = 'REJECTED';
@@ -656,227 +685,453 @@ export default function AdminPengolahanPemasaran() {
     }
   };
 
+  // const handleApprove = async row => {
+  //   if (row.status === 'APPROVED') {
+  //     alert('Data sudah selesai divalidasi Program.');
+  //     return;
+  //   }
+
+  //   if (row.status === 'REJECTED') {
+  //     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+  //     return;
+  //   }
+
+  //   let promptMsg = '';
+
+  //   if (row.status === 'PENDING') {
+  //     promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
+  //   } else if (row.status === 'APPROVED_BIDANG') {
+  //     promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
+  //   } else {
+  //     alert('Status data tidak valid.');
+  //     return;
+  //   }
+
+  //   const jenis = window.prompt(promptMsg);
+  //   if (!jenis) return;
+
+  //   let targetStatus = '';
+  //   let namaValidasi = '';
+
+  //   if (jenis === '1') {
+  //     if (row.status !== 'PENDING') {
+  //       alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+  //       return;
+  //     }
+
+  //     targetStatus = 'APPROVED_BIDANG';
+  //     namaValidasi = 'BIDANG';
+  //   } else if (jenis === '2') {
+  //     if (row.status !== 'APPROVED_BIDANG') {
+  //       alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+  //       return;
+  //     }
+
+  //     targetStatus = 'APPROVED';
+  //     namaValidasi = 'PROGRAM';
+  //   } else {
+  //     alert('Pilihan tidak valid. Ketik 1 atau 2.');
+  //     return;
+  //   }
+
+  //   const confirmText = window.prompt(
+  //     `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
+  //   );
+
+  //   if (confirmText !== 'SETUJU') {
+  //     alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+  //     return;
+  //   }
+
+  //   try {
+  //     await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+  //       status: targetStatus,
+  //     });
+
+  //     await fetchData();
+  //   } catch (error) {
+  //     console.error('Error approving data:', error);
+  //     alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
+  //   }
+  // };
+
   const handleApprove = async row => {
-    if (row.status === 'APPROVED') {
-      alert('Data sudah selesai divalidasi Program.');
+  if (!isAdminPusat) {
+    alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+    return;
+  }
+
+  if (row.status === 'VERIFIED') {
+    alert('Data sudah VERIFIED.');
+    return;
+  }
+
+  if (row.status === 'REJECTED') {
+    alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+    return;
+  }
+
+  let promptMsg = '';
+
+  if (row.status === 'PENDING') {
+    promptMsg =
+      'Data masih PENDING.\nKetik "1" untuk APPROVED.\n\nCatatan: VERIFIED belum bisa dilakukan sebelum APPROVED.';
+  } else if (row.status === 'APPROVED') {
+    promptMsg =
+      'Data sudah APPROVED.\nKetik "2" untuk VERIFIED.';
+  } else {
+    alert('Status data tidak valid.');
+    return;
+  }
+
+  const jenis = window.prompt(promptMsg);
+  if (!jenis) return;
+
+  let targetStatus = '';
+  let namaValidasi = '';
+
+  if (jenis === '1') {
+    if (row.status !== 'PENDING') {
+      alert('APPROVED hanya bisa dilakukan pada data berstatus PENDING.');
       return;
     }
 
-    if (row.status === 'REJECTED') {
-      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+    targetStatus = 'APPROVED';
+    namaValidasi = 'APPROVED';
+  } else if (jenis === '2') {
+    if (row.status !== 'APPROVED') {
+      alert('Data harus APPROVED terlebih dahulu sebelum VERIFIED.');
       return;
     }
 
-    let promptMsg = '';
+    targetStatus = 'VERIFIED';
+    namaValidasi = 'VERIFIED';
+  } else {
+    alert('Pilihan tidak valid. Ketik 1 atau 2.');
+    return;
+  }
 
-    if (row.status === 'PENDING') {
-      promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
-    } else if (row.status === 'APPROVED_BIDANG') {
-      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
-    } else {
-      alert('Status data tidak valid.');
-      return;
-    }
+  const confirmText = window.prompt(
+    `Ketik "SETUJU" untuk menyelesaikan ${namaValidasi}:`
+  );
 
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
+  if (confirmText !== 'SETUJU') {
+    alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+    return;
+  }
 
-    let targetStatus = '';
-    let namaValidasi = '';
+  try {
+    await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+      status: targetStatus,
+    });
 
-    if (jenis === '1') {
-      if (row.status !== 'PENDING') {
-        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-        return;
-      }
-
-      targetStatus = 'APPROVED_BIDANG';
-      namaValidasi = 'BIDANG';
-    } else if (jenis === '2') {
-      if (row.status !== 'APPROVED_BIDANG') {
-        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-        return;
-      }
-
-      targetStatus = 'APPROVED';
-      namaValidasi = 'PROGRAM';
-    } else {
-      alert('Pilihan tidak valid. Ketik 1 atau 2.');
-      return;
-    }
-
-    const confirmText = window.prompt(
-      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
+    await fetchData();
+    // await fetchStats();
+  } catch (error) {
+    console.error('Error approving data:', error.response?.data || error);
+    alert(
+      `Gagal memvalidasi data: ${
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error.message
+      }`
     );
+  }
+};
 
-    if (confirmText !== 'SETUJU') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
+  // const handleReject = async row => {
+  //   const alasan = window.prompt('Masukkan alasan penolakan:');
+  //   if (alasan === null) return;
+  //   if (!alasan.trim()) {
+  //     alert('Alasan penolakan wajib diisi.');
+  //     return;
+  //   }
 
-    try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-        status: targetStatus,
-      });
-
-      await fetchData();
-    } catch (error) {
-      console.error('Error approving data:', error);
-      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
+  //   try {
+  //     await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+  //       status: 'REJECTED',
+  //       alasan_penolakan: alasan.trim(),
+  //     });
+  //     await fetchData();
+  //   } catch (error) {
+  //     console.error('Error rejecting data:', error);
+  //     alert('Gagal menolak data.');
+  //   }
+  // };
 
   const handleReject = async row => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi.');
-      return;
-    }
+  if (!isAdminPusat) {
+    alert('Hanya Admin Pusat yang dapat menolak data.');
+    return;
+  }
 
-    try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-        status: 'REJECTED',
-        alasan_penolakan: alasan.trim(),
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error rejecting data:', error);
-      alert('Gagal menolak data.');
-    }
-  };
+  if (row.status === 'REJECTED') {
+    alert('Data ini sudah ditolak.');
+    return;
+  }
 
+  const alasan = window.prompt('Masukkan alasan penolakan:');
+  if (alasan === null) return;
+
+  if (!alasan.trim()) {
+    alert('Alasan penolakan wajib diisi.');
+    return;
+  }
+
+  try {
+    await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+      status: 'REJECTED',
+      alasan_penolakan: alasan.trim(),
+    });
+
+    await fetchData();
+    // await fetchStats();
+  } catch (error) {
+    console.error('Error rejecting data:', error.response?.data || error);
+    alert(
+      `Gagal menolak data: ${
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error.message
+      }`
+    );
+  }
+};
+
+  // const handleBatchApprove = async ids => {
+  //   if (!isAdminPusat) {
+  //     alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+  //     return;
+  //   }
+
+  //   if (!Array.isArray(ids) || ids.length === 0) {
+  //     alert('Tidak ada data yang dipilih.');
+  //     return;
+  //   }
+
+  //   const selectedIdSet = new Set(ids.map(id => String(id)));
+  //   const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+
+  //   if (!selectedRows.length) {
+  //     alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
+  //     return;
+  //   }
+
+  //   if (selectedRows.some(row => row.status === 'APPROVED')) {
+  //     alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
+  //     return;
+  //   }
+
+  //   if (selectedRows.some(row => row.status === 'REJECTED')) {
+  //     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+  //     return;
+  //   }
+
+  //   const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
+
+  //   if (selectedStatuses.length > 1) {
+  //     alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
+  //     return;
+  //   }
+
+  //   const currentStatus = selectedStatuses[0];
+  //   let promptMsg = '';
+
+  //   if (currentStatus === 'PENDING') {
+  //     promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
+  //   } else if (currentStatus === 'APPROVED') {
+  //     promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
+  //   } else {
+  //     alert('Status data terpilih tidak valid untuk proses validasi.');
+  //     return;
+  //   }
+
+  //   const jenis = window.prompt(promptMsg);
+  //   if (!jenis) return;
+
+  //   let targetStatus = '';
+  //   let namaValidasi = '';
+
+  //   if (jenis === '1') {
+  //     if (currentStatus !== 'PENDING') {
+  //       alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+  //       return;
+  //     }
+
+  //     targetStatus = 'APPROVED';
+  //     namaValidasi = 'BIDANG';
+  //   } else if (jenis === '2') {
+  //     if (currentStatus !== 'APPROVED') {
+  //       alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+  //       return;
+  //     }
+
+  //     targetStatus = 'VERIFIED';
+  //     namaValidasi = 'PROGRAM';
+  //   } else {
+  //     alert('Pilihan tidak valid. Ketik 1 atau 2.');
+  //     return;
+  //   }
+
+  //   const confirmText = window.prompt(
+  //     `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
+  //   );
+
+  //   if (confirmText !== 'SETUJU') {
+  //     alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+  //     return;
+  //   }
+
+  //   try {
+  //     await api.post('/pengolahan-pemasaran/batch-status', {
+  //       ids,
+  //       status: targetStatus,
+  //     });
+
+  //     await fetchData();
+  //   } catch (error) {
+  //     console.error('Error batch approve:', error);
+  //     alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
+  //   }
+  // };
 
   const handleBatchApprove = async ids => {
-    if (!isAdminPusat) {
-      alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+  if (!isAdminPusat) {
+    alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+    return;
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    alert('Tidak ada data yang dipilih.');
+    return;
+  }
+
+  const selectedIdSet = new Set(ids.map(id => String(id)));
+  const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+
+  if (!selectedRows.length) {
+    alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
+    return;
+  }
+
+  if (selectedRows.some(row => row.status === 'VERIFIED')) {
+    alert('Ada data yang sudah VERIFIED. Pilih data lain.');
+    return;
+  }
+
+  if (selectedRows.some(row => row.status === 'REJECTED')) {
+    alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+    return;
+  }
+
+  const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
+
+  if (selectedStatuses.length > 1) {
+    alert('Pilih data dengan status yang sama. APPROVED hanya untuk PENDING, sedangkan VERIFIED hanya untuk APPROVED.');
+    return;
+  }
+
+  const currentStatus = selectedStatuses[0];
+
+  let promptMsg = '';
+
+  if (currentStatus === 'PENDING') {
+    promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk APPROVED.`;
+  } else if (currentStatus === 'APPROVED') {
+    promptMsg = `Data yang dipilih sudah APPROVED (${selectedRows.length} data).\nKetik "2" untuk VERIFIED.`;
+  } else {
+    alert('Status data terpilih tidak valid untuk proses validasi.');
+    return;
+  }
+
+  const jenis = window.prompt(promptMsg);
+  if (!jenis) return;
+
+  let targetStatus = '';
+  let namaValidasi = '';
+
+  if (jenis === '1') {
+    if (currentStatus !== 'PENDING') {
+      alert('APPROVED hanya bisa dilakukan pada data PENDING.');
       return;
     }
 
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
+    targetStatus = 'APPROVED';
+    namaValidasi = 'APPROVED';
+  } else if (jenis === '2') {
+    if (currentStatus !== 'APPROVED') {
+      alert('Data harus APPROVED terlebih dahulu sebelum VERIFIED.');
       return;
     }
 
-    const selectedIdSet = new Set(ids.map(id => String(id)));
-    const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+    targetStatus = 'VERIFIED';
+    namaValidasi = 'VERIFIED';
+  } else {
+    alert('Pilihan tidak valid. Ketik 1 atau 2.');
+    return;
+  }
 
-    if (!selectedRows.length) {
-      alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
-      return;
-    }
+  const confirmText = window.prompt(
+    `Ketik "SETUJU" untuk menyelesaikan ${namaValidasi} pada ${selectedRows.length} data:`
+  );
 
-    if (selectedRows.some(row => row.status === 'APPROVED')) {
-      alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
-      return;
-    }
+  if (confirmText !== 'SETUJU') {
+    alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+    return;
+  }
 
-    if (selectedRows.some(row => row.status === 'REJECTED')) {
-      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-      return;
-    }
+  try {
+    await api.post('/pengolahan-pemasaran/batch-status', {
+      ids,
+      status: targetStatus,
+    });
 
-    const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
-
-    if (selectedStatuses.length > 1) {
-      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
-      return;
-    }
-
-    const currentStatus = selectedStatuses[0];
-    let promptMsg = '';
-
-    if (currentStatus === 'PENDING') {
-      promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
-    } else if (currentStatus === 'APPROVED') {
-      promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
-    } else {
-      alert('Status data terpilih tidak valid untuk proses validasi.');
-      return;
-    }
-
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-
-    if (jenis === '1') {
-      if (currentStatus !== 'PENDING') {
-        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-        return;
-      }
-
-      targetStatus = 'APPROVED';
-      namaValidasi = 'BIDANG';
-    } else if (jenis === '2') {
-      if (currentStatus !== 'APPROVED') {
-        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-        return;
-      }
-
-      targetStatus = 'VERIFIED';
-      namaValidasi = 'PROGRAM';
-    } else {
-      alert('Pilihan tidak valid. Ketik 1 atau 2.');
-      return;
-    }
-
-    const confirmText = window.prompt(
-      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
+    await fetchData();
+    // await fetchStats();
+  } catch (error) {
+    console.error('Error batch approve:', error.response?.data || error);
+    alert(
+      `Gagal memvalidasi data terpilih: ${
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error.message
+      }`
     );
+  }
+};
 
-    if (confirmText !== 'SETUJU') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
+  // const handleBatchReject = async ids => {
+  //   if (!isAdminPusat) {
+  //     alert('Hanya Admin Pusat yang dapat menolak data.');
+  //     return;
+  //   }
 
-    try {
-      await api.post('/pengolahan-pemasaran/batch-status', {
-        ids,
-        status: targetStatus,
-      });
+  //   if (!Array.isArray(ids) || ids.length === 0) {
+  //     alert('Tidak ada data yang dipilih.');
+  //     return;
+  //   }
 
-      await fetchData();
-    } catch (error) {
-      console.error('Error batch approve:', error);
-      alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
-    }
-  };
+  //   const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+  //   if (alasan === null) return;
 
-  const handleBatchReject = async ids => {
-    if (!isAdminPusat) {
-      alert('Hanya Admin Pusat yang dapat menolak data.');
-      return;
-    }
+  //   if (!alasan.trim()) {
+  //     alert('Alasan penolakan wajib diisi.');
+  //     return;
+  //   }
 
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
-      return;
-    }
+  //   try {
+  //     await api.post('/pengolahan-pemasaran/batch-status', {
+  //       ids,
+  //       status: 'REJECTED',
+  //       alasan_penolakan: alasan.trim(),
+  //     });
 
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-    if (alasan === null) return;
-
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi.');
-      return;
-    }
-
-    try {
-      await api.post('/pengolahan-pemasaran/batch-status', {
-        ids,
-        status: 'REJECTED',
-        alasan_penolakan: alasan.trim(),
-      });
-
-      await fetchData();
-    } catch (error) {
-      console.error('Error batch reject:', error);
-      alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
-    }
-  };
+  //     await fetchData();
+  //   } catch (error) {
+  //     console.error('Error batch reject:', error);
+  //     alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
+  //   }
+  // };
 
   const handleBatchDelete = async ids => {
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -897,6 +1152,54 @@ export default function AdminPengolahanPemasaran() {
       alert(`Gagal menghapus data terpilih: ${error?.response?.data?.message || error.message}`);
     }
   };
+
+  const handleBatchReject = async ids => {
+  if (!isAdminPusat) {
+    alert('Hanya Admin Pusat yang dapat menolak data.');
+    return;
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    alert('Tidak ada data yang dipilih.');
+    return;
+  }
+
+  const selectedIdSet = new Set(ids.map(id => String(id)));
+  const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+
+  if (selectedRows.some(row => row.status === 'REJECTED')) {
+    alert('Ada data yang sudah REJECTED. Pilih data lain.');
+    return;
+  }
+
+  const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+  if (alasan === null) return;
+
+  if (!alasan.trim()) {
+    alert('Alasan penolakan wajib diisi.');
+    return;
+  }
+
+  try {
+    await api.post('/pengolahan-pemasaran/batch-status', {
+      ids,
+      status: 'REJECTED',
+      alasan_penolakan: alasan.trim(),
+    });
+
+    await fetchData();
+    // await fetchStats();
+  } catch (error) {
+    console.error('Error batch reject:', error.response?.data || error);
+    alert(
+      `Gagal menolak data terpilih: ${
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error.message
+      }`
+    );
+  }
+};
 
   const tahunOptions = useMemo(
     () =>
@@ -1495,6 +1798,9 @@ export default function AdminPengolahanPemasaran() {
         onBatchApprove={isAdminPusat ? handleBatchApprove : undefined}
         onBatchReject={isAdminPusat ? handleBatchReject : undefined}
         onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
+        approvableStatuses={['PENDING', 'APPROVED']}
+        rejectableStatuses={['PENDING', 'APPROVED', 'VERIFIED']}
+        lockedStatuses={['APPROVED', 'VERIFIED']}
         exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
       />
     </div>

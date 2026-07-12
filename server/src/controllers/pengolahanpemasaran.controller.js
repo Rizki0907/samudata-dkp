@@ -226,7 +226,7 @@ const getAdminData = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
 
     if (tahun) where.tahun = toInt(tahun);
     if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
@@ -576,6 +576,97 @@ const createData = async (req, res) => {
   }
 };
 
+// const updateStatus = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { status, alasan_penolakan } = req.body;
+
+//     if (!req.user || req.user.role !== 'admin_pusat') {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data',
+//       });
+//     }
+
+//     const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+
+//     if (!allowedStatuses.includes(status)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Status tidak valid',
+//       });
+//     }
+
+//     const existing = await prisma.pengolahanPemasaran.findUnique({
+//       where: { id: parseInt(id, 10) },
+//     });
+
+//     if (!existing) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Data tidak ditemukan',
+//       });
+//     }
+
+//     if (existing.status === 'APPROVED') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Data sudah selesai divalidasi Program',
+//       });
+//     }
+
+//     if (existing.status === 'REJECTED') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Data yang ditolak harus diperbaiki terlebih dahulu',
+//       });
+//     }
+
+//     if (status === 'APPROVED_BIDANG' && existing.status !== 'PENDING') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING',
+//       });
+//     }
+
+//     if (status === 'APPROVED' && existing.status !== 'APPROVED_BIDANG') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program',
+//       });
+//     }
+
+//     if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Alasan penolakan wajib diisi',
+//       });
+//     }
+
+//     const updated = await prisma.pengolahanPemasaran.update({
+//       where: { id: parseInt(id, 10) },
+//       data: {
+//         status,
+//         alasan_penolakan:
+//           status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
+//       },
+//     });
+
+//     res.json({
+//       success: true,
+//       message: `Status berhasil diubah menjadi ${status}`,
+//       data: updated,
+//     });
+//   } catch (error) {
+//     console.error('Error updating pengolahan pemasaran status:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server Error',
+//       error: error.message,
+//     });
+//   }
+// };
+
 const updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -588,7 +679,7 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+    const allowedStatuses = ['APPROVED', 'VERIFIED', 'REJECTED'];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -608,13 +699,6 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    if (existing.status === 'APPROVED') {
-      return res.status(400).json({
-        success: false,
-        message: 'Data sudah selesai divalidasi Program',
-      });
-    }
-
     if (existing.status === 'REJECTED') {
       return res.status(400).json({
         success: false,
@@ -622,17 +706,27 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    if (status === 'APPROVED_BIDANG' && existing.status !== 'PENDING') {
+    if (status === 'APPROVED' && existing.status !== 'PENDING') {
       return res.status(400).json({
         success: false,
-        message: 'Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING',
+        message: 'APPROVED hanya bisa dilakukan pada data berstatus PENDING',
       });
     }
 
-    if (status === 'APPROVED' && existing.status !== 'APPROVED_BIDANG') {
+    if (status === 'VERIFIED' && existing.status !== 'APPROVED') {
       return res.status(400).json({
         success: false,
-        message: 'Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program',
+        message: 'VERIFIED hanya bisa dilakukan setelah data APPROVED',
+      });
+    }
+
+    if (
+      status === 'REJECTED' &&
+      !['PENDING', 'APPROVED', 'VERIFIED'].includes(existing.status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Data tidak bisa ditolak pada status ini',
       });
     }
 
@@ -683,7 +777,7 @@ const updateData = async (req, res) => {
     }
 
     if (
-      ['APPROVED_BIDANG', 'APPROVED'].includes(existing.status) &&
+      ['APPROVED', 'VERIFIED'].includes(existing.status) &&
       req.user &&
       req.user.role === 'admin_cabang'
     ) {
@@ -740,10 +834,10 @@ const deleteData = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     }
 
-    if (existing.status === 'APPROVED' && req.user && req.user.role === 'admin_cabang') {
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user && req.user.role === 'admin_cabang') {
       return res.status(403).json({
         success: false,
-        message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui Pusat',
+        message: 'Admin Cabang tidak dapat menghapus data yang sudah divalidasi atau diverifikasi',
       });
     }
 
@@ -758,6 +852,89 @@ const deleteData = async (req, res) => {
   }
 };
 
+
+// const batchStatus = async (req, res) => {
+//   try {
+//     const { ids, status, alasan_penolakan } = req.body;
+
+//     if (!req.user || req.user.role !== 'admin_pusat') {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Hanya Admin Pusat yang dapat memvalidasi atau menolak data',
+//       });
+//     }
+
+//     if (!Array.isArray(ids) || ids.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Tidak ada data yang dipilih',
+//       });
+//     }
+
+//     const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+
+//     if (!allowedStatuses.includes(status)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Status tidak valid',
+//       });
+//     }
+
+//     if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Alasan penolakan wajib diisi',
+//       });
+//     }
+
+//     const parsedIds = ids
+//       .map(id => parseInt(id, 10))
+//       .filter(id => Number.isInteger(id));
+
+//     let whereStatus = {};
+
+//     if (status === 'APPROVED_BIDANG') {
+//       whereStatus = { status: 'PENDING' };
+//     }
+
+//     if (status === 'APPROVED') {
+//       whereStatus = { status: 'APPROVED_BIDANG' };
+//     }
+
+//     if (status === 'REJECTED') {
+//       whereStatus = {
+//         status: {
+//           in: ['PENDING', 'APPROVED_BIDANG'],
+//         },
+//       };
+//     }
+
+//     const result = await prisma.pengolahanPemasaran.updateMany({
+//       where: {
+//         id: { in: parsedIds },
+//         ...whereStatus,
+//       },
+//       data: {
+//         status,
+//         alasan_penolakan:
+//           status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
+//       },
+//     });
+
+//     res.json({
+//       success: true,
+//       message: `${result.count} data berhasil diproses`,
+//       count: result.count,
+//     });
+//   } catch (error) {
+//     console.error('Error batch status pengolahan pemasaran:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server Error',
+//       error: error.message,
+//     });
+//   }
+// };
 
 const batchStatus = async (req, res) => {
   try {
@@ -777,7 +954,7 @@ const batchStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
+    const allowedStatuses = ['APPROVED', 'VERIFIED', 'REJECTED'];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -799,18 +976,18 @@ const batchStatus = async (req, res) => {
 
     let whereStatus = {};
 
-    if (status === 'APPROVED_BIDANG') {
+    if (status === 'APPROVED') {
       whereStatus = { status: 'PENDING' };
     }
 
-    if (status === 'APPROVED') {
-      whereStatus = { status: 'APPROVED_BIDANG' };
+    if (status === 'VERIFIED') {
+      whereStatus = { status: 'APPROVED' };
     }
 
     if (status === 'REJECTED') {
       whereStatus = {
         status: {
-          in: ['PENDING', 'APPROVED_BIDANG'],
+          in: ['PENDING', 'APPROVED', 'VERIFIED'],
         },
       };
     }
