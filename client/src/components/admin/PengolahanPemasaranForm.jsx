@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Loader2, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Loader2, Save, Search, X } from 'lucide-react';
 
 export const KABUPATEN_KOTA_OPTIONS = [
   'KAB. PACITAN',
@@ -41,6 +41,251 @@ export const KABUPATEN_KOTA_OPTIONS = [
   'KOTA SURABAYA',
   'KOTA BATU',
 ];
+
+const PROVINCE_OPTIONS = [
+  'ACEH',
+  'SUMATERA UTARA',
+  'SUMATERA BARAT',
+  'RIAU',
+  'KEPULAUAN RIAU',
+  'JAMBI',
+  'SUMATERA SELATAN',
+  'KEPULAUAN BANGKA BELITUNG',
+  'BENGKULU',
+  'LAMPUNG',
+  'DKI JAKARTA',
+  'JAWA BARAT',
+  'BANTEN',
+  'JAWA TENGAH',
+  'DI YOGYAKARTA',
+  'JAWA TIMUR',
+  'BALI',
+  'NUSA TENGGARA BARAT',
+  'NUSA TENGGARA TIMUR',
+  'KALIMANTAN BARAT',
+  'KALIMANTAN TENGAH',
+  'KALIMANTAN SELATAN',
+  'KALIMANTAN TIMUR',
+  'KALIMANTAN UTARA',
+  'SULAWESI UTARA',
+  'GORONTALO',
+  'SULAWESI TENGAH',
+  'SULAWESI BARAT',
+  'SULAWESI SELATAN',
+  'SULAWESI TENGGARA',
+  'MALUKU',
+  'MALUKU UTARA',
+  'PAPUA',
+  'PAPUA BARAT',
+  'PAPUA BARAT DAYA',
+  'PAPUA SELATAN',
+  'PAPUA TENGAH',
+  'PAPUA PEGUNUNGAN',
+  'Tidak Ada',
+];
+
+
+const MULTI_KABUPATEN_KOTA_OPTIONS = [
+  ...KABUPATEN_KOTA_OPTIONS,
+  'Tidak Ada',
+];
+
+const COUNTRY_OPTIONS = [
+  'INDONESIA',
+  'MALAYSIA',
+  'SINGAPURA',
+  'BRUNEI DARUSSALAM',
+  'THAILAND',
+  'FILIPINA',
+  'VIETNAM',
+  'LAOS',
+  'KAMBOJA',
+  'MYANMAR',
+  'TIMOR LESTE',
+  'CHINA',
+  'JEPANG',
+  'KOREA SELATAN',
+  'KOREA UTARA',
+  'INDIA',
+  'PAKISTAN',
+  'BANGLADESH',
+  'SRI LANKA',
+  'NEPAL',
+  'BHUTAN',
+  'MALADEWA',
+  'AFGHANISTAN',
+  'MONGOLIA',
+  'TAIWAN',
+  'HONG KONG',
+  'MAKAU',
+  'ARAB SAUDI',
+  'UNI EMIRAT ARAB',
+  'QATAR',
+  'KUWAIT',
+  'BAHRAIN',
+  'OMAN',
+  'YAMAN',
+  'IRAK',
+  'IRAN',
+  'ISRAEL',
+  'PALESTINA',
+  'YORDANIA',
+  'LEBANON',
+  'SURIAH',
+  'TURKI',
+  'KAZAKHSTAN',
+  'UZBEKISTAN',
+  'TURKMENISTAN',
+  'KIRGIZSTAN',
+  'TAJIKISTAN',
+  'RUSIA',
+  'UKRAINA',
+  'BELARUS',
+  'MOLDOVA',
+  'POLANDIA',
+  'JERMAN',
+  'BELANDA',
+  'BELGIA',
+  'LUKSEMBURG',
+  'PRANCIS',
+  'SPANYOL',
+  'PORTUGAL',
+  'ITALIA',
+  'SWISS',
+  'AUSTRIA',
+  'INGGRIS',
+  'IRLANDIA',
+  'ISLANDIA',
+  'NORWEGIA',
+  'SWEDIA',
+  'FINLANDIA',
+  'DENMARK',
+  'ESTONIA',
+  'LATVIA',
+  'LITUANIA',
+  'CEKO',
+  'SLOVAKIA',
+  'HONGARIA',
+  'RUMANIA',
+  'BULGARIA',
+  'YUNANI',
+  'ALBANIA',
+  'KROASIA',
+  'SLOVENIA',
+  'BOSNIA DAN HERZEGOVINA',
+  'SERBIA',
+  'MONTENEGRO',
+  'MAKEDONIA UTARA',
+  'KOSOVO',
+  'SIPRUS',
+  'MALTA',
+  'AMERIKA SERIKAT',
+  'KANADA',
+  'MEKSIKO',
+  'GUATEMALA',
+  'BELIZE',
+  'HONDURAS',
+  'EL SALVADOR',
+  'NIKARAGUA',
+  'KOSTA RIKA',
+  'PANAMA',
+  'KUBA',
+  'JAMAIKA',
+  'HAITI',
+  'REPUBLIK DOMINIKA',
+  'BAHAMA',
+  'BARBADOS',
+  'TRINIDAD DAN TOBAGO',
+  'ANTIGUA DAN BARBUDA',
+  'DOMINIKA',
+  'GRENADA',
+  'SAINT KITTS DAN NEVIS',
+  'SAINT LUCIA',
+  'SAINT VINCENT DAN GRENADINES',
+  'BRASIL',
+  'ARGENTINA',
+  'CHILE',
+  'PERU',
+  'BOLIVIA',
+  'PARAGUAY',
+  'URUGUAY',
+  'KOLOMBIA',
+  'VENEZUELA',
+  'EKUADOR',
+  'GUYANA',
+  'SURINAME',
+  'AUSTRALIA',
+  'SELANDIA BARU',
+  'PAPUA NUGINI',
+  'FIJI',
+  'SOLOMON',
+  'VANUATU',
+  'SAMOA',
+  'TONGA',
+  'KIRIBATI',
+  'TUVALU',
+  'NAURU',
+  'PALAU',
+  'MIKRONESIA',
+  'KEPULAUAN MARSHALL',
+  'MESIR',
+  'LIBYA',
+  'TUNISIA',
+  'ALJAZAIR',
+  'MAROKO',
+  'SUDAN',
+  'SUDAN SELATAN',
+  'ETHIOPIA',
+  'ERITREA',
+  'DJIBOUTI',
+  'SOMALIA',
+  'KENYA',
+  'UGANDA',
+  'TANZANIA',
+  'RWANDA',
+  'BURUNDI',
+  'AFRIKA SELATAN',
+  'NAMIBIA',
+  'BOTSWANA',
+  'ZIMBABWE',
+  'ZAMBIA',
+  'MOZAMBIK',
+  'MALAWI',
+  'MADAGASKAR',
+  'MAURITIUS',
+  'SEYCHELLES',
+  'KOMORO',
+  'ANGOLA',
+  'REPUBLIK DEMOKRATIK KONGO',
+  'REPUBLIK KONGO',
+  'GABON',
+  'GUINEA KHATULISTIWA',
+  'KAMERUN',
+  'REPUBLIK AFRIKA TENGAH',
+  'CHAD',
+  'NIGERIA',
+  'NIGER',
+  'BENIN',
+  'TOGO',
+  'GHANA',
+  'PANTAI GADING',
+  'LIBERIA',
+  'SIERRA LEONE',
+  'GUINEA',
+  'GUINEA-BISSAU',
+  'SENEGAL',
+  'GAMBIA',
+  'MAURITANIA',
+  'MALI',
+  'BURKINA FASO',
+  'CABO VERDE',
+  'SAO TOME DAN PRINCIPE',
+  'LESOTHO',
+  'ESWATINI',
+  'Tidak Ada',
+];
+
+const SERTIFIKAT_LAHAN_OPTIONS = ['SHM', 'Non SHM', 'Tidak Ada'];
 
 const JENIS_PENGOLAHAN_OPTIONS = [
   'Fermentasi',
@@ -302,9 +547,9 @@ const createInitialForm = initialData => {
 
   nama_bahan_baku: initialData?.nama_bahan_baku ?? '',
   total_bahan_baku_per_periode_kg: initialData?.total_bahan_baku_per_periode_kg ?? '',
-  asal_bahan_baku_kabupaten_kota: initialData?.asal_bahan_baku_kabupaten_kota ?? '',
-  provinsi_asal_bahan_baku: initialData?.provinsi_asal_bahan_baku ?? '',
-  asal_negara_bahan_baku: initialData?.asal_negara_bahan_baku ?? '',
+  asal_bahan_baku_kabupaten_kota: toArray(initialData?.asal_bahan_baku_kabupaten_kota),
+  provinsi_asal_bahan_baku: toArray(initialData?.provinsi_asal_bahan_baku),
+  asal_negara_bahan_baku: toArray(initialData?.asal_negara_bahan_baku),
   total_pemasaran_per_tahun_kg: initialData?.total_pemasaran_per_tahun_kg ?? '',
   pasar_dalam_kota_kab_per_tahun_kg:
     initialData?.pasar_dalam_kota_kab_per_tahun_kg ?? '',
@@ -313,10 +558,11 @@ const createInitialForm = initialData => {
   pasar_luar_jatim_per_tahun_kg: initialData?.pasar_luar_jatim_per_tahun_kg ?? '',
   pasar_luar_negeri_per_tahun_kg:
     initialData?.pasar_luar_negeri_per_tahun_kg ?? '',
-  tujuan_pemasaran_kabupaten_kota:
-    initialData?.tujuan_pemasaran_kabupaten_kota ?? '',
-  provinsi_tujuan_pemasaran: initialData?.provinsi_tujuan_pemasaran ?? '',
-  negara_tujuan_pemasaran: initialData?.negara_tujuan_pemasaran ?? '',
+  tujuan_pemasaran_kabupaten_kota: toArray(
+    initialData?.tujuan_pemasaran_kabupaten_kota,
+  ),
+  provinsi_tujuan_pemasaran: toArray(initialData?.provinsi_tujuan_pemasaran),
+  negara_tujuan_pemasaran: toArray(initialData?.negara_tujuan_pemasaran),
 
   tenaga_kerja_tetap_laki_laki: initialData?.tenaga_kerja_tetap_laki_laki ?? '',
   tenaga_kerja_tetap_perempuan: initialData?.tenaga_kerja_tetap_perempuan ?? '',
@@ -347,8 +593,8 @@ const createInitialForm = initialData => {
 
 function SectionCard({ number, title, description, children }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border bg-muted/35 px-5 py-4 md:px-6">
+    <section className="relative overflow-visible rounded-2xl border border-border bg-card shadow-sm">
+      <div className="rounded-t-2xl border-b border-border bg-muted/35 px-5 py-4 md:px-6">
         <div className="flex items-start gap-3">
           {number ? (
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
@@ -476,44 +722,272 @@ function ChoiceButtons({ label, value, options, onChange, required = true, colum
   );
 }
 
-function CheckboxGroup({ label, values, options, onToggle, columns = 3, helpText, required = true }) {
-  const gridClass =
-    columns === 4
-      ? 'sm:grid-cols-2 xl:grid-cols-4'
-      : columns === 2
-        ? 'sm:grid-cols-2'
-        : 'sm:grid-cols-2 xl:grid-cols-3';
+function SearchableMultiSelect({
+  label,
+  values,
+  options,
+  onChange,
+  placeholder = 'Pilih satu atau lebih',
+  required = true,
+  helpText,
+  allowCustom = false,
+  selectAllLabel = 'Pilih Semua',
+  allSelectedText,
+  exclusiveOptions = ['Tidak Ada'],
+  className = '',
+}) {
+  const wrapperRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const normalizedValues = Array.isArray(values) ? values : toArray(values);
+  const normalizedOptions = [...new Set((options || []).filter(Boolean))];
+  const normalizedSearch = search.trim().toUpperCase();
+
+  const filteredOptions = normalizedOptions.filter(option =>
+    String(option).toUpperCase().includes(normalizedSearch),
+  );
+
+  const exactOptionExists = normalizedOptions.some(
+    option => String(option).toUpperCase() === normalizedSearch,
+  );
+
+  const selectableAllOptions = normalizedOptions.filter(
+    option => !exclusiveOptions.includes(option),
+  );
+
+  const allSelected =
+    selectableAllOptions.length > 0 &&
+    selectableAllOptions.every(option => normalizedValues.includes(option));
+
+  useEffect(() => {
+    const handleOutsideClick = event => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
+  const toggleOption = option => {
+    const alreadySelected = normalizedValues.includes(option);
+    const isExclusive = exclusiveOptions.includes(option);
+
+    if (isExclusive) {
+      onChange(alreadySelected ? [] : [option]);
+      return;
+    }
+
+    const withoutExclusive = normalizedValues.filter(
+      item => !exclusiveOptions.includes(item),
+    );
+
+    onChange(
+      alreadySelected
+        ? withoutExclusive.filter(item => item !== option)
+        : [...withoutExclusive, option],
+    );
+  };
+
+  const toggleAll = () => {
+    onChange(allSelected ? [] : selectableAllOptions);
+  };
+
+  const addCustomOption = () => {
+    if (!normalizedSearch || normalizedValues.includes(normalizedSearch)) {
+      return;
+    }
+
+    onChange([
+      ...normalizedValues.filter(
+        item => !exclusiveOptions.includes(item),
+      ),
+      normalizedSearch,
+    ]);
+    setSearch('');
+  };
+
+  const selectedText = useMemo(() => {
+    if (normalizedValues.length === 0) return placeholder;
+
+    if (allSelected && allSelectedText) {
+      return allSelectedText;
+    }
+
+    const visibleValues = normalizedValues.slice(0, 3);
+    const remainingCount = normalizedValues.length - visibleValues.length;
+
+    return remainingCount > 0
+      ? `${visibleValues.join(', ')}, ${remainingCount} lainnya`
+      : visibleValues.join(', ');
+  }, [
+    allSelected,
+    allSelectedText,
+    normalizedValues,
+    placeholder,
+  ]);
 
   return (
-    <div className="space-y-2">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div
+      ref={wrapperRef}
+      className={`relative flex min-w-0 flex-col gap-1.5 ${
+        isOpen ? 'z-[90]' : 'z-0'
+      } ${className}`}
+    >
+      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
-      </div>
-      <div className={`grid grid-cols-1 gap-2 ${gridClass}`}>
-        {options.map(option => {
-          const checked = values.includes(option);
-          return (
-            <label
-              key={option}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition-colors ${
-                checked
-                  ? 'border-primary/50 bg-primary/5 text-foreground'
-                  : 'border-border bg-background text-muted-foreground hover:border-primary/30'
-              }`}
-            >
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen(previous => !previous)}
+        aria-expanded={isOpen}
+        className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
+      >
+        <span
+          className={
+            normalizedValues.length
+              ? 'truncate text-foreground'
+              : 'truncate text-muted-foreground'
+          }
+        >
+          {selectedText}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 right-0 top-full z-[100] mt-2 rounded-xl border border-border bg-card p-3 shadow-2xl">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              onKeyDown={event => {
+                if (
+                  event.key === 'Enter' &&
+                  allowCustom &&
+                  normalizedSearch &&
+                  !exactOptionExists
+                ) {
+                  event.preventDefault();
+                  addCustomOption();
+                }
+              }}
+              placeholder={`Cari ${label.toLowerCase()}...`}
+              className={`${INPUT_CLASS} pl-9`}
+              autoFocus
+            />
+          </div>
+
+          {selectAllLabel ? (
+            <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-foreground">
               <input
                 type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(option)}
+                checked={allSelected}
+                onChange={toggleAll}
                 className="h-4 w-4 rounded border-border accent-primary"
               />
-              <span>{option}</span>
+              <span>{selectAllLabel}</span>
             </label>
-          );
-        })}
-      </div>
-      {helpText ? <p className="text-xs text-muted-foreground">{helpText}</p> : null}
+          ) : null}
+
+          {normalizedValues.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {normalizedValues.map(value => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleOption(value)}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                  title={`Hapus ${value}`}
+                >
+                  <span className="max-w-[220px] truncate">{value}</span>
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+            {filteredOptions.map(option => {
+              const checked = normalizedValues.includes(option);
+
+              return (
+                <label
+                  key={option}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                    checked
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleOption(option)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span>{option}</span>
+                </label>
+              );
+            })}
+
+            {allowCustom && normalizedSearch && !exactOptionExists ? (
+              <button
+                type="button"
+                onClick={addCustomOption}
+                className="flex w-full items-center rounded-lg border border-dashed border-primary/30 px-3 py-2 text-left text-sm font-medium text-primary hover:bg-primary/5"
+              >
+                Tambahkan “{normalizedSearch}”
+              </button>
+            ) : null}
+
+            {!filteredOptions.length &&
+            !(allowCustom && normalizedSearch && !exactOptionExists) ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                Tidak ada pilihan yang cocok.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Bersihkan
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {helpText ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {helpText}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -590,24 +1064,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
           }
         : {}),
     }));
-  };
-
-  const toggleArrayValue = (key, option, exclusiveOption) => {
-    setForm(previous => {
-      const current = previous[key];
-      const alreadySelected = current.includes(option);
-      let next;
-
-      if (option === exclusiveOption) {
-        next = alreadySelected ? [] : [option];
-      } else {
-        next = alreadySelected
-          ? current.filter(item => item !== option)
-          : [...current.filter(item => item !== exclusiveOption), option];
-      }
-
-      return { ...previous, [key]: next };
-    });
   };
 
   const productionMetrics = useMemo(() => {
@@ -691,6 +1147,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
       ['Kapasitas Per Periode', form.kapasitas_per_periode_kg],
       ['Harga Jual', form.harga_jual_rp_kg],
       ['Jumlah Total Bulan Produksi Per Tahun', form.jumlah_total_bulan_produksi_per_tahun],
+      ['Jumlah Hari Produksi Per Bulan', form.jumlah_hari_produksi_per_bulan],
       ['Nama Bahan Baku', form.nama_bahan_baku],
       ['Total Bahan Baku Per Periode', form.total_bahan_baku_per_periode_kg],
       ['Asal Bahan Baku Kabupaten/Kota', form.asal_bahan_baku_kabupaten_kota],
@@ -715,10 +1172,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
       ['Tenaga Kerja Tidak Tetap 2 Laki-Laki', form.tenaga_kerja_tidak_tetap_laki_laki_2],
       ['Tenaga Kerja Tidak Tetap 2 Perempuan', form.tenaga_kerja_tidak_tetap_perempuan_2],
     ];
-
-    if (form.periode_produksi !== 'Bulanan') {
-      requiredTextFields.push(['Jumlah Hari Produksi Per Bulan', form.jumlah_hari_produksi_per_bulan]);
-    }
 
     if (form.pinjaman_modal === 'Ya') {
       requiredTextFields.push(
@@ -792,6 +1245,18 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
       sertifikat_bangunan: form.sertifikat_bangunan.join(', '),
       sertifikat_umum: form.sertifikat_umum.join(', '),
       bulan_produksi: form.bulan_produksi.join(', '),
+      asal_bahan_baku_kabupaten_kota:
+        form.asal_bahan_baku_kabupaten_kota.join(', '),
+      provinsi_asal_bahan_baku:
+        form.provinsi_asal_bahan_baku.join(', '),
+      asal_negara_bahan_baku:
+        form.asal_negara_bahan_baku.join(', '),
+      tujuan_pemasaran_kabupaten_kota:
+        form.tujuan_pemasaran_kabupaten_kota.join(', '),
+      provinsi_tujuan_pemasaran:
+        form.provinsi_tujuan_pemasaran.join(', '),
+      negara_tujuan_pemasaran:
+        form.negara_tujuan_pemasaran.join(', '),
     };
 
     NUMERIC_FIELDS.forEach(key => {
@@ -892,8 +1357,8 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
             label="Alamat Detail"
             value={form.alamat}
             onChange={setUppercase('alamat')}
-            placeholder="CTH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
-            helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
+            placeholder="CTH: DUSUN KRAJAN, JL. IKAN TUNA NO. JALAN 10, NO. BANGUNAN A-2, RT 02/RW 03"
+            helpText="Cantumkan dusun, nama jalan, nomor jalan, nomor bangunan, serta RT/RW agar alamat mudah ditemukan."
             className="md:col-span-2"
             required
           />
@@ -923,12 +1388,14 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
 
       <SectionCard number="2" title="Legalitas Usaha & Profil Pemilik">
         <div className="space-y-5">
-          <CheckboxGroup
+          <SearchableMultiSelect
             label="Sertifikat Perizinan Usaha"
             values={form.perizinan}
             options={PERIZINAN_OPTIONS}
-            onToggle={option => toggleArrayValue('perizinan', option, 'Tidak Berizin')}
-            columns={4}
+            onChange={values => setChoice('perizinan', values)}
+            placeholder="Pilih sertifikat perizinan"
+            exclusiveOptions={['Tidak Ada']}
+            helpText="Bisa memilih lebih dari satu. Pilihan “Tidak Ada” tidak dapat digabung dengan pilihan lain."
           />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -980,8 +1447,8 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
                 label="Alamat Detail 2"
                 value={form.alamat_2}
                 onChange={setUppercase('alamat_2')}
-                placeholder="CTH: JL. IKAN TUNA NO. 10, RT 02/RW 03"
-                helpText="Format disarankan: nama jalan, nomor bangunan, RT/RW."
+                placeholder="CTH: DUSUN KRAJAN, JL. IKAN TUNA NO. JALAN 10, NO. BANGUNAN A-2, RT 02/RW 03"
+                helpText="Cantumkan dusun, nama jalan, nomor jalan, nomor bangunan, serta RT/RW agar alamat mudah ditemukan."
                 className="md:col-span-2 xl:col-span-3"
               />
             </div>
@@ -991,7 +1458,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
 
       <SectionCard number="3" title="Aset, Lahan, & Bangunan">
         <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Field
               label="Nilai Aset (Rp)"
               value={form.nilai_aset_rp}
@@ -1020,19 +1487,22 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               inputMode="numeric"
               placeholder="0"
             />
-            <SelectField
-              label="Sertifikat Lahan"
-              value={form.sertifikat_lahan}
-              onChange={setValue('sertifikat_lahan')}
-              options={['SHM', 'Non SHM']}
-              placeholder="Pilih sertifikat lahan"
-            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SelectField
               label="Status Lahan Usaha"
               value={form.status_lahan_usaha}
               onChange={setValue('status_lahan_usaha')}
               options={['Sewa', 'Milik Sendiri']}
               placeholder="Pilih status lahan"
+            />
+            <SelectField
+              label="Sertifikat Lahan"
+              value={form.sertifikat_lahan}
+              onChange={setValue('sertifikat_lahan')}
+              options={SERTIFIKAT_LAHAN_OPTIONS}
+              placeholder="Pilih sertifikat lahan"
             />
             <Field
               label="Luas Lahan (m²)"
@@ -1048,6 +1518,9 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               inputMode="numeric"
               placeholder="0"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Field
               label="Biaya Sewa Per Tahun (Rp)"
               value={form.biaya_sewa_per_tahun_rp}
@@ -1055,19 +1528,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               inputMode="numeric"
               placeholder="0"
             />
-          </div>
-
-          <CheckboxGroup
-            label="Sertifikat Bangunan"
-            values={form.sertifikat_bangunan}
-            options={SERTIFIKAT_BANGUNAN_OPTIONS}
-            onToggle={option =>
-              toggleArrayValue('sertifikat_bangunan', option, 'Tidak Ada')
-            }
-            columns={3}
-          />
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field
               label="Luas Bangunan (m²)"
               value={form.luas_bangunan_m2}
@@ -1081,6 +1541,14 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               onChange={setValue('nilai_bangunan_rp')}
               inputMode="numeric"
               placeholder="0"
+            />
+            <SearchableMultiSelect
+              label="Sertifikat Bangunan"
+              values={form.sertifikat_bangunan}
+              options={SERTIFIKAT_BANGUNAN_OPTIONS}
+              onChange={values => setChoice('sertifikat_bangunan', values)}
+              placeholder="Pilih sertifikat bangunan"
+              exclusiveOptions={['Tidak Ada']}
             />
           </div>
         </div>
@@ -1168,6 +1636,9 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               options={['Tidak Ada', 'BPOM MD', 'PIRT']}
               placeholder="Pilih sertifikat BPOM"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectField
               label="Periode Produksi"
               value={form.periode_produksi}
@@ -1175,15 +1646,15 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               options={['Harian', 'Bulanan']}
               placeholder="Pilih periode produksi"
             />
+            <SearchableMultiSelect
+              label="Sertifikat Produk"
+              values={form.sertifikat_umum}
+              options={SERTIFIKAT_PRODUK_OPTIONS}
+              onChange={values => setChoice('sertifikat_umum', values)}
+              placeholder="Pilih sertifikat produk"
+              exclusiveOptions={['Tidak Ada']}
+            />
           </div>
-          <CheckboxGroup
-          label="Sertifikat Produk"
-          values={form.sertifikat_umum}
-          options={SERTIFIKAT_PRODUK_OPTIONS}
-          onToggle={option => toggleArrayValue('sertifikat_umum', option, 'Tidak Ada')}
-          columns={3}
-          helpText="Pilih Tidak Ada apabila belum memiliki sertifikat produk."
-          />
         </div>
       </SectionCard>
 
@@ -1235,28 +1706,32 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               inputMode="numeric"
               placeholder="12"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field
               label="Jumlah Hari Produksi Per Bulan"
               value={form.jumlah_hari_produksi_per_bulan}
               onChange={setValue('jumlah_hari_produksi_per_bulan')}
               inputMode="numeric"
               placeholder="25"
-              disabled={form.periode_produksi === 'Bulanan'}
               helpText={
                 form.periode_produksi === 'Bulanan'
-                  ? 'Tidak digunakan untuk periode produksi bulanan.'
-                  : undefined
+                  ? 'Tetap dapat diisi sebagai informasi operasional. Nilai ini tidak mengubah perhitungan tahunan untuk periode bulanan.'
+                  : 'Digunakan dalam perhitungan tahunan untuk periode harian.'
               }
             />
+            <SearchableMultiSelect
+              label="Bulan Produksi"
+              values={form.bulan_produksi}
+              options={BULAN_OPTIONS}
+              onChange={values => setChoice('bulan_produksi', values)}
+              placeholder="Pilih bulan produksi"
+              selectAllLabel="Pilih Semua Bulan"
+              allSelectedText="Semua Bulan"
+              exclusiveOptions={[]}
+            />
           </div>
-
-          <CheckboxGroup
-            label="Bulan Produksi"
-            values={form.bulan_produksi}
-            options={BULAN_OPTIONS}
-            onToggle={option => toggleArrayValue('bulan_produksi', option)}
-            columns={4}
-          />
 
           <div className="grid grid-cols-1 gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:grid-cols-2 xl:grid-cols-4 md:p-5">
             <ReadOnlyMetric
@@ -1301,23 +1776,36 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
                 inputMode="decimal"
                 placeholder="0"
               />
-              <Field
+              <SearchableMultiSelect
                 label="Asal Bahan Baku (Kabupaten/Kota)"
-                value={form.asal_bahan_baku_kabupaten_kota}
-                onChange={setUppercase('asal_bahan_baku_kabupaten_kota')}
-                placeholder="DAPAT DIISI LEBIH DARI SATU KABUPATEN/KOTA"
+                values={form.asal_bahan_baku_kabupaten_kota}
+                options={MULTI_KABUPATEN_KOTA_OPTIONS}
+                onChange={values =>
+                  setChoice('asal_bahan_baku_kabupaten_kota', values)
+                }
+                placeholder="Cari dan pilih kabupaten/kota"
+                allowCustom
               />
-              <Field
+              <SearchableMultiSelect
                 label="Provinsi Asal Bahan Baku"
-                value={form.provinsi_asal_bahan_baku}
-                onChange={setUppercase('provinsi_asal_bahan_baku')}
-                placeholder="NAMA PROVINSI"
+                values={form.provinsi_asal_bahan_baku}
+                options={PROVINCE_OPTIONS}
+                onChange={values =>
+                  setChoice('provinsi_asal_bahan_baku', values)
+                }
+                placeholder="Cari dan pilih provinsi"
+                allowCustom
               />
-              <Field
+              <SearchableMultiSelect
                 label="Asal Negara Bahan Baku"
-                value={form.asal_negara_bahan_baku}
-                onChange={setUppercase('asal_negara_bahan_baku')}
-                placeholder="NAMA NEGARA"
+                values={form.asal_negara_bahan_baku}
+                options={COUNTRY_OPTIONS}
+                onChange={values =>
+                  setChoice('asal_negara_bahan_baku', values)
+                }
+                placeholder="Cari dan pilih negara"
+                allowCustom
+                exclusiveOptions={['Tidak Ada']}
               />
             </div>
           </div>
@@ -1360,23 +1848,36 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
                 inputMode="decimal"
                 placeholder="0"
               />
-              <Field
+              <SearchableMultiSelect
                 label="Tujuan Pemasaran (Kabupaten/Kota)"
-                value={form.tujuan_pemasaran_kabupaten_kota}
-                onChange={setUppercase('tujuan_pemasaran_kabupaten_kota')}
-                placeholder="DAPAT DIISI LEBIH DARI SATU KABUPATEN/KOTA"
+                values={form.tujuan_pemasaran_kabupaten_kota}
+                options={MULTI_KABUPATEN_KOTA_OPTIONS}
+                onChange={values =>
+                  setChoice('tujuan_pemasaran_kabupaten_kota', values)
+                }
+                placeholder="Cari dan pilih kabupaten/kota"
+                allowCustom
               />
-              <Field
+              <SearchableMultiSelect
                 label="Provinsi Tujuan Pemasaran"
-                value={form.provinsi_tujuan_pemasaran}
-                onChange={setUppercase('provinsi_tujuan_pemasaran')}
-                placeholder="NAMA PROVINSI"
+                values={form.provinsi_tujuan_pemasaran}
+                options={PROVINCE_OPTIONS}
+                onChange={values =>
+                  setChoice('provinsi_tujuan_pemasaran', values)
+                }
+                placeholder="Cari dan pilih provinsi"
+                allowCustom
               />
-              <Field
+              <SearchableMultiSelect
                 label="Negara Tujuan Pemasaran"
-                value={form.negara_tujuan_pemasaran}
-                onChange={setUppercase('negara_tujuan_pemasaran')}
-                placeholder="NAMA NEGARA"
+                values={form.negara_tujuan_pemasaran}
+                options={COUNTRY_OPTIONS}
+                onChange={values =>
+                  setChoice('negara_tujuan_pemasaran', values)
+                }
+                placeholder="Cari dan pilih negara"
+                allowCustom
+                exclusiveOptions={['Tidak Ada']}
               />
             </div>
           </div>

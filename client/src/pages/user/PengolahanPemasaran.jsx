@@ -432,6 +432,7 @@ export default function PengolahanPemasaran() {
         ),
       },
       { header: 'Nama UPI', accessorKey: 'nama_upi' },
+      { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
       {
         header: 'Jenis Kegiatan',
         accessorKey: 'jenis_kegiatan',
