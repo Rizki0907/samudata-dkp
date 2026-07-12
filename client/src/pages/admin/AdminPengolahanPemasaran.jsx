@@ -8,6 +8,57 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 
+const normalizeRegionKey = value => {
+  let text = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/\./g, '')
+    .replace(/\s+/g, ' ');
+
+  if (text.startsWith('KABUPATEN ')) {
+    text = `KAB ${text.replace(/^KABUPATEN\s+/, '')}`;
+  }
+
+  return text;
+};
+
+const GEO_REGION_NAME_MAP = new Map(
+  (geoJsonData.features || []).map(feature => {
+    const properties = feature?.properties || {};
+
+    const geoName =
+      properties.name ||
+      properties.NAME_2 ||
+      '';
+
+    const regionType = String(
+      properties.TYPE_2 || '',
+    ).toUpperCase();
+
+    const baseName = String(geoName)
+      .replace(/^KOTA\s+/i, '')
+      .trim();
+
+    const databaseStyleName =
+      regionType === 'KOTA'
+        ? `KOTA ${baseName}`
+        : `KAB ${baseName}`;
+
+    return [
+      normalizeRegionKey(databaseStyleName),
+      geoName,
+    ];
+  }),
+);
+
+const getGeoRegionName = databaseName => {
+  return (
+    GEO_REGION_NAME_MAP.get(
+      normalizeRegionKey(databaseName),
+    ) || databaseName
+  );
+};
+
 // Registrasi peta Jawa Timur (aman dipanggil berkali-kali)
 echarts.registerMap('jawa_timur', geoJsonData);
 
@@ -293,6 +344,24 @@ const groupSum = (rows, keyFn, valueFn) => {
     map.set(key, (map.get(key) || 0) + val);
   });
   return map;
+};
+
+const formatRupiah = value =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(toNumber(value));
+
+const getUpiKey = row => {
+  if (row?.id_upi) return String(row.id_upi);
+  if (row?.upi_id) return String(row.upi_id);
+
+  const nama = String(row?.nama_upi ?? '').trim().toLowerCase();
+  const kabupaten = String(row?.kabupaten_kota ?? '').trim().toLowerCase();
+
+  if (!nama && !kabupaten) return null;
+  return `${nama}|${kabupaten}`;
 };
 
 const createInitialForm = initialData => {
@@ -724,12 +793,45 @@ export default function AdminPengolahanPemasaran() {
 
   // Bar chart toggle: produksi (KG) atau nilai (Rp)
   const [barFilter, setBarFilter] = useState('produksi');
+  const [topKabFilter, setTopKabFilter] = useState('produksi');
+  const [productFilter, setProductFilter] = useState('produksi');
+  const [trendFilter, setTrendFilter] = useState('produksi');
+
+  const [selectedMapRegion, setSelectedMapRegion] = useState(null);
+  const [isMobileMap, setIsMobileMap] = useState(false);
+  const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
 
   // Modal input alasan penolakan (saat Admin Pusat menolak data)
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectLoading, setRejectLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+
+    const updateMobileState = event => {
+      setIsMobileMap(event.matches);
+      if (!event.matches) {
+        setMapInteractionEnabled(true);
+      } else {
+        setMapInteractionEnabled(false);
+      }
+    };
+    updateMobileState(mediaQuery);
+    mediaQuery.addEventListener(
+      'change',
+      updateMobileState,
+    );
+    
+    return () => {
+      mediaQuery.removeEventListener(
+        'change',
+        updateMobileState,
+      );
+    };
+  }, []);
 
   // Tick untuk memaksa re-render label waktu relatif ("Terakhir Diperbarui") setiap menit
   const [, setTimeTick] = useState(0);
@@ -1145,249 +1247,548 @@ export default function AdminPengolahanPemasaran() {
   const stats = useMemo(() => {
     const rows = verifiedData;
 
-    // KPI
     const total_volume = rows.reduce(
       (sum, row) => sum + toNumber(row.hasil_produksi_per_tahun_kg),
       0,
     );
+
     const total_nilai = rows.reduce(
       (sum, row) => sum + toNumber(row.nilai_hasil_produksi_per_tahun_rp),
       0,
     );
-    const total_upi = new Set(rows.map(row => row.nama_upi).filter(Boolean)).size;
 
-    const jenisProdukMap = groupSum(
-      rows,
-      row => row.jenis_produk,
-      row => toNumber(row.hasil_produksi_per_tahun_kg),
-    );
+    // UPI dihitung unik berdasarkan id_upi/upi_id.
+    // Jika ID UPI belum tersedia, fallback memakai nama UPI + kabupaten/kota.
+    const upiMap = new Map();
 
-    let top_jenis_produk = '-';
-    let topVal = -Infinity;
-    jenisProdukMap.forEach((val, key) => {
-      if (val > topVal) {
-        topVal = val;
-        top_jenis_produk = key;
-      }
+    rows.forEach(row => {
+      const key = getUpiKey(row);
+      if (!key || upiMap.has(key)) return;
+
+      upiMap.set(key, {
+        key,
+        jenis_kegiatan: row.jenis_kegiatan || 'Lainnya',
+      });
     });
 
-    // Sebaran per Kabupaten/Kota (untuk Peta & Bar Chart Top 10)
-    const kabProduksiMap = groupSum(
-      rows,
-      row => row.kabupaten_kota,
-      row => toNumber(row.hasil_produksi_per_tahun_kg),
-    );
-    const kabNilaiMap = groupSum(
-      rows,
-      row => row.kabupaten_kota,
-      row => toNumber(row.nilai_hasil_produksi_per_tahun_rp),
-    );
-    const produksiPerKabupaten = KABUPATEN_KOTA_OPTIONS.map(name => ({
-      name,
-      produksi: kabProduksiMap.get(name) || 0,
-      nilai: kabNilaiMap.get(name) || 0,
+    const total_upi = upiMap.size;
+
+    // Agregasi jenis produk untuk KPI dan Top Jenis Produk.
+    const produkMap = new Map();
+
+    rows.forEach(row => {
+      const name = String(row.jenis_produk || 'Tidak diketahui').trim();
+
+      if (!produkMap.has(name)) {
+        produkMap.set(name, {
+          name,
+          produksi: 0,
+          nilai: 0,
+          upiKeys: new Set(),
+        });
+      }
+
+      const current = produkMap.get(name);
+      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
+      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
+
+      const upiKey = getUpiKey(row);
+      if (upiKey) current.upiKeys.add(upiKey);
+    });
+
+    const produkData = [...produkMap.values()]
+      .map(item => ({
+        name: item.name,
+        produksi: item.produksi,
+        nilai: item.nilai,
+        upi: item.upiKeys.size,
+      }))
+      .sort((a, b) => b.produksi - a.produksi);
+
+    const topProduk = produkData[0] || {
+      name: '-',
+      produksi: 0,
+      nilai: 0,
+      upi: 0,
+    };
+
+    // Agregasi kabupaten/kota untuk peta dan Top 10.
+    const kabupatenMap = new Map();
+
+    KABUPATEN_KOTA_OPTIONS.forEach(name => {
+      kabupatenMap.set(name, {
+        name,
+        produksi: 0,
+        nilai: 0,
+        upiKeys: new Set(),
+      });
+    });
+
+    rows.forEach(row => {
+      const name = row.kabupaten_kota;
+      if (!name) return;
+
+      if (!kabupatenMap.has(name)) {
+        kabupatenMap.set(name, {
+          name,
+          produksi: 0,
+          nilai: 0,
+          upiKeys: new Set(),
+        });
+      }
+
+      const current = kabupatenMap.get(name);
+      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
+      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
+
+      const upiKey = getUpiKey(row);
+      if (upiKey) current.upiKeys.add(upiKey);
+    });
+
+    const produksiPerKabupaten = [...kabupatenMap.values()].map(item => ({
+      name: item.name,
+      produksi: item.produksi,
+      nilai: item.nilai,
+      upi: item.upiKeys.size,
     }));
 
-    // Top 5 Jenis Produk (untuk Tren Tahunan)
-    const top5Jenis = [...jenisProdukMap.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name]) => name);
+    // Donut: jumlah UPI unik Pengolahan vs Pemasaran.
+    const rasioKegiatan = [
+      {
+        name: 'Pengolahan',
+        value: [...upiMap.values()].filter(
+          item => item.jenis_kegiatan === 'Pengolahan',
+        ).length,
+      },
+      {
+        name: 'Pemasaran',
+        value: [...upiMap.values()].filter(
+          item => item.jenis_kegiatan === 'Pemasaran',
+        ).length,
+      },
+    ];
 
-    // Tren Tahunan: total hasil produksi per tahun, dipecah per Top 5 Jenis Produk + Lainnya
-    const tahunList = [...new Set(rows.map(row => String(row.tahun ?? '').trim()).filter(Boolean))]
-      .sort((a, b) => Number(a) - Number(b));
-
+    // Tren tahunan dua garis: Pengolahan vs Pemasaran.
     const yearlyMap = new Map();
-    tahunList.forEach(tahun => yearlyMap.set(tahun, {}));
 
     rows.forEach(row => {
       const tahun = String(row.tahun ?? '').trim();
-      const bucket = yearlyMap.get(tahun);
-      if (!bucket) return;
+      if (!tahun) return;
 
-      const jenis = row.jenis_produk || 'Lainnya';
-      const label = top5Jenis.includes(jenis) ? jenis : 'Lainnya';
-      bucket[label] = (bucket[label] || 0) + toNumber(row.hasil_produksi_per_tahun_kg);
+      if (!yearlyMap.has(tahun)) {
+        yearlyMap.set(tahun, {
+          tahun,
+          pengolahan_produksi: 0,
+          pemasaran_produksi: 0,
+          pengolahan_nilai: 0,
+          pemasaran_nilai: 0,
+        });
+      }
+
+      const current = yearlyMap.get(tahun);
+      const produksi = toNumber(row.hasil_produksi_per_tahun_kg);
+      const nilai = toNumber(row.nilai_hasil_produksi_per_tahun_rp);
+
+      if (row.jenis_kegiatan === 'Pengolahan') {
+        current.pengolahan_produksi += produksi;
+        current.pengolahan_nilai += nilai;
+      } else if (row.jenis_kegiatan === 'Pemasaran') {
+        current.pemasaran_produksi += produksi;
+        current.pemasaran_nilai += nilai;
+      }
     });
 
-    const trenTahunan = tahunList.map(tahun => ({
-      tahun,
-      ...yearlyMap.get(tahun),
-    }));
-
-    // Komposisi Jenis Kegiatan (Treemap)
-    const komposisiMap = groupSum(
-      rows,
-      row => getJenisDetail(row),
-      row => toNumber(row.hasil_produksi_per_tahun_kg),
+    const trenTahunan = [...yearlyMap.values()].sort(
+      (a, b) => Number(a.tahun) - Number(b.tahun),
     );
-    const komposisiKegiatan = [...komposisiMap.entries()]
-      .filter(([name]) => name)
-      .map(([name, value]) => ({ name, value }));
-
-    // Rasio Jumlah Pengolahan vs Pemasaran (jumlah unit usaha, bukan volume)
-    const jumlahPengolahan = rows.filter(row => row.jenis_kegiatan === 'Pengolahan').length;
-    const jumlahPemasaran = rows.filter(row => row.jenis_kegiatan === 'Pemasaran').length;
-    const rasioKegiatan = [
-      { name: 'Pengolahan', value: jumlahPengolahan },
-      { name: 'Pemasaran', value: jumlahPemasaran },
-    ];
-
-    // Heatmap Kabupaten x Bulan (dengan normalisasi per kabupaten)
-    const heatRaw = new Map();
-
-    rows.forEach(row => {
-      const kab = row.kabupaten_kota;
-      if (!kab) return;
-
-      const months = toArray(row.bulan_produksi);
-      if (!months.length) return;
-
-      const totalVolume = toNumber(row.hasil_produksi_per_tahun_kg);
-      const perMonth = totalVolume / months.length;
-
-      months.forEach(month => {
-        const key = `${kab}|${month}`;
-        heatRaw.set(key, (heatRaw.get(key) || 0) + perMonth);
-      });
-    });
-
-    const kabMaxMap = new Map();
-    heatRaw.forEach((val, key) => {
-      const [kab] = key.split('|');
-      kabMaxMap.set(kab, Math.max(kabMaxMap.get(kab) || 0, val));
-    });
-
-    const heatmapData = [];
-    heatRaw.forEach((val, key) => {
-      const [kabupaten, bulan] = key.split('|');
-      const max = kabMaxMap.get(kabupaten) || 1;
-      heatmapData.push({
-        kabupaten,
-        bulan,
-        produksi: val,
-        normalized: max ? val / max : 0,
-      });
-    });
 
     return {
       produksiPerKabupaten,
-      trenTahunan,
-      top5Jenis,
-      komposisiKegiatan,
+      produkData,
       rasioKegiatan,
-      heatmapData,
-      kpi: { total_volume, top_jenis_produk, total_nilai, total_upi },
+      trenTahunan,
+      kpi: {
+        total_volume,
+        total_nilai,
+        total_upi,
+        top_produk: topProduk,
+      },
     };
   }, [verifiedData]);
 
   // 1. Peta Choropleth Jawa Timur
+  // const mapOption = useMemo(() => {
+  //   const mapData = stats.produksiPerKabupaten.map(item => ({
+  //     name: getGeoRegionName(item.name),
+  //     dbName: item.name,
+  //     value:
+  //       barFilter === 'produksi'
+  //       ? item.produksi
+  //       : item.nilai,
+      
+  //     produksi: toNumber(item.produksi),
+  //     nilai: toNumber(item.nilai),
+  //     upi: toNumber(item.upi),
+  //   }));
+
+  //   const maxVal = mapData.length > 0
+  //     ? Math.max(...mapData.map(item => item.value))
+  //     : 0;
+
+  //   const isProduksi = barFilter === 'produksi';
+
+  //   return {
+  //     title: {
+  //       text: 'Sebaran Hasil Pengolahan & Pemasaran per Kabupaten/Kota',
+  //       textStyle: {
+  //         color: '#e2e8f0',
+  //         fontSize: 16,
+  //         fontFamily: 'Inter',
+  //       },
+  //       left: 'center',
+  //       top: 10,
+  //     },
+  //     tooltip: {
+  //       trigger: 'item',
+  //       formatter: params => {
+  //         const item = params.data || {
+  //           produksi: 0,
+  //           nilai: 0,
+  //           upi: 0,
+  //         };
+
+  //         return [
+  //           `<b>${params.name}</b>`,
+  //           `Jumlah UPI: <b>${toNumber(item.upi).toLocaleString('id-ID')}</b>`,
+  //           `Hasil: <b>${toNumber(item.produksi).toLocaleString('id-ID')} KG</b>`,
+  //           `Nilai: <b>${formatRupiah(item.nilai)}</b>`,
+  //         ].join('<br/>');
+  //       },
+  //     },
+  //     visualMap: {
+  //       left: 'right',
+  //       min: 0,
+  //       max: maxVal || 1,
+  //       inRange: {
+  //         color: ['#0f172a', '#1e3a8a', '#3b82f6', '#93c5fd', '#34d399'],
+  //       },
+  //       text: ['Tinggi', 'Rendah'],
+  //       textStyle: { color: '#94a3b8' },
+  //       calculable: true,
+  //       type: 'piecewise',
+  //       splitNumber: 5,
+  //     },
+  //     series: [
+  //       {
+  //         name: isProduksi ? 'Hasil Produksi' : 'Nilai Hasil',
+  //         type: 'map',
+  //         map: 'jawa_timur',
+  //         roam: true,
+  //         label: { show: false, color: '#fff' },
+  //         emphasis: {
+  //           label: { show: true, color: '#fff' },
+  //           itemStyle: { areaColor: '#f59e0b' },
+  //         },
+  //         itemStyle: {
+  //           areaColor: '#1e293b',
+  //           borderColor: '#334155',
+  //         },
+  //         data: mapData,
+  //       },
+  //     ],
+  //   };
+  // }, [stats.produksiPerKabupaten, barFilter]);
+
   const mapOption = useMemo(() => {
     const mapData = stats.produksiPerKabupaten.map(item => ({
-      name: item.name,
-      value: barFilter === 'produksi' ? item.produksi : item.nilai,
+      name: getGeoRegionName(item.name),
+      dbName: item.name,
+      value:
+        barFilter === 'produksi'
+          ? toNumber(item.produksi)
+          : toNumber(item.nilai),
+
+      produksi: toNumber(item.produksi),
+      nilai: toNumber(item.nilai),
+      upi: toNumber(item.upi),
     }));
 
-    const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
+    const maxValue = mapData.length
+      ? Math.max(...mapData.map(item => item.value))
+      : 0;
+
     const isProduksi = barFilter === 'produksi';
 
+    const allowRoam =
+      !isMobileMap || mapInteractionEnabled;
+
     return {
-      title: {
-        text: 'Sebaran Hasil Pengolahan & Pemasaran per Kabupaten/Kota (Terverifikasi)',
-        textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' },
-        left: 'center',
-        top: 10,
-      },
+      animationDuration: 400,
+
       tooltip: {
         trigger: 'item',
-        formatter: (params) => {
-          const val = params.value || 0;
-          const formatted = isProduksi
-            ? `${val.toLocaleString('id-ID')} KG`
-            : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
-          return `${params.name}<br/>Total: <b>${formatted}</b>`;
+
+      // HP memakai tap, desktop bisa hover dan klik.
+        triggerOn: isMobileMap
+          ? 'click'
+          : 'mousemove|click',
+
+        confine: true,
+
+        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+        borderColor: '#334155',
+        borderWidth: 1,
+        textStyle: {
+          color: '#f8fafc',
+          fontSize: 12,
+        },
+        
+        formatter: params => {
+          const item = params.data || {};
+
+          const regionName =
+            item.dbName ||
+            params.name ||
+            'Wilayah';
+
+          const produksi = toNumber(item.produksi);
+          const nilai = toNumber(item.nilai);
+          const upi = toNumber(item.upi);
+
+          return [
+            `<b>${regionName}</b>`,
+            `Jumlah UPI: <b>${upi.toLocaleString('id-ID')}</b>`,
+            `Hasil: <b>${produksi.toLocaleString('id-ID')} KG</b>`,
+            `Nilai: <b>${new Intl.NumberFormat('id-ID', {
+              style: 'currency',
+              currency: 'IDR',
+              maximumFractionDigits: 0,
+            }).format(nilai)}</b>`,
+          ].join('<br/>');
         },
       },
+
       visualMap: {
-        left: 'right',
-        min: 1,
-        max: maxVal || 100,
-        inRange: {
-          color: ['#0f172a', '#1e3a8a', '#3b82f6', '#93c5fd', '#34d399'],
-        },
+        type: 'continuous',
+        min: 0,
+        max: maxValue || 1,
+
+        orient: isMobileMap
+          ? 'horizontal'
+          : 'vertical',
+
+        left: isMobileMap
+          ? 'center'
+          : 'right',
+
+        right: isMobileMap
+          ? 'auto'
+          : 5,
+
+        top: isMobileMap
+          ? 'auto'
+          : 'middle',
+
+        bottom: isMobileMap
+          ? 4
+          : 'auto',
+
+        itemWidth: isMobileMap
+          ? 150
+          : 14,
+
+        itemHeight: isMobileMap
+          ? 10
+          : 120,
+
+        calculable: false,
+
         text: ['Tinggi', 'Rendah'],
-        textStyle: { color: '#94a3b8' },
-        calculable: true,
-        type: 'piecewise',
-        splitNumber: 5,
+
+        textStyle: {
+          color: '#94a3b8',
+          fontSize: 10,
+        },
+
+        inRange: {
+          // Konvensi choropleth: nilai rendah lebih terang, nilai tinggi lebih gelap.
+          color: [
+            '#eff6ff',
+            '#bfdbfe',
+            '#60a5fa',
+            '#2563eb',
+            '#1e3a8a',
+          ],
+        },  
       },
+
       series: [
         {
-          name: 'Hasil Pengolahan & Pemasaran',
+          name: isProduksi
+            ? 'Hasil Produksi'
+            : 'Nilai Hasil',
+
           type: 'map',
           map: 'jawa_timur',
-          roam: true,
-          label: { show: false, color: '#fff' },
-          emphasis: {
-            label: { show: true, color: '#fff' },
-            itemStyle: { areaColor: '#f59e0b' },
+
+          roam: allowRoam,
+
+        // Sedikit diperbesar supaya lebih nyaman dilihat.
+          zoom: isMobileMap ? 1.08 : 1.12,
+
+          layoutCenter: [
+            isMobileMap ? '50%' : '47%',
+            isMobileMap ? '44%' : '50%',
+          ],
+
+          layoutSize: isMobileMap
+            ? '100%'
+            : '108%',
+
+          selectedMode: 'single',
+
+          label: {
+            show: false,
+            color: '#ffffff',
+            fontSize: 10,
           },
+
           itemStyle: {
             areaColor: '#1e293b',
-            borderColor: '#334155',
+            borderColor: '#475569',
+            borderWidth: 0.8,
           },
+
+          emphasis: {
+            label: {
+              show: !isMobileMap,
+              color: '#ffffff',
+              fontWeight: 'bold',
+            },
+
+            itemStyle: {
+              areaColor: '#f59e0b',
+              borderColor: '#ffffff',
+              borderWidth: 1.5,
+            },
+          },
+
+          select: {
+            label: {
+              show: true,
+              color: '#ffffff',
+              fontSize: 10,
+              fontWeight: 'bold',
+            },
+
+            itemStyle: {
+              areaColor: '#f59e0b',
+              borderColor: '#ffffff',
+              borderWidth: 2,
+            },
+          },
+
           data: mapData,
         },
       ],
     };
-  }, [stats.produksiPerKabupaten, barFilter]);
+  }, [
+    stats.produksiPerKabupaten,
+    barFilter,
+    isMobileMap,
+    mapInteractionEnabled,
+  ]);
 
-  // 2. Bar Chart Top 10 Kab/Kota
+  const mapEvents = useMemo(
+    () => ({
+      click: params => {
+        if (params.seriesType !== 'map') {
+          return;
+        }
+
+        const item = params.data || {};
+
+        setSelectedMapRegion({
+          name:
+            item.dbName ||
+            params.name ||
+            'Wilayah',
+
+          upi: toNumber(item.upi),
+          produksi: toNumber(item.produksi),
+          nilai: toNumber(item.nilai),
+        });
+      },
+    }),
+    [],
+  );
+
+  // 2. Bar Chart Top 10 Kabupaten/Kota
   const barOption = useMemo(() => {
-    const sortedData = [...stats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
-    const top10 = sortedData.slice(0, 10).reverse();
+    const top10 = [...stats.produksiPerKabupaten]
+      .filter(item => item[topKabFilter] > 0)
+      .sort((a, b) => b[topKabFilter] - a[topKabFilter])
+      .slice(0, 10)
+      .reverse();
 
-    const isProduksi = barFilter === 'produksi';
-    const seriesName = isProduksi ? 'Hasil Produksi (KG)' : 'Nilai Hasil (Rp)';
-    const formatter = isProduksi
-      ? val => val.toLocaleString('id-ID') + ' KG'
-      : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    const isProduksi = topKabFilter === 'produksi';
+    const seriesName = isProduksi
+      ? 'Hasil Produksi (KG)'
+      : 'Nilai Hasil (Rp)';
 
     return {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        formatter: (params) => {
-          const val = params[0].value || 0;
-          return `${params[0].name}<br/>${seriesName}: <b>${formatter(val)}</b>`;
+        formatter: params => {
+          const value = toNumber(params[0]?.value);
+
+          return `${params[0]?.name}<br/>${
+            isProduksi
+              ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
+              : `Nilai: <b>${formatRupiah(value)}</b>`
+          }`;
         },
       },
-      grid: { left: '3%', right: '4%', top: '5%', bottom: '3%', containLabel: true },
+      grid: {
+        left: '3%',
+        right: '4%',
+        top: '5%',
+        bottom: '3%',
+        containLabel: true,
+      },
       xAxis: {
         type: 'value',
-        splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
+        splitLine: {
+          lineStyle: {
+            color: '#334155',
+            type: 'dashed',
+          },
+        },
         axisLabel: {
           color: '#94a3b8',
-          formatter: (val) => {
-            if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T';
-            if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M';
-            if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt';
-            if (val >= 1000) return (val / 1000).toFixed(1) + 'rb';
+          formatter: val => {
+            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
+            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
+            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
+            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
             return val;
           },
         },
       },
       yAxis: {
         type: 'category',
-        data: top10.map(d => d.name),
-        axisLabel: { color: '#cbd5e1', fontSize: 11 },
+        data: top10.map(item => item.name),
+        axisLabel: {
+          color: '#cbd5e1',
+          fontSize: 11,
+        },
       },
       series: [
         {
           name: seriesName,
           type: 'bar',
-          data: top10.map(d => d[barFilter]),
+          data: top10.map(item => item[topKabFilter]),
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: '#f97316' },
@@ -1398,73 +1799,41 @@ export default function AdminPengolahanPemasaran() {
         },
       ],
     };
-  }, [stats.produksiPerKabupaten, barFilter]);
+  }, [stats.produksiPerKabupaten, topKabFilter]);
 
-  // 3. Line Chart Tren Tahunan (per Jenis Produk, Top 5 + Lainnya)
-  const lineOption = useMemo(() => {
-    const tahunAxis = stats.trenTahunan.map(item => item.tahun);
-
-    const seriesData = stats.top5Jenis.map(jenis => ({
-      name: jenis,
-      type: 'line',
-      smooth: true,
-      symbolSize: 8,
-      data: stats.trenTahunan.map(item => item[jenis] || 0),
-    }));
-
-    seriesData.push({
-      name: 'Lainnya',
-      type: 'line',
-      smooth: true,
-      lineStyle: { type: 'dashed', width: 2, color: '#94a3b8' },
-      itemStyle: { color: '#94a3b8' },
-      symbol: 'none',
-      data: stats.trenTahunan.map(item => item.Lainnya || 0),
-    });
+  // 3. Donut Jumlah UPI Pengolahan vs Pemasaran
+  const pieOption = useMemo(() => {
+    const total = stats.rasioKegiatan.reduce(
+      (sum, item) => sum + item.value,
+      0,
+    );
 
     return {
-      tooltip: {
-        trigger: 'axis',
-        valueFormatter: (val) => `${(val || 0).toLocaleString('id-ID')} KG`,
-      },
-      legend: {
-        data: [...stats.top5Jenis, 'Lainnya'],
-        textStyle: { color: '#cbd5e1' },
-        top: 0,
-      },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: tahunAxis,
-        axisLabel: { color: '#94a3b8', fontSize: 12 },
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
-        axisLabel: {
+      title: {
+        text: total.toLocaleString('id-ID'),
+        subtext: 'Total UPI',
+        left: 'center',
+        top: '36%',
+        textStyle: {
+          color: '#e2e8f0',
+          fontSize: 26,
+          fontWeight: 'bold',
+        },
+        subtextStyle: {
           color: '#94a3b8',
-          formatter: (val) => {
-            if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt';
-            if (val >= 1000) return (val / 1000).toFixed(1) + 'rb';
-            return val;
-          },
+          fontSize: 12,
         },
       },
-      series: seriesData,
-    };
-  }, [stats.trenTahunan, stats.top5Jenis]);
-
-  // 3b. Pie Chart Rasio Jumlah Pengolahan vs Pemasaran
-  const pieOption = useMemo(() => {
-    const total = stats.rasioKegiatan.reduce((sum, item) => sum + item.value, 0);
-
-    return {
       tooltip: {
         trigger: 'item',
-        formatter: (params) => {
-          const pct = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0';
-          return `${params.name}<br/>Jumlah: <b>${params.value.toLocaleString('id-ID')}</b> (${pct}%)`;
+        formatter: params => {
+          const pct = total > 0
+            ? ((params.value / total) * 100).toFixed(1)
+            : '0.0';
+
+          return `${params.name}<br/>Jumlah: <b>${params.value.toLocaleString(
+            'id-ID',
+          )} UPI</b><br/>Persentase: <b>${pct}%</b>`;
         },
       },
       legend: {
@@ -1473,10 +1842,10 @@ export default function AdminPengolahanPemasaran() {
       },
       series: [
         {
-          name: 'Rasio Kegiatan',
+          name: 'Jumlah UPI',
           type: 'pie',
-          radius: ['45%', '72%'],
-          center: ['50%', '45%'],
+          radius: ['52%', '74%'],
+          center: ['50%', '44%'],
           avoidLabelOverlap: true,
           itemStyle: {
             borderColor: '#0f172a',
@@ -1485,19 +1854,28 @@ export default function AdminPengolahanPemasaran() {
           label: {
             show: true,
             color: '#e2e8f0',
-            formatter: (params) => {
-              const pct = total > 0 ? ((params.value / total) * 100).toFixed(0) : '0';
-              return `${params.name}\n${pct}%`;
+            formatter: params => {
+              const pct = total > 0
+                ? ((params.value / total) * 100).toFixed(1)
+                : '0.0';
+
+              return `${params.name}\n${params.value} UPI\n${pct}%`;
             },
           },
-          labelLine: { lineStyle: { color: '#475569' } },
+          labelLine: {
+            lineStyle: { color: '#475569' },
+          },
           data: [
             {
-              ...stats.rasioKegiatan.find(item => item.name === 'Pengolahan'),
+              ...stats.rasioKegiatan.find(
+                item => item.name === 'Pengolahan',
+              ),
               itemStyle: { color: '#3b82f6' },
             },
             {
-              ...stats.rasioKegiatan.find(item => item.name === 'Pemasaran'),
+              ...stats.rasioKegiatan.find(
+                item => item.name === 'Pemasaran',
+              ),
               itemStyle: { color: '#10b981' },
             },
           ],
@@ -1506,109 +1884,176 @@ export default function AdminPengolahanPemasaran() {
     };
   }, [stats.rasioKegiatan]);
 
-  // 4. Treemap Komposisi Jenis Kegiatan (Pengolahan & Pemasaran)
-  const treemapOption = useMemo(() => {
-    const treemapData = stats.komposisiKegiatan.map(w => ({
-      name: w.name,
-      value: w.value,
-    }));
+  // 4. Bar Chart Top Jenis Produk
+  const productOption = useMemo(() => {
+    const topProducts = [...stats.produkData]
+      .filter(item => item[productFilter] > 0)
+      .sort((a, b) => b[productFilter] - a[productFilter])
+      .slice(0, 10)
+      .reverse();
+
+    const isProduksi = productFilter === 'produksi';
 
     return {
       tooltip: {
-        formatter: (info) => {
-          const val = info.value || 0;
-          return `<b>${info.name}</b><br/>Total Hasil: ${val.toLocaleString('id-ID')} KG`;
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: params => {
+          const value = toNumber(params[0]?.value);
+
+          return `${params[0]?.name}<br/>${
+            isProduksi
+              ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
+              : `Nilai: <b>${formatRupiah(value)}</b>`
+          }`;
         },
       },
-      series: [{
-        type: 'treemap',
-        width: '100%',
-        height: '100%',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        roam: false,
-        nodeClick: false,
-        breadcrumb: { show: false },
-        label: { show: true, formatter: '{b}\n\n{c} KG', color: '#fff', fontWeight: 'bold' },
-        itemStyle: { borderColor: '#0f172a', gapWidth: 2 },
-        data: treemapData,
-        colorMappingBy: 'value',
-        visualMap: {
-          show: false,
-          inRange: {
-            color: ['#7c2d12', '#c2410c', '#f97316', '#fb923c', '#fed7aa'],
+      grid: {
+        left: '3%',
+        right: '4%',
+        top: '5%',
+        bottom: '3%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'value',
+        splitLine: {
+          lineStyle: {
+            color: '#334155',
+            type: 'dashed',
           },
         },
-      }],
-    };
-  }, [stats.komposisiKegiatan]);
-
-  // 5. Heatmap Kabupaten x Bulan
-  const heatmapOption = useMemo(() => {
-    const yAxisData = [...new Set(stats.heatmapData.map(d => d.kabupaten))].sort();
-    const xAxisData = BULAN_OPTIONS;
-
-    const dataPairs = [];
-    const tooltipRawData = {};
-
-    stats.heatmapData.forEach(item => {
-      const xIndex = xAxisData.indexOf(item.bulan);
-      const yIndex = yAxisData.indexOf(item.kabupaten);
-      if (xIndex !== -1 && yIndex !== -1) {
-        dataPairs.push([xIndex, yIndex, item.normalized]);
-        tooltipRawData[`${xIndex}-${yIndex}`] = item.produksi;
-      }
-    });
-
-    return {
-      tooltip: {
-        position: 'top',
-        formatter: (params) => {
-          const xIndex = params.data[0];
-          const yIndex = params.data[1];
-          const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0;
-          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Hasil: ${rawValue.toLocaleString('id-ID')} KG`;
+        axisLabel: {
+          color: '#94a3b8',
+          formatter: val => {
+            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
+            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
+            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
+            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
+            return val;
+          },
         },
-      },
-      grid: { left: '15%', right: '2%', top: '5%', bottom: '15%' },
-      xAxis: {
-        type: 'category',
-        data: xAxisData,
-        splitArea: { show: true },
-        axisLabel: { color: '#cbd5e1', rotate: 45 },
       },
       yAxis: {
         type: 'category',
-        data: yAxisData,
-        splitArea: { show: true },
-        axisLabel: { color: '#cbd5e1', fontSize: 10 },
-      },
-      visualMap: {
-        min: 0,
-        max: 1,
-        calculable: true,
-        orient: 'horizontal',
-        left: 'center',
-        bottom: '0%',
-        inRange: {
-          color: ['#0f172a', '#3b82f6', '#2dd4bf', '#fde047', '#f43f5e'],
+        data: topProducts.map(item => item.name),
+        axisLabel: {
+          color: '#cbd5e1',
+          fontSize: 11,
         },
-        textStyle: { color: '#cbd5e1' },
-        formatter: (value) => value.toFixed(1),
       },
-      series: [{
-        name: 'Heatmap',
-        type: 'heatmap',
-        data: dataPairs,
-        label: { show: false },
-        emphasis: {
-          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' },
+      series: [
+        {
+          name: isProduksi
+            ? 'Hasil Produksi (KG)'
+            : 'Nilai Hasil (Rp)',
+          type: 'bar',
+          data: topProducts.map(item => item[productFilter]),
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+              { offset: 0, color: '#14b8a6' },
+              { offset: 1, color: '#0f766e' },
+            ]),
+            borderRadius: [0, 4, 4, 0],
+          },
         },
-      }],
+      ],
     };
-  }, [stats.heatmapData]);
+  }, [stats.produkData, productFilter]);
+
+  // 5. Line Chart Tren Tahunan: dua garis Pengolahan vs Pemasaran
+  const lineOption = useMemo(() => {
+    const isProduksi = trendFilter === 'produksi';
+
+    const pengolahanKey = isProduksi
+      ? 'pengolahan_produksi'
+      : 'pengolahan_nilai';
+
+    const pemasaranKey = isProduksi
+      ? 'pemasaran_produksi'
+      : 'pemasaran_nilai';
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: value =>
+          isProduksi
+            ? `${toNumber(value).toLocaleString('id-ID')} KG`
+            : formatRupiah(value),
+      },
+      legend: {
+        data: ['Pengolahan', 'Pemasaran'],
+        textStyle: { color: '#cbd5e1' },
+        top: 0,
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        top: '12%',
+        bottom: '3%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: stats.trenTahunan.map(item => item.tahun),
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 12,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: {
+          lineStyle: {
+            color: '#334155',
+            type: 'dashed',
+          },
+        },
+        axisLabel: {
+          color: '#94a3b8',
+          formatter: val => {
+            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
+            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
+            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
+            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
+            return val;
+          },
+        },
+      },
+      series: [
+        {
+          name: 'Pengolahan',
+          type: 'line',
+          smooth: true,
+          symbolSize: 8,
+          data: stats.trenTahunan.map(item => item[pengolahanKey]),
+          lineStyle: {
+            width: 3,
+            color: '#3b82f6',
+          },
+          itemStyle: {
+            color: '#3b82f6',
+          },
+        },
+        {
+          name: 'Pemasaran',
+          type: 'line',
+          smooth: true,
+          symbolSize: 8,
+          data: stats.trenTahunan.map(item => item[pemasaranKey]),
+          lineStyle: {
+            width: 3,
+            color: '#10b981',
+          },
+          itemStyle: {
+            color: '#10b981',
+          },
+        },
+      ],
+    };
+  }, [stats.trenTahunan, trendFilter]);
+
   // ==== Akhir Visualisasi Data ====
 
   const columns = useMemo(
@@ -1770,143 +2215,302 @@ export default function AdminPengolahanPemasaran() {
   // ==== Blok Visualisasi Data (ditampilkan di atas tabel, hanya saat form tertutup) ====
   const dataVisualization = (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-600">
-        Visualisasi di bawah ini hanya menghitung data dengan status <b>VERIFIED</b>
-        {(filterTahun.length || filterKabupaten.length || filterJenisKegiatan.length || filterSkalaUsaha.length)
-          ? ' sesuai filter yang aktif di atas'
-          : ''}
-        , dan akan otomatis berubah mengikuti data terbaru.
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
-            <Box className="w-6 h-6" />
+      {/* Baris 1 — KPI */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-xl bg-purple-500/10 p-4 text-purple-500">
+            <Users className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Volume Hasil</p>
-            <p className="text-2xl font-bold text-foreground">
-              {stats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+            <p className="text-sm font-medium text-muted-foreground">
+              Total Unit Usaha (UPI)
             </p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Top Jenis Produk</p>
-            <p className="text-xl font-bold text-foreground leading-tight">
-              {stats.kpi.top_jenis_produk}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
-            <LineChart className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Nilai Hasil</p>
-            <p className="text-2xl font-bold text-foreground">
-              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.kpi.total_nilai)}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total Unit Usaha (UPI)</p>
             <p className="text-2xl font-bold text-foreground">
               {stats.kpi.total_upi.toLocaleString('id-ID')}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Peta & Bar Chart Top 10 */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Peta Sebaran Hasil</h2>
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
+            <Box className="h-6 w-6" />
           </div>
-          <div className="h-[450px]">
-            <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">
+              Total Hasil
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                KG
+              </span>
+            </p>
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-orange-500" />
-              <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
-            </div>
-            <select
-              value={barFilter}
-              onChange={(e) => setBarFilter(e.target.value)}
-              className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-orange-500 outline-none text-slate-200"
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+            <LineChart className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">
+              Total Nilai
+            </p>
+            <p className="text-xl font-bold leading-tight text-foreground">
+              {formatRupiah(stats.kpi.total_nilai)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-xl bg-orange-500/10 p-4 text-orange-500">
+            <TrendingUp className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground">
+              Top Produk
+            </p>
+            <p
+              className="truncate text-xl font-bold text-foreground"
+              title={stats.kpi.top_produk.name}
             >
-              <option value="produksi">Hasil Produksi (KG)</option>
-              <option value="nilai">Nilai Hasil (Rp)</option>
+              {stats.kpi.top_produk.name}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Baris 2 — Peta dan Top 10 Kabupaten/Kota */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-3">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-cyan-400" />
+                <h2 className="text-base font-semibold sm:text-lg">
+                  Peta Sebaran Hasil
+                </h2>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                Ketuk wilayah untuk melihat rincian datanya.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:flex">
+              <select
+                value={barFilter}
+                onChange={event => {
+                  setBarFilter(event.target.value);
+                  setSelectedMapRegion(null);
+                }}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
+              >
+                <option value="produksi">Hasil (KG)</option>
+                <option value="nilai">Nilai (Rp)</option>
+              </select>
+
+              {isMobileMap ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapInteractionEnabled(previous => !previous);
+                  }}
+                  className={`w-full rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                    mapInteractionEnabled
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background text-muted-foreground'
+                  }`}
+                >
+                  {mapInteractionEnabled ? 'Kunci Peta' : 'Geser & Zoom'}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {isMobileMap && mapInteractionEnabled ? (
+            <div className="mb-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
+              Mode peta aktif. Gunakan dua jari untuk memperbesar atau menggeser.
+              Tekan “Kunci Peta” agar halaman kembali mudah di-scroll.
+            </div>
+          ) : null}
+
+          <div className="h-[330px] overflow-hidden rounded-xl sm:h-[420px] lg:h-[450px]">
+            <ReactECharts
+              option={mapOption}
+              onEvents={mapEvents}
+              notMerge
+              lazyUpdate
+              style={{
+                height: '100%',
+                width: '100%',
+                touchAction:
+                  isMobileMap && !mapInteractionEnabled ? 'pan-y' : 'none',
+              }}
+            />
+          </div>
+
+          {selectedMapRegion ? (
+            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Wilayah Terpilih
+                  </p>
+                  <h3 className="mt-1 break-words font-semibold text-foreground">
+                    {selectedMapRegion.name}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedMapRegion(null)}
+                  className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl bg-background/70 p-3">
+                  <p className="text-xs text-muted-foreground">Jumlah UPI</p>
+                  <p className="mt-1 font-bold text-foreground">
+                    {selectedMapRegion.upi.toLocaleString('id-ID')}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-background/70 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Hasil Produksi
+                  </p>
+                  <p className="mt-1 font-bold text-foreground">
+                    {selectedMapRegion.produksi.toLocaleString('id-ID')} KG
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-background/70 p-3">
+                  <p className="text-xs text-muted-foreground">Nilai Hasil</p>
+                  <p className="mt-1 break-words font-bold text-foreground">
+                    {formatRupiah(selectedMapRegion.nilai)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-2">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+              <h2 className="text-lg font-semibold">
+                Top 10 Kabupaten/Kota
+              </h2>
+            </div>
+
+            <select
+              value={topKabFilter}
+              onChange={event => setTopKabFilter(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary sm:w-auto"
+            >
+              <option value="produksi">Hasil (KG)</option>
+              <option value="nilai">Nilai (Rp)</option>
             </select>
           </div>
-          <div className="h-[450px]">
-            <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+
+          <div className="h-[380px] sm:h-[450px]">
+            <ReactECharts
+              option={barOption}
+              style={{ height: '100%', width: '100%' }}
+            />
           </div>
         </div>
       </div>
 
-      {/* Tren Tahunan */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="w-5 h-5 text-teal-500" />
-          <h2 className="text-lg font-semibold">Tren Hasil Tahunan</h2>
+      {/* Baris 3 — Donut UPI dan Top Jenis Produk */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5 text-purple-500" />
+            <div>
+              <h2 className="text-lg font-semibold">
+                Donut Jumlah UPI
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Perbandingan UPI Pengolahan dan Pemasaran.
+              </p>
+            </div>
+          </div>
+
+          <div className="h-[380px]">
+            <ReactECharts
+              option={pieOption}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </div>
         </div>
-        <div className="h-[350px]">
-          <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Factory className="h-5 w-5 text-teal-500" />
+              <h2 className="text-lg font-semibold">
+                Top Jenis Produk
+              </h2>
+            </div>
+
+            <select
+              value={productFilter}
+              onChange={event => setProductFilter(event.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="produksi">Hasil (KG)</option>
+              <option value="nilai">Nilai (Rp)</option>
+            </select>
+          </div>
+
+          <div className="h-[380px]">
+            <ReactECharts
+              option={productOption}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Treemap Komposisi Jenis Kegiatan & Pie Rasio Pengolahan/Pemasaran */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <Factory className="w-5 h-5 text-cyan-500" />
-            <h2 className="text-lg font-semibold">Komposisi Jenis Kegiatan</h2>
+      {/* Baris 4 — Tren Tahunan */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-teal-500" />
+            <div>
+              <h2 className="text-lg font-semibold">
+                Tren Tahunan Pengolahan vs Pemasaran
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Dua garis dipakai agar perkembangan kedua jenis kegiatan mudah dibandingkan.
+              </p>
+            </div>
           </div>
-          <div className="h-[350px]">
-            <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
-          </div>
+
+          <select
+            value={trendFilter}
+            onChange={event => setTrendFilter(event.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="produksi">Hasil (KG)</option>
+            <option value="nilai">Nilai (Rp)</option>
+          </select>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <Factory className="w-5 h-5 text-indigo-500" />
-            <h2 className="text-lg font-semibold">Rasio Jumlah Pengolahan &amp; Pemasaran</h2>
-          </div>
-          <div className="h-[350px]">
-            <ReactECharts option={pieOption} style={{ height: '100%', width: '100%' }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Heatmap */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <MapPin className="w-5 h-5 text-rose-500" />
-          <h2 className="text-lg font-semibold">Pola Musiman per Wilayah</h2>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          Warna merepresentasikan intensitas hasil relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
-        </p>
-        <div className="h-[600px]">
-          <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+        <div className="h-[380px]">
+          <ReactECharts
+            option={lineOption}
+            style={{ height: '100%', width: '100%' }}
+          />
         </div>
       </div>
     </div>

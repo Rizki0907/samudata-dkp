@@ -191,7 +191,7 @@ const buildPayload = body => {
 const getAllData = async (req, res) => {
   try {
     const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
 
     if (tahun) where.tahun = toInt(tahun);
     if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
@@ -381,7 +381,7 @@ const getStats = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const { tahun, bulan, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
 
     if (tahun) where.tahun = toInt(tahun);
     if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
