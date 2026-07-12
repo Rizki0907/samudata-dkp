@@ -473,10 +473,10 @@ function StatusBadge({ status, alasan }) {
 
   if (status === 'APPROVED') {
     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-    label = 'APPROVED (PROGRAM)';
-  } else if (status === 'APPROVED_BIDANG') {
+    label = 'VERIFIED';
+  } else if (status === 'APPROVED') {
     colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
-    label = 'APPROVED (BIDANG)';
+    label = 'APPROVED';
   } else if (status === 'REJECTED') {
     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
     label = 'REJECTED';
@@ -1039,7 +1039,7 @@ export default function AdminPengolahanPemasaran() {
     const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
 
     if (selectedStatuses.length > 1) {
-      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED_BIDANG.');
+      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
       return;
     }
 
@@ -1048,7 +1048,7 @@ export default function AdminPengolahanPemasaran() {
 
     if (currentStatus === 'PENDING') {
       promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
-    } else if (currentStatus === 'APPROVED_BIDANG') {
+    } else if (currentStatus === 'APPROVED') {
       promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
     } else {
       alert('Status data terpilih tidak valid untuk proses validasi.');
@@ -1067,15 +1067,15 @@ export default function AdminPengolahanPemasaran() {
         return;
       }
 
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
     } else if (jenis === '2') {
-      if (currentStatus !== 'APPROVED_BIDANG') {
+      if (currentStatus !== 'APPROVED') {
         alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
         return;
       }
 
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
     } else {
       alert('Pilihan tidak valid. Ketik 1 atau 2.');
