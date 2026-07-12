@@ -11,17 +11,17 @@ const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 const KOMODITAS_SEGAR_OLAHAN = [
-  'Ikan Lainnya', 'Udang', 'Rumput Laut', 'Ikan Tuna', 'Ikan Sardine', 'Value Added', 
-  'Pakan Ikan', 'Cumi-Cumi', 'Lain-Lain', 'Ikan Kakap', 'Ikan Mackerel', 'Kepiting/Rajungan', 
+  'Udang', 'Rumput Laut', 'Ikan Tuna', 'Ikan Sardine', 'Value Added', 
+  'Pakan Ikan', 'Cumi-Cumi', 'Ikan Kakap', 'Ikan Mackerel', 'Kepiting/Rajungan', 
   'Ikan Bandeng Umpan', 'Ikan Kerapu', 'Minyak Ikan', 'Ikan Bandeng', 'Ikan Lele', 'Bekicot', 
   'Ikan Salmon', 'Kerang-Kerangan', 'Teri', 'Paha Katak', 'Tepung Ikan', 'Ikan Nila', 
   'Ikan Gurame', 'Ikan Patin', 'Tanaman Hias'
 ];
 
 const KOMODITAS_HIDUP = [
-  'Ikan Lainnya', 'Kepiting/Rajungan', 'Ikan Hias', 'Ikan Kerapu', 'Kerang-Kerangan', 
+  'Kepiting/Rajungan', 'Ikan Hias', 'Ikan Kerapu', 'Kerang-Kerangan', 
   'Koral', 'Udang', 'Benih Ikan/Udang', 'Ikan Bandeng', 'Ikan Kakap', 'Bekicot', 
-  'Lain-Lain', 'Alga', 'Tanaman Hias', 'Value Added'
+  'Alga', 'Tanaman Hias', 'Value Added'
 ];
 
 const NEGARA_OPTIONS = [
@@ -32,6 +32,57 @@ const NEGARA_OPTIONS = [
   'Greece', 'Puerto Rico', 'Gabon', 'Spain', 'Venezuela', 'Liberia', 'Kenya', 'Albania', 
   'Belgium', 'Germany', 'UAE', 'Equatorial Guinea', 'Gambia'
 ];
+
+const INDO_TO_ENG_COUNTRIES = {
+  'prancis': 'France',
+  'jepang': 'Japan',
+  'inggris': 'United Kingdom',
+  'belanda': 'Netherlands',
+  'amerika serikat': 'USA',
+  'amerika': 'USA',
+  'as': 'USA',
+  'tiongkok': 'China',
+  'cina': 'China',
+  'korea selatan': 'Korea (South)',
+  'korsel': 'Korea (South)',
+  'spanyol': 'Spain',
+  'jerman': 'Germany',
+  'italia': 'Italy',
+  'filipina': 'Philippines',
+  'selandia baru': 'New Zealand',
+  'singapura': 'Singapore',
+  'malaysia': 'Malaysia',
+  'thailand': 'Thailand',
+  'vietnam': 'Vietnam',
+  'kanada': 'Canada',
+  'australia': 'Australia',
+  'senegal': 'Senegal',
+  'hong kong': 'Hong Kong',
+  'hongkong': 'Hong Kong',
+  'bangladesh': 'Bangladesh',
+  'kamerun': 'Cameroon',
+  'chili': 'Chile',
+  'mesir': 'Egypt',
+  'kongo': 'Congo',
+  'yunani': 'Greece',
+  'belgia': 'Belgium',
+  'arab saudi': 'Saudi Arabia',
+  'uni emirat arab': 'UAE',
+  'uea': 'UAE',
+  'kamboja': 'Cambodia',
+  'rusia': 'Russia',
+  'turki': 'Turkey'
+};
+
+const translateCountry = (countryName) => {
+  if (!countryName) return countryName;
+  const lower = countryName.trim().toLowerCase();
+  if (INDO_TO_ENG_COUNTRIES[lower]) {
+    return INDO_TO_ENG_COUNTRIES[lower];
+  }
+  // Capitalize each word properly for English default fallback
+  return lower.replace(/\b\w/g, c => c.toUpperCase());
+};
 
 export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
   const [formData, setFormData] = useState({
@@ -125,7 +176,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         ...formData,
         nama_eksportir: '-',
         tanggal_ekspor: new Date().toISOString(),
-        negara_tujuan: formData.negara_tujuan === 'Lainnya' ? formData.negara_lainnya : formData.negara_tujuan
+        negara_tujuan: formData.negara_tujuan === 'Lainnya' ? translateCountry(formData.negara_lainnya) : formData.negara_tujuan
       };
       delete finalData.negara_lainnya;
       onSubmit(finalData);

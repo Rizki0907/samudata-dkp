@@ -31,9 +31,9 @@ const JENIS_WADAH_OPTIONS = [
 
 const KOMODITAS_DATA = {
   'Ikan air tawar': ['Bandeng', 'Bawal', 'Belanak', 'Belut Sawah', 'Gabus', 'Gurame', 'Ikan Mas / Karper', 'Kerong-Kerong', 'Lele', 'Mujair', 'Nila', 'Patin', 'Tawes'],
-  'Ikan laut / payau': ['Kakap Putih', 'Kerapu Cantang', 'Kerapu Macan', 'Teri', 'Ikan betutu', 'Ikan Keting', 'Ikan Lainnya'],
+  'Ikan laut / payau': ['Kakap Putih', 'Kerapu Cantang', 'Kerapu Macan', 'Teri', 'Ikan betutu', 'Ikan Keting'],
   'Lobster': ['Lobster Air Laut', 'Lobster Air Tawar / Cherax'],
-  'Udang': ['Udang Vaname', 'Udang Windu', 'Udang Galah', 'Udang Putih', 'Udang Api-Api', 'Udang Rebon', 'Udang Lainnya'],
+  'Udang': ['Udang Vaname', 'Udang Windu', 'Udang Galah', 'Udang Putih', 'Udang Api-Api', 'Udang Rebon'],
   'Kepiting & rajungan': ['Kepiting Bakau', 'Rajungan'],
   'Kerang & moluska': ['Kerang Hijau', 'Kerang Darah', 'Tiram'],
   'Rumput laut': ['Eucheuma cottonii', 'Gracilaria verrucosa']

@@ -21,6 +21,8 @@ export default function AdminEkspor() {
   const [filterTahun, setFilterTahun] = useState('');
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterNegara, setFilterNegara] = useState('');
+  const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
+  const [satuanFilter, setSatuanFilter] = useState('KG');
 
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
@@ -231,7 +233,12 @@ export default function AdminEkspor() {
     const negaraMap = {};
 
     MONTHS.forEach(m => {
-      monthlyAgg[m] = { volume: 0, nilai_usd: 0 };
+      monthlyAgg[m] = { 
+        'Semua': { volume: 0, nilai_usd: 0 },
+        'Segar dan Olahan': { volume: 0, nilai_usd: 0 },
+        'Hidup': { volume: 0, nilai_usd: 0 },
+        'Satuan': {}
+      };
     });
 
     filteredData.forEach(item => {
@@ -253,8 +260,21 @@ export default function AdminEkspor() {
       negaraMap[negara] += nilai;
 
       if (item.bulan && MONTHS.includes(item.bulan)) {
-        monthlyAgg[item.bulan].volume += vol;
-        monthlyAgg[item.bulan].nilai_usd += nilai;
+        monthlyAgg[item.bulan]['Semua'].volume += vol;
+        monthlyAgg[item.bulan]['Semua'].nilai_usd += nilai;
+
+        if (kat === 'Segar dan Olahan' || kat === 'Hidup') {
+          monthlyAgg[item.bulan][kat].volume += vol;
+          monthlyAgg[item.bulan][kat].nilai_usd += nilai;
+
+          const satuan = (item.satuan_volume || '').toUpperCase();
+          if (satuan) {
+             if (!monthlyAgg[item.bulan]['Satuan'][kat]) monthlyAgg[item.bulan]['Satuan'][kat] = {};
+             if (!monthlyAgg[item.bulan]['Satuan'][kat][satuan]) monthlyAgg[item.bulan]['Satuan'][kat][satuan] = { volume: 0, nilai_usd: 0 };
+             monthlyAgg[item.bulan]['Satuan'][kat][satuan].volume += vol;
+             monthlyAgg[item.bulan]['Satuan'][kat][satuan].nilai_usd += nilai;
+          }
+        }
 
         if (!monthlyRaw[item.bulan]) monthlyRaw[item.bulan] = {};
         if (!monthlyRaw[item.bulan][kom]) monthlyRaw[item.bulan][kom] = 0;
@@ -293,7 +313,7 @@ export default function AdminEkspor() {
 
     const monthly_aggregate = MONTHS.map(m => ({
       bulan: m,
-      _sum: { volume: monthlyAgg[m].volume, nilai_usd: monthlyAgg[m].nilai_usd }
+      _sum: { volume: monthlyAgg[m]['Semua'].volume, nilai_usd: monthlyAgg[m]['Semua'].nilai_usd }
     }));
 
     const monthly_data_raw = [];
@@ -313,6 +333,7 @@ export default function AdminEkspor() {
       top5_names,
       monthly_data_raw,
       monthly_aggregate,
+      monthlyAgg,
       ranking_komoditas,
       negara_tujuan
     };
@@ -353,8 +374,9 @@ export default function AdminEkspor() {
       series: [{
         type: 'treemap',
         roam: false,
+        top: '2%', bottom: '10%', left: '0%', right: '0%',
         label: { show: true, formatter: '{b}', color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
-        breadcrumb: { show: true, itemStyle: { color: '#0f172a' }, textStyle: { color: '#06b6d4', fontSize: 13, fontWeight: 'bold' } },
+        breadcrumb: { show: true, bottom: '2%', itemStyle: { color: '#f1f5f9', textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' } }, textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' } },
         itemStyle: { borderColor: '#0f172a' },
         levels: [
           { itemStyle: { borderWidth: 0, gapWidth: 2 } },
@@ -408,30 +430,31 @@ export default function AdminEkspor() {
   }, [computedStats]);
 
   const groupedBarOption = useMemo(() => {
+    const formatSatuan = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    const volumeLabel = `Volume (${formatSatuan(satuanFilter)})`;
+
     const volumeData = MONTHS.map(m => {
-      const found = computedStats.monthly_aggregate.find(x => x.bulan === m);
-      return found ? found._sum.volume : 0;
+      return computedStats.monthlyAgg[m]?.['Satuan']?.[agregatFilter]?.[satuanFilter]?.volume || 0;
     });
     const valueData = MONTHS.map(m => {
-      const found = computedStats.monthly_aggregate.find(x => x.bulan === m);
-      return found ? found._sum.nilai_usd : 0;
+      return computedStats.monthlyAgg[m]?.['Satuan']?.[agregatFilter]?.[satuanFilter]?.nilai_usd || 0;
     });
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { data: ['Volume (Kg)', 'Nilai (USD)'], bottom: 0, textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
-      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+      legend: { data: [volumeLabel, 'Nilai (USD)'], top: 0, right: '4%', textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
+      grid: { left: '6%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
       xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } }],
       yAxis: [
-        { type: 'value', name: 'Volume', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+        { type: 'value', name: volumeLabel, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500', align: 'left', padding: [0, 0, 0, 10] }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
         { type: 'value', name: 'Nilai ($)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '${value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
-        { name: 'Volume (Kg)', type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
+        { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
         { name: 'Nilai (USD)', type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
-  }, [computedStats.monthly_aggregate]);
+  }, [computedStats.monthlyAgg, agregatFilter, satuanFilter]);
 
   const rankingOption = useMemo(() => {
     const sorted = [...computedStats.ranking_komoditas].sort((a, b) => a._sum.nilai_usd - b._sum.nilai_usd);
@@ -440,7 +463,7 @@ export default function AdminEkspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '3%', right: '20%', bottom: '8%', containLabel: true },
+      grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
@@ -462,13 +485,14 @@ export default function AdminEkspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '3%', right: '20%', bottom: '8%', containLabel: true },
+      grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' } },
       series: [
         {
           name: 'Nilai',
           type: 'bar',
+          barWidth: '60%',
           data: values,
           itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] },
           label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => `$${(params.value / 1000).toFixed(1)}k` }
@@ -488,10 +512,10 @@ export default function AdminEkspor() {
         let label = 'PENDING';
         if (status === 'APPROVED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'APPROVED (PROGRAM)';
+          label = 'Verified';
         } else if (status === 'APPROVED_BIDANG') {
           colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-          label = 'APPROVED (BIDANG)';
+          label = 'Approved';
         } else if (status === 'REJECTED') {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
           label = 'REJECTED';
@@ -725,14 +749,14 @@ export default function AdminEkspor() {
                   <Box className="w-5 h-5 text-blue-500" />
                   <h3 className="text-lg font-semibold text-foreground">Komposisi Nilai Ekspor per Komoditas</h3>
                 </div>
-                <ReactECharts option={treemapOption} style={{ height: '400px', width: '100%' }} />
+                <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="w-5 h-5 text-pink-500" />
                   <h3 className="text-lg font-semibold text-foreground">Ranking Komoditas Berdasarkan Nilai</h3>
                 </div>
-                <ReactECharts option={rankingOption} style={{ height: '400px', width: '100%' }} />
+                <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
               </div>
             </div>
 
@@ -746,15 +770,52 @@ export default function AdminEkspor() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-5 h-5 text-purple-500" />
-                  <h3 className="text-lg font-semibold text-foreground">Agregat Bulanan: Nilai dan Volume</h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <TrendingUp className="w-5 h-5 text-purple-500" />
+                    <h3 className="text-lg font-semibold text-foreground">Agregat Nilai dan Volume</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={agregatFilter}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAgregatFilter(val);
+                        setSatuanFilter(val === 'Segar dan Olahan' ? 'KG' : 'PCS');
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="Segar dan Olahan">Segar & Olahan</option>
+                      <option value="Hidup">Hidup</option>
+                    </select>
+                    {agregatFilter === 'Segar dan Olahan' && (
+                      <select
+                        value={satuanFilter}
+                        onChange={(e) => setSatuanFilter(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="KG">KG</option>
+                        <option value="LITER">Liter</option>
+                      </select>
+                    )}
+                    {agregatFilter === 'Hidup' && (
+                      <select
+                        value={satuanFilter}
+                        onChange={(e) => setSatuanFilter(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="PCS">PCS</option>
+                        <option value="EKOR">Ekor</option>
+                        <option value="BATANG">Batang</option>
+                      </select>
+                    )}
+                  </div>
                 </div>
-                <ReactECharts option={groupedBarOption} style={{ height: '400px', width: '100%' }} />
+                <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden">
                 <h3 className="text-lg font-semibold text-foreground mb-4 mt-2">Ranking Negara Tujuan</h3>
-                <ReactECharts option={negaraOption} style={{ height: '400px', width: '100%' }} />
+                <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
               </div>
             </div>
           </div>

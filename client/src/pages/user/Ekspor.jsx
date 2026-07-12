@@ -27,6 +27,8 @@ export default function Ekspor() {
   const [filterTahun, setFilterTahun] = useState('');
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterNegara, setFilterNegara] = useState('');
+  const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
+  const [satuanFilter, setSatuanFilter] = useState('KG');
 
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
@@ -178,11 +180,13 @@ export default function Ekspor() {
       series: [{
         type: 'treemap',
         roam: false,
+        top: '2%', bottom: '10%', left: '0%', right: '0%',
         label: { show: true, formatter: '{b}', color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
         breadcrumb: {
           show: true,
-          itemStyle: { color: '#0f172a', textStyle: { color: '#06b6d4', fontSize: 13, fontWeight: 'bold' } },
-          textStyle: { color: '#06b6d4', fontSize: 13, fontWeight: 'bold' }
+          bottom: '2%',
+          itemStyle: { color: '#f1f5f9', textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' } },
+          textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' }
         },
         itemStyle: { borderColor: '#0f172a' },
         levels: [
@@ -241,30 +245,39 @@ export default function Ekspor() {
   }, [stats]);
 
   const groupedBarOption = useMemo(() => {
+    const volumeLabel = `Volume (${satuanFilter.toUpperCase()})`;
+
     const volumeData = MONTHS.map(m => {
-      const found = stats.monthly_aggregate.find(x => x.bulan === m);
-      return found ? found._sum.volume : 0;
+      const filtered = stats.monthly_data_raw.filter(x => {
+        if (x.bulan !== m || x.kategori_komoditas !== agregatFilter) return false;
+        return (x.satuan_volume || '').toUpperCase() === satuanFilter.toUpperCase();
+      });
+      return filtered.reduce((acc, curr) => acc + (curr._sum.volume || 0), 0);
     });
+
     const valueData = MONTHS.map(m => {
-      const found = stats.monthly_aggregate.find(x => x.bulan === m);
-      return found ? found._sum.nilai_usd : 0;
+      const filtered = stats.monthly_data_raw.filter(x => {
+        if (x.bulan !== m || x.kategori_komoditas !== agregatFilter) return false;
+        return (x.satuan_volume || '').toUpperCase() === satuanFilter.toUpperCase();
+      });
+      return filtered.reduce((acc, curr) => acc + (curr._sum.nilai_usd || 0), 0);
     });
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { data: ['Volume (Kg)', 'Nilai (USD)'], bottom: 0, textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
-      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+      legend: { data: [volumeLabel, 'Nilai (USD)'], top: 0, right: '4%', textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
+      grid: { left: '3%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
       xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } }],
       yAxis: [
-        { type: 'value', name: 'Volume', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+        { type: 'value', name: volumeLabel, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
         { type: 'value', name: 'Nilai ($)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '${value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
-        { name: 'Volume (Kg)', type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
+        { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
         { name: 'Nilai (USD)', type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
-  }, [stats.monthly_aggregate]);
+  }, [stats.monthly_aggregate, stats.monthly_data_raw, agregatFilter, satuanFilter]);
 
   const rankingOption = useMemo(() => {
     const sorted = [...stats.ranking_komoditas].sort((a, b) => a._sum.nilai_usd - b._sum.nilai_usd);
@@ -273,7 +286,7 @@ export default function Ekspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '3%', right: '20%', bottom: '8%', containLabel: true },
+      grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
@@ -295,7 +308,7 @@ export default function Ekspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '3%', right: '20%', bottom: '8%', containLabel: true },
+      grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' } },
       series: [
@@ -391,9 +404,9 @@ export default function Ekspor() {
             <h3 className="text-lg font-semibold text-foreground">Komposisi Nilai Ekspor per Komoditas</h3>
           </div>
           {stats.treemap && stats.treemap.length > 0 ? (
-            <ReactECharts option={treemapOption} style={{ height: '400px', width: '100%' }} />
+            <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
           ) : (
-            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+            <div className="h-[500px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
               Belum ada data
             </div>
           )}
@@ -405,9 +418,9 @@ export default function Ekspor() {
             <h3 className="text-lg font-semibold text-foreground">Ranking Komoditas Berdasarkan Nilai</h3>
           </div>
           {stats.ranking_komoditas && stats.ranking_komoditas.length > 0 ? (
-            <ReactECharts option={rankingOption} style={{ height: '400px', width: '100%' }} />
+            <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
           ) : (
-            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+            <div className="h-[500px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
               Belum ada data
             </div>
           )}
@@ -432,12 +445,49 @@ export default function Ekspor() {
       {/* Row 3: Grouped Bar & Negara Tujuan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-purple-500" />
-            <h3 className="text-lg font-semibold text-foreground">Agregat Bulanan: Nilai dan Volume</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-purple-500" />
+              <h3 className="text-lg font-semibold text-foreground">Agregat Nilai dan Volume</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={agregatFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAgregatFilter(val);
+                  setSatuanFilter(val === 'Segar dan Olahan' ? 'KG' : 'PCS');
+                }}
+                className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="Segar dan Olahan">Segar & Olahan</option>
+                <option value="Hidup">Hidup</option>
+              </select>
+              {agregatFilter === 'Segar dan Olahan' && (
+                <select
+                  value={satuanFilter}
+                  onChange={(e) => setSatuanFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="KG">KG</option>
+                  <option value="LITER">Liter</option>
+                </select>
+              )}
+              {agregatFilter === 'Hidup' && (
+                <select
+                  value={satuanFilter}
+                  onChange={(e) => setSatuanFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="PCS">PCS</option>
+                  <option value="EKOR">Ekor</option>
+                  <option value="BATANG">Batang</option>
+                </select>
+              )}
+            </div>
           </div>
           {stats.monthly_aggregate && stats.monthly_aggregate.length > 0 ? (
-            <ReactECharts option={groupedBarOption} style={{ height: '400px', width: '100%' }} />
+            <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
           ) : (
             <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
               Belum ada data
@@ -448,9 +498,9 @@ export default function Ekspor() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden">
           <h3 className="text-lg font-semibold text-foreground mb-4 mt-2">Ranking Negara Tujuan</h3>
           {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? (
-            <ReactECharts option={negaraOption} style={{ height: '400px', width: '100%' }} />
+            <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
           ) : (
-            <div className="h-[400px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
+            <div className="h-[500px] flex items-center justify-center text-muted-foreground/50 bg-transparent rounded-xl border border-dashed border-border/50">
               Belum ada data
             </div>
           )}

@@ -388,7 +388,7 @@ export default function Budidaya() {
         left: 'center',
         bottom: '0%',
         inRange: {
-          color: ['#0f172a', '#3b82f6', '#2dd4bf', '#fde047', '#f43f5e']
+          color: ['#0f172a', '#2563eb', '#06b6d4', '#facc15', '#22c55e']
         },
         textStyle: { color: '#cbd5e1' },
         formatter: (value) => value.toFixed(1)

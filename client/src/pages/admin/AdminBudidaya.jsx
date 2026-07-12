@@ -464,7 +464,7 @@ export default function AdminBudidaya() {
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', rotate: 45 } },
       yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 } },
-      visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: ['#0f172a', '#3b82f6', '#2dd4bf', '#fde047', '#f43f5e'] }, textStyle: { color: '#cbd5e1' }, formatter: (value) => value.toFixed(1) },
+      visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: ['#0f172a', '#2563eb', '#06b6d4', '#facc15', '#22c55e'] }, textStyle: { color: '#cbd5e1' }, formatter: (value) => value.toFixed(1) },
       series: [{ name: 'Heatmap', type: 'heatmap', data: dataPairs, label: { show: false }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } } }]
     };
   }, [computedStats.heatmapData]);
@@ -480,10 +480,10 @@ export default function AdminBudidaya() {
         let label = 'PENDING';
         if (status === 'APPROVED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'APPROVED (PROGRAM)';
+          label = 'Verified';
         } else if (status === 'APPROVED_BIDANG') {
           colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-          label = 'APPROVED (BIDANG)';
+          label = 'Approved';
         } else if (status === 'REJECTED') {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
           label = 'REJECTED';
