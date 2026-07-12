@@ -246,6 +246,55 @@ const normalizePinjaman = value => {
   return '';
 };
 
+// ==== Util Waktu Relatif (untuk kolom "Terakhir Diperbarui") ====
+const getRowUpdatedAt = row =>
+  row?.updated_at ??
+  row?.updatedAt ??
+  row?.updated_At ??
+  row?.created_at ??
+  row?.createdAt ??
+  null;
+
+const formatRelativeTime = dateValue => {
+  if (!dateValue) return '-';
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) return 'Baru saja';
+
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'Baru saja';
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} menit yang lalu`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam yang lalu`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay} hari yang lalu`;
+
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMonth < 12) return `${diffMonth} bulan yang lalu`;
+
+  const diffYear = Math.floor(diffMonth / 12);
+  return `${diffYear} tahun yang lalu`;
+};
+
+// ==== Util agregasi (untuk visualisasi berbasis data status VERIFIED) ====
+const groupSum = (rows, keyFn, valueFn) => {
+  const map = new Map();
+  rows.forEach(row => {
+    const key = keyFn(row);
+    if (!key) return;
+    const val = valueFn(row);
+    map.set(key, (map.get(key) || 0) + val);
+  });
+  return map;
+};
+
 const createInitialForm = initialData => {
   const form = {
   tahun: initialData?.tahun ?? '',
@@ -534,53 +583,489 @@ export default function AdminPengolahanPemasaran() {
   // Tab aktif: 'table' (Tabel Data) atau 'visualisasi' (Visualisasi Statistik)
   const [activeTab, setActiveTab] = useState('table');
 
-  // ==== Visualisasi Data (KPI, Peta, Bar Chart, Tren, Treemap, Heatmap) ====
-  const [statsLoading, setStatsLoading] = useState(true);
+  // Bar chart toggle: produksi (KG) atau nilai (Rp)
   const [barFilter, setBarFilter] = useState('produksi');
-  const [stats, setStats] = useState({
-    produksiPerKabupaten: [],
-    trenBulanan: [],
-    top5Jenis: [],
-    komposisiKegiatan: [],
-    heatmapData: [],
-    kpi: { total_volume: 0, top_jenis_produk: '-', total_nilai: 0, total_upi: 0 },
-  });
 
-  const fetchStats = async () => {
+  // Tick untuk memaksa re-render label waktu relatif ("Terakhir Diperbarui") setiap menit
+  const [, setTimeTick] = useState(0);
+  useEffect(() => {
+    const intervalId = setInterval(() => setTimeTick(tick => tick + 1), 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const fetchData = async () => {
     try {
-      setStatsLoading(true);
-      const params = new URLSearchParams();
-      // Backend dashboard-stats saat ini masih memakai filter single value.
-      // Kalau user memilih lebih dari satu opsi, filter tetap berjalan di tabel,
-      // sedangkan visualisasi tidak dipaksa mengirim format yang belum didukung backend.
-      if (filterTahun.length === 1) params.append('tahun', filterTahun[0]);
-      if (filterKabupaten.length === 1) params.append('kabupaten_kota', filterKabupaten[0]);
-      if (filterJenisKegiatan.length === 1) params.append('jenis_kegiatan', filterJenisKegiatan[0]);
-      if (filterSkalaUsaha.length === 1) params.append('skala_usaha', filterSkalaUsaha[0]);
-
-      const response = await api.get(`/pengolahan-pemasaran/dashboard-stats?${params.toString()}`);
-
-      if (response.data?.success) {
-        setStats({
-          produksiPerKabupaten: [],
-          trenBulanan: [],
-          top5Jenis: [],
-          komposisiKegiatan: [],
-          heatmapData: [],
-          kpi: { total_volume: 0, top_jenis_produk: '-', total_nilai: 0, total_upi: 0 },
-          ...(response.data.stats || {}),
-        });
-      }
+      setLoading(true);
+      const response = await api.get('/pengolahan-pemasaran/admin');
+      setData(response.data?.data ?? []);
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error.response?.data || error.message);
+      console.error(
+        'Error fetching pengolahan & pemasaran:',
+        error.response?.data || error.message
+      );
+      setData([]);
     } finally {
-      setStatsLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
-  }, [filterTahun, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha]);
+    fetchData();
+  }, []);
+
+  const handleCreateOrUpdate = async formData => {
+    try {
+      setSubmitLoading(true);
+
+      if (editingData) {
+        await api.put(`/pengolahan-pemasaran/${editingData.id}`, formData);
+      } else {
+        await api.post('/pengolahan-pemasaran', formData);
+      }
+
+      setIsFormOpen(false);
+      setEditingData(null);
+      await fetchData();
+    } catch (error) {
+      console.error(
+        'Error saving pengolahan & pemasaran:',
+        error.response?.data || error.message,
+      );
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleEdit = row => {
+    setEditingData(row);
+    setIsFormOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async row => {
+    if (!window.confirm(`Yakin ingin menghapus data ${row.nama_upi || row.kabupaten_kota}?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/pengolahan-pemasaran/${row.id}`);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting pengolahan & pemasaran:', error);
+      alert('Gagal menghapus data.');
+    }
+  };
+
+  const handleApprove = async row => {
+    if (row.status === 'APPROVED') {
+      alert('Data sudah selesai divalidasi Program.');
+      return;
+    }
+
+    if (row.status === 'REJECTED') {
+      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+      return;
+    }
+
+    let promptMsg = '';
+
+    if (row.status === 'PENDING') {
+      promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
+    } else if (row.status === 'APPROVED_BIDANG') {
+      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
+    } else {
+      alert('Status data tidak valid.');
+      return;
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+
+    if (jenis === '1') {
+      if (row.status !== 'PENDING') {
+        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+        return;
+      }
+
+      targetStatus = 'APPROVED_BIDANG';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      if (row.status !== 'APPROVED_BIDANG') {
+        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+        return;
+      }
+
+      targetStatus = 'APPROVED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Ketik 1 atau 2.');
+      return;
+    }
+
+    const confirmText = window.prompt(
+      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
+    );
+
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+        status: targetStatus,
+      });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error approving data:', error);
+      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+
+  const handleReject = async row => {
+    const alasan = window.prompt('Masukkan alasan penolakan:');
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi.');
+      return;
+    }
+
+    try {
+      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+        status: 'REJECTED',
+        alasan_penolakan: alasan.trim(),
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Error rejecting data:', error);
+      alert('Gagal menolak data.');
+    }
+  };
+
+
+  const handleBatchApprove = async ids => {
+    if (!isAdminPusat) {
+      alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+      return;
+    }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    const selectedIdSet = new Set(ids.map(id => String(id)));
+    const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
+
+    if (!selectedRows.length) {
+      alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
+      return;
+    }
+
+    if (selectedRows.some(row => row.status === 'APPROVED')) {
+      alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
+      return;
+    }
+
+    if (selectedRows.some(row => row.status === 'REJECTED')) {
+      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
+      return;
+    }
+
+    const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
+
+    if (selectedStatuses.length > 1) {
+      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
+      return;
+    }
+
+    const currentStatus = selectedStatuses[0];
+    let promptMsg = '';
+
+    if (currentStatus === 'PENDING') {
+      promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
+    } else if (currentStatus === 'APPROVED') {
+      promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
+    } else {
+      alert('Status data terpilih tidak valid untuk proses validasi.');
+      return;
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+
+    if (jenis === '1') {
+      if (currentStatus !== 'PENDING') {
+        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
+        return;
+      }
+
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+    } else if (jenis === '2') {
+      if (currentStatus !== 'APPROVED') {
+        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
+        return;
+      }
+
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Ketik 1 atau 2.');
+      return;
+    }
+
+    const confirmText = window.prompt(
+      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
+    );
+
+    if (confirmText !== 'SETUJU') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-status', {
+        ids,
+        status: targetStatus,
+      });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error batch approve:', error);
+      alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchReject = async ids => {
+    if (!isAdminPusat) {
+      alert('Hanya Admin Pusat yang dapat menolak data.');
+      return;
+    }
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    if (alasan === null) return;
+
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi.');
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-status', {
+        ids,
+        status: 'REJECTED',
+        alasan_penolakan: alasan.trim(),
+      });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error batch reject:', error);
+      alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchDelete = async ids => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      alert('Tidak ada data yang dipilih.');
+      return;
+    }
+
+    if (!window.confirm(`Yakin ingin menghapus ${ids.length} data terpilih?`)) {
+      return;
+    }
+
+    try {
+      await api.post('/pengolahan-pemasaran/batch-delete', { ids });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Error batch delete:', error);
+      alert(`Gagal menghapus data terpilih: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const tahunOptions = useMemo(
+    () =>
+      [...new Set(data.map(item => String(item.tahun ?? '')).filter(Boolean))].sort(
+        (a, b) => Number(b) - Number(a),
+      ),
+    [data],
+  );
+
+  const filteredData = useMemo(
+    () =>
+      data.filter(item => {
+        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.jenis_kegiatan)) return false;
+        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
+        return true;
+      }),
+    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
+  );
+
+  // Data sumber visualisasi: hanya baris yang sudah berstatus VERIFIED,
+  // tetap menghormati filter multi-dimensi yang aktif di atas tabel.
+  // Karena diturunkan langsung dari `data`, visualisasi otomatis ikut
+  // berubah setiap kali ada create/update/delete/approve/reject.
+  const verifiedData = useMemo(
+    () => filteredData.filter(item => item.status === 'VERIFIED'),
+    [filteredData],
+  );
+
+  const stats = useMemo(() => {
+    const rows = verifiedData;
+
+    // KPI
+    const total_volume = rows.reduce(
+      (sum, row) => sum + toNumber(row.hasil_produksi_per_tahun_kg),
+      0,
+    );
+    const total_nilai = rows.reduce(
+      (sum, row) => sum + toNumber(row.nilai_hasil_produksi_per_tahun_rp),
+      0,
+    );
+    const total_upi = new Set(rows.map(row => row.nama_upi).filter(Boolean)).size;
+
+    const jenisProdukMap = groupSum(
+      rows,
+      row => row.jenis_produk,
+      row => toNumber(row.hasil_produksi_per_tahun_kg),
+    );
+
+    let top_jenis_produk = '-';
+    let topVal = -Infinity;
+    jenisProdukMap.forEach((val, key) => {
+      if (val > topVal) {
+        topVal = val;
+        top_jenis_produk = key;
+      }
+    });
+
+    // Sebaran per Kabupaten/Kota (untuk Peta & Bar Chart Top 10)
+    const kabProduksiMap = groupSum(
+      rows,
+      row => row.kabupaten_kota,
+      row => toNumber(row.hasil_produksi_per_tahun_kg),
+    );
+    const kabNilaiMap = groupSum(
+      rows,
+      row => row.kabupaten_kota,
+      row => toNumber(row.nilai_hasil_produksi_per_tahun_rp),
+    );
+    const produksiPerKabupaten = KABUPATEN_KOTA_OPTIONS.map(name => ({
+      name,
+      produksi: kabProduksiMap.get(name) || 0,
+      nilai: kabNilaiMap.get(name) || 0,
+    }));
+
+    // Top 5 Jenis Produk (untuk Tren Tahunan)
+    const top5Jenis = [...jenisProdukMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name]) => name);
+
+    // Tren Tahunan: total hasil produksi per tahun, dipecah per Top 5 Jenis Produk + Lainnya
+    const tahunList = [...new Set(rows.map(row => String(row.tahun ?? '').trim()).filter(Boolean))]
+      .sort((a, b) => Number(a) - Number(b));
+
+    const yearlyMap = new Map();
+    tahunList.forEach(tahun => yearlyMap.set(tahun, {}));
+
+    rows.forEach(row => {
+      const tahun = String(row.tahun ?? '').trim();
+      const bucket = yearlyMap.get(tahun);
+      if (!bucket) return;
+
+      const jenis = row.jenis_produk || 'Lainnya';
+      const label = top5Jenis.includes(jenis) ? jenis : 'Lainnya';
+      bucket[label] = (bucket[label] || 0) + toNumber(row.hasil_produksi_per_tahun_kg);
+    });
+
+    const trenTahunan = tahunList.map(tahun => ({
+      tahun,
+      ...yearlyMap.get(tahun),
+    }));
+
+    // Komposisi Jenis Kegiatan (Treemap)
+    const komposisiMap = groupSum(
+      rows,
+      row => getJenisDetail(row),
+      row => toNumber(row.hasil_produksi_per_tahun_kg),
+    );
+    const komposisiKegiatan = [...komposisiMap.entries()]
+      .filter(([name]) => name)
+      .map(([name, value]) => ({ name, value }));
+
+    // Rasio Jumlah Pengolahan vs Pemasaran (jumlah unit usaha, bukan volume)
+    const jumlahPengolahan = rows.filter(row => row.jenis_kegiatan === 'Pengolahan').length;
+    const jumlahPemasaran = rows.filter(row => row.jenis_kegiatan === 'Pemasaran').length;
+    const rasioKegiatan = [
+      { name: 'Pengolahan', value: jumlahPengolahan },
+      { name: 'Pemasaran', value: jumlahPemasaran },
+    ];
+
+    // Heatmap Kabupaten x Bulan (dengan normalisasi per kabupaten)
+    const heatRaw = new Map();
+
+    rows.forEach(row => {
+      const kab = row.kabupaten_kota;
+      if (!kab) return;
+
+      const months = toArray(row.bulan_produksi);
+      if (!months.length) return;
+
+      const totalVolume = toNumber(row.hasil_produksi_per_tahun_kg);
+      const perMonth = totalVolume / months.length;
+
+      months.forEach(month => {
+        const key = `${kab}|${month}`;
+        heatRaw.set(key, (heatRaw.get(key) || 0) + perMonth);
+      });
+    });
+
+    const kabMaxMap = new Map();
+    heatRaw.forEach((val, key) => {
+      const [kab] = key.split('|');
+      kabMaxMap.set(kab, Math.max(kabMaxMap.get(kab) || 0, val));
+    });
+
+    const heatmapData = [];
+    heatRaw.forEach((val, key) => {
+      const [kabupaten, bulan] = key.split('|');
+      const max = kabMaxMap.get(kabupaten) || 1;
+      heatmapData.push({
+        kabupaten,
+        bulan,
+        produksi: val,
+        normalized: max ? val / max : 0,
+      });
+    });
+
+    return {
+      produksiPerKabupaten,
+      trenTahunan,
+      top5Jenis,
+      komposisiKegiatan,
+      rasioKegiatan,
+      heatmapData,
+      kpi: { total_volume, top_jenis_produk, total_nilai, total_upi },
+    };
+  }, [verifiedData]);
 
   // 1. Peta Choropleth Jawa Timur
   const mapOption = useMemo(() => {
@@ -594,7 +1079,7 @@ export default function AdminPengolahanPemasaran() {
 
     return {
       title: {
-        text: 'Sebaran Hasil Pengolahan & Pemasaran per Kabupaten/Kota',
+        text: 'Sebaran Hasil Pengolahan & Pemasaran per Kabupaten/Kota (Terverifikasi)',
         textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' },
         left: 'center',
         top: 10,
@@ -700,14 +1185,16 @@ export default function AdminPengolahanPemasaran() {
     };
   }, [stats.produksiPerKabupaten, barFilter]);
 
-  // 3. Line Chart Tren Bulanan (per Jenis Produk, Top 5 + Lainnya)
+  // 3. Line Chart Tren Tahunan (per Jenis Produk, Top 5 + Lainnya)
   const lineOption = useMemo(() => {
+    const tahunAxis = stats.trenTahunan.map(item => item.tahun);
+
     const seriesData = stats.top5Jenis.map(jenis => ({
       name: jenis,
       type: 'line',
       smooth: true,
-      symbolSize: 6,
-      data: stats.trenBulanan.map(m => m[jenis] || 0),
+      symbolSize: 8,
+      data: stats.trenTahunan.map(item => item[jenis] || 0),
     }));
 
     seriesData.push({
@@ -717,11 +1204,14 @@ export default function AdminPengolahanPemasaran() {
       lineStyle: { type: 'dashed', width: 2, color: '#94a3b8' },
       itemStyle: { color: '#94a3b8' },
       symbol: 'none',
-      data: stats.trenBulanan.map(m => m.Lainnya || 0),
+      data: stats.trenTahunan.map(item => item.Lainnya || 0),
     });
 
     return {
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: (val) => `${(val || 0).toLocaleString('id-ID')} KG`,
+      },
       legend: {
         data: [...stats.top5Jenis, 'Lainnya'],
         textStyle: { color: '#cbd5e1' },
@@ -731,17 +1221,75 @@ export default function AdminPengolahanPemasaran() {
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: BULAN_OPTIONS,
-        axisLabel: { color: '#94a3b8', fontSize: 11, rotate: 30 },
+        data: tahunAxis,
+        axisLabel: { color: '#94a3b8', fontSize: 12 },
       },
       yAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
-        axisLabel: { color: '#94a3b8' },
+        axisLabel: {
+          color: '#94a3b8',
+          formatter: (val) => {
+            if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt';
+            if (val >= 1000) return (val / 1000).toFixed(1) + 'rb';
+            return val;
+          },
+        },
       },
       series: seriesData,
     };
-  }, [stats.trenBulanan, stats.top5Jenis]);
+  }, [stats.trenTahunan, stats.top5Jenis]);
+
+  // 3b. Pie Chart Rasio Jumlah Pengolahan vs Pemasaran
+  const pieOption = useMemo(() => {
+    const total = stats.rasioKegiatan.reduce((sum, item) => sum + item.value, 0);
+
+    return {
+      tooltip: {
+        trigger: 'item',
+        formatter: (params) => {
+          const pct = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0';
+          return `${params.name}<br/>Jumlah: <b>${params.value.toLocaleString('id-ID')}</b> (${pct}%)`;
+        },
+      },
+      legend: {
+        bottom: 0,
+        textStyle: { color: '#cbd5e1' },
+      },
+      series: [
+        {
+          name: 'Rasio Kegiatan',
+          type: 'pie',
+          radius: ['45%', '72%'],
+          center: ['50%', '45%'],
+          avoidLabelOverlap: true,
+          itemStyle: {
+            borderColor: '#0f172a',
+            borderWidth: 2,
+          },
+          label: {
+            show: true,
+            color: '#e2e8f0',
+            formatter: (params) => {
+              const pct = total > 0 ? ((params.value / total) * 100).toFixed(0) : '0';
+              return `${params.name}\n${pct}%`;
+            },
+          },
+          labelLine: { lineStyle: { color: '#475569' } },
+          data: [
+            {
+              ...stats.rasioKegiatan.find(item => item.name === 'Pengolahan'),
+              itemStyle: { color: '#3b82f6' },
+            },
+            {
+              ...stats.rasioKegiatan.find(item => item.name === 'Pemasaran'),
+              itemStyle: { color: '#10b981' },
+            },
+          ],
+        },
+      ],
+    };
+  }, [stats.rasioKegiatan]);
 
   // 4. Treemap Komposisi Jenis Kegiatan (Pengolahan & Pemasaran)
   const treemapOption = useMemo(() => {
@@ -848,338 +1396,6 @@ export default function AdminPengolahanPemasaran() {
   }, [stats.heatmapData]);
   // ==== Akhir Visualisasi Data ====
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/pengolahan-pemasaran/admin');
-      setData(response.data?.data ?? []);
-    } catch (error) {
-      console.error(
-        'Error fetching pengolahan & pemasaran:',
-        error.response?.data || error.message
-      );
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleCreateOrUpdate = async formData => {
-    try {
-      setSubmitLoading(true);
-
-      if (editingData) {
-        await api.put(`/pengolahan-pemasaran/${editingData.id}`, formData);
-      } else {
-        await api.post('/pengolahan-pemasaran', formData);
-      }
-
-      setIsFormOpen(false);
-      setEditingData(null);
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error(
-        'Error saving pengolahan & pemasaran:',
-        error.response?.data || error.message,
-      );
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
-
-  const handleEdit = row => {
-    setEditingData(row);
-    setIsFormOpen(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDelete = async row => {
-    if (!window.confirm(`Yakin ingin menghapus data ${row.nama_upi || row.kabupaten_kota}?`)) {
-      return;
-    }
-
-    try {
-      await api.delete(`/pengolahan-pemasaran/${row.id}`);
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error deleting pengolahan & pemasaran:', error);
-      alert('Gagal menghapus data.');
-    }
-  };
-
-  const handleApprove = async row => {
-    if (row.status === 'APPROVED') {
-      alert('Data sudah selesai divalidasi Program.');
-      return;
-    }
-
-    if (row.status === 'REJECTED') {
-      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-      return;
-    }
-
-    let promptMsg = '';
-
-    if (row.status === 'PENDING') {
-      promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
-    } else if (row.status === 'APPROVED_BIDANG') {
-      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
-    } else {
-      alert('Status data tidak valid.');
-      return;
-    }
-
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-
-    if (jenis === '1') {
-      if (row.status !== 'PENDING') {
-        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-        return;
-      }
-
-      targetStatus = 'APPROVED_BIDANG';
-      namaValidasi = 'BIDANG';
-    } else if (jenis === '2') {
-      if (row.status !== 'APPROVED_BIDANG') {
-        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-        return;
-      }
-
-      targetStatus = 'APPROVED';
-      namaValidasi = 'PROGRAM';
-    } else {
-      alert('Pilihan tidak valid. Ketik 1 atau 2.');
-      return;
-    }
-
-    const confirmText = window.prompt(
-      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
-    );
-
-    if (confirmText !== 'SETUJU') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-        status: targetStatus,
-      });
-
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error approving data:', error);
-      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-
-  const handleReject = async row => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi.');
-      return;
-    }
-
-    try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-        status: 'REJECTED',
-        alasan_penolakan: alasan.trim(),
-      });
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error rejecting data:', error);
-      alert('Gagal menolak data.');
-    }
-  };
-
-
-  const handleBatchApprove = async ids => {
-    if (!isAdminPusat) {
-      alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
-      return;
-    }
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
-      return;
-    }
-
-    const selectedIdSet = new Set(ids.map(id => String(id)));
-    const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
-
-    if (!selectedRows.length) {
-      alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
-      return;
-    }
-
-    if (selectedRows.some(row => row.status === 'APPROVED')) {
-      alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
-      return;
-    }
-
-    if (selectedRows.some(row => row.status === 'REJECTED')) {
-      alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-      return;
-    }
-
-    const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
-
-    if (selectedStatuses.length > 1) {
-      alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
-      return;
-    }
-
-    const currentStatus = selectedStatuses[0];
-    let promptMsg = '';
-
-    if (currentStatus === 'PENDING') {
-      promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
-    } else if (currentStatus === 'APPROVED') {
-      promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
-    } else {
-      alert('Status data terpilih tidak valid untuk proses validasi.');
-      return;
-    }
-
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-
-    if (jenis === '1') {
-      if (currentStatus !== 'PENDING') {
-        alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-        return;
-      }
-
-      targetStatus = 'APPROVED';
-      namaValidasi = 'BIDANG';
-    } else if (jenis === '2') {
-      if (currentStatus !== 'APPROVED') {
-        alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-        return;
-      }
-
-      targetStatus = 'VERIFIED';
-      namaValidasi = 'PROGRAM';
-    } else {
-      alert('Pilihan tidak valid. Ketik 1 atau 2.');
-      return;
-    }
-
-    const confirmText = window.prompt(
-      `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
-    );
-
-    if (confirmText !== 'SETUJU') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      await api.post('/pengolahan-pemasaran/batch-status', {
-        ids,
-        status: targetStatus,
-      });
-
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error batch approve:', error);
-      alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-  const handleBatchReject = async ids => {
-    if (!isAdminPusat) {
-      alert('Hanya Admin Pusat yang dapat menolak data.');
-      return;
-    }
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
-      return;
-    }
-
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-    if (alasan === null) return;
-
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi.');
-      return;
-    }
-
-    try {
-      await api.post('/pengolahan-pemasaran/batch-status', {
-        ids,
-        status: 'REJECTED',
-        alasan_penolakan: alasan.trim(),
-      });
-
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error batch reject:', error);
-      alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-  const handleBatchDelete = async ids => {
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
-      return;
-    }
-
-    if (!window.confirm(`Yakin ingin menghapus ${ids.length} data terpilih?`)) {
-      return;
-    }
-
-    try {
-      await api.post('/pengolahan-pemasaran/batch-delete', { ids });
-
-      await fetchData();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error batch delete:', error);
-      alert(`Gagal menghapus data terpilih: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-  const tahunOptions = useMemo(
-    () =>
-      [...new Set(data.map(item => String(item.tahun ?? '')).filter(Boolean))].sort(
-        (a, b) => Number(b) - Number(a),
-      ),
-    [data],
-  );
-
-  const filteredData = useMemo(
-    () =>
-      data.filter(item => {
-        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
-        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.jenis_kegiatan)) return false;
-        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
-        return true;
-      }),
-    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
-  );
-
   const columns = useMemo(
     () => [
       {
@@ -1248,6 +1464,21 @@ export default function AdminPengolahanPemasaran() {
         id: 'total_tenaga_kerja',
         cell: info => getRowTotalTenagaKerja(info.row.original).toLocaleString('id-ID'),
       },
+      {
+        header: 'Terakhir Diperbarui',
+        id: 'terakhir_diperbarui',
+        cell: info => {
+          const rawDate = getRowUpdatedAt(info.row.original);
+          return (
+            <span
+              className="whitespace-nowrap text-sm text-muted-foreground"
+              title={rawDate ? new Date(rawDate).toLocaleString('id-ID') : undefined}
+            >
+              {formatRelativeTime(rawDate)}
+            </span>
+          );
+        },
+      },
     ],
     [],
   );
@@ -1272,6 +1503,14 @@ export default function AdminPengolahanPemasaran() {
   // ==== Blok Visualisasi Data (ditampilkan di atas tabel, hanya saat form tertutup) ====
   const dataVisualization = (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-600">
+        Visualisasi di bawah ini hanya menghitung data dengan status <b>VERIFIED</b>
+        {(filterTahun.length || filterKabupaten.length || filterJenisKegiatan.length || filterSkalaUsaha.length)
+          ? ' sesuai filter yang aktif di atas'
+          : ''}
+        , dan akan otomatis berubah mengikuti data terbaru.
+      </div>
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -1356,18 +1595,19 @@ export default function AdminPengolahanPemasaran() {
         </div>
       </div>
 
-      {/* Tren Bulanan & Treemap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <TrendingUp className="w-5 h-5 text-teal-500" />
-            <h2 className="text-lg font-semibold">Tren Hasil Bulanan</h2>
-          </div>
-          <div className="h-[350px]">
-            <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
-          </div>
+      {/* Tren Tahunan */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <TrendingUp className="w-5 h-5 text-teal-500" />
+          <h2 className="text-lg font-semibold">Tren Hasil Tahunan</h2>
         </div>
+        <div className="h-[350px]">
+          <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+        </div>
+      </div>
 
+      {/* Treemap Komposisi Jenis Kegiatan & Pie Rasio Pengolahan/Pemasaran */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <Factory className="w-5 h-5 text-cyan-500" />
@@ -1375,6 +1615,16 @@ export default function AdminPengolahanPemasaran() {
           </div>
           <div className="h-[350px]">
             <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <Factory className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-lg font-semibold">Rasio Jumlah Pengolahan &amp; Pemasaran</h2>
+          </div>
+          <div className="h-[350px]">
+            <ReactECharts option={pieOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>
@@ -1544,17 +1794,7 @@ export default function AdminPengolahanPemasaran() {
             </div>
           </div>
 
-          {activeTab === 'table' ? (
-            dataPreview
-          ) : statsLoading ? (
-            <div className="flex h-64 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {dataVisualization}
-            </div>
-          )}
+          {activeTab === 'table' ? dataPreview : dataVisualization}
         </>
       )}
     </div>
