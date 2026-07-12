@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -515,22 +515,32 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
   );
 }
 
-function StatusBadge({ status, alasan }) {
-  const [showPopup, setShowPopup] = useState(false);
-  const popupRef = useRef(null);
+/**
+ * StatusBadge
+ * -----------
+ * Menampilkan status data (PENDING / APPROVED / VERIFIED / REJECTED).
+ *
+ * Khusus untuk status REJECTED, badge tetap menampilkan tautan
+ * "Lihat & Perbaiki" di bawahnya (tidak dihapus, sesuai permintaan).
+ * Badge REJECTED sudah TIDAK berkedip lagi (animasi pulse dihapus) supaya
+ * lebih nyaman dilihat namun tetap jelas terlihat.
+ *
+ * Saat "Lihat & Perbaiki" diklik, muncul modal berisi:
+ *  - konteks data (Nama UPI, Nama Pemilik, Jenis Kegiatan, Kabupaten/Kota, Tahun)
+ *  - alasan penolakan dari Admin Pusat
+ *  - panduan singkat apa yang harus dilakukan
+ *  - tombol "Perbaiki Data Sekarang" yang langsung membuka form edit (onEdit)
+ *
+ * Modal dibuat lebih besar (max-w-2xl) dan seluruh teks di dalamnya memakai
+ * break-words + kontainer scrollable, sehingga teks panjang (nama UPI,
+ * alasan penolakan, dst.) tidak akan keluar dari kotak pop up.
+ */
+function StatusBadge({ row, onEdit }) {
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    if (!showPopup) return undefined;
-
-    const handleClickOutside = event => {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        setShowPopup(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showPopup]);
+  const status = row?.status;
+  const alasan = row?.alasan_penolakan;
+  const isRejected = status === 'REJECTED';
 
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
   let label = 'PENDING';
@@ -542,42 +552,133 @@ function StatusBadge({ status, alasan }) {
     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
     label = 'VERIFIED';
   } else if (status === 'REJECTED') {
-    colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
+    colorClass = 'border-rose-500/30 bg-rose-500/10 text-rose-600';
     label = 'REJECTED';
   }
 
   return (
-    <div className="relative flex items-center gap-2" ref={popupRef}>
-      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
+    <div className="flex flex-col items-start gap-1">
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
+      >
+        {isRejected ? <AlertTriangle className="h-3.5 w-3.5" /> : null}
         {label}
       </span>
-      {status === 'REJECTED' && alasan ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setShowPopup(previous => !previous)}
-            title="Lihat alasan penolakan"
-            className="flex h-4 w-4 items-center justify-center rounded-full text-xs font-bold text-rose-500 transition-colors hover:bg-rose-500/10"
-          >
-            (?)
-          </button>
 
-          {showPopup ? (
-            <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-rose-500/20 bg-card p-3 text-left shadow-xl animate-in fade-in slide-in-from-top-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-rose-500">Alasan Penolakan</p>
+      {isRejected ? (
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 underline decoration-dotted underline-offset-2 transition-colors hover:text-rose-600"
+        >
+          <Info className="h-3.5 w-3.5" />
+          Lihat &amp; Perbaiki
+        </button>
+      ) : null}
+
+      {isRejected && showModal ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4 py-8"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-rose-500/30 bg-card shadow-2xl animate-in fade-in zoom-in-95"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="flex-1 overflow-y-auto p-7">
+              {/* Header modal */}
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold text-foreground">Data Ini Ditolak</h3>
+                  <p className="mt-0.5 break-words text-sm text-muted-foreground">
+                    {row?.nama_upi || '(Tanpa Nama UPI)'}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setShowPopup(false)}
-                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setShowModal(false)}
+                  className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-foreground">{alasan}</p>
+
+              {/* Konteks data */}
+              <dl className="mt-5 grid grid-cols-1 gap-x-4 gap-y-3 rounded-2xl bg-muted/60 p-4 text-sm sm:grid-cols-2">
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Nama UPI</dt>
+                  <dd className="break-words font-semibold text-foreground">
+                    {row?.nama_upi || '-'}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Nama Pemilik</dt>
+                  <dd className="break-words font-semibold text-foreground">
+                    {row?.nama_pemilik || '-'}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Jenis Kegiatan</dt>
+                  <dd className="break-words font-semibold text-foreground">
+                    {row?.jenis_kegiatan || '-'}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Kabupaten/Kota</dt>
+                  <dd className="break-words font-semibold text-foreground">
+                    {row?.kabupaten_kota || '-'}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Tahun</dt>
+                  <dd className="break-words font-semibold text-foreground">{row?.tahun || '-'}</dd>
+                </div>
+              </dl>
+
+              {/* Alasan penolakan */}
+              <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">
+                  Alasan Penolakan dari Admin Pusat
+                </p>
+                <p className="mt-2 break-words text-sm leading-relaxed text-foreground">
+                  {alasan || 'Tidak ada alasan yang dicantumkan oleh Admin Pusat.'}
+                </p>
+              </div>
+
+              {/* Panduan singkat */}
+              <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-relaxed text-muted-foreground break-words whitespace-normal">
+                Silakan perbaiki data sesuai alasan di atas. Setelah diperbaiki dan disimpan,
+                status data akan otomatis kembali menjadi <b>PENDING</b> dan akan diperiksa
+                ulang oleh Admin Pusat.
+              </div>
             </div>
-          ) : null}
-        </>
+
+            {/* Aksi */}
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border p-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  onEdit?.(row);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition-opacity hover:opacity-90"
+              >
+                <Pencil className="h-4 w-4" />
+                Perbaiki Data Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -1517,8 +1618,8 @@ export default function AdminPengolahanPemasaran() {
         accessorKey: 'status',
         cell: info => (
           <StatusBadge
-            status={info.getValue()}
-            alasan={info.row.original.alasan_penolakan}
+            row={info.row.original}
+            onEdit={handleEdit}
           />
         ),
       },
@@ -1852,7 +1953,6 @@ export default function AdminPengolahanPemasaran() {
           />
         </div>
 
-        {dataPreview}
         {rejectModal}
       </div>
     );
