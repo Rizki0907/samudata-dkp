@@ -152,7 +152,7 @@ const getStats = async (req, res) => {
     const top5Names = top5KomoditasAgg.map(k => k.nama_komoditas);
 
     const monthlyDataRaw = await prisma.ekspor.groupBy({
-      by: ['bulan', 'nama_komoditas'],
+      by: ['bulan', 'kategori_komoditas', 'nama_komoditas', 'satuan_volume'],
       _sum: { volume: true, nilai_usd: true },
       where
     });
