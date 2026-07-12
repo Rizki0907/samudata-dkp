@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +5,386 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model PerikananTangkap {
+  id                Int               @id @default(autoincrement())
+  tanggal           DateTime
+  jam_labuh         String?
+  jam_bongkar       String?
+  pelabuhan         String?
+  nama_kapal        String?
+  gt_kapal          String?
+  alat_tangkap      String?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  kabupaten_kota    String?
+  sumber_data       SumberDataPT      @default(PELABUHAN)
+  alasan_penolakan  String?
+  status            DataStatus        @default(PENDING)
+  logistik          String?
+  jenis_perairan    String?
+  pud_jumlah_sampel Int?
+  pud_populasi_alat Int?
+  tangkapan         DetailTangkapan[]
+}
+
+model DetailTangkapan {
+  id                   Int              @id @default(autoincrement())
+  perikanan_tangkap_id Int
+  komoditas            String
+  volume               Float
+  harga                Float
+  nilai                Float
+  pud_tangkapan_sampel Float?
+  perikananTangkap     PerikananTangkap @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
+}
+
+model FileUpload {
+  id          Int      @id @default(autoincrement())
+  sektor      String
+  nama_file   String
+  path_file   String
+  ukuran      Int
+  tahun       Int?
+  wilayah     String?
+  uploaded_at DateTime @default(now())
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}
+
+model Ekspor {
+  id                 Int        @id @default(autoincrement())
+  bulan              String
+  tahun              String
+  tanggal_ekspor     DateTime
+  nama_eksportir     String
+  kategori_komoditas String
+  nama_komoditas     String
+  volume             Float
+  satuan_volume      String
+  negara_tujuan      String
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+  nilai_usd          Float
+  alasan_penolakan   String?
+  status             DataStatus @default(PENDING)
+}
+
+model Budidaya {
+  id                 Int        @id @default(autoincrement())
+  kabupaten_kota     String
+  tahun              String
+  bulan              String
+  triwulan           String
+  jenis_wadah        String
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+  alasan_penolakan   String?
+  status             DataStatus @default(PENDING)
+  kategori_komoditas String     @default("-")
+  komoditas          String     @default("-")
+  nilai_rp           Float      @default(0)
+  harga_rp           Float      @default(0)
+  produksi_kg        Float      @default(0)
+}
+
+model Garam {
+  id                 Int        @id @default(autoincrement())
+  status             DataStatus @default(PENDING)
+  alasan_penolakan   String?
+  bulan              String
+  triwulan           String
+  tahun              Int
+  kabupaten_kota     String
+  luas_total_ha      Float      @default(0)
+  luas_produksi_ha   Float      @default(0)
+  jumlah_kelompok    Int        @default(0)
+  jumlah_petambak    Int        @default(0)
+  produksi_k1_ton    Float      @default(0)
+  stok_k1_ton        Float      @default(0)
+  harga_k1_rp        Float      @default(0)
+  produksi_k2_ton    Float      @default(0)
+  stok_k2_ton        Float      @default(0)
+  harga_k2_rp        Float      @default(0)
+  produksi_k3_ton    Float      @default(0)
+  stok_k3_ton        Float      @default(0)
+  harga_k3_rp        Float      @default(0)
+  total_produksi_ton Float      @default(0)
+  total_stok_ton     Float      @default(0)
+  produktivitas      Float      @default(0)
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+}
+
+model PengolahanPemasaran {
+  id                                    Int        @id @default(autoincrement())
+  tahun                                 Int
+  jenis_kegiatan                        String
+  skala_usaha                           String
+  jenis_kegiatan_pengolahan             String?
+  jenis_kegiatan_pemasaran              String?
+  nama_upi                              String
+  alamat                                String
+  desa                                  String
+  kecamatan                             String
+  kabupaten_kota                        String
+  nomor_telepon                         String
+  tahun_berdiri                         Int?
+  perizinan                             String?
+  nama_pemilik                          String
+  jenis_kelamin                         String
+  alamat_2                              String?
+  desa_2                                String?
+  kecamatan_2                           String?
+  kabupaten_kota_2                      String?
+  nomor_telepon_2                       String?
+  nilai_aset_rp                         Float      @default(0)
+  cold_storage_kg                       Float      @default(0)
+  status_cold_storage                   String?
+  aset_cold_storage_rp                  Float      @default(0)
+  status_lahan_usaha                    String?
+  sertifikat_lahan                      String?
+  luas_lahan_m2                         Float      @default(0)
+  nilai_lahan_rp                        Float      @default(0)
+  sertifikat_bangunan                   String?
+  luas_bangunan_m2                      Float      @default(0)
+  nilai_bangunan_rp                     Float      @default(0)
+  biaya_sewa_per_tahun_rp               Float      @default(0)
+  jumlah_modal_sendiri_rp               Float      @default(0)
+  jumlah_laba_ditanam_rp                Float      @default(0)
+  pinjaman_modal                        String?
+  jumlah_pinjaman_rp                    Float      @default(0)
+  pemberi_pinjaman                      String?
+  tanggal_akad_pinjaman                 DateTime?
+  tenor_pinjaman_tahun                  Float      @default(0)
+  nama_merek                            String?
+  jenis_produk                          String?
+  sertifikat_umum                       String?
+  sertifikat_bpom                       String?
+  periode_produksi                      String?
+  biaya_produksi_per_periode_rp         Float      @default(0)
+  biaya_lain_lain_per_periode_rp        Float      @default(0)
+  hasil_produksi_per_periode_kg         Float      @default(0)
+  kapasitas_per_periode_kg              Float      @default(0)
+  harga_jual_rp_kg                      Float      @default(0)
+  bulan_produksi                        String?
+  jumlah_total_bulan_produksi_per_tahun Float      @default(0)
+  jumlah_hari_produksi_per_bulan        Float      @default(0)
+  biaya_produksi_per_tahun_rp           Float      @default(0)
+  kapasitas_per_tahun_kg                Float      @default(0)
+  hasil_produksi_per_tahun_kg           Float      @default(0)
+  nilai_hasil_produksi_per_tahun_rp     Float      @default(0)
+  nama_bahan_baku                       String?
+  total_bahan_baku_per_periode_kg       Float      @default(0)
+  asal_bahan_baku_kabupaten_kota        String?
+  provinsi_asal_bahan_baku              String?
+  asal_negara_bahan_baku                String?
+  total_pemasaran_per_tahun_kg          Float      @default(0)
+  pasar_dalam_kota_kab_per_tahun_kg     Float      @default(0)
+  pasar_kota_dalam_jatim_per_tahun_kg   Float      @default(0)
+  pasar_luar_jatim_per_tahun_kg         Float      @default(0)
+  pasar_luar_negeri_per_tahun_kg        Float      @default(0)
+  tujuan_pemasaran_kabupaten_kota       String?
+  provinsi_tujuan_pemasaran             String?
+  negara_tujuan_pemasaran               String?
+  tenaga_kerja_tetap_laki_laki          Int        @default(0)
+  tenaga_kerja_tetap_perempuan          Int        @default(0)
+  tenaga_kerja_tidak_tetap_laki_laki    Int        @default(0)
+  tenaga_kerja_tidak_tetap_perempuan    Int        @default(0)
+  tenaga_kerja_keluarga_laki_laki       Int        @default(0)
+  tenaga_kerja_keluarga_perempuan       Int        @default(0)
+  tenaga_kerja_tetap_laki_laki_2        Int        @default(0)
+  tenaga_kerja_tetap_perempuan_2        Int        @default(0)
+  tenaga_kerja_tidak_tetap_laki_laki_2  Int        @default(0)
+  tenaga_kerja_tidak_tetap_perempuan_2  Int        @default(0)
+  total_seluruh_tenaga_kerja            Int        @default(0)
+  status                                DataStatus @default(PENDING)
+  alasan_penolakan                      String?
+  created_at                            DateTime   @default(now())
+  updated_at                            DateTime   @updatedAt
+
+  @@index([status])
+  @@index([tahun])
+  @@index([kabupaten_kota])
+  @@index([jenis_kegiatan])
+  @@index([skala_usaha])
+  @@index([status, tahun, kabupaten_kota])
+}
+
+model DataBulananTangkap {
+  id              Int      @id @default(autoincrement())
+  bulan           String
+  sumber_data     String
+  pelabuhan       String
+  komoditas       String
+  volume          Float
+  nilai           Float
+  is_adjusted     Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  original_nilai  Float    @default(0)
+  original_volume Float    @default(0)
+
+  @@unique([bulan, sumber_data, pelabuhan, komoditas])
+  @@index([bulan])
+}
+
+model PotensiPerairan {
+  id                         Int        @id @default(autoincrement())
+  status                     DataStatus @default(PENDING)
+  alasan_penolakan           String?
+  kabupaten_kota             String
+  tahun_data                 Int
+  luas_wilayah_laut_km2      Float      @default(0)
+  panjang_pantai_utara_km    Float      @default(0)
+  panjang_pantai_selatan_km  Float      @default(0)
+  panjang_pantai_timur_km    Float      @default(0)
+  panjang_pantai_barat_km    Float      @default(0)
+  luas_perairan_km2          Float      @default(0)
+  jumlah_pulau_kecil         Int        @default(0)
+  pulau_berpenghuni          Int        @default(0)
+  pulau_tidak_berpenghuni    Int        @default(0)
+  desa_pesisir               Int        @default(0)
+  luas_kawasan_konservasi_ha Float      @default(0)
+  potensi_perikanan_ton_th   Float      @default(0)
+  keterangan                 String?
+  created_at                 DateTime   @default(now())
+  updated_at                 DateTime   @updatedAt
+
+  @@unique([kabupaten_kota, tahun_data])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Budidaya_backup_before_revert_status {
+  id                 Int?
+  kabupaten_kota     String?
+  tahun              String?
+  bulan              String?
+  triwulan           String?
+  jenis_wadah        String?
+  created_at         DateTime?
+  updated_at         DateTime?
+  alasan_penolakan   String?
+  status             DataStatus?
+  kategori_komoditas String?
+  komoditas          String?
+  nilai_rp           Float?
+  harga_rp           Float?
+  produksi_kg        Float?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Ekspor_backup_before_revert_status {
+  id                 Int?
+  bulan              String?
+  tahun              String?
+  tanggal_ekspor     DateTime?
+  nama_eksportir     String?
+  kategori_komoditas String?
+  nama_komoditas     String?
+  volume             Float?
+  satuan_volume      String?
+  negara_tujuan      String?
+  created_at         DateTime?
+  updated_at         DateTime?
+  nilai_usd          Float?
+  alasan_penolakan   String?
+  status             DataStatus?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Garam_backup_before_revert_status {
+  id                 Int?
+  status             DataStatus?
+  alasan_penolakan   String?
+  bulan              String?
+  triwulan           String?
+  tahun              Int?
+  kabupaten_kota     String?
+  luas_total_ha      Float?
+  luas_produksi_ha   Float?
+  jumlah_kelompok    Int?
+  jumlah_petambak    Int?
+  produksi_k1_ton    Float?
+  stok_k1_ton        Float?
+  harga_k1_rp        Float?
+  produksi_k2_ton    Float?
+  stok_k2_ton        Float?
+  harga_k2_rp        Float?
+  produksi_k3_ton    Float?
+  stok_k3_ton        Float?
+  harga_k3_rp        Float?
+  total_produksi_ton Float?
+  total_stok_ton     Float?
+  produktivitas      Float?
+  created_at         DateTime?
+  updated_at         DateTime?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model PerikananTangkap_backup_before_revert_status {
+  id                Int?
+  tanggal           DateTime?
+  jam_labuh         String?
+  jam_bongkar       String?
+  pelabuhan         String?
+  nama_kapal        String?
+  gt_kapal          String?
+  alat_tangkap      String?
+  created_at        DateTime?
+  updated_at        DateTime?
+  kabupaten_kota    String?
+  sumber_data       SumberDataPT?
+  alasan_penolakan  String?
+  status            DataStatus?
+  logistik          String?
+  jenis_perairan    String?
+  pud_jumlah_sampel Int?
+  pud_populasi_alat Int?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model PotensiPerairan_backup_before_revert_status {
+  id                         Int?
+  status                     DataStatus?
+  alasan_penolakan           String?
+  kabupaten_kota             String?
+  tahun_data                 Int?
+  luas_wilayah_laut_km2      Float?
+  panjang_pantai_utara_km    Float?
+  panjang_pantai_selatan_km  Float?
+  panjang_pantai_timur_km    Float?
+  panjang_pantai_barat_km    Float?
+  luas_perairan_km2          Float?
+  jumlah_pulau_kecil         Int?
+  pulau_berpenghuni          Int?
+  pulau_tidak_berpenghuni    Int?
+  desa_pesisir               Int?
+  luas_kawasan_konservasi_ha Float?
+  potensi_perikanan_ton_th   Float?
+  keterangan                 String?
+  created_at                 DateTime?
+  updated_at                 DateTime?
+
+  @@ignore
 }
 
 enum SumberDataPT {
@@ -24,309 +398,5 @@ enum DataStatus {
   APPROVED
   REJECTED
   APPROVED_BIDANG
-}
-
-// Tabel utama perikanan tangkap harian
-model PerikananTangkap {
-  id               Int          @id @default(autoincrement())
-  sumber_data      SumberDataPT @default(PELABUHAN)
-  tanggal          DateTime
-  jam_labuh        String?
-  jam_bongkar      String?
-  pelabuhan        String?
-  kabupaten_kota   String?
-  nama_kapal       String?
-  gt_kapal         String?
-  alat_tangkap     String?
-  logistik         String?
-  // Field khusus PUD
-  jenis_perairan   String?
-  pud_populasi_alat Int?
-  pud_jumlah_sampel Int?
-  
-  status           DataStatus   @default(PENDING)
-  alasan_penolakan String?
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
-
-  tangkapan DetailTangkapan[]
-}
-
-// Tabel Anak (Detail Ikan/Komoditas per Trip)
-model DetailTangkapan {
-  id                   Int    @id @default(autoincrement())
-  perikanan_tangkap_id Int
-  komoditas            String
-  volume               Float // kg
-  harga                Float // rupiah per kg
-  nilai                Float // otomatis: volume × harga
-  pud_tangkapan_sampel Float? // khusus PUD (kg)
-
-  perikananTangkap PerikananTangkap @relation(fields: [perikanan_tangkap_id], references: [id], onDelete: Cascade)
-}
-
-// Tabel untuk file upload sektor lain (metadata)
-model FileUpload {
-  id          Int      @id @default(autoincrement())
-  sektor      String // "budidaya", "garam", "ekspor", dst
-  nama_file   String
-  path_file   String
-  ukuran      Int // bytes
-  tahun       Int?
-  wilayah     String?
-  uploaded_at DateTime @default(now())
-}
-
-// Tabel setting/konfigurasi (untuk kode admin, dll)
-model Setting {
-  id    Int    @id @default(autoincrement())
-  key   String @unique
-  value String
-}
-
-// Tabel ekspor hasil perikanan
-model Ekspor {
-  id                 Int        @id @default(autoincrement())
-  bulan              String
-  tahun              String
-  tanggal_ekspor     DateTime
-  nama_eksportir     String
-  kategori_komoditas String
-  nama_komoditas     String
-  volume             Float
-  satuan_volume      String
-  nilai_usd          Float
-  negara_tujuan      String
-  status             DataStatus @default(PENDING)
-  alasan_penolakan   String?
-  created_at         DateTime   @default(now())
-  updated_at         DateTime   @updatedAt
-}
-
-// Tabel Budidaya Perikanan
-model Budidaya {
-  id                 Int        @id @default(autoincrement())
-  kabupaten_kota     String
-  tahun              String
-  bulan              String
-  triwulan           String
-  kategori_komoditas String     @default("-")
-  komoditas          String     @default("-")
-  jenis_wadah        String
-  produksi_kg        Float      @default(0)
-  harga_rp           Float      @default(0)
-  nilai_rp           Float      @default(0)
-  status             DataStatus @default(PENDING)
-  alasan_penolakan   String?
-  created_at         DateTime   @default(now())
-  updated_at         DateTime   @updatedAt
-}
-
-// Tabel Budidaya Perikanan
-model Garam {
-  id               Int        @id @default(autoincrement())
-  status           DataStatus @default(PENDING)
-  alasan_penolakan String?
-
-  bulan          String // "Januari", "Februari", dst
-  triwulan       String // "TW 1" - "TW 4" (dihitung otomatis di controller)
-  tahun          Int
-  kabupaten_kota String
-
-  luas_total_ha    Float @default(0)
-  luas_produksi_ha Float @default(0)
-  jumlah_kelompok  Int   @default(0)
-  jumlah_petambak  Int   @default(0)
-
-  produksi_k1_ton Float @default(0)
-  stok_k1_ton     Float @default(0)
-  harga_k1_rp     Float @default(0)
-
-  produksi_k2_ton Float @default(0)
-  stok_k2_ton     Float @default(0)
-  harga_k2_rp     Float @default(0)
-
-  produksi_k3_ton Float @default(0)
-  stok_k3_ton     Float @default(0)
-  harga_k3_rp     Float @default(0)
-
-  // Kalkulasi — disimpan di DB supaya query statistik cepat
-  total_produksi_ton Float @default(0)
-  total_stok_ton     Float @default(0)
-  produktivitas      Float @default(0) // Ton/Ha
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
-
-// Pengolahan & Pemasaran
-model PengolahanPemasaran {
-  id Int @id @default(autoincrement())
-
-  // Jenis Kegiatan P3KP
-  tahun                     Int
-  jenis_kegiatan            String
-  skala_usaha               String
-  jenis_kegiatan_pengolahan String?
-  jenis_kegiatan_pemasaran  String?
-
-  // Lokasi utama & identitas UPI
-  nama_upi       String
-  alamat         String
-  desa           String
-  kecamatan      String
-  kabupaten_kota String
-  nomor_telepon  String
-  tahun_berdiri  Int?
-
-  // Legalitas usaha & pemilik
-  perizinan        String?
-  nama_pemilik     String
-  jenis_kelamin    String
-  alamat_2         String?
-  desa_2           String?
-  kecamatan_2      String?
-  kabupaten_kota_2 String?
-  nomor_telepon_2  String?
-
-  // Aset, cold storage, lahan, bangunan
-  nilai_aset_rp           Float   @default(0)
-  cold_storage_kg         Float   @default(0)
-  status_cold_storage     String?
-  aset_cold_storage_rp    Float   @default(0)
-  status_lahan_usaha      String?
-  sertifikat_lahan        String?
-  luas_lahan_m2           Float   @default(0)
-  nilai_lahan_rp          Float   @default(0)
-  sertifikat_bangunan     String?
-  luas_bangunan_m2        Float   @default(0)
-  nilai_bangunan_rp       Float   @default(0)
-  biaya_sewa_per_tahun_rp Float   @default(0)
-
-  // Permodalan & finansial
-  jumlah_modal_sendiri_rp Float     @default(0)
-  jumlah_laba_ditanam_rp  Float     @default(0)
-  pinjaman_modal          String?
-  jumlah_pinjaman_rp      Float     @default(0)
-  pemberi_pinjaman        String?
-  tanggal_akad_pinjaman   DateTime?
-  tenor_pinjaman_tahun    Float     @default(0)
-
-  // Produk & sertifikasi
-  nama_merek       String?
-  jenis_produk     String?
-  sertifikat_umum  String?
-  sertifikat_bpom  String?
-  periode_produksi String?
-
-  // Metrik produksi & biaya
-  biaya_produksi_per_periode_rp         Float   @default(0)
-  biaya_lain_lain_per_periode_rp        Float   @default(0)
-  hasil_produksi_per_periode_kg         Float   @default(0)
-  kapasitas_per_periode_kg              Float   @default(0)
-  harga_jual_rp_kg                      Float   @default(0)
-  bulan_produksi                        String?
-  jumlah_total_bulan_produksi_per_tahun Float   @default(0)
-  jumlah_hari_produksi_per_bulan        Float   @default(0)
-
-  // Nilai tahunan hasil
-  biaya_produksi_per_tahun_rp       Float @default(0)
-  kapasitas_per_tahun_kg            Float @default(0)
-  hasil_produksi_per_tahun_kg       Float @default(0)
-  nilai_hasil_produksi_per_tahun_rp Float @default(0)
-
-  // Bahan baku
-  nama_bahan_baku                 String?
-  total_bahan_baku_per_periode_kg Float   @default(0)
-  asal_bahan_baku_kabupaten_kota  String?
-  provinsi_asal_bahan_baku        String?
-  asal_negara_bahan_baku          String?
-
-  // Distribusi pemasaran
-  total_pemasaran_per_tahun_kg        Float   @default(0)
-  pasar_dalam_kota_kab_per_tahun_kg   Float   @default(0)
-  pasar_kota_dalam_jatim_per_tahun_kg Float   @default(0)
-  pasar_luar_jatim_per_tahun_kg       Float   @default(0)
-  pasar_luar_negeri_per_tahun_kg      Float   @default(0)
-  tujuan_pemasaran_kabupaten_kota     String?
-  provinsi_tujuan_pemasaran           String?
-  negara_tujuan_pemasaran             String?
-
-  // Ketenagakerjaan
-  tenaga_kerja_tetap_laki_laki         Int @default(0)
-  tenaga_kerja_tetap_perempuan         Int @default(0)
-  tenaga_kerja_tidak_tetap_laki_laki   Int @default(0)
-  tenaga_kerja_tidak_tetap_perempuan   Int @default(0)
-  tenaga_kerja_keluarga_laki_laki      Int @default(0)
-  tenaga_kerja_keluarga_perempuan      Int @default(0)
-  tenaga_kerja_tetap_laki_laki_2       Int @default(0)
-  tenaga_kerja_tetap_perempuan_2       Int @default(0)
-  tenaga_kerja_tidak_tetap_laki_laki_2 Int @default(0)
-  tenaga_kerja_tidak_tetap_perempuan_2 Int @default(0)
-  total_seluruh_tenaga_kerja           Int @default(0)
-
-  // Status validasi admin pusat
-  status           DataStatus @default(PENDING)
-  alasan_penolakan String?
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@index([status])
-  @@index([tahun])
-  @@index([kabupaten_kota])
-  @@index([jenis_kegiatan])
-  @@index([skala_usaha])
-  @@index([status, tahun, kabupaten_kota])
-}
-
-// Tabel Bulanan Perikanan Tangkap (Data Publik yang bisa divalidasi/disesuaikan)
-model DataBulananTangkap {
-  id               Int      @id @default(autoincrement())
-  bulan            String   // contoh: "2026-01"
-  sumber_data      String   // "PELABUHAN", "PUD", "KAB_KOTA"
-  pelabuhan        String
-  komoditas        String
-  volume           Float
-  nilai            Float
-  original_volume  Float    @default(0)
-  original_nilai   Float    @default(0)
-  is_adjusted      Boolean  @default(false)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-
-  @@unique([bulan, sumber_data, pelabuhan, komoditas])
-  @@index([bulan])
-}
-
-// Tabel Kelautan & Pesisir: Potensi Perairan
-model PotensiPerairan {
-  id               Int        @id @default(autoincrement())
-  status           DataStatus @default(PENDING)
-  alasan_penolakan String?
-  
-  kabupaten_kota   String
-  tahun_data       Int
-
-  luas_wilayah_laut_km2       Float @default(0)
-  panjang_pantai_utara_km     Float @default(0)
-  panjang_pantai_selatan_km   Float @default(0)
-  panjang_pantai_timur_km     Float @default(0)
-  panjang_pantai_barat_km     Float @default(0)
-  luas_perairan_km2           Float @default(0)
-
-  jumlah_pulau_kecil          Int   @default(0)
-  pulau_berpenghuni           Int   @default(0)
-  pulau_tidak_berpenghuni     Int   @default(0)
-  desa_pesisir                Int   @default(0)
-  
-  luas_kawasan_konservasi_ha  Float @default(0)
-  potensi_perikanan_ton_th    Float @default(0)
-  
-  keterangan                  String?
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@unique([kabupaten_kota, tahun_data])
+  VERIFIED
 }
