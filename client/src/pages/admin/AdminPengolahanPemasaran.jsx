@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -408,7 +408,6 @@ const createInitialForm = initialData => {
 function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-
   const normalizedValues = Array.isArray(values) ? values : [];
   const filteredOptions = options.filter(option =>
     String(option).toLowerCase().includes(search.toLowerCase()),
@@ -516,36 +515,23 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
   );
 }
 
-// function StatusBadge({ status, alasan }) {
-//   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
-//   let label = 'PENDING';
-
-//   if (status === 'APPROVED') {
-//     colorClass = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-//     label = 'VERIFIED';
-//   } else if (status === 'APPROVED') {
-//     colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
-//     label = 'APPROVED';
-//   } else if (status === 'REJECTED') {
-//     colorClass = 'border-rose-500/20 bg-rose-500/10 text-rose-600';
-//     label = 'REJECTED';
-//   }
-
-//   return (
-//     <div className="flex items-center gap-2">
-//       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
-//         {label}
-//       </span>
-//       {status === 'REJECTED' && alasan ? (
-//         <span className="cursor-help text-xs text-rose-500" title={`Alasan: ${alasan}`}>
-//           (?)
-//         </span>
-//       ) : null}
-//     </div>
-//   );
-// }
-
 function StatusBadge({ status, alasan }) {
+  const [showPopup, setShowPopup] = useState(false);
+  const popupRef = useRef(null);
+
+  useEffect(() => {
+    if (!showPopup) return undefined;
+
+    const handleClickOutside = event => {
+      if (popupRef.current && !popupRef.current.contains(event.target)) {
+        setShowPopup(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPopup]);
+
   let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
   let label = 'PENDING';
 
@@ -561,14 +547,37 @@ function StatusBadge({ status, alasan }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative flex items-center gap-2" ref={popupRef}>
       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
         {label}
       </span>
       {status === 'REJECTED' && alasan ? (
-        <span className="cursor-help text-xs text-rose-500" title={`Alasan: ${alasan}`}>
-          (?)
-        </span>
+        <>
+          <button
+            type="button"
+            onClick={() => setShowPopup(previous => !previous)}
+            title="Lihat alasan penolakan"
+            className="flex h-4 w-4 items-center justify-center rounded-full text-xs font-bold text-rose-500 transition-colors hover:bg-rose-500/10"
+          >
+            (?)
+          </button>
+
+          {showPopup ? (
+            <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-rose-500/20 bg-card p-3 text-left shadow-xl animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-rose-500">Alasan Penolakan</p>
+                <button
+                  type="button"
+                  onClick={() => setShowPopup(false)}
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-foreground">{alasan}</p>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
@@ -614,6 +623,12 @@ export default function AdminPengolahanPemasaran() {
 
   // Bar chart toggle: produksi (KG) atau nilai (Rp)
   const [barFilter, setBarFilter] = useState('produksi');
+
+  // Modal input alasan penolakan (saat Admin Pusat menolak data)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // Tick untuk memaksa re-render label waktu relatif ("Terakhir Diperbarui") setiap menit
   const [, setTimeTick] = useState(0);
@@ -684,76 +699,6 @@ export default function AdminPengolahanPemasaran() {
       alert('Gagal menghapus data.');
     }
   };
-
-  // const handleApprove = async row => {
-  //   if (row.status === 'APPROVED') {
-  //     alert('Data sudah selesai divalidasi Program.');
-  //     return;
-  //   }
-
-  //   if (row.status === 'REJECTED') {
-  //     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-  //     return;
-  //   }
-
-  //   let promptMsg = '';
-
-  //   if (row.status === 'PENDING') {
-  //     promptMsg = 'Data masih PENDING.\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.';
-  //   } else if (row.status === 'APPROVED_BIDANG') {
-  //     promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk Validasi Program.';
-  //   } else {
-  //     alert('Status data tidak valid.');
-  //     return;
-  //   }
-
-  //   const jenis = window.prompt(promptMsg);
-  //   if (!jenis) return;
-
-  //   let targetStatus = '';
-  //   let namaValidasi = '';
-
-  //   if (jenis === '1') {
-  //     if (row.status !== 'PENDING') {
-  //       alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-  //       return;
-  //     }
-
-  //     targetStatus = 'APPROVED_BIDANG';
-  //     namaValidasi = 'BIDANG';
-  //   } else if (jenis === '2') {
-  //     if (row.status !== 'APPROVED_BIDANG') {
-  //       alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-  //       return;
-  //     }
-
-  //     targetStatus = 'APPROVED';
-  //     namaValidasi = 'PROGRAM';
-  //   } else {
-  //     alert('Pilihan tidak valid. Ketik 1 atau 2.');
-  //     return;
-  //   }
-
-  //   const confirmText = window.prompt(
-  //     `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi}:`
-  //   );
-
-  //   if (confirmText !== 'SETUJU') {
-  //     alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-  //     return;
-  //   }
-
-  //   try {
-  //     await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-  //       status: targetStatus,
-  //     });
-
-  //     await fetchData();
-  //   } catch (error) {
-  //     console.error('Error approving data:', error);
-  //     alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
-  //   }
-  // };
 
   const handleApprove = async row => {
   if (!isAdminPusat) {
@@ -839,27 +784,7 @@ export default function AdminPengolahanPemasaran() {
   }
 };
 
-  // const handleReject = async row => {
-  //   const alasan = window.prompt('Masukkan alasan penolakan:');
-  //   if (alasan === null) return;
-  //   if (!alasan.trim()) {
-  //     alert('Alasan penolakan wajib diisi.');
-  //     return;
-  //   }
-
-  //   try {
-  //     await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-  //       status: 'REJECTED',
-  //       alasan_penolakan: alasan.trim(),
-  //     });
-  //     await fetchData();
-  //   } catch (error) {
-  //     console.error('Error rejecting data:', error);
-  //     alert('Gagal menolak data.');
-  //   }
-  // };
-
-  const handleReject = async row => {
+  const handleReject = row => {
   if (!isAdminPusat) {
     alert('Hanya Admin Pusat yang dapat menolak data.');
     return;
@@ -870,24 +795,38 @@ export default function AdminPengolahanPemasaran() {
     return;
   }
 
-  const alasan = window.prompt('Masukkan alasan penolakan:');
-  if (alasan === null) return;
+  setRejectTarget(row);
+  setRejectReason('');
+  setRejectModalOpen(true);
+};
+  const submitReject = async () => {
+  if (!rejectTarget) return;
 
-  if (!alasan.trim()) {
+  if (!rejectReason.trim()) {
     alert('Alasan penolakan wajib diisi.');
     return;
   }
 
   try {
-    await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+    setRejectLoading(true);
+
+    await api.put(`/pengolahan-pemasaran/${rejectTarget.id}/status`, {
       status: 'REJECTED',
-      alasan_penolakan: alasan.trim(),
+      alasan_penolakan: rejectReason.trim(),
     });
 
+    // Tutup modal
+    setRejectModalOpen(false);
+    setRejectTarget(null);
+    setRejectReason('');
+
+    // Refresh data
     await fetchData();
-    // await fetchStats();
+
+    alert('Data berhasil ditolak.');
   } catch (error) {
     console.error('Error rejecting data:', error.response?.data || error);
+
     alert(
       `Gagal menolak data: ${
         error?.response?.data?.message ||
@@ -895,105 +834,10 @@ export default function AdminPengolahanPemasaran() {
         error.message
       }`
     );
+  } finally {
+    setRejectLoading(false);
   }
 };
-
-  // const handleBatchApprove = async ids => {
-  //   if (!isAdminPusat) {
-  //     alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
-  //     return;
-  //   }
-
-  //   if (!Array.isArray(ids) || ids.length === 0) {
-  //     alert('Tidak ada data yang dipilih.');
-  //     return;
-  //   }
-
-  //   const selectedIdSet = new Set(ids.map(id => String(id)));
-  //   const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
-
-  //   if (!selectedRows.length) {
-  //     alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
-  //     return;
-  //   }
-
-  //   if (selectedRows.some(row => row.status === 'APPROVED')) {
-  //     alert('Ada data yang sudah selesai divalidasi Program. Pilih data lain.');
-  //     return;
-  //   }
-
-  //   if (selectedRows.some(row => row.status === 'REJECTED')) {
-  //     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-  //     return;
-  //   }
-
-  //   const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
-
-  //   if (selectedStatuses.length > 1) {
-  //     alert('Pilih data dengan status yang sama. Validasi Bidang hanya untuk PENDING, sedangkan Validasi Program hanya untuk APPROVED.');
-  //     return;
-  //   }
-
-  //   const currentStatus = selectedStatuses[0];
-  //   let promptMsg = '';
-
-  //   if (currentStatus === 'PENDING') {
-  //     promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk Validasi Bidang.\n\nCatatan: Validasi Program belum bisa dilakukan sebelum Validasi Bidang.`;
-  //   } else if (currentStatus === 'APPROVED') {
-  //     promptMsg = `Data yang dipilih sudah divalidasi Bidang (${selectedRows.length} data).\nKetik "2" untuk Validasi Program.`;
-  //   } else {
-  //     alert('Status data terpilih tidak valid untuk proses validasi.');
-  //     return;
-  //   }
-
-  //   const jenis = window.prompt(promptMsg);
-  //   if (!jenis) return;
-
-  //   let targetStatus = '';
-  //   let namaValidasi = '';
-
-  //   if (jenis === '1') {
-  //     if (currentStatus !== 'PENDING') {
-  //       alert('Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING.');
-  //       return;
-  //     }
-
-  //     targetStatus = 'APPROVED';
-  //     namaValidasi = 'BIDANG';
-  //   } else if (jenis === '2') {
-  //     if (currentStatus !== 'APPROVED') {
-  //       alert('Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program.');
-  //       return;
-  //     }
-
-  //     targetStatus = 'VERIFIED';
-  //     namaValidasi = 'PROGRAM';
-  //   } else {
-  //     alert('Pilihan tidak valid. Ketik 1 atau 2.');
-  //     return;
-  //   }
-
-  //   const confirmText = window.prompt(
-  //     `Ketik "SETUJU" untuk menyelesaikan Validasi ${namaValidasi} pada ${selectedRows.length} data:`
-  //   );
-
-  //   if (confirmText !== 'SETUJU') {
-  //     alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-  //     return;
-  //   }
-
-  //   try {
-  //     await api.post('/pengolahan-pemasaran/batch-status', {
-  //       ids,
-  //       status: targetStatus,
-  //     });
-
-  //     await fetchData();
-  //   } catch (error) {
-  //     console.error('Error batch approve:', error);
-  //     alert(`Gagal memvalidasi data terpilih: ${error?.response?.data?.message || error.message}`);
-  //   }
-  // };
 
   const handleBatchApprove = async ids => {
   if (!isAdminPusat) {
@@ -1099,39 +943,6 @@ export default function AdminPengolahanPemasaran() {
     );
   }
 };
-
-  // const handleBatchReject = async ids => {
-  //   if (!isAdminPusat) {
-  //     alert('Hanya Admin Pusat yang dapat menolak data.');
-  //     return;
-  //   }
-
-  //   if (!Array.isArray(ids) || ids.length === 0) {
-  //     alert('Tidak ada data yang dipilih.');
-  //     return;
-  //   }
-
-  //   const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-  //   if (alasan === null) return;
-
-  //   if (!alasan.trim()) {
-  //     alert('Alasan penolakan wajib diisi.');
-  //     return;
-  //   }
-
-  //   try {
-  //     await api.post('/pengolahan-pemasaran/batch-status', {
-  //       ids,
-  //       status: 'REJECTED',
-  //       alasan_penolakan: alasan.trim(),
-  //     });
-
-  //     await fetchData();
-  //   } catch (error) {
-  //     console.error('Error batch reject:', error);
-  //     alert(`Gagal menolak data terpilih: ${error?.response?.data?.message || error.message}`);
-  //   }
-  // };
 
   const handleBatchDelete = async ids => {
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -1786,6 +1597,55 @@ export default function AdminPengolahanPemasaran() {
     [],
   );
 
+  // Modal input alasan penolakan. Dulunya state ini ada tapi modalnya
+  // belum pernah dirender, jadi klik tombol Tolak tidak menampilkan apa-apa.
+  const rejectModal =
+    rejectModalOpen && rejectTarget ? (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <h3 className="text-lg font-semibold text-foreground">Tolak Data</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {rejectTarget.nama_upi || '(Tanpa Nama UPI)'} &middot; {rejectTarget.kabupaten_kota} &middot; Tahun {rejectTarget.tahun}
+          </p>
+
+          <label className="mb-1.5 mt-4 block text-xs font-medium text-muted-foreground">
+            Alasan Penolakan
+          </label>
+          <textarea
+            value={rejectReason}
+            onChange={event => setRejectReason(event.target.value)}
+            rows={3}
+            placeholder="Tuliskan alasan penolakan..."
+            className={INPUT_CLASS}
+          />
+
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setRejectModalOpen(false);
+                setRejectTarget(null);
+                setRejectReason('');
+              }}
+              disabled={rejectLoading}
+              className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={submitReject}
+              disabled={rejectLoading}
+              className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {rejectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Tolak Data
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
   const dataPreview = (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <DataTable
@@ -1993,6 +1853,7 @@ export default function AdminPengolahanPemasaran() {
         </div>
 
         {dataPreview}
+        {rejectModal}
       </div>
     );
   }
@@ -2022,6 +1883,8 @@ export default function AdminPengolahanPemasaran() {
           Tambah Data Baru
         </button>
       </div>
+
+      {rejectModal}
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
