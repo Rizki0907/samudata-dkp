@@ -241,10 +241,7 @@ model PotensiPerairan {
   kabupaten_kota             String
   tahun_data                 Int
   luas_wilayah_laut_km2      Float      @default(0)
-  panjang_pantai_utara_km    Float      @default(0)
-  panjang_pantai_selatan_km  Float      @default(0)
-  panjang_pantai_timur_km    Float      @default(0)
-  panjang_pantai_barat_km    Float      @default(0)
+  total_panjang_garis_pantai_km Float   @default(0)
   luas_perairan_km2          Float      @default(0)
   jumlah_pulau_kecil         Int        @default(0)
   pulau_berpenghuni          Int        @default(0)

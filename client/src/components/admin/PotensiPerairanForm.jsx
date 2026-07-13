@@ -17,17 +17,10 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     kabupaten_kota: '',
     tahun_data: CURRENT_YEAR,
     luas_wilayah_laut_km2: '',
-    panjang_pantai_utara_km: '',
-    panjang_pantai_selatan_km: '',
-    panjang_pantai_timur_km: '',
-    panjang_pantai_barat_km: '',
+    total_panjang_garis_pantai_km: '',
     luas_perairan_km2: '',
     jumlah_pulau_kecil: '',
-    pulau_berpenghuni: '',
-    pulau_tidak_berpenghuni: '',
     desa_pesisir: '',
-    luas_kawasan_konservasi_ha: '',
-    potensi_perikanan_ton_th: '',
     keterangan: '',
   });
 
@@ -36,29 +29,16 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const totalPantai =
-    (parseFloat(formData.panjang_pantai_utara_km) || 0) +
-    (parseFloat(formData.panjang_pantai_selatan_km) || 0) +
-    (parseFloat(formData.panjang_pantai_timur_km) || 0) +
-    (parseFloat(formData.panjang_pantai_barat_km) || 0);
-
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
       ...formData,
       tahun_data: parseInt(formData.tahun_data),
       luas_wilayah_laut_km2: parseFloat(formData.luas_wilayah_laut_km2) || 0,
-      panjang_pantai_utara_km: parseFloat(formData.panjang_pantai_utara_km) || 0,
-      panjang_pantai_selatan_km: parseFloat(formData.panjang_pantai_selatan_km) || 0,
-      panjang_pantai_timur_km: parseFloat(formData.panjang_pantai_timur_km) || 0,
-      panjang_pantai_barat_km: parseFloat(formData.panjang_pantai_barat_km) || 0,
+      total_panjang_garis_pantai_km: parseFloat(formData.total_panjang_garis_pantai_km) || 0,
       luas_perairan_km2: parseFloat(formData.luas_perairan_km2) || 0,
       jumlah_pulau_kecil: parseInt(formData.jumlah_pulau_kecil) || 0,
-      pulau_berpenghuni: parseInt(formData.pulau_berpenghuni) || 0,
-      pulau_tidak_berpenghuni: parseInt(formData.pulau_tidak_berpenghuni) || 0,
       desa_pesisir: parseInt(formData.desa_pesisir) || 0,
-      luas_kawasan_konservasi_ha: parseFloat(formData.luas_kawasan_konservasi_ha) || 0,
-      potensi_perikanan_ton_th: parseFloat(formData.potensi_perikanan_ton_th) || 0,
     });
   };
 
@@ -107,96 +87,33 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
 
         <div className="h-px bg-border"></div>
 
-        {/* Luas Wilayah */}
+        {/* Data Potensi Perairan */}
         <section>
           <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
-            Luas Wilayah Laut
+            Data Potensi Perairan
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className={labelClass}>Luas Wilayah Laut (km²)</label>
+              <label className={labelClass}>Luas Wilayah Laut (KmA)</label>
               <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
             <div>
-              <label className={labelClass}>Luas Perairan (km²)</label>
+              <label className={labelClass}>Luas Perairan (kmA)</label>
               <input type="number" step="0.01" min="0" name="luas_perairan_km2" value={formData.luas_perairan_km2} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
-          </div>
-        </section>
-
-        <div className="h-px bg-border"></div>
-
-        {/* Garis Pantai */}
-        <section>
-          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">3</span>
-            Panjang Garis Pantai per Segmen (km)
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
-            {[
-              { name: 'panjang_pantai_utara_km', label: 'Utara' },
-              { name: 'panjang_pantai_selatan_km', label: 'Selatan' },
-              { name: 'panjang_pantai_timur_km', label: 'Timur' },
-              { name: 'panjang_pantai_barat_km', label: 'Barat' },
-            ].map(f => (
-              <div key={f.name}>
-                <label className={labelClass}>{f.label}</label>
-                <input type="number" step="0.01" min="0" name={f.name} value={formData[f.name]} onChange={handleChange} className={inputClass} placeholder="0" />
-              </div>
-            ))}
-            <div className="bg-primary/5 p-3 rounded-xl border border-primary/20 text-center flex flex-col justify-center min-h-[72px]">
-              <span className="text-xs font-semibold text-primary/70 uppercase mb-1">Total Garis Pantai</span>
-              <span className="font-bold text-primary">{totalPantai.toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
-            </div>
-          </div>
-        </section>
-
-        <div className="h-px bg-border"></div>
-
-        {/* Pulau Kecil */}
-        <section>
-          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">4</span>
-            Pulau Kecil
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <label className={labelClass}>Jumlah Pulau Kecil</label>
-              <input type="number" min="0" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} className={inputClass} placeholder="0" />
+              <label className={labelClass}>Jumlah Pulau-pulau Kecil</label>
+              <input type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Pulau Berpenghuni</label>
-              <input type="number" min="0" name="pulau_berpenghuni" value={formData.pulau_berpenghuni} onChange={handleChange} className={inputClass} placeholder="0" />
+              <label className={labelClass}>Total Panjang Garis Pantai (Km)</label>
+              <input type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={inputClass} />
             </div>
-            <div>
-              <label className={labelClass}>Pulau Tidak Berpenghuni</label>
-              <input type="number" min="0" name="pulau_tidak_berpenghuni" value={formData.pulau_tidak_berpenghuni} onChange={handleChange} className={inputClass} placeholder="0" />
+            <div className="md:col-span-2">
+              <label className={labelClass}>Keterangan Tambahan</label>
+              <textarea name="keterangan" value={formData.keterangan} onChange={handleChange} rows="2" className={`${inputClass} text-left resize-none`} placeholder="Opsional..."></textarea>
             </div>
-          </div>
-        </section>
-
-        <div className="h-px bg-border"></div>
-
-        {/* Konservasi & Potensi */}
-        <section>
-          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">5</span>
-            Konservasi & Potensi
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className={labelClass}>Luas Kawasan Konservasi (Ha)</label>
-              <input type="number" step="0.01" min="0" name="luas_kawasan_konservasi_ha" value={formData.luas_kawasan_konservasi_ha} onChange={handleChange} className={inputClass} placeholder="0" />
-            </div>
-            <div>
-              <label className={labelClass}>Potensi Perikanan (Ton/Tahun)</label>
-              <input type="number" step="0.01" min="0" name="potensi_perikanan_ton_th" value={formData.potensi_perikanan_ton_th} onChange={handleChange} className={inputClass} placeholder="0" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className={labelClass}>Keterangan</label>
-            <textarea name="keterangan" value={formData.keterangan} onChange={handleChange} rows={3} className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input resize-none" placeholder="Catatan tambahan (opsional)" />
           </div>
         </section>
 
