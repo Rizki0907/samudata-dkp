@@ -40,26 +40,24 @@ const getOverviewStats = async (req, res) => {
       pembudidaya: budidayaStats._count.id || 0 // Asumsi jumlah titik/laporan
     };
 
-    // === 3. EKSPOR (Pengolahan & Pemasaran) ===
-    const eksporStats = await prisma.ekspor.aggregate({
-      where: { status: 'APPROVED' },
-      _sum: { volume: true, nilai_usd: true }
-    });
-
-    const negaraDistinct = await prisma.ekspor.findMany({
-      where: { status: 'APPROVED' },
-      select: { negara_tujuan: true },
-      distinct: ['negara_tujuan']
+    // === 3.(Pengolahan & Pemasaran) ===
+    const pengolahanAgg = await prisma.pengolahanPemasaran.aggregate({
+      where: { status: 'VERIFIED' },
+      _count: { id: true },
+      _sum: {
+        hasil_produksi_per_tahun_kg: true,
+        nilai_hasil_produksi_per_tahun_rp: true,
+        total_pemasaran_per_tahun_kg: true
+      }
     });
 
     const pemasaran = {
-      ekspor_volume: eksporStats._sum.volume || 0,
-      ekspor_nilai: eksporStats._sum.nilai_usd || 0,
-      negara_tujuan: negaraDistinct.length || 0,
-      pengolahan: 0,
-      produk: 0
+      total_unit_usaha: pengolahanAgg._count.id || 0,
+      total_produksi_kg: pengolahanAgg._sum.hasil_produksi_per_tahun_kg || 0,
+      total_nilai_produksi_rp: pengolahanAgg._sum.nilai_hasil_produksi_per_tahun_rp || 0,
+      total_pemasaran_kg: pengolahanAgg._sum.total_pemasaran_per_tahun_kg || 0
     };
-
+    
     // === 4. GARAM (Kelautan & Pesisir) ===
     const allGaram = await prisma.garam.findMany({
       where: { status: 'APPROVED' },
