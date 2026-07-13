@@ -12,6 +12,8 @@ import { ChevronDown, ChevronUp, Search, Download, Trash2, Edit, ChevronRight, C
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx-js-style';
 import { useAuthStore } from '@/store/authStore';
+import { formatDistanceToNow } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 export function DataTable({
   columns,
@@ -33,11 +35,12 @@ export function DataTable({
   renderSubComponent,
   customExportButton,
   hideDefaultExport = false,
+  hideUpdatedAt = false,
   defaultPageSize = 10,
   customBatchActions,
-  approvableStatuses = ['PENDING', 'APPROVED_BIDANG'],
-  rejectableStatuses = ['PENDING', 'APPROVED_BIDANG', 'APPROVED'],
-  lockedStatuses = ['APPROVED_BIDANG', 'APPROVED'],
+  approvableStatuses = ['PENDING', 'APPROVED'],
+  rejectableStatuses = ['PENDING', 'APPROVED', 'VERIFIED'],
+  lockedStatuses = ['APPROVED', 'VERIFIED'],
 }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
@@ -77,9 +80,22 @@ export function DataTable({
     setSelectedIds([]);
   };
 
+  const finalColumns = [...columns];
+  if (!finalColumns.find(c => c.accessorKey === 'updated_at' || c.id === 'updated_at')) {
+    finalColumns.push({
+      id: 'updated_at',
+      accessorKey: 'updated_at',
+      header: 'Terakhir Diperbarui',
+      cell: ({ row }) => {
+        if (!row.original.updated_at) return '-';
+        return formatDistanceToNow(new Date(row.original.updated_at), { addSuffix: true, locale: idLocale });
+      }
+    });
+  }
+
   const table = useReactTable({
     data,
-    columns,
+    columns: finalColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),

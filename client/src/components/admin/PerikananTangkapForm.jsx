@@ -560,7 +560,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               disabled={isLoading}
               className="px-5 py-2.5 rounded-xl font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20"
             >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data Prototype'}
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data'}
             </button>
           </div>
         </div>

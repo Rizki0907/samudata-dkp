@@ -9,7 +9,7 @@ const getAllData = async (req, res) => {
     const { startDate, endDate, komoditas, alat_tangkap, gt_kapal, pelabuhan } = req.query;
     
     // Build filter query
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (startDate && endDate) {
       where.tanggal = {
         gte: new Date(startDate),
@@ -215,7 +215,7 @@ const deleteData = async (req, res) => {
       where: { id: parseInt(id) }
     });
 
-    if (existing.status === 'APPROVED' || existing.status === 'APPROVED_BIDANG') {
+    if (existing.status === 'APPROVED' || existing.status === 'VERIFIED') {
       await syncDataBulananInternal();
     }
 
@@ -231,7 +231,7 @@ const getStats = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (startDate && endDate) {
       where.tanggal = {
         gte: new Date(startDate),
@@ -325,7 +325,7 @@ const exportData = async (req, res) => {
   // For now, we will return JSON and frontend can use SheetJS
   try {
     const data = await prisma.perikananTangkap.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       include: { tangkapan: true },
       orderBy: { tanggal: 'desc' }
     });
@@ -354,7 +354,7 @@ const updateStatus = async (req, res) => {
     });
 
     // Auto-sync ke wadah publik jika ada perubahan approval
-    if (status === 'APPROVED' || status === 'REJECTED' || status === 'APPROVED_BIDANG') {
+    if (status === 'APPROVED' || status === 'REJECTED' || status === 'VERIFIED') {
       await syncDataBulananInternal();
     }
 
@@ -380,7 +380,7 @@ const batchStatus = async (req, res) => {
     });
 
     // Auto-sync ke wadah publik jika ada perubahan approval
-    if (status === 'APPROVED' || status === 'REJECTED' || status === 'APPROVED_BIDANG') {
+    if (status === 'APPROVED' || status === 'REJECTED' || status === 'VERIFIED') {
       await syncDataBulananInternal();
     }
 

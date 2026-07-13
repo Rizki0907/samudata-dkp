@@ -3,7 +3,7 @@ const prisma = require('../utils/prisma');
 const getAllData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = tahun;
 
     const data = await prisma.ekspor.findMany({
@@ -131,7 +131,7 @@ const deleteData = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const { tahun } = req.query; 
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = tahun;
 
     // 1. Treemap (komoditas by kategori)

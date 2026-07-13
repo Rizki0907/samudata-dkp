@@ -6,6 +6,8 @@ import { DataTable } from '@/components/shared/DataTable';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
+import { formatDistanceToNow } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 import { formatDate } from '@/utils/dateHelper';
 import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
@@ -92,8 +94,10 @@ export default function PerikananTangkap() {
          map[key].tangkapan.push({
             komoditas: row.komoditas,
             volume: Number(row.volume) || 0,
-            nilai: Number(row.nilai) || 0
-         });
+            nilai: Number(row.nilai) || 0,
+              is_adjusted: row.is_adjusted,
+              updated_at: row.updated_at
+           });
       }
     });
     return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
@@ -112,13 +116,13 @@ export default function PerikananTangkap() {
       }
     },
     {
-      header: 'Cabang',
+      header: 'Perairan',
       accessorKey: 'sumber_data',
       cell: info => {
         const val = info.getValue();
-        if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pelabuhan</span>;
-        if (val === 'PUD') return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">PUD</span>;
-        return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Non Pelabuhan</span>;
+        if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Perairan Pelabuhan</span>;
+        if (val === 'PUD') return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">Perairan PUD</span>;
+        return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Perairan Non Pelabuhan</span>;
       }
     },
     {
@@ -740,8 +744,9 @@ export default function PerikananTangkap() {
         </div>
         
         <DataTable 
-          columns={columns} 
-          data={aggregatedData}
+            columns={columns} 
+            data={aggregatedData}
+            hideUpdatedAt={true}
           exportName={`Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
           renderSubComponent={renderSubComponent}
           onCustomExport={async (rowsToExport) => {

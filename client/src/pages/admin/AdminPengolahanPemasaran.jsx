@@ -596,7 +596,7 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
  *
  * Saat "Lihat & Perbaiki" diklik, muncul modal berisi:
  *  - konteks data (Nama UPI, Nama Pemilik, Jenis Kegiatan, Kabupaten/Kota, Tahun)
- *  - alasan penolakan dari Admin Pusat
+ *  - alasan penolakan dari Pusat
  *  - panduan singkat apa yang harus dilakukan
  *  - tombol "Perbaiki Data Sekarang" yang langsung membuka form edit (onEdit)
  *
@@ -710,10 +710,10 @@ function StatusBadge({ row, onEdit }) {
               {/* Alasan penolakan */}
               <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">
-                  Alasan Penolakan dari Admin Pusat
+                  Alasan Penolakan dari Pusat
                 </p>
                 <p className="mt-2 break-words text-sm leading-relaxed text-foreground">
-                  {alasan || 'Tidak ada alasan yang dicantumkan oleh Admin Pusat.'}
+                  {alasan || 'Tidak ada alasan yang dicantumkan oleh Pusat.'}
                 </p>
               </div>
 
@@ -721,7 +721,7 @@ function StatusBadge({ row, onEdit }) {
               <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-relaxed text-muted-foreground break-words whitespace-normal">
                 Silakan perbaiki data sesuai alasan di atas. Setelah diperbaiki dan disimpan,
                 status data akan otomatis kembali menjadi <b>PENDING</b> dan akan diperiksa
-                ulang oleh Admin Pusat.
+                ulang oleh Pusat.
               </div>
             </div>
 
@@ -802,7 +802,7 @@ export default function AdminPengolahanPemasaran() {
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
 
-  // Modal input alasan penolakan (saat Admin Pusat menolak data)
+  // Modal input alasan penolakan (saat Pusat menolak data)
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -906,14 +906,11 @@ export default function AdminPengolahanPemasaran() {
 
   const handleApprove = async row => {
   if (!isAdminPusat) {
-    alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+    alert('Hanya Pusat yang dapat melakukan validasi data.');
     return;
   }
 
-  if (row.status === 'VERIFIED') {
-    alert('Data sudah VERIFIED.');
-    return;
-  }
+  
 
   if (row.status === 'REJECTED') {
     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
@@ -990,7 +987,7 @@ export default function AdminPengolahanPemasaran() {
 
   const handleReject = row => {
   if (!isAdminPusat) {
-    alert('Hanya Admin Pusat yang dapat menolak data.');
+    alert('Hanya Pusat yang dapat menolak data.');
     return;
   }
 
@@ -1045,7 +1042,7 @@ export default function AdminPengolahanPemasaran() {
 
   const handleBatchApprove = async ids => {
   if (!isAdminPusat) {
-    alert('Hanya Admin Pusat yang dapat melakukan validasi data.');
+    alert('Hanya Pusat yang dapat melakukan validasi data.');
     return;
   }
 
@@ -1062,10 +1059,7 @@ export default function AdminPengolahanPemasaran() {
     return;
   }
 
-  if (selectedRows.some(row => row.status === 'VERIFIED')) {
-    alert('Ada data yang sudah VERIFIED. Pilih data lain.');
-    return;
-  }
+  
 
   if (selectedRows.some(row => row.status === 'REJECTED')) {
     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
@@ -1170,7 +1164,7 @@ export default function AdminPengolahanPemasaran() {
 
   const handleBatchReject = async ids => {
   if (!isAdminPusat) {
-    alert('Hanya Admin Pusat yang dapat menolak data.');
+    alert('Hanya Pusat yang dapat menolak data.');
     return;
   }
 
@@ -2264,21 +2258,6 @@ export default function AdminPengolahanPemasaran() {
         id: 'total_tenaga_kerja',
         cell: info => getRowTotalTenagaKerja(info.row.original).toLocaleString('id-ID'),
       },
-      {
-        header: 'Terakhir Diperbarui',
-        id: 'terakhir_diperbarui',
-        cell: info => {
-          const rawDate = getRowUpdatedAt(info.row.original);
-          return (
-            <span
-              className="whitespace-nowrap text-sm text-muted-foreground"
-              title={rawDate ? new Date(rawDate).toLocaleString('id-ID') : undefined}
-            >
-              {formatRelativeTime(rawDate)}
-            </span>
-          );
-        },
-      },
     ],
     [],
   );
@@ -2344,9 +2323,6 @@ export default function AdminPengolahanPemasaran() {
         onBatchApprove={isAdminPusat ? handleBatchApprove : undefined}
         onBatchReject={isAdminPusat ? handleBatchReject : undefined}
         onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
-        approvableStatuses={['PENDING', 'APPROVED']}
-        rejectableStatuses={['PENDING', 'APPROVED', 'VERIFIED']}
-        lockedStatuses={['APPROVED', 'VERIFIED']}
         exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
       />
     </div>

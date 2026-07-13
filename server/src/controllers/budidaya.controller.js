@@ -14,7 +14,7 @@ const getTriwulan = (bulan) => {
 const getAllData = async (req, res) => {
   try {
     const { tahun, triwulan } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = tahun;
     if (triwulan) where.triwulan = triwulan;
     
@@ -46,7 +46,7 @@ const getAdminData = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const { tahun, bulan } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = tahun;
     if (bulan) where.bulan = bulan;
 
@@ -340,12 +340,12 @@ const exportRingkasanWadah = async (req, res) => {
     }
 
     const data = await prisma.budidaya.findMany({
-      where: { tahun: tahun, status: 'APPROVED' }
+      where: { tahun: tahun, status: 'VERIFIED' }
     });
 
     const distinctWadahData = await prisma.budidaya.groupBy({
       by: ['jenis_wadah'],
-      where: { status: 'APPROVED' }
+      where: { status: 'VERIFIED' }
     });
     const uniqueWadah = distinctWadahData.map(d => d.jenis_wadah).filter(Boolean).sort();
 
@@ -450,7 +450,7 @@ const exportRingkasanKomoditas = async (req, res) => {
     if (!tahun) return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
 
     const data = await prisma.budidaya.findMany({
-      where: { tahun: tahun, status: 'APPROVED' }
+      where: { tahun: tahun, status: 'VERIFIED' }
     });
 
     const wadahKomoditasMap = {};

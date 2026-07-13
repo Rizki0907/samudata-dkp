@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { 
-  Waves, Sprout, Fish, Package, Beaker, Globe, 
+  Waves, Sprout, Fish, Package, Database, Globe, 
   LayoutDashboard, LogOut, ChevronLeft
 } from 'lucide-react';
 
@@ -25,13 +25,14 @@ const ADMIN_MENUS = [
   { title: 'Pengolahan & Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/admin/ekspor', icon: Globe },
+  { title: 'Master Data', path: '/admin/master-data', icon: Database, reqPusat: true },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const isAdmin = user?.role === 'admin_cabang' || user?.role === 'admin_pusat';
-  const menus = isAdmin ? ADMIN_MENUS : USER_MENUS;
+  const menus = isAdmin ? ADMIN_MENUS.filter(m => !m.reqPusat || user?.role === 'admin_pusat') : USER_MENUS;
 
   return (
     <aside 

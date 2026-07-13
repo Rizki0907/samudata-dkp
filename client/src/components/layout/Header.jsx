@@ -18,7 +18,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-foreground">
-              {isAdminPusat ? 'Admin Pusat' : isAdminCabang ? 'Admin Cabang' : 'Pengguna Publik'}
+              {isAdminPusat ? 'Pusat' : isAdminCabang ? 'Unit Kerja' : 'Pengguna Publik'}
             </p>
             <p className="text-xs text-muted-foreground">
               {isAdminPusat ? 'Akses Validasi' : isAdminCabang ? 'Akses Input' : 'Akses Lihat'}

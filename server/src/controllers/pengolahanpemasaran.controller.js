@@ -981,7 +981,7 @@ const batchStatus = async (req, res) => {
     }
 
     if (status === 'VERIFIED') {
-      whereStatus = { status: 'APPROVED' };
+      whereStatus = { status: 'VERIFIED' };
     }
 
     if (status === 'REJECTED') {

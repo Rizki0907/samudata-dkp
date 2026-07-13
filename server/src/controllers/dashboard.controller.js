@@ -6,17 +6,17 @@ const getOverviewStats = async (req, res) => {
     // Mengambil total volume produksi (dari DetailTangkapan) dan jumlah pendaratan unik (PerikananTangkap)
     const tangkapVolume = await prisma.detailTangkapan.aggregate({
       _sum: { volume: true },
-      where: { perikananTangkap: { status: 'APPROVED' } }
+      where: { perikananTangkap: { status: 'VERIFIED' } }
     });
 
     const tangkapTrip = await prisma.perikananTangkap.aggregate({
       _count: { id: true },
-      where: { status: 'APPROVED' }
+      where: { status: 'VERIFIED' }
     });
 
     // Menghitung jumlah pelabuhan unik yang sudah ada datanya
     const pelabuhanDistinct = await prisma.perikananTangkap.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       select: { pelabuhan: true },
       distinct: ['pelabuhan']
     });
@@ -30,7 +30,7 @@ const getOverviewStats = async (req, res) => {
 
     // === 2. PERIKANAN BUDIDAYA ===
     const budidayaStats = await prisma.budidaya.aggregate({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       _sum: { produksi_kg: true },
       _count: { id: true }
     });
@@ -60,7 +60,7 @@ const getOverviewStats = async (req, res) => {
     
     // === 4. GARAM (Kelautan & Pesisir) ===
     const allGaram = await prisma.garam.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       orderBy: { created_at: 'desc' }
     });
 

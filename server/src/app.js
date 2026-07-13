@@ -11,6 +11,8 @@ const eksporRoutes = require('./routes/ekspor.routes');
 const budidayaRoutes = require('./routes/budidaya.routes');
 const pengolahanPemasaranRoutes = require('./routes/pengolahanpemasaran.routes');
 const kelautanPesisirRoutes = require('./routes/kelautanPesisir.routes');
+const masterDataRoutes = require('./routes/masterData.routes');
+
 const app = express();
 
 // Middleware
@@ -31,6 +33,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/budidaya', budidayaRoutes);
 app.use('/api/pengolahan-pemasaran', pengolahanPemasaranRoutes);
 app.use('/api/kelautan-pesisir', kelautanPesisirRoutes);
+app.use('/api/master-data', masterDataRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

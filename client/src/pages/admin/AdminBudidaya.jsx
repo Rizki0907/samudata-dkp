@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Loader2, MapPin, TrendingUp, Box, LineChart, Fish, Filter, X, Download, FileText } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import BudidayaForm from '@/components/admin/BudidayaForm';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -107,7 +108,7 @@ export default function AdminBudidaya() {
 
   const handleApprove = async (row) => {
     let promptMsg = 'Pilih jenis validasi (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    if (row.status === 'APPROVED_BIDANG') {
+    if (row.status === 'APPROVED') {
       promptMsg = 'Data ini sudah disetujui Bidang.\nKetik "2" untuk melanjutkan Validasi Program:';
     } else if (row.status === 'PENDING') {
       promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
@@ -121,15 +122,15 @@ export default function AdminBudidaya() {
     let expectedKeyword = '';
 
     if (jenis === '1') {
-      if (row.status === 'APPROVED_BIDANG') {
+      if (row.status === 'APPROVED') {
         alert('Data sudah divalidasi oleh Bidang sebelumnya!');
         return;
       }
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     } else {
@@ -179,11 +180,11 @@ export default function AdminBudidaya() {
     let expectedKeyword = '';
 
     if (jenis === '1') {
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     } else {
@@ -474,31 +475,21 @@ export default function AdminBudidaya() {
       header: 'Status',
       accessorKey: 'status',
       cell: info => {
-        const status = info.getValue();
-        const alasan = info.row.original.alasan_penolakan;
-        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-        let label = 'PENDING';
-        if (status === 'APPROVED') {
-          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'Verified';
-        } else if (status === 'APPROVED_BIDANG') {
-          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-          label = 'Approved';
-        } else if (status === 'REJECTED') {
-          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-          label = 'REJECTED';
-        }
+        const row = info.row.original;
+        
+        const contextFields = [
+          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Komoditas', value: row.komoditas },
+          { label: 'Kategori', value: row.kategori_komoditas },
+          { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
+        ];
+
         return (
-          <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
-              {label}
-            </span>
-            {status === 'REJECTED' && alasan && (
-              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
-                (?)
-              </span>
-            )}
-          </div>
+          <StatusBadge 
+            row={row} 
+            onEdit={() => setEditingData(row)} 
+            contextFields={contextFields} 
+          />
         );
       }
     },

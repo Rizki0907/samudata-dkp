@@ -7,6 +7,9 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
+import { formatDistanceToNow } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 
@@ -31,23 +34,7 @@ const getTriwulan = (bulan) => {
 };
 
 // ── SHARED COMPONENTS ───────────────────────────────────────────────────────────
-const StatusBadge = ({ status, alasan }) => {
-  const styleMap = {
-    APPROVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    APPROVED_BIDANG: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    REJECTED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    PENDING: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  };
-  const cls = styleMap[status] ?? styleMap.PENDING;
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${cls}`}>{status ?? 'PENDING'}</span>
-      {status === 'REJECTED' && alasan && (
-        <span className="text-xs text-rose-400 cursor-help" title={`Alasan: ${alasan}`}>(i)</span>
-      )}
-    </div>
-  );
-};
+
 
 const TwBadge = ({ tw }) => {
   const colorMap = {
@@ -544,10 +531,10 @@ export default function AdminKelautanPesisir() {
     if (!window.confirm(`Setujui data ${row.kabupaten_kota}?`)) return;
     try {
       if (activeTab === 'garam') {
-        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: 'APPROVED', alasan_penolakan: null });
+        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: 'VERIFIED', alasan_penolakan: null });
         await fetchGaram();
       } else if (activeTab === 'potensi_perairan') {
-        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'APPROVED', alasan_penolakan: null });
+        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'VERIFIED', alasan_penolakan: null });
         await fetchPotensi();
       }
     } catch (err) { console.error(err); }
@@ -569,7 +556,17 @@ export default function AdminKelautanPesisir() {
 
   // ── COLUMNS ─────────────────────────────────────────────────────────────────
   const columnsGaram = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => <StatusBadge status={info.getValue()} alasan={info.row.original.alasan_penolakan} /> },
+    { header: 'Status', accessorKey: 'status', cell: info => {
+      const row = info.row.original;
+      return <StatusBadge 
+        row={row} 
+        onEdit={() => setEditingGaram(row)} 
+        contextFields={[
+          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
+        ]} 
+      />;
+    } },
     { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-[#c8dff0]">{formatBulan(info.getValue())}</span> },
     { header: 'TW', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-bold text-[#c8dff0] bg-[#152d45] px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span> },
@@ -577,10 +574,21 @@ export default function AdminKelautanPesisir() {
     { header: 'Total Produksi', accessorKey: 'total_produksi_ton', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Total Stok', accessorKey: 'total_stok_ton', cell: info => <span className="font-bold text-amber-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Produktivitas', accessorKey: 'produktivitas', cell: info => <span className="text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-md text-xs">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
+    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
   ], []);
 
   const columnsPotensi = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => <StatusBadge status={info.getValue()} alasan={info.row.original.alasan_penolakan} /> },
+    { header: 'Status', accessorKey: 'status', cell: info => {
+      const row = info.row.original;
+      return <StatusBadge 
+        row={row} 
+        onEdit={() => setEditingPotensi(row)} 
+        contextFields={[
+          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Tahun', value: row.tahun_data }
+        ]} 
+      />;
+    } },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
     { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-xs bg-[#152d45] px-2 py-1 rounded text-[#7fb5d5] font-semibold">{info.getValue()}</span> },
     { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-[#c8dff0] font-medium">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
@@ -592,6 +600,7 @@ export default function AdminKelautanPesisir() {
     { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md text-xs">{info.getValue()} pulau</span> },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-[#c8dff0]">{info.getValue() || 0}</span> },
     { header: 'Konservasi (Ha)', accessorKey: 'luas_kawasan_konservasi_ha', cell: info => <span className="text-emerald-400 font-medium">{(info.getValue() || 0).toLocaleString('id-ID')}</span> },
+    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
   ], []);
 
   // ── SUB-ROWS ─────────────────────────────────────────────────────────────────

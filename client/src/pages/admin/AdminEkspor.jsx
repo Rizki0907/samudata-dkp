@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Loader2, Globe, Box, Target, LineChart, TrendingUp, Filter } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EksporForm } from '@/components/admin/EksporForm';
 import ReactECharts from 'echarts-for-react';
 
@@ -96,7 +97,7 @@ export default function AdminEkspor() {
 
   const handleApprove = async (row) => {
     let promptMsg = 'Pilih jenis validasi (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    if (row.status === 'APPROVED_BIDANG') {
+    if (row.status === 'APPROVED') {
       promptMsg = 'Data ini sudah disetujui Bidang.\nKetik "2" untuk melanjutkan Validasi Program:';
     } else if (row.status === 'PENDING') {
       promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
@@ -110,15 +111,15 @@ export default function AdminEkspor() {
     let expectedKeyword = '';
 
     if (jenis === '1') {
-      if (row.status === 'APPROVED_BIDANG') {
+      if (row.status === 'APPROVED') {
         alert('Data sudah divalidasi oleh Bidang sebelumnya!');
         return;
       }
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     } else {
@@ -168,11 +169,11 @@ export default function AdminEkspor() {
     let expectedKeyword = '';
 
     if (jenis === '1') {
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     } else {
@@ -506,32 +507,21 @@ export default function AdminEkspor() {
       header: 'Status',
       accessorKey: 'status',
       cell: info => {
-        const status = info.getValue();
-        const alasan = info.row.original.alasan_penolakan;
-        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-        let label = 'PENDING';
-        if (status === 'APPROVED') {
-          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'Verified';
-        } else if (status === 'APPROVED_BIDANG') {
-          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-          label = 'Approved';
-        } else if (status === 'REJECTED') {
-          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-          label = 'REJECTED';
-        }
+        const row = info.row.original;
         
+        const contextFields = [
+          { label: 'UPI / Eksportir', value: row.upi_eksportir },
+          { label: 'Komoditas', value: row.nama_komoditas },
+          { label: 'Negara Tujuan', value: row.negara_tujuan },
+          { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
+        ];
+
         return (
-          <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
-              {label}
-            </span>
-            {status === 'REJECTED' && alasan && (
-              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
-                (?)
-              </span>
-            )}
-          </div>
+          <StatusBadge 
+            row={row} 
+            onEdit={() => setEditingData(row)} 
+            contextFields={contextFields} 
+          />
         );
       }
     },

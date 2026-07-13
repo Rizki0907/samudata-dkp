@@ -19,6 +19,7 @@ import AdminBudidaya from '../pages/admin/AdminBudidaya';
 import AdminPengolahanPemasaran from '../pages/admin/AdminPengolahanPemasaran';
 
 import AdminEkspor from '../pages/admin/AdminEkspor';
+import MasterData from '../pages/admin/MasterData';
 
 // Protected Route Guard for Admin
 const AdminRoute = ({ children }) => {
@@ -61,8 +62,8 @@ export const router = createBrowserRouter([
       { path: 'kelautan-pesisir', element: <AdminKelautanPesisir /> },
       { path: 'budidaya', element: <AdminBudidaya /> },
       { path: 'pengolahan-pemasaran', element: <AdminPengolahanPemasaran /> },
-
       { path: 'ekspor', element: <AdminEkspor /> },
+      { path: 'master-data', element: <MasterData /> },
     ],
   },
   {

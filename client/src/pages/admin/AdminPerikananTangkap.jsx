@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import { 
@@ -103,10 +104,7 @@ export default function AdminPerikananTangkap() {
   };
 
   const handleApprove = async (row) => {
-    if (row.status === 'APPROVED') {
-      alert('Data sudah divalidasi sepenuhnya (Program).');
-      return;
-    }
+    
 
     let promptMsg = '';
     let targetStatus = '';
@@ -121,17 +119,17 @@ export default function AdminPerikananTangkap() {
          else if (jenis) alert('Pilihan tidak valid.');
          return;
       }
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
-    } else if (row.status === 'APPROVED_BIDANG') {
+    } else if (row.status === 'APPROVED') {
       promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:';
       const jenis = window.prompt(promptMsg);
       if (jenis !== '2') {
          if (jenis) alert('Pilihan tidak valid.');
          return;
       }
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     }
@@ -180,21 +178,21 @@ export default function AdminPerikananTangkap() {
     let expectedKeyword = '';
 
     if (jenis === '1') {
-      const invalidRows = selectedRows.filter(row => row.status === 'APPROVED' || row.status === 'APPROVED_BIDANG');
+      const invalidRows = selectedRows.filter(row => row.status === 'VERIFIED' || row.status === 'APPROVED');
       if (invalidRows.length > 0) {
         alert('Beberapa data yang dipilih sudah divalidasi Bidang/Program! Silakan pilih data yang berstatus PENDING saja.');
         return;
       }
-      targetStatus = 'APPROVED_BIDANG';
+      targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
-      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED_BIDANG');
+      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED');
       if (invalidRows.length > 0) {
-        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED_BIDANG) terlebih dahulu.');
+        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
         return;
       }
-      targetStatus = 'APPROVED';
+      targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
     } else {
@@ -805,32 +803,24 @@ export default function AdminPerikananTangkap() {
       header: 'Status',
       accessorKey: 'status',
       cell: info => {
-        const status = info.getValue();
-        const alasan = info.row.original.alasan_penolakan;
-        let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-        let label = 'PENDING';
-        if (status === 'APPROVED') {
-          colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-          label = 'APPROVED (PROGRAM)';
-        } else if (status === 'APPROVED_BIDANG') {
-          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-          label = 'APPROVED (BIDANG)';
-        } else if (status === 'REJECTED') {
-          colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-          label = 'REJECTED';
-        }
-        
+        const row = info.row.original;
+        const pelabuhanText = row.sumber_data === 'PUD' ? `${row.kabupaten_kota || '-'} (${row.jenis_perairan || 'PUD'})` : 
+                             row.sumber_data === 'KAB_KOTA' ? `${row.kabupaten_kota || '-'} (${row.pelabuhan || '-'}, WPP ${row.jenis_perairan || '-'})` : 
+                             (row.pelabuhan || row.kabupaten_kota || '-');
+
+        const contextFields = [
+          { label: 'Cabang / Wilayah', value: pelabuhanText },
+          { label: 'Nama Kapal / Populasi Alat', value: row.sumber_data === 'PELABUHAN' ? row.nama_kapal : (row.pud_populasi_alat + ' Unit') },
+          { label: 'Alat Tangkap', value: row.alat_tangkap },
+          { label: 'Tanggal Input', value: formatDate(row.tanggal) }
+        ];
+
         return (
-          <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${colorClass}`}>
-              {label}
-            </span>
-            {status === 'REJECTED' && alasan && (
-              <span className="text-xs text-rose-500 cursor-help" title={`Alasan: ${alasan}`}>
-                (?)
-              </span>
-            )}
-          </div>
+          <StatusBadge 
+            row={row} 
+            onEdit={() => setEditingData(row)} 
+            contextFields={contextFields} 
+          />
         );
       }
     },
@@ -1167,15 +1157,14 @@ export default function AdminPerikananTangkap() {
                 onBatchReject={handleBatchReject}
                 onBatchDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleBatchDelete : undefined}
                 canBatchApprove={(selectedRows) => selectedRows.some(row => 
-                  (user?.role === 'admin_pusat' && row.status === 'APPROVED_BIDANG') || 
+                  (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED'].includes(row.status)) || 
                   (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
                   (user?.role === 'admin_pusat' && row.status === 'PENDING')
                 )}
                 canBatchReject={(selectedRows) => selectedRows.some(row => 
-                  (user?.role === 'admin_pusat' && row.status === 'APPROVED_BIDANG') || 
-                  (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
-                  (user?.role === 'admin_pusat' && row.status === 'PENDING')
-                )}
+                    (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED', 'PENDING'].includes(row.status)) || 
+                    (user?.role === 'admin_bidang' && row.status === 'PENDING')
+                  )}
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
                 customExportButton={
@@ -1191,9 +1180,15 @@ export default function AdminPerikananTangkap() {
                   ) : null
                 }
                 onCustomExport={(exportData) => {
-                  const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+                  const komSet = new Set();
+                    exportData.forEach(row => {
+                      if (row.tangkapan) {
+                        row.tangkapan.forEach(t => komSet.add(t.komoditas));
+                      }
+                    });
+                    const komoditasArray = Array.from(komSet).sort();
 
-                  const headerRow1 = ['Tanggal', 'Cabang', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
+                  const headerRow1 = ['Tanggal', 'Perairan', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
                   const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
                   
                   komoditasArray.forEach(kom => {
@@ -1220,7 +1215,7 @@ export default function AdminPerikananTangkap() {
 
                     const baseRow = [
                       row.tanggal ? row.tanggal.split('T')[0] : '-',
-                      row.sumber_data === 'PUD' ? 'PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Non Pelabuhan' : 'Pelabuhan'),
+                      row.sumber_data === 'PUD' ? 'Perairan PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Perairan Non Pelabuhan' : 'Perairan Pelabuhan'),
                       row.jam_labuh || '-',
                       row.jam_bongkar || '-',
                       row.sumber_data === 'PUD' ? (row.pud_populasi_alat ? `${row.pud_populasi_alat} Unit` : '-') : (row.nama_kapal || '-'),

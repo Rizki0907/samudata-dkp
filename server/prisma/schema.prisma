@@ -397,6 +397,15 @@ enum DataStatus {
   PENDING
   APPROVED
   REJECTED
-  APPROVED_BIDANG
   VERIFIED
+}
+
+model MasterData {
+  id         Int      @id @default(autoincrement())
+  category   String   // e.g. "KOMODITAS_TANGKAP", "ALAT_TANGKAP", "PELABUHAN", "KOMODITAS_PUD", "KAB_KOTA", dll
+  value      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([category, value])
 }

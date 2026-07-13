@@ -15,7 +15,7 @@ export default function Overview() {
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
     budidaya: { produksi: 0, pembudidaya: 0 },
-    pemasaran: { ekspor_volume: 0, ekspor_nilai: 0, negara_tujuan: 0, pengolahan: 0, produk: 0 },
+    pemasaran: { total_unit_usaha: 0, total_produksi_kg: 0, total_nilai_produksi_rp: 0, total_pemasaran_kg: 0 },
     garam: { produksi: 0, petambak: 0, luas_lahan: 0 }
   });
 
@@ -87,7 +87,7 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap (Kg)</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.tangkap.produksi.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.tangkap.produksi?.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Kapal Perikanan (Unit)</p>
@@ -115,11 +115,11 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Ton)</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.produksi.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.produksi?.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Titik Budidaya (Laporan)</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.pembudidaya.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.pembudidaya?.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>
@@ -135,19 +135,19 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Total Unit Usaha (UPI)</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_unit_usaha.toLocaleString('id-ID')} <span className="text-base font-normal text-muted-foreground">Unit</span></p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_unit_usaha?.toLocaleString('id-ID')} <span className="text-base font-normal text-muted-foreground">Unit</span></p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Total Produksi (Kg)</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_produksi_kg.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_produksi_kg?.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Total Nilai Produksi (Rp)</p>
-              <p className="text-2xl font-bold text-orange-600">Rp{stats.pemasaran.total_nilai_produksi_rp.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
+              <p className="text-2xl font-bold text-orange-600">Rp{stats.pemasaran.total_nilai_produksi_rp?.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Total Volume Pemasaran (Kg)</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_pemasaran_kg.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pemasaran.total_pemasaran_kg?.toLocaleString('id-ID')}</p>
             </div>
           </div>
         </div>
@@ -163,15 +163,15 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Garam (Ton)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Petambak (Orang)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak?.toLocaleString('id-ID')}</p>
             </div>
             <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam (Ha)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.luas_lahan.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.garam.luas_lahan?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
             </div>
           </div>
         </div>

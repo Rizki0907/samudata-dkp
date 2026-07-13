@@ -192,7 +192,6 @@ export const KOMODITAS_OPTIONS = [
   "Ikan ayam-ayam (Abalistes stellaris)",
   "Ikan jaket (Aluterus monoceros)",
   "Ikan kakatua (Scarus spp)",
-  "Ikan lainnya",
   "Ikan layaran (Istiophorus platypterus)",
   "Ikan lemah (Lactarius lactarius)",
   "Ikan merah (Lutjanus erythropterus)",
@@ -284,7 +283,6 @@ export const KOMODITAS_OPTIONS = [
   "Peperek (Leiognathus leuciscus)",
   "Peperek bondolan (Gazza minuta)",
   "Peperek bondolan (Leiognathus bindus)",
-  "Peperek lainnya (Leiognathus spp)",
   "Peperek topang (Leiognathus equulus)",
   "Pilok (Mene maculata)",
   "Pinjala (Pristipomoides multidens )",
@@ -364,20 +362,14 @@ export const PERAIRAN_OPTIONS = [
   "Sungai",
   "Danau",
   "Waduk",
-  "Rawa",
-  "Genangan Air Lainnya"
-];
+  "Rawa",];
 
 export const KOMODITAS_PUD_OPTIONS = [
   "Betok", "Sidat", "Belut", "Baung", "Tapah", "Keting", "Sepat rawa", "Sepat siam", "Gabus", 
   "Toman", "Mujair", "Nila", "Lele", "Botia", "Berukung", "Beunteur", "Bilih", "Depik", 
   "Genggehek", "Uceng", "Hampal", "Jelawat", "Kancera", "Kendia", "Koan", "Lalang", "Lalawak", 
   "Lukas", "Mas", "Nilem", "Parang", "Parai/Seluang", "Repang", "Salab/Lampan", "Semah", "Seren", 
-  "Tawes", "Tontong tebu", "Betutu", "Tambakan", "Sili", "Belida", "Gurame", "Siluk", "Patin jambal", 
-  "Tempe", "Bentilap", "Lais", "Lempuk", "Ikan sumpit", "Ikan lainnya", "Udang grago", "Udang galah", 
-  "Udang tawar", "Udang lainnya", "Remis", "Siput", "Binatang lunak lainnya", "Buaya", "Katak benggala", 
-  "Kodok", "Kura-kura/ Labi-labi", "Binatang air lainnya"
-];
+  "Tawes", "Tontong tebu", "Betutu", "Tambakan", "Sili", "Belida", "Gurame", "Siluk", "Patin jambal", "Udang grago", "Udang galah", "Buaya", "Katak benggala",];
 
 export const ALAT_TANGKAP_PUD_OPTIONS = [
   "Jaring tarik berkantong", "Penggaruk berkapal", "Penggaruk tanpa kapal", "Anco", 
@@ -479,7 +471,6 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Semar",
   "Bandeng",
   "Nike",
-  "Ikan Pelagis kecill lainnya",
   "Albakora (ALB)",
   "Tuna mata besar (BET)",
   "Tuna sirip biru selatan (SBT)",
@@ -506,7 +497,6 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Ikan gergaji",
   "Cucut botol (PSK)",
   "Cucut Koboi (OCS)",
-  "Cucut lainnya (SKH)",
   "Cucut lanyam (FAL)",
   "Cucut Macan (TIG)",
   "Cucut martil/Capingan (SPN)",
@@ -514,7 +504,6 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Cucut tikus/Cucut monyet (THR)",
   "Mako (MAK)",
   "Ikan Paus (RHN)",
-  "Ikan Pelagis besar lainnya",
   "Manyung",
   "Ikan sebelah",
   "Lolosi biru",
@@ -557,14 +546,12 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Pari burung",
   "Pari hidung sekop",
   "Pari kekeh",
-  "Pari lainnya",
   "Remang/Cunang/Pucuk nipah",
   "Gabus",
   "Samgeh",
   "Kambing-kambing/Ayam-ayam",
   "Sembilang",
   "Opah",
-  "Ikan demersal lainnya",
   "Ekor kuning/Pisang-pisang",
   "Ikan napoleon",
   "Kerapu karang",
@@ -576,7 +563,6 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Beronang kuning",
   "Ikan Beronang",
   "Kakak Tua",
-  "Ikan karang lainnya",
   "Udang dogol",
   "Udang putih/Jerbung",
   "Udang krosok",
@@ -585,17 +571,14 @@ export const KOMODITAS_LAUT_OPTIONS = [
   "Udang barong/Udang karang",
   "Udang kipas",
   "Udang ketak",
-  "Udang lainnya",
   "Lobster mutiara",
   "Lobster pakistan",
   "Lobster pasir",
   "Lobster bambu",
   "Lobster batik",
   "Lobster batu",
-  "Lobster lainnya",
   "Kepiting",
   "Rajungan",
-  "Binatang berkulit keras lainnya",
   "Kerang darah",
   "Kerang hijau",
   "Kerang mutiara/Tapis-tapis"

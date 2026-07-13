@@ -4,7 +4,7 @@ const prisma = require('../utils/prisma');
 const syncDataBulananInternal = async () => {
   try {
     const dataRiil = await prisma.perikananTangkap.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       include: { tangkapan: true }
     });
 
@@ -14,7 +14,11 @@ const syncDataBulananInternal = async () => {
       
       const yyyyMM = row.tanggal.toISOString().substring(0, 7); // YYYY-MM
       const sumber = row.sumber_data || 'PELABUHAN';
-      const pelabuhan = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
+      
+      let pelabuhan = row.pelabuhan || 'Lainnya';
+      if (sumber === 'PUD' || sumber === 'KAB_KOTA') {
+        pelabuhan = row.kabupaten_kota || 'Lainnya';
+      }
       
       if (row.tangkapan) {
         for (const t of row.tangkapan) {

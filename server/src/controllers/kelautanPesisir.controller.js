@@ -29,7 +29,7 @@ const getGaramData = async (req, res) => {
 const getGaramPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = parseInt(tahun);
     
     const data = await prisma.garam.findMany({
@@ -124,7 +124,7 @@ const getPotensiPerairanData = async (req, res) => {
 const getPotensiPerairanPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'APPROVED' };
+    const where = { status: 'VERIFIED' };
     if (tahun) where.tahun_data = parseInt(tahun);
     
     const data = await prisma.potensiPerairan.findMany({
@@ -197,7 +197,7 @@ const getKelautanPesisirStats = async (req, res) => {
     const { tahun } = req.query;
     
     // GARAM STATS
-    const garamWhere = { status: 'APPROVED' };
+    const garamWhere = { status: 'VERIFIED' };
     if (tahun) garamWhere.tahun = parseInt(tahun);
     const garamData = await prisma.garam.findMany({ 
       where: garamWhere,
@@ -232,7 +232,7 @@ const getKelautanPesisirStats = async (req, res) => {
     });
 
     // POTENSI PERAIRAN STATS
-    const potensiWhere = { status: 'APPROVED' };
+    const potensiWhere = { status: 'VERIFIED' };
     if (tahun) potensiWhere.tahun_data = parseInt(tahun);
     const potensiData = await prisma.potensiPerairan.findMany({ where: potensiWhere });
     

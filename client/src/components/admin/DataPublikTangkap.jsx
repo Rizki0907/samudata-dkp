@@ -2,9 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
 import { Edit2, RotateCcw, AlertCircle, CheckCircle, Save, X, Download, FileText } from 'lucide-react';
 import { formatRupiah } from '@/utils/formatRupiah';
+import { formatDistanceToNow } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
 
 export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas }) {
@@ -15,6 +18,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   const [submitLoading, setSubmitLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [batchVolumePct, setBatchVolumePct] = useState('');
+  const { user } = useAuthStore();
+  const isPusat = user?.role === 'admin_pusat' || user?.role === 'admin_bidang';
 
   const fetchData = async () => {
     try {
@@ -117,9 +122,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       const blnFormatted = row.bulan === 'Unknown' ? 'Unknown' : `${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][parseInt(blnParts[1], 10) - 1]} ${blnParts[0]}`;
       
       let cabangStr = row.sumber_data;
-      if (cabangStr === 'KAB_KOTA') cabangStr = 'Non Pelabuhan';
-      if (cabangStr === 'PELABUHAN') cabangStr = 'Pelabuhan';
-      if (cabangStr === 'PUD') cabangStr = 'PUD';
+      if (cabangStr === 'KAB_KOTA') cabangStr = 'Perairan Non Pelabuhan';
+        if (cabangStr === 'PELABUHAN') cabangStr = 'Perairan Pelabuhan';
+        if (cabangStr === 'PUD') cabangStr = 'Perairan PUD';
 
       const rowVolume = isRiil ? row.tangkapan.reduce((acc, curr) => acc + (Number(curr.original_volume) || 0), 0) : row.volume;
       const rowNilai = isRiil ? row.tangkapan.reduce((acc, curr) => acc + (Number(curr.original_nilai) || 0), 0) : row.nilai;
@@ -266,13 +271,13 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       }
     },
     { 
-      header: 'Cabang', 
+      header: 'Perairan', 
       accessorKey: 'sumber_data',
       cell: ({ row }) => {
         const val = row.original.sumber_data;
         if (val === 'KAB_KOTA') return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Non Pelabuhan</span>;
         if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pelabuhan</span>;
-        return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">PUD</span>;
+        return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">Perairan PUD</span>;
       }
     },
     { header: 'Wilayah / Lokasi', accessorKey: 'pelabuhan' },
@@ -314,9 +319,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       const blnFormatted = row.bulan === 'Unknown' ? 'Unknown' : `${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][parseInt(blnParts[1], 10) - 1]} ${blnParts[0]}`;
       
       let cabangStr = row.sumber_data;
-      if (cabangStr === 'KAB_KOTA') cabangStr = 'Non Pelabuhan';
-      if (cabangStr === 'PELABUHAN') cabangStr = 'Pelabuhan';
-      if (cabangStr === 'PUD') cabangStr = 'PUD';
+      if (cabangStr === 'KAB_KOTA') cabangStr = 'Perairan Non Pelabuhan';
+        if (cabangStr === 'PELABUHAN') cabangStr = 'Perairan Pelabuhan';
+        if (cabangStr === 'PUD') cabangStr = 'Perairan PUD';
 
       grandTotalVolume += Number(row.volume) || 0;
       grandTotalNilai += Number(row.nilai) || 0;
@@ -454,7 +459,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                 <th className="px-4 py-2 font-medium">Total Volume (Kg)</th>
                 <th className="px-4 py-2 font-medium text-right">Total Nilai Produksi (Rp)</th>
                 <th className="px-4 py-2 font-medium">Status Data</th>
-                <th className="px-4 py-2 font-medium">Aksi</th>
+                  <th className="px-4 py-2 font-medium">Terakhir Diperbarui</th>
+                  {isPusat && <th className="px-4 py-2 font-medium">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-card">
@@ -462,8 +468,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                 <tr key={item.id} className="hover:bg-muted/50">
                   <td className="px-4 py-2 font-medium">{item.komoditas}</td>
                   <td className="px-4 py-2">
-                    {editingRow === item.id ? (
-                      <input 
+                      {editingRow === item.id ? (
+                        <input 
                         type="number" 
                         value={editForm.volume}
                         onChange={(e) => {
@@ -495,7 +501,10 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
+                    <td className="px-4 py-2 text-sm text-muted-foreground whitespace-nowrap">
+                      {item.updated_at ? formatDistanceToNow(new Date(item.updated_at), { addSuffix: true, locale: idLocale }) : '-'}
+                    </td>
+                  {isPusat && <td className="px-4 py-2">
                     {editingRow === item.id ? (
                       <div className="flex items-center gap-2">
                         <button onClick={() => handleSaveEdit(item.id)} disabled={submitLoading} className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition" title="Simpan Validasi"><Save className="w-4 h-4" /></button>
@@ -509,7 +518,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                         )}
                       </div>
                     )}
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -552,8 +561,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         nilai: Number(row.nilai) || 0,
         original_volume: Number(row.original_volume) || 0,
         original_nilai: Number(row.original_nilai) || 0,
-        is_adjusted: row.is_adjusted
-      });
+        is_adjusted: row.is_adjusted,
+          updated_at: row.updated_at
+        });
     });
     return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
   }, [filteredData]);
@@ -593,6 +603,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       <DataTable 
         columns={columns} 
         data={aggregatedData}
+        hideUpdatedAt={true}
         exportName={`Data_Validasi_Bidang_${filterTahun || 'All'}`}
         defaultPageSize={50}
         customBatchActions={renderCustomBatchActions}
@@ -612,19 +623,19 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
             )}
             <button
               onClick={() => handleExport(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-500/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-500/20 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition"
               title="Unduh data asli sebelum divalidasi"
             >
               <Download className="w-4 h-4" />
-              Unduh Data Riil
+              Unduh Data Approved
             </button>
             <button
               onClick={() => handleExport(false)}
-              className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition shadow-sm"
               title="Unduh data yang sudah divalidasi admin"
             >
               <Download className="w-4 h-4" />
-              Unduh Data Validasi
+              Unduh Data Verified
             </button>
           </div>
         }
