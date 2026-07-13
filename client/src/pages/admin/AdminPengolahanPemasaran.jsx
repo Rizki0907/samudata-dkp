@@ -794,7 +794,8 @@ export default function AdminPengolahanPemasaran() {
   // Bar chart toggle: produksi (KG) atau nilai (Rp)
   const [barFilter, setBarFilter] = useState('produksi');
   const [topKabFilter, setTopKabFilter] = useState('produksi');
-  const [productFilter, setProductFilter] = useState('produksi');
+  const [detailKegiatanFilter, setDetailKegiatanFilter] =
+    useState('Pengolahan');
   const [trendFilter, setTrendFilter] = useState('produksi');
 
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
@@ -1273,7 +1274,7 @@ export default function AdminPengolahanPemasaran() {
 
     const total_upi = upiMap.size;
 
-    // Agregasi jenis produk untuk KPI dan Top Jenis Produk.
+    // Agregasi jenis produk tetap digunakan untuk KPI Top Produk.
     const produkMap = new Map();
 
     rows.forEach(row => {
@@ -1352,6 +1353,67 @@ export default function AdminPengolahanPemasaran() {
       upi: item.upiKeys.size,
     }));
 
+    // Jumlah UPI unik pada setiap jenis detail kegiatan.
+    const detailKegiatanMaps = {
+      Pengolahan: new Map(),
+      Pemasaran: new Map(),
+    };
+    
+    rows.forEach((row, rowIndex) => {
+      const kelompok = row.jenis_kegiatan;
+      
+      if (
+        kelompok !== 'Pengolahan' &&
+        kelompok !== 'Pemasaran'
+      ) {
+        return;
+      }
+      
+      const detail =
+        kelompok === 'Pengolahan'
+          ? row.jenis_kegiatan_pengolahan
+          : row.jenis_kegiatan_pemasaran;
+
+      const detailName = String(detail ?? '').trim();
+
+      if (!detailName) return;
+
+      if (!detailKegiatanMaps[kelompok].has(detailName)) {
+        detailKegiatanMaps[kelompok].set(
+          detailName,
+          new Set(),
+        );
+      }
+
+      const upiKey =
+        getUpiKey(row) ||
+        String(row.id ?? `row-${rowIndex}`);
+
+      detailKegiatanMaps[kelompok]
+        .get(detailName)
+        .add(upiKey);
+    });
+
+    const detailKegiatan = {
+      Pengolahan: [
+        ...detailKegiatanMaps.Pengolahan.entries(),
+      ]
+        .map(([name, upiKeys]) => ({
+          name,
+          value: upiKeys.size,
+        }))
+        .sort((a, b) => b.value - a.value),
+
+      Pemasaran: [
+        ...detailKegiatanMaps.Pemasaran.entries(),
+      ]
+        .map(([name, upiKeys]) => ({
+          name,
+          value: upiKeys.size,
+        }))
+        .sort((a, b) => b.value - a.value),
+    };
+
     // Donut: jumlah UPI unik Pengolahan vs Pemasaran.
     const rasioKegiatan = [
       {
@@ -1405,6 +1467,7 @@ export default function AdminPengolahanPemasaran() {
     return {
       produksiPerKabupaten,
       produkData,
+      detailKegiatan,
       rasioKegiatan,
       trenTahunan,
       kpi: {
@@ -1415,6 +1478,17 @@ export default function AdminPengolahanPemasaran() {
       },
     };
   }, [verifiedData]);
+
+  const activeDetailKegiatan =
+    filterJenisKegiatan.length === 1 &&
+    ['Pengolahan', 'Pemasaran'].includes(
+      filterJenisKegiatan[0],
+    )
+      ? filterJenisKegiatan[0]
+      : detailKegiatanFilter;
+
+  const showDetailKegiatanToggle =
+    filterJenisKegiatan.length !== 1;
 
   // 1. Peta Choropleth Jawa Timur
   // const mapOption = useMemo(() => {
@@ -1613,11 +1687,11 @@ export default function AdminPengolahanPemasaran() {
         inRange: {
           // Konvensi choropleth: nilai rendah lebih terang, nilai tinggi lebih gelap.
           color: [
-            '#eff6ff',
-            '#bfdbfe',
-            '#60a5fa',
             '#2563eb',
-            '#1e3a8a',
+            '#38bdf8', 
+            '#facc15', 
+            '#f97316', 
+            '#dc2626',
           ],
         },  
       },
@@ -1752,7 +1826,8 @@ export default function AdminPengolahanPemasaran() {
       },
       grid: {
         left: '3%',
-        right: '4%',
+        // Ruang kanan diperbesar agar angka di ujung batang tetap terlihat.
+        right: isProduksi ? '18%' : '28%',
         top: '5%',
         bottom: '3%',
         containLabel: true,
@@ -1789,6 +1864,22 @@ export default function AdminPengolahanPemasaran() {
           name: seriesName,
           type: 'bar',
           data: top10.map(item => item[topKabFilter]),
+          barMaxWidth: 28,
+          label: {
+            show: true,
+            position: 'right',
+            distance: 8,
+            color: '#cbd5e1',
+            fontSize: 10,
+            fontWeight: 600,
+            formatter: params => {
+              const value = toNumber(params.value);
+
+              return isProduksi
+                ? `${value.toLocaleString('id-ID')} KG`
+                : formatRupiah(value);
+            },
+          },
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: '#f97316' },
@@ -1884,82 +1975,131 @@ export default function AdminPengolahanPemasaran() {
     };
   }, [stats.rasioKegiatan]);
 
-  // 4. Bar Chart Top Jenis Produk
-  const productOption = useMemo(() => {
-    const topProducts = [...stats.produkData]
-      .filter(item => item[productFilter] > 0)
-      .sort((a, b) => b[productFilter] - a[productFilter])
-      .slice(0, 10)
+  // 4. Bar chart Jenis Detail Kegiatan
+
+
+  const detailKegiatanOption = useMemo(() => {
+    const chartData = [
+      ...(stats.detailKegiatan?.[
+        activeDetailKegiatan
+      ] || []),
+    ]
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value)
       .reverse();
 
-    const isProduksi = productFilter === 'produksi';
+    const isPengolahan =
+      activeDetailKegiatan === 'Pengolahan';
 
     return {
+      animationDuration: 400,
+
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'shadow' },
+        axisPointer: {
+          type: 'shadow',
+        },
         formatter: params => {
-          const value = toNumber(params[0]?.value);
+          const item = params?.[0];
+          const value = toNumber(item?.value);
 
-          return `${params[0]?.name}<br/>${
-            isProduksi
-              ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
-              : `Nilai: <b>${formatRupiah(value)}</b>`
-          }`;
+          return [
+            `<b>${item?.name || '-'}</b>`,
+            `Jumlah: <b>${value.toLocaleString(
+              'id-ID',
+            )} UPI</b>`,
+          ].join('<br/>');
         },
       },
+
       grid: {
         left: '3%',
-        right: '4%',
+        right: '6%',
         top: '5%',
         bottom: '3%',
         containLabel: true,
       },
+
       xAxis: {
         type: 'value',
+        minInterval: 1,
+
         splitLine: {
           lineStyle: {
             color: '#334155',
             type: 'dashed',
           },
         },
+
         axisLabel: {
           color: '#94a3b8',
-          formatter: val => {
-            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
-            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
-            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
-            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
-            return val;
-          },
+          formatter: value =>
+            Number(value).toLocaleString('id-ID'),
         },
       },
+
       yAxis: {
         type: 'category',
-        data: topProducts.map(item => item.name),
+        data: chartData.map(item => item.name),
+
         axisLabel: {
           color: '#cbd5e1',
           fontSize: 11,
+          width: 190,
+          overflow: 'break',
+          lineHeight: 15,
         },
       },
+
       series: [
         {
-          name: isProduksi
-            ? 'Hasil Produksi (KG)'
-            : 'Nilai Hasil (Rp)',
+          name: `Detail ${activeDetailKegiatan}`,
           type: 'bar',
-          data: topProducts.map(item => item[productFilter]),
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-              { offset: 0, color: '#14b8a6' },
-              { offset: 1, color: '#0f766e' },
-            ]),
-            borderRadius: [0, 4, 4, 0],
+
+          data: chartData.map(item => item.value),
+
+          barMaxWidth: 28,
+
+          label: {
+            show: true,
+            position: 'right',
+            color: '#cbd5e1',
+            formatter: params =>
+              `${toNumber(params.value).toLocaleString(
+                'id-ID',
+              )} UPI`,
           },
+
+          itemStyle: {
+            color: isPengolahan
+              ? '#3b82f6'
+              : '#10b981',
+
+            borderRadius: [0, 6, 6, 0],
+          },  
         },
       ],
-    };
-  }, [stats.produkData, productFilter]);
+
+      graphic:
+        chartData.length === 0
+          ? [
+              {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                  text: `Belum ada data detail ${activeDetailKegiatan.toLowerCase()}.`,
+                  fill: '#94a3b8',
+                  fontSize: 13,
+                },
+              },
+            ]
+          : [],
+      };
+    }, [
+      activeDetailKegiatan,
+      stats.detailKegiatan,
+    ]);
 
   // 5. Line Chart Tren Tahunan: dua garis Pengolahan vs Pemasaran
   const lineOption = useMemo(() => {
@@ -2430,7 +2570,7 @@ export default function AdminPengolahanPemasaran() {
         </div>
       </div>
 
-      {/* Baris 3 — Donut UPI dan Top Jenis Produk */}
+      {/* Baris 3 — Donut UPI dan Jenis Detail Kegiatan */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
@@ -2453,32 +2593,74 @@ export default function AdminPengolahanPemasaran() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Factory className="h-5 w-5 text-teal-500" />
-              <h2 className="text-lg font-semibold">
-                Top Jenis Produk
-              </h2>
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-2">
+                  <Factory
+                    className={`mt-0.5 h-5 w-5 ${
+                      activeDetailKegiatan === 'Pengolahan'
+                        ? 'text-blue-500'
+                        : 'text-emerald-500'
+                    }`}
+                  />
+
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Jenis Detail Kegiatan
+                    </h2>
+
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Jumlah UPI berdasarkan jenis detail{' '}
+                      {activeDetailKegiatan.toLowerCase()}.
+                    </p>
+                  </div>
+                </div>
+
+                {showDetailKegiatanToggle ? (
+                  <div className="grid grid-cols-2 rounded-xl border border-border bg-background p-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDetailKegiatanFilter('Pengolahan')
+                      }
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        activeDetailKegiatan === 'Pengolahan'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      Pengolahan
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDetailKegiatanFilter('Pemasaran')
+                      }
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        activeDetailKegiatan === 'Pemasaran'
+                          ? 'bg-emerald-500 text-white'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      Pemasaran
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="h-[380px]">
+                <ReactECharts
+                  option={detailKegiatanOption}
+                  notMerge
+                  lazyUpdate
+                  style={{
+                    height: '100%',
+                    width: '100%',
+                  }}
+                />
+              </div>
             </div>
-
-            <select
-              value={productFilter}
-              onChange={event => setProductFilter(event.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="produksi">Hasil (KG)</option>
-              <option value="nilai">Nilai (Rp)</option>
-            </select>
-          </div>
-
-          <div className="h-[380px]">
-            <ReactECharts
-              option={productOption}
-              style={{ height: '100%', width: '100%' }}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Baris 4 — Tren Tahunan */}
