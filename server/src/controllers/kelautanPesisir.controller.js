@@ -194,11 +194,13 @@ const updatePotensiPerairanStatus = async (req, res) => {
 
 const getKelautanPesisirStats = async (req, res) => {
   try {
-    const { tahun } = req.query;
+    const { tahun, bulan } = req.query;
     
     // GARAM STATS
-    const garamWhere = { status: 'APPROVED' };
+    const garamWhere = { status: 'VERIFIED' };
     if (tahun) garamWhere.tahun = parseInt(tahun);
+    if (bulan) garamWhere.bulan = bulan;
+    
     const garamData = await prisma.garam.findMany({ 
       where: garamWhere,
       orderBy: { created_at: 'desc' }
@@ -232,7 +234,7 @@ const getKelautanPesisirStats = async (req, res) => {
     });
 
     // POTENSI PERAIRAN STATS
-    const potensiWhere = { status: 'APPROVED' };
+    const potensiWhere = { status: 'VERIFIED' };
     if (tahun) potensiWhere.tahun_data = parseInt(tahun);
     const potensiData = await prisma.potensiPerairan.findMany({ where: potensiWhere });
     
@@ -241,11 +243,7 @@ const getKelautanPesisirStats = async (req, res) => {
       const k = item.kabupaten_kota || 'Tidak Diketahui';
       
       // Sabuk pengaman untuk perhitungan matematika panjang pantai
-      const utara = item.panjang_pantai_utara_km || 0;
-      const selatan = item.panjang_pantai_selatan_km || 0;
-      const timur = item.panjang_pantai_timur_km || 0;
-      const barat = item.panjang_pantai_barat_km || 0;
-      const totalPantai = utara + selatan + timur + barat;
+      const totalPantai = item.total_panjang_garis_pantai_km || 0;
       
       potensiPerKota[k] = {
         pulau_kecil: item.jumlah_pulau_kecil || 0,

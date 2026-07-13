@@ -30,6 +30,16 @@ const hBarOption = (categories, values, color, unit) => ({
   series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] } }],
 });
 
+const pieOption = (title, data, nameField, valueField) => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#64748b', fontSize: 10 } },
+  series: [{
+    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
+    data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
+    label: { show: false }
+  }]
+});
+
 export default function KelautanPesisir() {
   const [loading, setLoading] = useState(true);
   const [dataGaram, setDataGaram] = useState([]);
@@ -39,6 +49,7 @@ export default function KelautanPesisir() {
   const [activeTable, setActiveTable] = useState('garam');
   const [filterTahun, setFilterTahun] = useState('');
   const [filterKab, setFilterKab] = useState('');
+  const [visFilterBulan, setVisFilterBulan] = useState('');
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -47,7 +58,7 @@ export default function KelautanPesisir() {
         const [garamRes, potensiRes, statsRes] = await Promise.all([
           api.get('/kelautan-pesisir/garam/public'),
           api.get('/kelautan-pesisir/potensi-perairan/public'),
-          api.get('/kelautan-pesisir/stats'),
+          api.get('/kelautan-pesisir/stats', { params: { bulan: visFilterBulan } }),
         ]);
         setDataGaram(garamRes.data.data || []);
         setDataPotensi(potensiRes.data.data || []);
@@ -59,7 +70,7 @@ export default function KelautanPesisir() {
       }
     };
     fetchAll();
-  }, []);
+  }, [visFilterBulan]);
 
   // ── KPI (dari endpoint /stats, sudah teragregasi & APPROVED only) ──
   const kpi = useMemo(() => {
@@ -86,6 +97,7 @@ export default function KelautanPesisir() {
   const garamProduksi = garamPerKota.map(d => parseFloat((d.produksi || 0).toFixed(2)));
   const garamLahan = garamPerKota.map(d => parseFloat((d.luas_lahan || 0).toFixed(2)));
   const garamPetambak = garamPerKota.map(d => d.petambak || 0);
+  const garamKelompok = garamPerKota.map(d => d.kelompok || 0);
 
   const potensiKota = potensiPerKota.map(d => d.name);
   const potensiPantai = potensiPerKota.map(d => parseFloat((d.garis_pantai || 0).toFixed(2)));
@@ -222,6 +234,12 @@ export default function KelautanPesisir() {
       </div>
 
       {/* ── Charts: Garam ── */}
+      <div className="flex justify-end gap-2 mb-4">
+        <select value={visFilterBulan} onChange={(e) => setVisFilterBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+          <option value="">Semua Bulan</option>
+          {['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
       <div>
         <div className="flex items-center gap-2 mb-4">
           <FlaskConical className="w-5 h-5 text-emerald-500" />
@@ -235,43 +253,21 @@ export default function KelautanPesisir() {
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Lahan per Kab/Kota (Ha)</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={barOption(garamKota, garamLahan, '#3b82f6', 'Ha')} style={{ height: '320px' }} />
+              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#8b5cf6', 'Kelompok')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Lahan per Kab/Kota</h3>
+            {garamKota.length > 0
+              ? <ReactECharts option={pieOption('Luas Lahan', garamPerKota, 'name', 'luas_lahan')} style={{ height: '320px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Petambak per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamPetambak, '#f59e0b', 'Orang')} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Charts: Potensi Perairan ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Anchor className="w-5 h-5 text-cyan-500" />
-          <h2 className="text-lg font-bold text-foreground">Potensi Perairan</h2>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Panjang Garis Pantai per Kab/Kota (km)</h3>
-            {potensiKota.length > 0
-              ? <ReactECharts option={barOption(potensiKota, potensiPantai, '#06b6d4', 'Km')} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Pulau Kecil per Kab/Kota</h3>
-            {potensiKota.length > 0
-              ? <ReactECharts option={hBarOption(potensiKota, potensiPulau, '#f97316', 'Pulau')} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Desa Pesisir per Kab/Kota</h3>
-            {potensiKota.length > 0
-              ? <ReactECharts option={barOption(potensiKota, potensiDesa, '#34d399', 'Desa')} style={{ height: '320px' }} />
+              ? <ReactECharts option={pieOption('Jumlah Petambak', garamPerKota, 'name', 'petambak')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>

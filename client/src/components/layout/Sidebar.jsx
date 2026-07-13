@@ -10,7 +10,7 @@ import {
 const USER_MENUS = [
   { title: 'Overview', path: '/user', icon: LayoutDashboard },
   { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Fish },
-  { title: 'Kelautan & Pesisir', path: '/user/kelautan-pesisir', icon: Waves },
+  { title: 'Kelautan Pesisir', path: '/user/kelautan-pesisir', icon: Waves },
   { title: 'Budidaya', path: '/user/budidaya', icon: Sprout },
   { title: 'Pengolahan & Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
 
@@ -20,7 +20,7 @@ const USER_MENUS = [
 const ADMIN_MENUS = [
   { title: 'Overview Admin', path: '/admin', icon: LayoutDashboard },
   { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Fish },
-  { title: 'Kelautan & Pesisir', path: '/admin/kelautan-pesisir', icon: Waves },
+  { title: 'Kelautan Pesisir', path: '/admin/kelautan-pesisir', icon: Waves },
   { title: 'Budidaya', path: '/admin/budidaya', icon: Sprout },
   { title: 'Pengolahan & Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
 

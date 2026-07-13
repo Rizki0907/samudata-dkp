@@ -7,6 +7,7 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 
@@ -61,20 +62,39 @@ const TwBadge = ({ tw }) => {
 };
 
 // ── DATA TABLE ──────────────────────────────────────────────────────────────────
-const DataTable = ({ columns, data, onEdit, onDelete, onApprove, onReject, renderSubComponent, exportName, onCustomExport }) => {
+const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject, renderSubComponent, exportName, onCustomExport }) => {
   const [expandedRow, setExpandedRow] = useState(null);
 
   return (
     <div className="rounded-xl border border-[#1e3a52] overflow-hidden">
       {exportName && onCustomExport && (
-        <div className="flex justify-end px-4 py-2.5 bg-[#152d45] border-b border-[#1e3a52]">
-          <button
-            onClick={() => onCustomExport(data)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            Export Excel
-          </button>
+        <div className="flex justify-end px-4 py-2.5 bg-[#152d45] border-b border-[#1e3a52] gap-3">
+          {exportName.includes('Garam') ? (
+            <>
+              <button
+                onClick={() => onCustomExport(data, 'bulanan')}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Export Bulan Ini
+              </button>
+              <button
+                onClick={() => onCustomExport(data, 'tahunan')}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 text-xs font-semibold transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Export Tahun Ini
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => onCustomExport(data)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Export Excel
+            </button>
+          )}
         </div>
       )}
       <div className="overflow-x-auto">
@@ -106,18 +126,22 @@ const DataTable = ({ columns, data, onEdit, onDelete, onApprove, onReject, rende
                   {(onEdit || onDelete) && (
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-3">
-                        {row.status === 'PENDING' && onApprove && (
+                        {(user?.role === 'admin_pusat' && ['PENDING', 'APPROVED'].includes(row.status)) && onApprove && (
                           <button onClick={(e) => { e.stopPropagation(); onApprove(row); }} className="text-emerald-400 hover:text-emerald-300 transition-colors" title="Setujui">
                             <CheckCircle className="w-4 h-4" />
                           </button>
                         )}
-                        {row.status === 'PENDING' && onReject && (
+                        {(user?.role === 'admin_pusat' && ['PENDING', 'APPROVED'].includes(row.status)) && onReject && (
                           <button onClick={(e) => { e.stopPropagation(); onReject(row); }} className="text-rose-400 hover:text-rose-300 transition-colors" title="Tolak">
                             <XCircle className="w-4 h-4" />
                           </button>
                         )}
-                        {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(row); }} className="text-cyan-400 font-medium hover:text-cyan-200 transition-colors text-xs">Edit</button>}
-                        {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(row); }} className="text-rose-400 font-medium hover:text-rose-300 transition-colors text-xs">Hapus</button>}
+                        {onEdit && (user?.role === 'admin_pusat' || ['PENDING', 'REJECTED'].includes(row.status)) && (
+                          <button onClick={(e) => { e.stopPropagation(); onEdit(row); }} className="text-cyan-400 font-medium hover:text-cyan-200 transition-colors text-xs">Edit</button>
+                        )}
+                        {onDelete && (user?.role === 'admin_pusat' || ['PENDING', 'REJECTED'].includes(row.status)) && (
+                          <button onClick={(e) => { e.stopPropagation(); onDelete(row); }} className="text-rose-400 font-medium hover:text-rose-300 transition-colors text-xs">Hapus</button>
+                        )}
                       </div>
                     </td>
                   )}
@@ -323,6 +347,213 @@ const exportGaramExcel = (data) => {
   XLSX.writeFile(wb, `Rekapitulasi_Garam_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
+const exportGaramExcelTahunan = (data, tahun) => {
+  const wb = XLSX.utils.book_new();
+  const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  
+  // Create sheet for each month
+  NAMA_BULAN.forEach(bulan => {
+    const dataBulan = data.filter(d => d.bulan === bulan);
+    if (dataBulan.length > 0) {
+      const ws = buildGaramSheet(dataBulan, `REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR BULAN ${bulan.toUpperCase()}`, `Tahun Data: ${tahun || new Date().getFullYear()}`);
+      XLSX.utils.book_append_sheet(wb, ws, bulan);
+    }
+  });
+
+  // Create Rekap Tahun sheet
+  const wsRekap = buildGaramSheet(data, `REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR`, `Tahun Data: ${tahun || new Date().getFullYear()}`);
+  XLSX.utils.book_append_sheet(wb, wsRekap, `Rekap Tahun ${tahun || new Date().getFullYear()}`);
+
+  XLSX.writeFile(wb, `Rekapitulasi_Garam_Tahunan_${tahun || new Date().getFullYear()}.xlsx`);
+};
+
+const buildGaramSheet = (dataRowsRaw, title, subtitle) => {
+  const h1 = ['No', 'Kab/Kota', 'L. Lahan (Ha)', 'L. Produksi (Ha)', 'Σ Kelompok', 'Σ Petambak',
+    'Produksi (Ton)', '', '', 'Σ Produksi (Ton)', 'Produktivitas\n(Ton/Ha)',
+    'Stok (Ton)', '', '', 'Σ Stok (Ton)',
+    'Harga (Rp)', '', '', 'Nilai Produksi (Rp)', '', ''];
+  const h2 = ['', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
+
+  let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
+  let totalNilaiK1 = 0, totalNilaiK2 = 0, totalNilaiK3 = 0;
+  let sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0;
+  let countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
+
+  const aggData = {};
+  dataRowsRaw.forEach(row => {
+    if (!aggData[row.kabupaten_kota]) {
+      aggData[row.kabupaten_kota] = { ...row, produksi_k1_ton: 0, produksi_k2_ton: 0, produksi_k3_ton: 0, stok_k1_ton: 0, stok_k2_ton: 0, stok_k3_ton: 0, total_produksi_ton: 0, total_stok_ton: 0 };
+    }
+    aggData[row.kabupaten_kota].produksi_k1_ton += row.produksi_k1_ton || 0;
+    aggData[row.kabupaten_kota].produksi_k2_ton += row.produksi_k2_ton || 0;
+    aggData[row.kabupaten_kota].produksi_k3_ton += row.produksi_k3_ton || 0;
+    aggData[row.kabupaten_kota].stok_k1_ton += row.stok_k1_ton || 0;
+    aggData[row.kabupaten_kota].stok_k2_ton += row.stok_k2_ton || 0;
+    aggData[row.kabupaten_kota].stok_k3_ton += row.stok_k3_ton || 0;
+    aggData[row.kabupaten_kota].total_produksi_ton += row.total_produksi_ton || 0;
+    aggData[row.kabupaten_kota].total_stok_ton += row.total_stok_ton || 0;
+    aggData[row.kabupaten_kota].luas_total_ha = Math.max(aggData[row.kabupaten_kota].luas_total_ha || 0, row.luas_total_ha || 0);
+    aggData[row.kabupaten_kota].luas_produksi_ha = Math.max(aggData[row.kabupaten_kota].luas_produksi_ha || 0, row.luas_produksi_ha || 0);
+    aggData[row.kabupaten_kota].jumlah_kelompok = Math.max(aggData[row.kabupaten_kota].jumlah_kelompok || 0, row.jumlah_kelompok || 0);
+    aggData[row.kabupaten_kota].jumlah_petambak = Math.max(aggData[row.kabupaten_kota].jumlah_petambak || 0, row.jumlah_petambak || 0);
+    
+    if (row.harga_k1_rp > 0) { aggData[row.kabupaten_kota].harga_k1_rp = (aggData[row.kabupaten_kota].harga_k1_rp + row.harga_k1_rp) / 2 || row.harga_k1_rp; }
+    if (row.harga_k2_rp > 0) { aggData[row.kabupaten_kota].harga_k2_rp = (aggData[row.kabupaten_kota].harga_k2_rp + row.harga_k2_rp) / 2 || row.harga_k2_rp; }
+    if (row.harga_k3_rp > 0) { aggData[row.kabupaten_kota].harga_k3_rp = (aggData[row.kabupaten_kota].harga_k3_rp + row.harga_k3_rp) / 2 || row.harga_k3_rp; }
+  });
+
+  const dataRows = Object.values(aggData).map((row, i) => {
+    totalProduksi += row.total_produksi_ton || 0;
+    totalStok += row.total_stok_ton || 0;
+    totalLuas += row.luas_total_ha || 0;
+    totalLProd += row.luas_produksi_ha || 0;
+    totalPok += row.jumlah_kelompok || 0;
+    totalPetambak += row.jumlah_petambak || 0;
+
+    const nk1 = (row.produksi_k1_ton || 0) * (row.harga_k1_rp || 0);
+    const nk2 = (row.produksi_k2_ton || 0) * (row.harga_k2_rp || 0);
+    const nk3 = (row.produksi_k3_ton || 0) * (row.harga_k3_rp || 0);
+
+    totalNilaiK1 += nk1;
+    totalNilaiK2 += nk2;
+    totalNilaiK3 += nk3;
+
+    if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
+    if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
+    if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
+    
+    const prod = row.luas_produksi_ha > 0 ? (row.total_produksi_ton || 0) / row.luas_produksi_ha : 0;
+
+    return [
+      i + 1,
+      row.kabupaten_kota,
+      row.luas_total_ha?.toLocaleString('id-ID') ?? 0,
+      row.luas_produksi_ha?.toLocaleString('id-ID') ?? 0,
+      row.jumlah_kelompok ?? 0,
+      row.jumlah_petambak ?? 0,
+      row.produksi_k1_ton?.toLocaleString('id-ID') ?? 0,
+      row.produksi_k2_ton?.toLocaleString('id-ID') ?? 0,
+      row.produksi_k3_ton?.toLocaleString('id-ID') ?? 0,
+      row.total_produksi_ton?.toLocaleString('id-ID') ?? 0,
+      prod.toLocaleString('id-ID', { maximumFractionDigits: 3 }),
+      row.stok_k1_ton?.toLocaleString('id-ID') ?? 0,
+      row.stok_k2_ton?.toLocaleString('id-ID') ?? 0,
+      row.stok_k3_ton?.toLocaleString('id-ID') ?? 0,
+      row.total_stok_ton?.toLocaleString('id-ID') ?? 0,
+      row.harga_k1_rp?.toLocaleString('id-ID') ?? 0,
+      row.harga_k2_rp?.toLocaleString('id-ID') ?? 0,
+      row.harga_k3_rp?.toLocaleString('id-ID') ?? 0,
+      nk1.toLocaleString('id-ID'),
+      nk2.toLocaleString('id-ID'),
+      nk3.toLocaleString('id-ID'),
+    ];
+  });
+
+  const avgK1 = countHargaK1 > 0 ? (sumHargaK1 / countHargaK1).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
+  const avgK2 = countHargaK2 > 0 ? (sumHargaK2 / countHargaK2).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
+  const avgK3 = countHargaK3 > 0 ? (sumHargaK3 / countHargaK3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
+
+  const totalRow = [
+    'TOTAL', '',
+    totalLuas.toLocaleString('id-ID'),
+    totalLProd.toLocaleString('id-ID'),
+    totalPok,
+    totalPetambak,
+    '', '', '',
+    totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
+    '',
+    '', '', '',
+    totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
+    avgK1, avgK2, avgK3,
+    totalNilaiK1.toLocaleString('id-ID'),
+    totalNilaiK2.toLocaleString('id-ID'),
+    totalNilaiK3.toLocaleString('id-ID'),
+  ];
+
+  const aoa = [
+    [title], [subtitle], [],
+    h1, h2,
+    ...dataRows,
+    totalRow
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  const refTitle = XLSX.utils.encode_cell({ c: 0, r: 0 });
+  ws[refTitle].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
+  const refSub = XLSX.utils.encode_cell({ c: 0, r: 1 });
+  ws[refSub].s = { font: { bold: false, sz: 11 }, alignment: { horizontal: 'center' } };
+
+  const hStyle1 = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
+  const hStyle2 = cellStyle({ bold: true, fill: '2E75B6', fontColor: 'FFFFFF', align: 'center' });
+  const hProdStyle = cellStyle({ bold: true, fill: '375623', fontColor: 'FFFFFF', align: 'center' });
+  const hStokStyle = cellStyle({ bold: true, fill: 'BF8F00', fontColor: 'FFFFFF', align: 'center' });
+  const hProdukStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
+  const dataStyle = cellStyle({ align: 'center' });
+  const dataLeftStyle = cellStyle({ align: 'left' });
+  const totalStyle = cellStyle({ bold: true, fill: 'FFFF00', align: 'center' });
+  const totalSumStyle = cellStyle({ bold: true, fill: 'F4B942', align: 'center' });
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const r3 = XLSX.utils.encode_cell({ c: C, r: 3 });
+    const r4 = XLSX.utils.encode_cell({ c: C, r: 4 });
+    if (!ws[r3]) ws[r3] = { t: 's', v: '' };
+    if (!ws[r4]) ws[r4] = { t: 's', v: '' };
+    if (C <= 5) { ws[r3].s = hStyle1; ws[r4].s = hStyle1; } 
+    else if (C >= 6 && C <= 10) { ws[r3].s = hProdStyle; ws[r4].s = hProdStyle; } 
+    else if (C >= 11 && C <= 14) { ws[r3].s = hStokStyle; ws[r4].s = hStokStyle; } 
+    else if (C >= 15 && C <= 17) { ws[r3].s = hStyle2; ws[r4].s = hStyle2; } 
+    else { ws[r3].s = hProdukStyle; ws[r4].s = hProdukStyle; } 
+  }
+
+  const dataStart = 5;
+  const totalRowIdx = dataStart + dataRows.length;
+  for (let R = dataStart; R < totalRowIdx; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const ref = XLSX.utils.encode_cell({ c: C, r: R });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = C === 1 ? dataLeftStyle : dataStyle;
+    }
+  }
+
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx });
+    if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+    ws[ref].s = (C === 9 || C === 14) ? totalSumStyle : totalStyle;
+  }
+
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } },
+    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, 
+    { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, 
+    { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, 
+    { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, 
+    { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, 
+    { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, 
+    { s: { r: 3, c: 6 }, e: { r: 3, c: 8 } }, 
+    { s: { r: 3, c: 9 }, e: { r: 4, c: 9 } }, 
+    { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, 
+    { s: { r: 3, c: 11 }, e: { r: 3, c: 13 } }, 
+    { s: { r: 3, c: 14 }, e: { r: 4, c: 14 } }, 
+    { s: { r: 3, c: 15 }, e: { r: 3, c: 17 } }, 
+    { s: { r: 3, c: 18 }, e: { r: 3, c: 20 } }, 
+    { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 5 } },
+  ];
+
+  ws['!cols'] = [
+    { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 16 }, { wch: 16 }, { wch: 16 },
+  ];
+  ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
+  
+  return ws;
+};
+
 const exportPotensiExcel = (data) => {
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
   const h1 = ['No', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)',
@@ -413,6 +644,18 @@ const makeHBarOption = (title, categories, values, color = '#22d3ee') => ({
   series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] } }],
 });
 
+const makePieOption = (title, data, nameField, valueField) => ({
+  ...darkTheme,
+  title: { text: title, textStyle: { color: '#c8dff0', fontSize: 13, fontWeight: 'bold' } },
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 40, bottom: 20, textStyle: { color: '#7fb5d5', fontSize: 10 } },
+  series: [{
+    type: 'pie', radius: ['40%', '70%'], center: ['35%', '55%'],
+    data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
+    label: { show: false }
+  }]
+});
+
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
   { key: 'garam',            label: 'Data Garam',       icon: <Map className="w-4 h-4" /> },
@@ -428,6 +671,7 @@ const MAIN_TABS = [
 ];
 
 export default function AdminKelautanPesisir() {
+  const { user } = useAuthStore();
   const [mainTab, setMainTab] = useState('tabel');
   const [activeTab, setActiveTab] = useState('garam');
   const [dataGaram, setDataGaram] = useState([]);
@@ -445,6 +689,7 @@ export default function AdminKelautanPesisir() {
   const [filterTw, setFilterTw] = useState('');
   const [filterBulan, setFilterBulan] = useState('');
   const [filterKab, setFilterKab] = useState('');
+  const [visFilterBulan, setVisFilterBulan] = useState('');
 
   // Fetch garam data
   const fetchGaram = useCallback(async () => {
@@ -476,14 +721,14 @@ export default function AdminKelautanPesisir() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await api.get('/kelautan-pesisir/stats');
-      setStatsData(res.data.data);
+      const res = await api.get('/kelautan-pesisir/stats', { params: { bulan: visFilterBulan } });
+      setStatsData(res.data.data || null);
     } catch (err) {
-      console.error('Gagal memuat statistik:', err);
+      console.error(err);
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [visFilterBulan]);
 
   useEffect(() => {
     fetchGaram();
@@ -541,21 +786,74 @@ export default function AdminKelautanPesisir() {
   };
 
   const handleApprove = async (row) => {
-    if (!window.confirm(`Setujui data ${row.kabupaten_kota}?`)) return;
+    let promptMsg = 'Pilih jenis validasi (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    if (row.status === 'APPROVED') {
+      promptMsg = 'Data ini sudah disetujui Bidang.\nKetik "2" untuk melanjutkan Validasi Program:';
+    } else if (row.status === 'PENDING') {
+      promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (jenis === '1') {
+      if (row.status === 'APPROVED' || row.status === 'VERIFIED') {
+        alert('Data sudah divalidasi oleh Bidang sebelumnya!');
+        return;
+      }
+      targetStatus = 'APPROVED'; // Approve Bidang -> APPROVED
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU_PESISIR_BIDANG';
+    } else if (jenis === '2') {
+      if (row.status === 'VERIFIED') {
+        alert('Data sudah divalidasi oleh Program sebelumnya!');
+        return;
+      }
+      targetStatus = 'VERIFIED'; // Approve Program -> VERIFIED
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC_PESISIR_PROGRAM';
+    } else {
+      alert('Pilihan tidak valid. Proses dibatalkan.');
+      return;
+    }
+
+    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
     try {
       if (activeTab === 'garam') {
-        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: 'APPROVED', alasan_penolakan: null });
+        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
         await fetchGaram();
       } else if (activeTab === 'potensi_perairan') {
-        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'APPROVED', alasan_penolakan: null });
+        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
         await fetchPotensi();
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      alert('Gagal menyetujui data.');
+    }
   };
 
   const handleReject = async (row) => {
     const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (!alasan?.trim()) return;
+    if (!alasan?.trim()) {
+      alert('Alasan penolakan tidak boleh kosong.');
+      return;
+    }
+    
+    const confirmText = window.prompt('Ketik "TOLAK_PESISIR" (huruf kapital) untuk menyelesaikan penolakan:');
+    if (confirmText !== 'TOLAK_PESISIR') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
     try {
       if (activeTab === 'garam') {
         await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
@@ -564,7 +862,22 @@ export default function AdminKelautanPesisir() {
         await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
         await fetchPotensi();
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      alert('Gagal menolak data.');
+    }
+  };
+
+  const handleExport = (data, type) => {
+    if (activeTab === 'garam') {
+      if (type === 'tahunan') {
+        exportGaramExcelTahunan(data, filterTahun);
+      } else {
+        exportGaramExcel(data);
+      }
+    } else {
+      exportPotensiExcel(data);
+    }
   };
 
   // ── COLUMNS ─────────────────────────────────────────────────────────────────
@@ -716,8 +1029,6 @@ export default function AdminKelautanPesisir() {
 
     const garamKota = garamSorted.map(d => d.name);
     const garamProduksi = garamSorted.map(d => parseFloat(d.produksi.toFixed(2)));
-    const garamLahan = garamSorted.map(d => parseFloat(d.luas_lahan.toFixed(2)));
-    const garamPetambak = garamSorted.map(d => d.petambak);
     const garamKelompok = garamSorted.map(d => d.kelompok);
 
     const potensiKota = potensiSorted.map(d => d.name);
@@ -727,6 +1038,12 @@ export default function AdminKelautanPesisir() {
 
     return (
       <div className="space-y-8">
+        <div className="flex justify-end mb-4">
+          <select value={visFilterBulan} onChange={(e) => setVisFilterBulan(e.target.value)} className="rounded-lg border border-[#1e3a52] bg-[#0f2236] text-[#c8dff0] px-3 py-2 text-sm outline-none focus:border-cyan-500">
+            <option value="">Semua Bulan</option>
+            {['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
         {/* ── Garam Charts ── */}
         <div>
           <h3 className="text-base font-bold text-[#c8dff0] mb-4 flex items-center gap-2">
@@ -738,19 +1055,22 @@ export default function AdminKelautanPesisir() {
                 ? <ReactECharts option={makeBarOption('Volume Produksi Garam per Kab/Kota (Ton)', garamKota, garamProduksi, '#22d3ee')} style={{ height: '300px' }} />
                 : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makeBarOption('Luas Lahan Garam per Kab/Kota (Ha)', garamKota, garamLahan, '#10b981')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
-            </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makeHBarOption('Jumlah Petambak Garam per Kab/Kota', garamKota, garamPetambak, '#f59e0b')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
-            </div>
+
             <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
               {garamKota.length > 0
                 ? <ReactECharts option={makeHBarOption('Jumlah Kelompok Garam per Kab/Kota', garamKota, garamKelompok, '#a78bfa')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            </div>
+
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
+              {garamKota.length > 0
+                ? <ReactECharts option={makePieOption('Luas Lahan (Ha)', garamSorted, 'name', 'luas_lahan')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            </div>
+            
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
+              {garamKota.length > 0
+                ? <ReactECharts option={makePieOption('Jumlah Petambak', garamSorted, 'name', 'petambak')} style={{ height: '300px' }} />
                 : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
             </div>
           </div>
@@ -796,9 +1116,16 @@ export default function AdminKelautanPesisir() {
     return result;
   }, [activeTab, dataGaram, dataPotensiPerairan, filterTahun, filterTw, filterBulan, filterKab]);
 
-  const handleCustomExport = (data) => {
-    if (activeTab === 'garam') return exportGaramExcel(data);
-    if (activeTab === 'potensi_perairan') return exportPotensiExcel(data);
+  const handleCustomExport = (data, type) => {
+    if (activeTab === 'garam') {
+      if (type === 'tahunan') {
+        exportGaramExcelTahunan(data, filterTahun);
+      } else {
+        exportGaramExcel(data);
+      }
+    } else if (activeTab === 'potensi_perairan') {
+      exportPotensiExcel(data);
+    }
   };
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
@@ -944,6 +1271,7 @@ export default function AdminKelautanPesisir() {
                     )}
                   </div>
                   <DataTable
+                    user={user}
                     columns={activeColumns}
                     data={filteredData}
                     onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}

@@ -60,7 +60,7 @@ const getOverviewStats = async (req, res) => {
     
     // === 4. GARAM (Kelautan & Pesisir) ===
     const allGaram = await prisma.garam.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'VERIFIED' },
       orderBy: { created_at: 'desc' }
     });
 
