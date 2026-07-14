@@ -910,7 +910,10 @@ export default function AdminPengolahanPemasaran() {
     return;
   }
 
-  
+  if (row.status === 'VERIFIED') {
+    alert('Data ini sudah VERIFIED.');
+    return false;
+  }
 
   if (row.status === 'REJECTED') {
     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
@@ -967,14 +970,23 @@ export default function AdminPengolahanPemasaran() {
   }
 
   try {
-    await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-      status: targetStatus,
-    });
+    const response = await api.put(
+      `/pengolahan-pemasaran/${row.id}/status`,
+      {
+        status: targetStatus,
+      }
+    );
+
+    alert(
+      response.data?.message ||
+      `Data berhasil diubah statusnya menjadi ${targetStatus}.`,
+    );
 
     await fetchData();
-    // await fetchStats();
+    return true;
   } catch (error) {
     console.error('Error approving data:', error.response?.data || error);
+    
     alert(
       `Gagal memvalidasi data: ${
         error?.response?.data?.message ||
@@ -982,6 +994,7 @@ export default function AdminPengolahanPemasaran() {
         error.message
       }`
     );
+    return false;
   }
 };
 
@@ -1059,7 +1072,12 @@ export default function AdminPengolahanPemasaran() {
     return;
   }
 
-  
+  if (selectedRows.some(row => row.status === 'VERIFIED')) {
+    alert(
+      'Ada data yang sudah VERIFIED. Hapus data tersebut dari pilihan.',
+    );
+    return false;
+  }
 
   if (selectedRows.some(row => row.status === 'REJECTED')) {
     alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
@@ -1123,13 +1141,31 @@ export default function AdminPengolahanPemasaran() {
   }
 
   try {
-    await api.post('/pengolahan-pemasaran/batch-status', {
-      ids,
-      status: targetStatus,
-    });
+    const response =await api.post(
+      '/pengolahan-pemasaran/batch-status', 
+      {
+        ids,
+        status: targetStatus,
+      }
+    );
+
+    const count = Number(
+      response.data?.count ?? 0,
+    );
+
+    if (count === 0) {
+      alert('Tidak ada data yang berhasil diperbarui. Pastikan status data yang dipilih sesuai.'
+      );
+      return false;
+    }
+
+    alert(
+      response.data?.message ||
+      `${count} data berhasil diubah menjadi ${targetStatus}.`
+    );
 
     await fetchData();
-    // await fetchStats();
+    return true;
   } catch (error) {
     console.error('Error batch approve:', error.response?.data || error);
     alert(
@@ -1139,6 +1175,7 @@ export default function AdminPengolahanPemasaran() {
         error.message
       }`
     );
+    return false;
   }
 };
 

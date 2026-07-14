@@ -981,7 +981,7 @@ const batchStatus = async (req, res) => {
     }
 
     if (status === 'VERIFIED') {
-      whereStatus = { status: 'VERIFIED' };
+      whereStatus = { status: 'APPROVED' };
     }
 
     if (status === 'REJECTED') {
@@ -1003,6 +1003,15 @@ const batchStatus = async (req, res) => {
           status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
       },
     });
+
+    if (result.count === 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          'Tidak ada data yang diperbarui. Pastikan status data sesuai dengan tahap validasi.',
+        count: 0,
+      });
+    }
 
     res.json({
       success: true,
