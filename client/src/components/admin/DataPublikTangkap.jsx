@@ -8,9 +8,9 @@ import { Edit2, RotateCcw, AlertCircle, CheckCircle, Save, X, Download, FileText
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
 
-export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas }) {
+export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingRow, setEditingRow] = useState(null);
@@ -19,7 +19,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   const [batchMode, setBatchMode] = useState(false);
   const [batchVolumePct, setBatchVolumePct] = useState('');
   const { user } = useAuthStore();
-  const isPusat = user?.role === 'admin_pusat' || user?.role === 'admin_bidang';
+  const isPusat = !isPublic && (user?.role === 'admin_pusat' || user?.role === 'admin_bidang');
 
   const fetchData = async () => {
     try {
@@ -34,8 +34,15 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isPublic) {
+      if (publicData) {
+        setData(publicData);
+      }
+      setLoading(false);
+    } else {
+      fetchData();
+    }
+  }, [isPublic, publicData]);
 
   const handleEditClick = (item) => {
     setEditingRow(item.id);
@@ -108,10 +115,20 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
 
   const handleExport = (isRiil) => {
     // Generate headers
-    const headerRow1 = ['Bulan / Tahun', 'Cabang Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
+    const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
     const headerRow2 = ['', '', '', '', ''];
 
-    const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+    let komoditasArray = [];
+    if (!filterCabang) {
+      komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+    } else if (filterCabang === 'PUD') {
+      komoditasArray = [...KOMODITAS_PUD_OPTIONS];
+    } else if (filterCabang === 'KAB_KOTA') {
+      komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
+    } else {
+      komoditasArray = [...KOMODITAS_OPTIONS];
+    }
+
     komoditasArray.forEach(kom => {
       headerRow1.push(kom, '', '');
       headerRow2.push('Volume (Kg)', 'Harga (Rp)', 'Nilai (Rp)');
@@ -303,7 +320,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const row2 = [];
     const row3 = ['1. PRODUKSI PELABUHAN'];
     
-    const row4 = ['NO', 'BULAN / TAHUN', 'CABANG SUMBER', 'WILAYAH / LOKASI', 'Total Produksi', '', 'I k a n'];
+    const row4 = ['NO', 'BULAN / TAHUN', 'Perairan Sumber', 'WILAYAH / LOKASI', 'Total Produksi', '', 'I k a n'];
     const row5 = ['', '', '', '', '', ''];
     const row6 = ['', '', '', '', 'Volume', 'Nilai'];
     
@@ -453,14 +470,14 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         </h4>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Komoditas</th>
+            <thead>
+              <tr className="bg-muted/30 text-muted-foreground text-xs uppercase tracking-wider text-left">
+                <th className="px-4 py-2 font-medium w-48">Komoditas</th>
                 <th className="px-4 py-2 font-medium">Total Volume (Kg)</th>
                 <th className="px-4 py-2 font-medium text-right">Total Nilai Produksi (Rp)</th>
-                <th className="px-4 py-2 font-medium">Status Data</th>
-                  <th className="px-4 py-2 font-medium">Terakhir Diperbarui</th>
-                  {isPusat && <th className="px-4 py-2 font-medium">Aksi</th>}
+                {!isPublic && <th className="px-4 py-2 font-medium">Status Data</th>}
+                <th className="px-4 py-2 font-medium">Terakhir Diperbarui</th>
+                {isPusat && <th className="px-4 py-2 font-medium">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-card">
@@ -488,22 +505,26 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                         disabled
                         className="w-32 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-sm cursor-not-allowed opacity-80"
                       />
-                    ) : formatRupiah(item.nilai)}
+                    ) : formatRupiah(Number(item.nilai) || 0)}
                   </td>
-                  <td className="px-4 py-2">
-                    {item.is_adjusted ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        <AlertCircle className="w-3.5 h-3.5" /> Validasi Khusus
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle className="w-3.5 h-3.5" /> Sistem (Default)
-                      </span>
-                    )}
-                  </td>
-                    <td className="px-4 py-2 text-sm text-muted-foreground whitespace-nowrap">
-                      {item.updated_at ? formatDistanceToNow(new Date(item.updated_at), { addSuffix: true, locale: idLocale }) : '-'}
+                  {!isPublic && (
+                    <td className="px-4 py-2">
+                      {item.is_adjusted ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-500/10 px-2 py-1 rounded-full border border-amber-500/20">
+                          <AlertCircle className="w-3 h-3" />
+                          Validasi Khusus
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
+                          <CheckCircle className="w-3 h-3" />
+                          Sistem (Default)
+                        </span>
+                      )}
                     </td>
+                  )}
+                  <td className="px-4 py-2 text-sm text-muted-foreground whitespace-nowrap">
+                    {item.updated_at ? formatDistanceToNow(new Date(item.updated_at), { addSuffix: true, locale: idLocale }) : '-'}
+                  </td>
                   {isPusat && <td className="px-4 py-2">
                     {editingRow === item.id ? (
                       <div className="flex items-center gap-2">
@@ -621,14 +642,16 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                 Unduh Laporan Pelabuhan
               </button>
             )}
-            <button
-              onClick={() => handleExport(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition"
-              title="Unduh data asli sebelum divalidasi"
-            >
-              <Download className="w-4 h-4" />
-              Unduh Data Approved
-            </button>
+            {!isPublic && (
+              <button
+                onClick={() => handleExport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition"
+                title="Unduh data asli sebelum divalidasi"
+              >
+                <Download className="w-4 h-4" />
+                Unduh Data Approved
+              </button>
+            )}
             <button
               onClick={() => handleExport(false)}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition shadow-sm"

@@ -155,7 +155,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     return (
       <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
         <div className="text-center max-w-xl mx-auto mb-8">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Pilih Cabang Sumber Data</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Pilih Sumber Perairan</h2>
           <p className="text-muted-foreground">Silakan pilih sumber laporan data perikanan tangkap. Format formulir akan menyesuaikan dengan pilihan Anda.</p>
         </div>
         
@@ -215,7 +215,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
           <p className="text-sm text-muted-foreground mt-1">Isi formulir pendaratan ikan harian secara lengkap.</p>
         </div>
         {!initialData && (
-          <button onClick={() => setSumberData(null)} className="text-sm text-primary hover:underline">Ganti Cabang</button>
+          <button onClick={() => setSumberData(null)} className="text-sm text-primary hover:underline">Ganti Perairan</button>
         )}
       </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
-import { DataTable } from '@/components/shared/DataTable';
+import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
@@ -743,117 +743,16 @@ export default function PerikananTangkap() {
           <p className="text-sm text-muted-foreground">Tabel & Unduhan di bawah otomatis menyesuaikan Filter di atas.</p>
         </div>
         
-        <DataTable 
-            columns={columns} 
-            data={aggregatedData}
-            hideUpdatedAt={true}
-          exportName={`Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
-          renderSubComponent={renderSubComponent}
-          onCustomExport={async (rowsToExport) => {
-            const workbook = new ExcelJS.Workbook();
-            const sheet = workbook.addWorksheet('Data Perikanan Tangkap');
-
-            const row1 = ['Bulan / Tahun', 'Cabang Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
-            const row2 = ['', '', '', '', ''];
-
-            const komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
-            komoditasArray.forEach(kom => {
-              row1.push(kom, '');
-              row2.push('Volume (Kg)', 'Nilai (Rp)');
-            });
-
-            sheet.addRow(row1);
-            sheet.addRow(row2);
-
-            sheet.mergeCells('A1:A2');
-            sheet.mergeCells('B1:B2');
-            sheet.mergeCells('C1:C2');
-            sheet.mergeCells('D1:D2');
-            sheet.mergeCells('E1:E2');
-
-            let currentCol = 6;
-            komoditasArray.forEach(() => {
-              sheet.mergeCells(1, currentCol, 1, currentCol + 1);
-              currentCol += 2;
-            });
-
-            for (let i = 1; i <= 2; i++) {
-              const row = sheet.getRow(i);
-              row.eachCell((cell, colNumber) => {
-                // Kolom 1-5 (Main Headers) diberi warna Kuning
-                // Kolom 6 ke atas (Komoditas) diberi warna Biru Muda
-                const bgColor = colNumber <= 5 ? 'FFFFFF00' : 'FFD9E1F2'; 
-
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-                cell.font = { bold: true };
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.border = {
-                  top: { style: 'thin' }, left: { style: 'thin' },
-                  bottom: { style: 'thin' }, right: { style: 'thin' }
-                };
-              });
-            }
-
-            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-            rowsToExport.forEach(row => {
-              let formattedBulan = row.bulan;
-              if (row.bulan !== 'Unknown') {
-                 const [y, m] = row.bulan.split('-');
-                 formattedBulan = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
-              }
-
-              const rowData = [
-                formattedBulan,
-                row.sumber_data,
-                row.pelabuhan,
-                row.volume || 0,
-                row.nilai || 0
-              ];
-
-              const tangkapanMap = {};
-              if (row.tangkapan) {
-                 row.tangkapan.forEach(t => { tangkapanMap[t.komoditas] = t; });
-              }
-              
-              komoditasArray.forEach(kom => {
-                 const komData = tangkapanMap[kom];
-                 rowData.push(komData ? (komData.volume || 0) : 0);
-                 rowData.push(komData ? (komData.nilai || 0) : 0);
-              });
-
-              const addedRow = sheet.addRow(rowData);
-              addedRow.eachCell((cell, colNumber) => {
-                cell.border = {
-                  top: { style: 'thin' }, left: { style: 'thin' },
-                  bottom: { style: 'thin' }, right: { style: 'thin' }
-                };
-                if (typeof cell.value === 'number') {
-                  cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                  if (cell.value === 0) {
-                    cell.value = '-';
-                  } else {
-                    cell.numFmt = '#,##0';
-                  }
-                } else {
-                  cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                }
-              });
-            });
-
-            sheet.getColumn(1).width = 20;
-            sheet.getColumn(2).width = 15;
-            sheet.getColumn(3).width = 25;
-            sheet.getColumn(4).width = 20;
-            sheet.getColumn(5).width = 25;
-            for(let i = 6; i < currentCol; i++){
-               sheet.getColumn(i).width = 15;
-            }
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            saveAs(new Blob([buffer]), `Rekap_Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}.xlsx`);
-          }}
-        />
+                <div className="mt-8">
+          <DataPublikTangkap 
+            filterTahun={filterTahun}
+            filterCabang={filterCabang}
+            filterWilayah={filterWilayah}
+            filterKomoditas={filterKomoditas}
+            isPublic={true}
+            publicData={data} 
+          />
+        </div>
       </div>
 
     </div>

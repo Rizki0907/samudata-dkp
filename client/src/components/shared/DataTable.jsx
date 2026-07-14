@@ -81,7 +81,7 @@ export function DataTable({
   };
 
   const finalColumns = [...columns];
-  if (!finalColumns.find(c => c.accessorKey === 'updated_at' || c.id === 'updated_at')) {
+  if (!hideUpdatedAt && !finalColumns.find(c => c.accessorKey === 'updated_at' || c.id === 'updated_at')) {
     finalColumns.push({
       id: 'updated_at',
       accessorKey: 'updated_at',

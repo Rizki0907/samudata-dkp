@@ -52,65 +52,62 @@ export function StatusBadge({ row, onEdit, contextFields }) {
             onClick={event => event.stopPropagation()}
           >
             <div className="flex-1 overflow-y-auto p-7">
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
-                  <AlertTriangle className="h-6 w-6" />
+              {/* Header modal */}
+              <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-foreground">Data Ini Ditolak (Perlu Perbaikan)</h3>
+                    <p className="mt-0.5 break-words text-sm text-muted-foreground">
+                      Data ini tidak dapat divalidasi oleh Pusat karena ada beberapa hal yang harus diperbaiki.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-foreground">
-                    Data Ditolak (Perlu Perbaikan)
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                    Data ini tidak dapat divalidasi oleh Pusat karena ada beberapa hal
-                    yang harus diperbaiki. Silakan cek detail di bawah ini.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
 
-              <div className="mb-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
-                <h4 className="font-semibold text-rose-600 mb-2">Alasan Penolakan:</h4>
-                <div className="text-sm font-medium text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                  {alasan || '-'}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-muted/30 p-5">
-                <h4 className="font-semibold text-foreground mb-3 text-sm">
-                  Konteks Data yang Ditolak:
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                {/* Konteks data */}
+                <dl className="mt-5 grid grid-cols-1 gap-x-4 gap-y-3 rounded-2xl bg-muted/60 p-4 text-sm sm:grid-cols-2">
                   {contextFields && contextFields.map((field, idx) => (
-                    <div key={idx} className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">{field.label}</span>
-                      <span className="text-sm font-medium text-foreground break-words mt-0.5">
+                    <div key={idx} className="min-w-0">
+                      <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
+                      <dd className="break-words font-semibold text-foreground mt-0.5">
                         {field.value || '-'}
-                      </span>
+                      </dd>
                     </div>
                   ))}
-                </div>
-              </div>
+                </dl>
 
-              <div className="mt-6 flex items-center gap-3 rounded-xl bg-blue-500/10 p-4 text-blue-600">
-                <Info className="h-5 w-5 shrink-0" />
-                <p className="text-sm">
-                  Silakan tekan tombol di bawah ini untuk langsung menuju form edit dan memperbaiki
-                  data sesuai arahan Pusat.
-                </p>
-              </div>
+                {/* Alasan penolakan */}
+                <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">
+                    Alasan Penolakan dari Pusat
+                  </p>
+                  <p className="mt-2 break-words text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                    {alasan || 'Tidak ada alasan yang dicantumkan oleh Pusat.'}
+                  </p>
+                </div>
+
+                {/* Panduan singkat */}
+                <div className="mt-4 rounded-2xl bg-blue-500/10 p-4 text-sm leading-relaxed text-blue-600 break-words whitespace-normal flex items-start gap-3">
+                  <Info className="h-5 w-5 shrink-0 mt-0.5" />
+                  <p>
+                    Silakan tekan tombol di bawah ini untuk langsung menuju form edit dan memperbaiki data sesuai catatan dari Pusat.
+                  </p>
+                </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-border bg-muted/20 p-5">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border p-5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="rounded-xl px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >
                 Tutup
               </button>
@@ -121,7 +118,7 @@ export function StatusBadge({ row, onEdit, contextFields }) {
                     setShowModal(false);
                     onEdit();
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-rose-500/20 transition-all hover:bg-rose-600 hover:shadow-rose-500/40 active:scale-95"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 active:scale-95 shadow-sm"
                 >
                   <PenLine className="h-4 w-4" />
                   Perbaiki Data Sekarang

@@ -11,7 +11,7 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -804,12 +804,10 @@ export default function AdminPerikananTangkap() {
       accessorKey: 'status',
       cell: info => {
         const row = info.row.original;
-        const pelabuhanText = row.sumber_data === 'PUD' ? `${row.kabupaten_kota || '-'} (${row.jenis_perairan || 'PUD'})` : 
-                             row.sumber_data === 'KAB_KOTA' ? `${row.kabupaten_kota || '-'} (${row.pelabuhan || '-'}, WPP ${row.jenis_perairan || '-'})` : 
-                             (row.pelabuhan || row.kabupaten_kota || '-');
+        const pelabuhanText = row.pelabuhan || row.kabupaten_kota || '-';
 
         const contextFields = [
-          { label: 'Cabang / Wilayah', value: pelabuhanText },
+          { label: 'Perairan / Wilayah', value: pelabuhanText },
           { label: 'Nama Kapal / Populasi Alat', value: row.sumber_data === 'PELABUHAN' ? row.nama_kapal : (row.pud_populasi_alat + ' Unit') },
           { label: 'Alat Tangkap', value: row.alat_tangkap },
           { label: 'Tanggal Input', value: formatDate(row.tanggal) }
@@ -830,7 +828,7 @@ export default function AdminPerikananTangkap() {
       cell: info => formatDate(info.getValue())
     },
     {
-      header: 'Cabang',
+      header: 'Perairan',
       accessorKey: 'sumber_data',
       cell: info => {
         const val = info.getValue() || 'PELABUHAN';
@@ -1035,7 +1033,7 @@ export default function AdminPerikananTangkap() {
               onClick={() => setActiveTab('data')}
               className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
             >
-              Log Laporan Cabang
+              Log Laporan Perairan
             </button>
             <button 
               onClick={() => setActiveTab('publik')}
@@ -1072,7 +1070,7 @@ export default function AdminPerikananTangkap() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cabang Sumber</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
                 <select 
                   value={filterCabang} 
                   onChange={(e) => {
@@ -1082,7 +1080,7 @@ export default function AdminPerikananTangkap() {
                   }} 
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">Semua Cabang</option>
+                  <option value="">Semua Perairan</option>
                   <option value="PELABUHAN">Pelabuhan</option>
                   <option value="PUD">PUD</option>
                   <option value="KAB_KOTA">Non Pelabuhan</option>
@@ -1139,7 +1137,7 @@ export default function AdminPerikananTangkap() {
           </div>
         ) : (
           activeTab === 'data' ? (
-            <div className="bg-card border border-border rounded-2xl shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
               <DataTable
                 columns={columns}
                 data={filteredData}
@@ -1180,16 +1178,19 @@ export default function AdminPerikananTangkap() {
                   ) : null
                 }
                 onCustomExport={(exportData) => {
-                  const komSet = new Set();
-                    exportData.forEach(row => {
-                      if (row.tangkapan) {
-                        row.tangkapan.forEach(t => komSet.add(t.komoditas));
-                      }
-                    });
-                    const komoditasArray = Array.from(komSet).sort();
+                    let komoditasArray = [];
+                    if (!filterCabang) {
+                      komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+                    } else if (filterCabang === 'PUD') {
+                      komoditasArray = [...KOMODITAS_PUD_OPTIONS];
+                    } else if (filterCabang === 'KAB_KOTA') {
+                      komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
+                    } else {
+                      komoditasArray = [...KOMODITAS_OPTIONS];
+                    }
 
-                  const headerRow1 = ['Tanggal', 'Perairan', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
-                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
+                  const headerRow1 = ['Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', '', ''];
                   
                   komoditasArray.forEach(kom => {
                     headerRow1.push(kom, '', '');
@@ -1216,12 +1217,13 @@ export default function AdminPerikananTangkap() {
                     const baseRow = [
                       row.tanggal ? row.tanggal.split('T')[0] : '-',
                       row.sumber_data === 'PUD' ? 'Perairan PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Perairan Non Pelabuhan' : 'Perairan Pelabuhan'),
+                      row.sumber_data === 'PUD' ? (row.jenis_perairan || '-') : '-',
                       row.jam_labuh || '-',
                       row.jam_bongkar || '-',
                       row.sumber_data === 'PUD' ? (row.pud_populasi_alat ? `${row.pud_populasi_alat} Unit` : '-') : (row.nama_kapal || '-'),
                       row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
                       row.alat_tangkap || '-',
-                      row.sumber_data === 'PUD' ? `${row.kabupaten_kota || '-'} (${row.jenis_perairan || '-'})` : (row.pelabuhan || row.kabupaten_kota || '-'),
+                      row.pelabuhan || row.kabupaten_kota || '-',
                       row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : (row.logistik || '-'),
                       totalVol,
                       totalNilai
@@ -1253,9 +1255,9 @@ export default function AdminPerikananTangkap() {
                       if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
 
                       if (R === 0) {
-                        ws[cellRef].s = C > 10 ? komoditasHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 11 ? komoditasHeaderStyle : headerStyle;
                       } else if (R === 1) {
-                        ws[cellRef].s = C > 10 ? subHeaderStyle : headerStyle;
+                        ws[cellRef].s = C > 11 ? subHeaderStyle : headerStyle;
                       } else {
                         ws[cellRef].s = dataStyle;
                         if (typeof ws[cellRef].v === 'number') {
@@ -1271,11 +1273,11 @@ export default function AdminPerikananTangkap() {
                   }
 
                   const merges = [];
-                  for (let i = 0; i <= 10; i++) {
+                  for (let i = 0; i <= 11; i++) {
                     merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
                   }
                   
-                  let currentCol = 11;
+                  let currentCol = 12;
                   komoditasArray.forEach(() => {
                     merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
                     currentCol += 3;
