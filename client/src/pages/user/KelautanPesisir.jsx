@@ -5,12 +5,9 @@ import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import {
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
-  TreePine, Landmark, Globe, Fish, TrendingUp
+  TreePine, Landmark, Globe, Fish, Info
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-
-const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
@@ -44,25 +41,28 @@ export default function KelautanPesisir() {
   const [loading, setLoading] = useState(true);
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensi, setDataPotensi] = useState([]);
-  const [stats, setStats] = useState(null);
 
+  // Vis Garam Filters
+  const [visGaramBulan, setVisGaramBulan] = useState('');
+  const [visGaramTahun, setVisGaramTahun] = useState('');
+  const [visGaramKab, setVisGaramKab] = useState('');
+
+  // Table Filters
   const [activeTable, setActiveTable] = useState('garam');
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterKab, setFilterKab] = useState('');
-  const [visFilterBulan, setVisFilterBulan] = useState('');
+  const [tableFilterBulan, setTableFilterBulan] = useState('');
+  const [tableFilterTahun, setTableFilterTahun] = useState('');
+  const [tableFilterKab, setTableFilterKab] = useState('');
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const [garamRes, potensiRes, statsRes] = await Promise.all([
+        const [garamRes, potensiRes] = await Promise.all([
           api.get('/kelautan-pesisir/garam/public'),
-          api.get('/kelautan-pesisir/potensi-perairan/public'),
-          api.get('/kelautan-pesisir/stats', { params: { bulan: visFilterBulan } }),
+          api.get('/kelautan-pesisir/potensi-perairan/public')
         ]);
         setDataGaram(garamRes.data.data || []);
         setDataPotensi(potensiRes.data.data || []);
-        setStats(statsRes.data.data || null);
       } catch (error) {
         console.error('Error fetching kelautan pesisir data:', error);
       } finally {
@@ -70,68 +70,94 @@ export default function KelautanPesisir() {
       }
     };
     fetchAll();
-  }, [visFilterBulan]);
+  }, []);
 
-  // ── KPI (dari endpoint /stats, sudah teragregasi & APPROVED only) ──
-  const kpi = useMemo(() => {
-    if (!stats) return {
-      total_produksi_garam: 0, total_petambak_garam: 0, total_luas_lahan_garam: 0,
-      total_garis_pantai: 0, total_pulau_kecil: 0, total_desa_pesisir: 0,
-    };
-    const potensiPerKota = stats.potensiPerKota || [];
-    return {
-      total_produksi_garam: stats.summary?.total_produksi_garam || 0,
-      total_petambak_garam: stats.summary?.total_petambak_garam || 0,
-      total_luas_lahan_garam: stats.summary?.total_luas_lahan_garam || 0,
-      total_garis_pantai: potensiPerKota.reduce((s, d) => s + (d.garis_pantai || 0), 0),
-      total_pulau_kecil: potensiPerKota.reduce((s, d) => s + (d.pulau_kecil || 0), 0),
-      total_desa_pesisir: potensiPerKota.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
-    };
-  }, [stats]);
-
-  // ── Chart data ──
-  const garamPerKota = useMemo(() => [...(stats?.garamPerKota || [])].sort((a, b) => b.produksi - a.produksi), [stats]);
-  const potensiPerKota = useMemo(() => [...(stats?.potensiPerKota || [])].sort((a, b) => b.garis_pantai - a.garis_pantai), [stats]);
-
-  const garamKota = garamPerKota.map(d => d.name);
-  const garamProduksi = garamPerKota.map(d => parseFloat((d.produksi || 0).toFixed(2)));
-  const garamLahan = garamPerKota.map(d => parseFloat((d.luas_lahan || 0).toFixed(2)));
-  const garamPetambak = garamPerKota.map(d => d.petambak || 0);
-  const garamKelompok = garamPerKota.map(d => d.kelompok || 0);
-
-  const potensiKota = potensiPerKota.map(d => d.name);
-  const potensiPantai = potensiPerKota.map(d => parseFloat((d.garis_pantai || 0).toFixed(2)));
-  const potensiPulau = potensiPerKota.map(d => d.pulau_kecil || 0);
-  const potensiDesa = potensiPerKota.map(d => d.desa_pesisir || 0);
-
-  // ── Filter opsi & tabel bawah ──
+  const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  
   const kabupatenOptions = useMemo(() => {
     const set = new Set([...dataGaram, ...dataPotensi].map(d => d.kabupaten_kota).filter(Boolean));
     return [...set].sort();
   }, [dataGaram, dataPotensi]);
 
-  const filteredGaram = useMemo(() => dataGaram.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
-  ), [dataGaram, filterTahun, filterKab]);
+  const tahunOptions = useMemo(() => {
+    const set = new Set([...dataGaram.map(d => d.tahun), ...dataPotensi.map(d => d.tahun_data)].filter(Boolean));
+    return [...set].sort((a, b) => b - a);
+  }, [dataGaram, dataPotensi]);
 
-  const filteredPotensi = useMemo(() => dataPotensi.filter(d =>
-    (!filterTahun || String(d.tahun_data) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
-  ), [dataPotensi, filterTahun, filterKab]);
+  // ── KPI Potensi Perairan ──
+  const potensiPerKotaFrontend = useMemo(() => {
+    const agg = {};
+    dataPotensi.forEach(d => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { ...d };
+      else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
+    });
+    return Object.values(agg);
+  }, [dataPotensi]);
+
+  const kpiPotensi = useMemo(() => {
+    return {
+      pulau_kecil: potensiPerKotaFrontend.reduce((s, d) => s + (d.jumlah_pulau_kecil || 0), 0),
+      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.panjang_pantai_utara_km || 0) + (d.panjang_pantai_selatan_km || 0) + (d.panjang_pantai_timur_km || 0) + (d.panjang_pantai_barat_km || 0), 0),
+      luas_laut: potensiPerKotaFrontend.reduce((s, d) => s + (d.luas_wilayah_laut_km2 || 0), 0),
+      desa_pesisir: potensiPerKotaFrontend.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
+    };
+  }, [potensiPerKotaFrontend]);
+
+  // ── VISUALISASI GARAM ──
+  const filteredVisGaram = useMemo(() => dataGaram.filter(d => 
+    (!visGaramBulan || (d.bulan || '').toLowerCase() === visGaramBulan.toLowerCase()) &&
+    (!visGaramTahun || String(d.tahun) === visGaramTahun) &&
+    (!visGaramKab || d.kabupaten_kota === visGaramKab)
+  ), [dataGaram, visGaramBulan, visGaramTahun, visGaramKab]);
+
+  const visGaramPerKota = useMemo(() => {
+    const agg = {};
+    filteredVisGaram.forEach(d => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0 };
+      agg[kab].produksi += (d.total_produksi_ton || 0);
+      agg[kab].kelompok = Math.max(agg[kab].kelompok, d.jumlah_kelompok || 0);
+      agg[kab].luas_lahan = Math.max(agg[kab].luas_lahan, d.luas_total_ha || 0);
+      agg[kab].petambak = Math.max(agg[kab].petambak, d.jumlah_petambak || 0);
+    });
+    return Object.values(agg).sort((a, b) => b.produksi - a.produksi);
+  }, [filteredVisGaram]);
+
+  const kpiGaram = useMemo(() => {
+    return {
+      produksi: visGaramPerKota.reduce((s, d) => s + d.produksi, 0),
+      petambak: visGaramPerKota.reduce((s, d) => s + d.petambak, 0),
+      lahan: visGaramPerKota.reduce((s, d) => s + d.luas_lahan, 0),
+    };
+  }, [visGaramPerKota]);
+
+  const garamKota = visGaramPerKota.map(d => d.name);
+  const garamProduksi = visGaramPerKota.map(d => parseFloat(d.produksi.toFixed(2)));
+  const garamLahan = visGaramPerKota.map(d => parseFloat(d.luas_lahan.toFixed(2)));
+  const garamPetambak = visGaramPerKota.map(d => d.petambak);
+  const garamKelompok = visGaramPerKota.map(d => d.kelompok);
+
+  // ── TABEL DATA ──
+  const filteredTableGaram = useMemo(() => dataGaram.filter(d =>
+    (!tableFilterBulan || (d.bulan || '').toLowerCase() === tableFilterBulan.toLowerCase()) &&
+    (!tableFilterTahun || String(d.tahun) === tableFilterTahun) &&
+    (!tableFilterKab || d.kabupaten_kota === tableFilterKab)
+  ), [dataGaram, tableFilterBulan, tableFilterTahun, tableFilterKab]);
+
+  const filteredTablePotensi = useMemo(() => dataPotensi.filter(d =>
+    (!tableFilterTahun || String(d.tahun_data) === tableFilterTahun) &&
+    (!tableFilterKab || d.kabupaten_kota === tableFilterKab)
+  ), [dataPotensi, tableFilterTahun, tableFilterKab]);
 
   const columnsGaram = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
-    { header: 'Triwulan', accessorKey: 'triwulan' },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota' },
     { header: 'Luas Lahan (Ha)', accessorKey: 'luas_total_ha', cell: info => numFmt(info.getValue()) },
-    { header: 'Luas Produksi (Ha)', accessorKey: 'luas_produksi_ha', cell: info => numFmt(info.getValue()) },
     { header: 'Petambak', accessorKey: 'jumlah_petambak' },
     { header: 'Kelompok', accessorKey: 'jumlah_kelompok' },
     { header: 'Total Produksi (Ton)', accessorKey: 'total_produksi_ton', cell: info => <span className="font-semibold text-emerald-600">{numFmt(info.getValue())}</span> },
-    { header: 'Total Stok (Ton)', accessorKey: 'total_stok_ton', cell: info => <span className="font-semibold text-amber-600">{numFmt(info.getValue())}</span> },
-    { header: 'Produktivitas (Ton/Ha)', accessorKey: 'produktivitas', cell: info => numFmt(info.getValue()) },
   ], []);
 
   const columnsPotensi = useMemo(() => [
@@ -143,11 +169,8 @@ export default function KelautanPesisir() {
       accessorFn: (row) => (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) + (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0),
       cell: info => <span className="font-semibold text-cyan-600">{numFmt(info.getValue())}</span>,
     },
-    { header: 'Luas Perairan (km²)', accessorKey: 'luas_perairan_km2', cell: info => numFmt(info.getValue()) },
     { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil' },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir' },
-    { header: 'Konservasi (Ha)', accessorKey: 'luas_kawasan_konservasi_ha', cell: info => numFmt(info.getValue()) },
-    { header: 'Potensi Perikanan (Ton/Th)', accessorKey: 'potensi_perikanan_ton_th', cell: info => numFmt(info.getValue()) },
   ], []);
 
   const handleExport = async (rows) => {
@@ -172,7 +195,6 @@ export default function KelautanPesisir() {
     });
 
     sheet.columns.forEach(col => { col.width = 18; });
-
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `Data_${activeTable === 'garam' ? 'Garam' : 'Potensi_Perairan'}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
@@ -187,64 +209,92 @@ export default function KelautanPesisir() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan &amp; Pesisir</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan Pesisir</h1>
           <p className="text-muted-foreground mt-1">
-            Visualisasi data produksi Garam dan Potensi Perairan Jawa Timur.
+            Visualisasi data Kelautan, Pesisir, dan Potensi Perairan Jawa Timur.
           </p>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_produksi_garam)} <span className="text-sm text-muted-foreground font-normal">Ton</span></p>
+      {/* ── Potensi Perairan KPI (TOP) ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Anchor className="w-5 h-5 text-cyan-600" />
+          <h2 className="text-xl font-bold text-foreground">Potensi Perairan</h2>
         </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_petambak_garam)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
-        </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Garam</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_luas_lahan_garam)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
-        </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Garis Pantai</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
-        </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Total Pulau Kecil</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
-        </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-500" /><p className="text-sm font-medium text-muted-foreground">Total Desa Pesisir</p></div>
-          <p className="text-3xl font-bold text-foreground">{numFmt(kpi.total_desa_pesisir)} <span className="text-sm text-muted-foreground font-normal">Desa</span></p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Jml. Pulau-Pulau Kecil</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Garis Pantai</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Luas Wilayah Laut</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-muted-foreground font-normal">Km²</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Desa Pesisir</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-muted-foreground font-normal">Desa</span></p>
+          </div>
         </div>
       </div>
 
-      {/* ── Charts: Garam ── */}
-      <div className="flex justify-end gap-2 mb-4">
-        <select value={visFilterBulan} onChange={(e) => setVisFilterBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-          <option value="">Semua Bulan</option>
-          {['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </div>
+      {/* ── Visualisasi Garam ── */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <FlaskConical className="w-5 h-5 text-emerald-500" />
-          <h2 className="text-lg font-bold text-foreground">Produksi Garam</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-emerald-500" />
+            <h2 className="text-xl font-bold text-foreground">Visualisasi Produksi Garam</h2>
+          </div>
+          {/* Garam Filters */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+              <option value="">Semua Tahun</option>
+              {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+              <option value="">Semua Bulan</option>
+              {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+              <option value="">Semua Kab/Kota</option>
+              {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
         </div>
+        
+        {/* Garam KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.produksi)} <span className="text-sm text-muted-foreground font-normal">Ton</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.petambak)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.lahan)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+          </div>
+        </div>
+
+        {/* Garam Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
@@ -261,20 +311,28 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Luas Lahan per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={pieOption('Luas Lahan', garamPerKota, 'name', 'luas_lahan')} style={{ height: '320px' }} />
+              ? <ReactECharts option={pieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Petambak per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={pieOption('Jumlah Petambak', garamPerKota, 'name', 'petambak')} style={{ height: '320px' }} />
+              ? <ReactECharts option={pieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
       </div>
+      
+      {/* ── Placeholder Visualisasi Mangrove dkk ── */}
+      <div className="bg-muted/30 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
+        <Info className="w-8 h-8 mb-2 opacity-50" />
+        <p className="font-medium text-foreground">Visualisasi Mangrove, Terumbu Karang, dan Lamun</p>
+        <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
+      </div>
 
       {/* ── Tabel Data + Filter ── */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan Pesisir (Verified)</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-lg w-fit">
             <button
@@ -293,11 +351,17 @@ export default function KelautanPesisir() {
 
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+            <select value={tableFilterTahun} onChange={(e) => setTableFilterTahun(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
               <option value="">Semua Tahun</option>
-              {TAHUN_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
+              {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <select value={filterKab} onChange={(e) => setFilterKab(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+            {activeTable === 'garam' && (
+              <select value={tableFilterBulan} onChange={(e) => setTableFilterBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                <option value="">Semua Bulan</option>
+                {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            )}
+            <select value={tableFilterKab} onChange={(e) => setTableFilterKab(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
               <option value="">Semua Kab/Kota</option>
               {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
             </select>
@@ -306,7 +370,7 @@ export default function KelautanPesisir() {
 
         <DataTable
           columns={activeTable === 'garam' ? columnsGaram : columnsPotensi}
-          data={activeTable === 'garam' ? filteredGaram : filteredPotensi}
+          data={activeTable === 'garam' ? filteredTableGaram : filteredTablePotensi}
           exportName={`Data_${activeTable === 'garam' ? 'Garam' : 'Potensi_Perairan'}`}
           onCustomExport={handleExport}
         />

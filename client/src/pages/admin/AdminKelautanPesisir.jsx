@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
-  TableProperties, LineChart as LineChartIcon
+  TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 
 // ── KONSTANTA ───────────────────────────────────────────────────────────────────
 const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -50,6 +51,16 @@ const TwBadge = ({ tw }) => {
 // ── DATA TABLE ──────────────────────────────────────────────────────────────────
 const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject, renderSubComponent, exportName, onCustomExport }) => {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedRow(null);
+  }, [data]);
+
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const currentData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="rounded-xl border border-[#1e3a52] overflow-hidden">
@@ -96,7 +107,7 @@ const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject,
             </tr>
           </thead>
           <tbody className="divide-y divide-[#1e3a52]">
-            {data.map((row, i) => (
+            {currentData.map((row, i) => (
               <React.Fragment key={i}>
                 <tr
                   className={`cursor-pointer transition-colors hover:bg-[#152d45]/60 ${expandedRow === i ? 'bg-[#152d45]/40' : 'bg-[#0f2236]'}`}
@@ -143,7 +154,7 @@ const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject,
                 )}
               </React.Fragment>
             ))}
-            {data.length === 0 && (
+            {currentData.length === 0 && (
               <tr>
                 <td colSpan={columns.length + 1} className="p-16 text-center text-[#7fb5d5] bg-[#0f2236]">
                   <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
@@ -154,6 +165,29 @@ const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject,
           </tbody>
         </table>
       </div>
+      {data.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-[#152d45] border-t border-[#1e3a52] gap-3">
+          <span className="text-sm text-[#7fb5d5]">
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} sampai {Math.min(currentPage * itemsPerPage, data.length)} dari {data.length} entri
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); setExpandedRow(null); }}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded-lg border border-[#1e3a52] text-[#c8dff0] hover:bg-[#1e3a52] disabled:opacity-50 disabled:hover:bg-transparent text-sm transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); setExpandedRow(null); }}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="px-3 py-1.5 rounded-lg border border-[#1e3a52] text-[#c8dff0] hover:bg-[#1e3a52] disabled:opacity-50 disabled:hover:bg-transparent text-sm transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -675,7 +709,9 @@ export default function AdminKelautanPesisir() {
   const [filterTw, setFilterTw] = useState('');
   const [filterBulan, setFilterBulan] = useState('');
   const [filterKab, setFilterKab] = useState('');
-  const [visFilterBulan, setVisFilterBulan] = useState('');
+  const [visGaramBulan, setVisGaramBulan] = useState('');
+  const [visGaramTahun, setVisGaramTahun] = useState('');
+  const [visGaramKab, setVisGaramKab] = useState('');
 
   // Fetch garam data
   const fetchGaram = useCallback(async () => {
@@ -707,14 +743,14 @@ export default function AdminKelautanPesisir() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await api.get('/kelautan-pesisir/stats', { params: { bulan: visFilterBulan } });
+      const res = await api.get('/kelautan-pesisir/stats');
       setStatsData(res.data.data || null);
     } catch (err) {
       console.error(err);
     } finally {
       setStatsLoading(false);
     }
-  }, [visFilterBulan]);
+  }, []);
 
   useEffect(() => {
     fetchGaram();
@@ -1019,93 +1055,164 @@ export default function AdminKelautanPesisir() {
 
   // ── VISUALISASI ──────────────────────────────────────────────────────────────
   const renderVisualisasi = () => {
-    if (statsLoading) {
-      return (
-        <div className="h-64 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-          <p className="text-[#7fb5d5] text-sm">Memuat data visualisasi...</p>
-        </div>
-      );
-    }
-    if (!statsData) return (
-      <div className="h-64 flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data visualisasi.</div>
+    // ── KPI Potensi Perairan ──
+    const potensiPerKotaFrontend = Object.values(dataPotensiPerairan.reduce((agg, d) => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { ...d };
+      else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
+      return agg;
+    }, {}));
+
+    const kpiPotensi = {
+      pulau_kecil: potensiPerKotaFrontend.reduce((s, d) => s + (d.jumlah_pulau_kecil || 0), 0),
+      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.panjang_pantai_utara_km || 0) + (d.panjang_pantai_selatan_km || 0) + (d.panjang_pantai_timur_km || 0) + (d.panjang_pantai_barat_km || 0), 0),
+      luas_laut: potensiPerKotaFrontend.reduce((s, d) => s + (d.luas_wilayah_laut_km2 || 0), 0),
+      desa_pesisir: potensiPerKotaFrontend.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
+    };
+
+    // ── VISUALISASI GARAM ──
+    const filteredVisGaram = dataGaram.filter(d => 
+      (!visGaramBulan || (d.bulan || '').toLowerCase() === visGaramBulan.toLowerCase()) &&
+      (!visGaramTahun || String(d.tahun) === visGaramTahun) &&
+      (!visGaramKab || d.kabupaten_kota === visGaramKab)
     );
 
-    const { garamPerKota = [], potensiPerKota = [] } = statsData;
-    const garamSorted = [...garamPerKota].sort((a, b) => b.produksi - a.produksi);
-    const potensiSorted = [...potensiPerKota].sort((a, b) => b.garis_pantai - a.garis_pantai);
+    const visGaramPerKota = Object.values(filteredVisGaram.reduce((agg, d) => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0 };
+      agg[kab].produksi += (d.total_produksi_ton || 0);
+      agg[kab].kelompok = Math.max(agg[kab].kelompok, d.jumlah_kelompok || 0);
+      agg[kab].luas_lahan = Math.max(agg[kab].luas_lahan, d.luas_total_ha || 0);
+      agg[kab].petambak = Math.max(agg[kab].petambak, d.jumlah_petambak || 0);
+      return agg;
+    }, {})).sort((a, b) => b.produksi - a.produksi);
 
-    const garamKota = garamSorted.map(d => d.name);
-    const garamProduksi = garamSorted.map(d => parseFloat(d.produksi.toFixed(2)));
-    const garamKelompok = garamSorted.map(d => d.kelompok);
+    const kpiGaram = {
+      produksi: visGaramPerKota.reduce((s, d) => s + d.produksi, 0),
+      petambak: visGaramPerKota.reduce((s, d) => s + d.petambak, 0),
+      lahan: visGaramPerKota.reduce((s, d) => s + d.luas_lahan, 0),
+    };
 
-    const potensiKota = potensiSorted.map(d => d.name);
-    const potensiPantai = potensiSorted.map(d => parseFloat(d.garis_pantai.toFixed(2)));
-    const potensiPulau = potensiSorted.map(d => d.pulau_kecil);
-    const potensiDesa = potensiSorted.map(d => d.desa_pesisir);
+    const garamKota = visGaramPerKota.map(d => d.name);
+    const garamProduksi = visGaramPerKota.map(d => parseFloat(d.produksi.toFixed(2)));
+    const garamKelompok = visGaramPerKota.map(d => d.kelompok);
+
+    const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const tahunOptions = [...new Set(dataGaram.map(d => d.tahun).filter(Boolean))].sort((a, b) => b - a);
+    const kabupatenOptions = [...new Set(dataGaram.map(d => d.kabupaten_kota).filter(Boolean))].sort();
+
+    const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
     return (
       <div className="space-y-8">
-        <div className="flex justify-end mb-4">
-          <select value={visFilterBulan} onChange={(e) => setVisFilterBulan(e.target.value)} className="rounded-lg border border-[#1e3a52] bg-[#0f2236] text-[#c8dff0] px-3 py-2 text-sm outline-none focus:border-cyan-500">
-            <option value="">Semua Bulan</option>
-            {['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-        {/* ── Garam Charts ── */}
+        {/* ── Potensi Perairan KPI (TOP) ── */}
         <div>
-          <h3 className="text-base font-bold text-[#c8dff0] mb-4 flex items-center gap-2">
-            <FlaskConical className="w-4 h-4 text-cyan-400" /> Garam
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makeBarOption('Volume Produksi Garam per Kab/Kota (Ton)', garamKota, garamProduksi, '#22d3ee')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+          <div className="flex items-center gap-2 mb-4">
+            <Anchor className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-xl font-bold text-[#c8dff0]">Potensi Perairan</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-400" /><p className="text-sm font-medium text-[#7fb5d5]">Jml. Pulau-Pulau Kecil</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-[#7fb5d5] font-normal">Pulau</span></p>
             </div>
-
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makeHBarOption('Jumlah Kelompok Garam per Kab/Kota', garamKota, garamKelompok, '#a78bfa')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Garis Pantai</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-[#7fb5d5] font-normal">Km</span></p>
             </div>
-
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makePieOption('Luas Lahan (Ha)', garamSorted, 'name', 'luas_lahan')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-[#7fb5d5]">Luas Wilayah Laut</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-[#7fb5d5] font-normal">Km²</span></p>
             </div>
-            
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {garamKota.length > 0
-                ? <ReactECharts option={makePieOption('Jumlah Petambak', garamSorted, 'name', 'petambak')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-400" /><p className="text-sm font-medium text-[#7fb5d5]">Jumlah Desa Pesisir</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-[#7fb5d5] font-normal">Desa</span></p>
             </div>
           </div>
         </div>
 
-        {/* ── Potensi Perairan Charts ── */}
+        {/* ── Visualisasi Garam ── */}
         <div>
-          <h3 className="text-base font-bold text-[#c8dff0] mb-4 flex items-center gap-2">
-            <Anchor className="w-4 h-4 text-cyan-400" /> Potensi Perairan
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {potensiKota.length > 0
-                ? <ReactECharts option={makeBarOption('Panjang Garis Pantai per Kab/Kota (km)', potensiKota, potensiPantai, '#06b6d4')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-xl font-bold text-[#c8dff0]">Visualisasi Produksi Garam</h2>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4">
-              {potensiKota.length > 0
-                ? <ReactECharts option={makeHBarOption('Jumlah Pulau Kecil per Kab/Kota', potensiKota, potensiPulau, '#f97316')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
-            </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 lg:col-span-2">
-              {potensiKota.length > 0
-                ? <ReactECharts option={makeBarOption('Jumlah Desa Pesisir per Kab/Kota', potensiKota, potensiDesa, '#34d399')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] text-sm">Belum ada data</div>}
+            {/* Garam Filters */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-[#7fb5d5]" />
+              <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+                <option value="">Semua Tahun</option>
+                {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+                <option value="">Semua Bulan</option>
+                {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+                <option value="">Semua Kab/Kota</option>
+                {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
             </div>
           </div>
+          
+          {/* Garam KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Produksi Garam</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.produksi)} <span className="text-sm text-[#7fb5d5] font-normal">Ton</span></p>
+            </div>
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Petambak Garam</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.petambak)} <span className="text-sm text-[#7fb5d5] font-normal">Orang</span></p>
+            </div>
+            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Luas Lahan Tambak</p></div>
+              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.lahan)} <span className="text-sm text-[#7fb5d5] font-normal">Ha</span></p>
+            </div>
+          </div>
+
+          {/* Garam Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
+              {garamKota.length > 0
+                ? <ReactECharts option={makeBarOption('Volume Produksi Garam', garamKota, garamProduksi, '#10b981')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+            </div>
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Jumlah Kelompok per Kab/Kota</h3>
+              {garamKota.length > 0
+                ? <ReactECharts option={makeHBarOption('Jumlah Kelompok Garam', garamKota, garamKelompok, '#8b5cf6')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+            </div>
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Luas Lahan per Kab/Kota</h3>
+              {garamKota.length > 0
+                ? <ReactECharts option={makePieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+            </div>
+            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Jumlah Petambak per Kab/Kota</h3>
+              {garamKota.length > 0
+                ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak')} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Placeholder Visualisasi Mangrove dkk ── */}
+        <div className="bg-[#152d45]/50 border border-dashed border-[#1e3a52] p-8 rounded-2xl flex flex-col items-center justify-center text-[#7fb5d5] text-center">
+          <Info className="w-8 h-8 mb-2 opacity-50" />
+          <p className="font-medium text-[#c8dff0]">Visualisasi Mangrove, Terumbu Karang, dan Lamun</p>
+          <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
         </div>
       </div>
     );
@@ -1171,8 +1278,8 @@ export default function AdminKelautanPesisir() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-cyan-400/70 uppercase tracking-widest mb-1.5">Dinas Kelautan &amp; Perikanan — Jawa Timur</p>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Bidang Kelautan &amp; Pesisir</h1>
+          <p className="text-xs font-semibold text-cyan-400/70 uppercase tracking-widest mb-1.5">Dinas Kelautan dan Perikanan — Jawa Timur</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Bidang Kelautan Pesisir</h1>
           <p className="text-[#7fb5d5] mt-1.5 text-sm">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
         </div>
         {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan') && (
