@@ -115,8 +115,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
 
   const handleExport = (isRiil) => {
     // Generate headers
-    const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi', 'Jenis Perairan (Khusus PUD)', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
-    const headerRow2 = ['', '', '', '', '', ''];
+    const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
+    const headerRow2 = ['', '', '', '', ''];
 
     let komoditasArray = [];
     if (!filterCabang) {
