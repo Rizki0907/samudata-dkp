@@ -299,14 +299,6 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     },
     { header: 'Wilayah / Lokasi', accessorKey: 'pelabuhan' },
     {
-      header: 'Jenis Perairan (Khusus PUD)',
-      accessorKey: 'jenis_perairan',
-      cell: ({ row }) => {
-        const val = row.original.jenis_perairan;
-        return val && val !== '-' && val !== 'none' ? val : '-';
-      }
-    },
-    {
       header: 'Total Volume (Kg)',
       accessorKey: 'volume',
       cell: ({ row }) => <span className="font-medium">{row.original.volume.toLocaleString('id-ID')}</span>
