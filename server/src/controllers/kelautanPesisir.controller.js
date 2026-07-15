@@ -2,11 +2,14 @@ const prisma = require('../utils/prisma');
 
 const getTriwulan = (bulan) => {
   if (!bulan) return '-';
-  const bulanLower = bulan.toLowerCase();
-  if (['januari', 'februari', 'maret'].includes(bulanLower)) return 'TW 1';
-  if (['april', 'mei', 'juni'].includes(bulanLower)) return 'TW 2';
-  if (['juli', 'agustus', 'september'].includes(bulanLower)) return 'TW 3';
-  if (['oktober', 'november', 'desember'].includes(bulanLower)) return 'TW 4';
+  // Ubah paksa jadi string agar tidak crash saat menerima angka 1-12
+  const b = String(bulan).toLowerCase().trim(); 
+  
+  if (['januari', 'februari', 'maret', '1', '2', '3'].includes(b)) return 'TW 1';
+  if (['april', 'mei', 'juni', '4', '5', '6'].includes(b)) return 'TW 2';
+  if (['juli', 'agustus', 'september', '7', '8', '9'].includes(b)) return 'TW 3';
+  if (['oktober', 'november', 'desember', '10', '11', '12'].includes(b)) return 'TW 4';
+  
   return '-';
 };
 
@@ -196,7 +199,7 @@ const getKelautanPesisirStats = async (req, res) => {
   try {
     const { tahun, bulan } = req.query;
     
-    // GARAM STATS
+    // --- GARAM STATS ---
     const garamWhere = { status: 'VERIFIED' };
     if (tahun) garamWhere.tahun = parseInt(tahun);
     if (bulan) garamWhere.bulan = bulan;
@@ -207,33 +210,31 @@ const getKelautanPesisirStats = async (req, res) => {
     });
 
     let total_produksi_garam = 0;
-    let total_petambak_garam = 0;
-    let total_luas_lahan_garam = 0;
     
     const garamPerKota = {};
-    const seenKotaGaram = new Set();
 
     garamData.forEach(item => {
       const k = item.kabupaten_kota || 'Tidak Diketahui';
-      if (!garamPerKota[k]) garamPerKota[k] = { produksi: 0, luas_lahan: 0, petambak: 0, kelompok: 0 };
+      if (!garamPerKota[k]) {
+        garamPerKota[k] = { produksi: 0, luas_lahan: 0, petambak: 0, kelompok: 0 };
+      }
       
-      // Gunakan "|| 0" sebagai sabuk pengaman agar tidak NaN
+      // Hasil Panen selalu dijumlahkan (+)
       const produksi = item.total_produksi_ton || 0;
       total_produksi_garam += produksi;
       garamPerKota[k].produksi += produksi;
 
-      if (!seenKotaGaram.has(k)) {
-        seenKotaGaram.add(k);
-        total_petambak_garam += (item.jumlah_petambak || 0);
-        total_luas_lahan_garam += (item.luas_total_ha || 0);
-        
-        garamPerKota[k].luas_lahan = (item.luas_total_ha || 0);
-        garamPerKota[k].petambak = (item.jumlah_petambak || 0);
-        garamPerKota[k].kelompok = (item.jumlah_kelompok || 0);
-      }
+      // Data Fisik diambil nilai paling besar (Math.max) agar tidak ganda saat tarik data multi-bulan
+      garamPerKota[k].luas_lahan = Math.max(garamPerKota[k].luas_lahan, item.luas_total_ha || 0);
+      garamPerKota[k].petambak = Math.max(garamPerKota[k].petambak, item.jumlah_petambak || 0);
+      garamPerKota[k].kelompok = Math.max(garamPerKota[k].kelompok, item.jumlah_kelompok || 0);
     });
 
-    // POTENSI PERAIRAN STATS
+    // Menghitung grand total fisik dari nilai yang sudah difilter
+    const total_luas_lahan_garam = Object.values(garamPerKota).reduce((sum, k) => sum + k.luas_lahan, 0);
+    const total_petambak_garam = Object.values(garamPerKota).reduce((sum, k) => sum + k.petambak, 0);
+
+    // --- POTENSI PERAIRAN STATS ---
     const potensiWhere = { status: 'VERIFIED' };
     if (tahun) potensiWhere.tahun_data = parseInt(tahun);
     const potensiData = await prisma.potensiPerairan.findMany({ where: potensiWhere });
@@ -241,10 +242,7 @@ const getKelautanPesisirStats = async (req, res) => {
     const potensiPerKota = {};
     potensiData.forEach(item => {
       const k = item.kabupaten_kota || 'Tidak Diketahui';
-      
-      // Sabuk pengaman untuk perhitungan matematika panjang pantai
       const totalPantai = item.total_panjang_garis_pantai_km || 0;
-      
       potensiPerKota[k] = {
         pulau_kecil: item.jumlah_pulau_kecil || 0,
         garis_pantai: totalPantai,
@@ -256,11 +254,7 @@ const getKelautanPesisirStats = async (req, res) => {
     res.json({
       success: true,
       data: {
-        summary: {
-          total_produksi_garam,
-          total_petambak_garam,
-          total_luas_lahan_garam
-        },
+        summary: { total_produksi_garam, total_petambak_garam, total_luas_lahan_garam },
         garamPerKota: Object.entries(garamPerKota).map(([name, stats]) => ({ name, ...stats })),
         potensiPerKota: Object.entries(potensiPerKota).map(([name, stats]) => ({ name, ...stats }))
       }
