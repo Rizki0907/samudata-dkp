@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
-  TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark
+  TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark,
+  ChevronRight, ChevronDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -13,6 +14,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DataTable } from '@/components/shared/DataTable';
 
 // ── KONSTANTA ───────────────────────────────────────────────────────────────────
 const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -44,152 +46,8 @@ const TwBadge = ({ tw }) => {
     'TW 3': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     'TW 4': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   };
-  const cls = colorMap[tw] ?? 'bg-[#152d45] text-[#7fb5d5] border-[#1e3a52]';
+  const cls = colorMap[tw] ?? 'bg-muted text-muted-foreground border-border';
   return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{tw ?? '-'}</span>;
-};
-
-// ── DATA TABLE ──────────────────────────────────────────────────────────────────
-const DataTable = ({ user, columns, data, onEdit, onDelete, onApprove, onReject, renderSubComponent, exportName, onCustomExport }) => {
-  const [expandedRow, setExpandedRow] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    setCurrentPage(1);
-    setExpandedRow(null);
-  }, [data]);
-
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  const currentData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  return (
-    <div className="rounded-xl border border-[#1e3a52] overflow-hidden">
-      {exportName && onCustomExport && (
-        <div className="flex justify-end px-4 py-2.5 bg-[#152d45] border-b border-[#1e3a52] gap-3">
-          {exportName.includes('Garam') ? (
-            <>
-              <button
-                onClick={() => onCustomExport(data, 'bulanan')}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                Export Bulan Ini
-              </button>
-              <button
-                onClick={() => onCustomExport(data, 'tahunan')}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 text-xs font-semibold transition-colors"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                Export Tahun Ini
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => onCustomExport(data)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Export Excel
-            </button>
-          )}
-        </div>
-      )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-[#152d45] text-[#7fb5d5] border-b border-[#1e3a52]">
-            <tr>
-              {columns.map((col, i) => (
-                <th key={i} className="px-4 py-3.5 font-semibold whitespace-nowrap tracking-wider text-xs uppercase">{col.header}</th>
-              ))}
-              {(onEdit || onDelete) && (
-                <th className="px-4 py-3.5 font-semibold text-right tracking-wider text-xs uppercase">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1e3a52]">
-            {currentData.map((row, i) => (
-              <React.Fragment key={i}>
-                <tr
-                  className={`cursor-pointer transition-colors hover:bg-[#152d45]/60 ${expandedRow === i ? 'bg-[#152d45]/40' : 'bg-[#0f2236]'}`}
-                  onClick={() => setExpandedRow(expandedRow === i ? null : i)}
-                >
-                  {columns.map((col, j) => (
-                    <td key={j} className="px-4 py-3 whitespace-nowrap text-[#c8dff0]">
-                      {col.cell
-                        ? col.cell({ getValue: () => col.accessorFn ? col.accessorFn(row) : row[col.accessorKey], row: { original: row } })
-                        : row[col.accessorKey]}
-                    </td>
-                  ))}
-                  {(onEdit || onDelete) && (
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-3">
-                        {(user?.role === 'admin_pusat' && ['PENDING', 'APPROVED'].includes(row.status)) && onApprove && (
-                          <button onClick={(e) => { e.stopPropagation(); onApprove(row); }} className="text-emerald-400 hover:text-emerald-300 transition-colors" title="Setujui">
-                            <CheckCircle className="w-4 h-4" />
-                          </button>
-                        )}
-                        {(user?.role === 'admin_pusat' && ['PENDING', 'APPROVED'].includes(row.status)) && onReject && (
-                          <button onClick={(e) => { e.stopPropagation(); onReject(row); }} className="text-rose-400 hover:text-rose-300 transition-colors" title="Tolak">
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        )}
-                        {onEdit && (user?.role === 'admin_pusat' || ['PENDING', 'REJECTED'].includes(row.status)) && (
-                          <button onClick={(e) => { e.stopPropagation(); onEdit(row); }} className="text-cyan-400 font-medium hover:text-cyan-200 transition-colors text-xs">Edit</button>
-                        )}
-                        {onDelete && (user?.role === 'admin_pusat' || ['PENDING', 'REJECTED'].includes(row.status)) && (
-                          <button onClick={(e) => { e.stopPropagation(); onDelete(row); }} className="text-rose-400 font-medium hover:text-rose-300 transition-colors text-xs">Hapus</button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-                {expandedRow === i && renderSubComponent && (
-                  <tr className="bg-[#0b1929]/80">
-                    <td colSpan={columns.length + 1} className="p-0 border-b border-[#1e3a52]">
-                      <div className="animate-in slide-in-from-top-2 duration-200">
-                        {renderSubComponent({ row: { original: row } })}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-            {currentData.length === 0 && (
-              <tr>
-                <td colSpan={columns.length + 1} className="p-16 text-center text-[#7fb5d5] bg-[#0f2236]">
-                  <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">Belum ada data tersedia.</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      {data.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-[#152d45] border-t border-[#1e3a52] gap-3">
-          <span className="text-sm text-[#7fb5d5]">
-            Menampilkan {(currentPage - 1) * itemsPerPage + 1} sampai {Math.min(currentPage * itemsPerPage, data.length)} dari {data.length} entri
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); setExpandedRow(null); }}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-[#1e3a52] text-[#c8dff0] hover:bg-[#1e3a52] disabled:opacity-50 disabled:hover:bg-transparent text-sm transition-colors"
-            >
-              Sebelumnya
-            </button>
-            <button
-              onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); setExpandedRow(null); }}
-              disabled={currentPage === totalPages || totalPages === 0}
-              className="px-3 py-1.5 rounded-lg border border-[#1e3a52] text-[#c8dff0] hover:bg-[#1e3a52] disabled:opacity-50 disabled:hover:bg-transparent text-sm transition-colors"
-            >
-              Selanjutnya
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 };
 
 // ── EXCEL EXPORT HELPERS ────────────────────────────────────────────────────────
@@ -201,197 +59,42 @@ const cellStyle = (opts = {}) => ({
   fill: opts.fill ? { fgColor: { rgb: opts.fill } } : undefined,
 });
 
-const exportGaramExcel = (data) => {
-  const title = 'REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR';
-  const subtitle = `Tahun Data: ${new Date().getFullYear()}`;
+const exportGaramExcel = (data, bulan = '', tahun = '') => {
+  const currentYear = tahun || new Date().getFullYear();
+  const title = `DATA PRODUKSI GARAM RAKYAT JAWA TIMUR TAHUN ${currentYear}`;
+  const subtitle = `BULAN: ${bulan ? bulan.toUpperCase() : 'SEMUA BULAN'}`;
 
-  const h1 = ['No', 'Kab/Kota', 'L. Lahan (Ha)', 'L. Produksi (Ha)', 'Σ Kelompok', 'Σ Petambak',
-    'Produksi (Ton)', '', '', 'Σ Produksi (Ton)', 'Produktivitas\n(Ton/Ha)',
-    'Stok (Ton)', '', '', 'Σ Stok (Ton)',
-    'Harga (Rp)', '', '', 'Nilai Produksi (Rp)', '', ''];
-  const h2 = ['', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
-
-  let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
-  let totalNilaiK1 = 0, totalNilaiK2 = 0, totalNilaiK3 = 0;
-  let sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0;
-  let countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
-
-  const dataRows = data.map((row, i) => {
-    totalProduksi += row.total_produksi_ton || 0;
-    totalStok += row.total_stok_ton || 0;
-    totalLuas += row.luas_total_ha || 0;
-    totalLProd += row.luas_produksi_ha || 0;
-    totalPok += row.jumlah_kelompok || 0;
-    totalPetambak += row.jumlah_petambak || 0;
-
-    const nk1 = (row.produksi_k1_ton || 0) * (row.harga_k1_rp || 0);
-    const nk2 = (row.produksi_k2_ton || 0) * (row.harga_k2_rp || 0);
-    const nk3 = (row.produksi_k3_ton || 0) * (row.harga_k3_rp || 0);
-
-    totalNilaiK1 += nk1;
-    totalNilaiK2 += nk2;
-    totalNilaiK3 += nk3;
-
-    if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
-    if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
-    if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
-    return [
-      i + 1,
-      row.kabupaten_kota,
-      row.luas_total_ha?.toLocaleString('id-ID') ?? 0,
-      row.luas_produksi_ha?.toLocaleString('id-ID') ?? 0,
-      row.jumlah_kelompok ?? 0,
-      row.jumlah_petambak ?? 0,
-      row.produksi_k1_ton?.toLocaleString('id-ID') ?? 0,
-      row.produksi_k2_ton?.toLocaleString('id-ID') ?? 0,
-      row.produksi_k3_ton?.toLocaleString('id-ID') ?? 0,
-      row.total_produksi_ton?.toLocaleString('id-ID') ?? 0,
-      row.produktivitas?.toLocaleString('id-ID', { maximumFractionDigits: 3 }) ?? 0,
-      row.stok_k1_ton?.toLocaleString('id-ID') ?? 0,
-      row.stok_k2_ton?.toLocaleString('id-ID') ?? 0,
-      row.stok_k3_ton?.toLocaleString('id-ID') ?? 0,
-      row.total_stok_ton?.toLocaleString('id-ID') ?? 0,
-      row.harga_k1_rp?.toLocaleString('id-ID') ?? 0,
-      row.harga_k2_rp?.toLocaleString('id-ID') ?? 0,
-      row.harga_k3_rp?.toLocaleString('id-ID') ?? 0,
-      nk1.toLocaleString('id-ID'),
-      nk2.toLocaleString('id-ID'),
-      nk3.toLocaleString('id-ID'),
-    ];
-  });
-
-  const avgK1 = countHargaK1 > 0 ? (sumHargaK1 / countHargaK1).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
-  const avgK2 = countHargaK2 > 0 ? (sumHargaK2 / countHargaK2).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
-  const avgK3 = countHargaK3 > 0 ? (sumHargaK3 / countHargaK3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
-
-  const totalRow = [
-    'TOTAL', '',
-    totalLuas.toLocaleString('id-ID'),
-    totalLProd.toLocaleString('id-ID'),
-    totalPok,
-    totalPetambak,
-    '', '', '',
-    totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
-    '',
-    '', '', '',
-    totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
-    avgK1, avgK2, avgK3,
-    totalNilaiK1.toLocaleString('id-ID'),
-    totalNilaiK2.toLocaleString('id-ID'),
-    totalNilaiK3.toLocaleString('id-ID'),
-  ];
-
-  const aoa = [
-    [title], [subtitle], [],
-    h1, h2,
-    ...dataRows,
-    totalRow
-  ];
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  const refTitle = XLSX.utils.encode_cell({ c: 0, r: 0 });
-  ws[refTitle].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
-  const refSub = XLSX.utils.encode_cell({ c: 0, r: 1 });
-  ws[refSub].s = { font: { bold: false, sz: 11 }, alignment: { horizontal: 'center' } };
-
-  const hStyle1 = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
-  const hStyle2 = cellStyle({ bold: true, fill: '2E75B6', fontColor: 'FFFFFF', align: 'center' });
-  const hProdStyle = cellStyle({ bold: true, fill: '375623', fontColor: 'FFFFFF', align: 'center' });
-  const hStokStyle = cellStyle({ bold: true, fill: 'BF8F00', fontColor: 'FFFFFF', align: 'center' });
-  const hProdukStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
-  const dataStyle = cellStyle({ align: 'center' });
-  const dataLeftStyle = cellStyle({ align: 'left' });
-  const totalStyle = cellStyle({ bold: true, fill: 'FFFF00', align: 'center' });
-  const totalSumStyle = cellStyle({ bold: true, fill: 'F4B942', align: 'center' });
-
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let C = range.s.c; C <= range.e.c; C++) {
-    const r3 = XLSX.utils.encode_cell({ c: C, r: 3 });
-    const r4 = XLSX.utils.encode_cell({ c: C, r: 4 });
-    if (!ws[r3]) ws[r3] = { t: 's', v: '' };
-    if (!ws[r4]) ws[r4] = { t: 's', v: '' };
-    if (C <= 5) { ws[r3].s = hStyle1; ws[r4].s = hStyle1; } // No to Petambak
-    else if (C >= 6 && C <= 10) { ws[r3].s = hProdStyle; ws[r4].s = hProdStyle; } // Prod to Produktivitas
-    else if (C >= 11 && C <= 14) { ws[r3].s = hStokStyle; ws[r4].s = hStokStyle; } // Stok
-    else if (C >= 15 && C <= 17) { ws[r3].s = hStyle2; ws[r4].s = hStyle2; } // Harga
-    else { ws[r3].s = hProdukStyle; ws[r4].s = hProdukStyle; } // Nilai Produksi
-  }
-
-  const dataStart = 5;
-  const totalRowIdx = dataStart + dataRows.length;
-  for (let R = dataStart; R < totalRowIdx; R++) {
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const ref = XLSX.utils.encode_cell({ c: C, r: R });
-      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
-      ws[ref].s = C === 1 ? dataLeftStyle : dataStyle;
-    }
-  }
-
-  for (let C = range.s.c; C <= range.e.c; C++) {
-    const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx });
-    if (!ws[ref]) ws[ref] = { t: 's', v: '' };
-    ws[ref].s = (C === 9 || C === 14) ? totalSumStyle : totalStyle;
-  }
-
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } },
-    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // No
-    { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // Kab
-    { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // L Lahan
-    { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, // L Produksi
-    { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, // Pok
-    { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, // Petambak
-    { s: { r: 3, c: 6 }, e: { r: 3, c: 8 } }, // Prod K1..K3
-    { s: { r: 3, c: 9 }, e: { r: 4, c: 9 } }, // Jml Prod
-    { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, // Produktivitas
-    { s: { r: 3, c: 11 }, e: { r: 3, c: 13 } }, // Stok K1..K3
-    { s: { r: 3, c: 14 }, e: { r: 4, c: 14 } }, // Total Stok
-    { s: { r: 3, c: 15 }, e: { r: 3, c: 17 } }, // Harga K1..K3
-    { s: { r: 3, c: 18 }, e: { r: 3, c: 20 } }, // Nilai K1..K3
-    { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 5 } },
-  ];
-
-  ws['!cols'] = [
-    { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 },
-    { wch: 16 }, { wch: 16 }, { wch: 16 },
-  ];
-  ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
-
+  const ws = buildGaramSheet(data, title, subtitle);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Produksi_Garam');
-  XLSX.writeFile(wb, `Rekapitulasi_Garam_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, bulan ? bulan.substring(0, 3) : 'Produksi_Garam');
+  XLSX.writeFile(wb, `Produksi_Garam_${bulan ? bulan + '_' : ''}${currentYear}.xlsx`);
 };
 
 const exportGaramExcelTahunan = (data, tahun) => {
   const wb = XLSX.utils.book_new();
+  const currentYear = tahun || new Date().getFullYear();
   const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const NAMA_SHEET = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   
   // Create sheet for each month
-  NAMA_BULAN.forEach(bulan => {
-    const dataBulan = data.filter(d => d.bulan === bulan);
-    if (dataBulan.length > 0) {
-      const ws = buildGaramSheet(dataBulan, `REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR BULAN ${bulan.toUpperCase()}`, `Tahun Data: ${tahun || new Date().getFullYear()}`);
-      XLSX.utils.book_append_sheet(wb, ws, bulan);
-    }
+  NAMA_BULAN.forEach((bulan, idx) => {
+    const dataBulan = data.filter(d => (d.bulan || '').toLowerCase() === bulan.toLowerCase());
+    const ws = buildGaramSheet(dataBulan, `DATA PRODUKSI GARAM RAKYAT JAWA TIMUR TAHUN ${currentYear}`, `BULAN: ${bulan.toUpperCase()}`);
+    XLSX.utils.book_append_sheet(wb, ws, NAMA_SHEET[idx]);
   });
 
   // Create Rekap Tahun sheet
-  const wsRekap = buildGaramSheet(data, `REKAPITULASI DATA PRODUKSI GARAM JAWA TIMUR`, `Tahun Data: ${tahun || new Date().getFullYear()}`);
-  XLSX.utils.book_append_sheet(wb, wsRekap, `Rekap Tahun ${tahun || new Date().getFullYear()}`);
+  const wsRekap = buildGaramSheet(data, `DATA PRODUKSI GARAM RAKYAT JAWA TIMUR TAHUN ${currentYear}`, `REKAP TAHUN ${currentYear}`);
+  XLSX.utils.book_append_sheet(wb, wsRekap, `Rekap ${currentYear}`);
 
-  XLSX.writeFile(wb, `Rekapitulasi_Garam_Tahunan_${tahun || new Date().getFullYear()}.xlsx`);
+  XLSX.writeFile(wb, `Produksi_Garam_Tahunan_${currentYear}.xlsx`);
 };
 
 const buildGaramSheet = (dataRowsRaw, title, subtitle) => {
-  const h1 = ['No', 'Kab/Kota', 'L. Lahan (Ha)', 'L. Produksi (Ha)', 'Σ Kelompok', 'Σ Petambak',
-    'Produksi (Ton)', '', '', 'Σ Produksi (Ton)', 'Produktivitas\n(Ton/Ha)',
-    'Stok (Ton)', '', '', 'Σ Stok (Ton)',
-    'Harga (Rp)', '', '', 'Nilai Produksi (Rp)', '', ''];
+  const h1 = ['No', 'Kab/Kota', 'L Total (Ha)', 'L Prod (Ha)', 'Σ Pok', 'Σ Petambak',
+    'Produksi (Ton)', '', '', 'Σ Prod (Ton)', 'Prodtv',
+    'Stok (Ton)', '', '', 'Σ Stok',
+    'Harga (Rp)', '', '', 'Nilai Produksi', '', ''];
   const h2 = ['', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
 
   let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
@@ -504,15 +207,11 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle) => {
   const refSub = XLSX.utils.encode_cell({ c: 0, r: 1 });
   ws[refSub].s = { font: { bold: false, sz: 11 }, alignment: { horizontal: 'center' } };
 
-  const hStyle1 = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
-  const hStyle2 = cellStyle({ bold: true, fill: '2E75B6', fontColor: 'FFFFFF', align: 'center' });
-  const hProdStyle = cellStyle({ bold: true, fill: '375623', fontColor: 'FFFFFF', align: 'center' });
-  const hStokStyle = cellStyle({ bold: true, fill: 'BF8F00', fontColor: 'FFFFFF', align: 'center' });
-  const hProdukStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
+  const hStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF', align: 'center' });
   const dataStyle = cellStyle({ align: 'center' });
   const dataLeftStyle = cellStyle({ align: 'left' });
-  const totalStyle = cellStyle({ bold: true, fill: 'FFFF00', align: 'center' });
-  const totalSumStyle = cellStyle({ bold: true, fill: 'F4B942', align: 'center' });
+  const totalStyle = cellStyle({ bold: true, fill: 'D9E1F2', align: 'center' });
+  const totalSumStyle = cellStyle({ bold: true, fill: 'B4C6E7', align: 'center' });
 
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let C = range.s.c; C <= range.e.c; C++) {
@@ -520,11 +219,8 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle) => {
     const r4 = XLSX.utils.encode_cell({ c: C, r: 4 });
     if (!ws[r3]) ws[r3] = { t: 's', v: '' };
     if (!ws[r4]) ws[r4] = { t: 's', v: '' };
-    if (C <= 5) { ws[r3].s = hStyle1; ws[r4].s = hStyle1; } 
-    else if (C >= 6 && C <= 10) { ws[r3].s = hProdStyle; ws[r4].s = hProdStyle; } 
-    else if (C >= 11 && C <= 14) { ws[r3].s = hStokStyle; ws[r4].s = hStokStyle; } 
-    else if (C >= 15 && C <= 17) { ws[r3].s = hStyle2; ws[r4].s = hStyle2; } 
-    else { ws[r3].s = hProdukStyle; ws[r4].s = hProdukStyle; } 
+    ws[r3].s = hStyle;
+    ws[r4].s = hStyle;
   }
 
   const dataStart = 5;
@@ -644,35 +340,43 @@ const darkTheme = {
   textStyle: { color: '#7fb5d5', fontFamily: 'inherit' },
 };
 
-const makeBarOption = (title, categories, series, color = '#22d3ee') => ({
-  ...darkTheme,
-  title: { text: title, textStyle: { color: '#c8dff0', fontSize: 13, fontWeight: 'bold' } },
-  tooltip: { trigger: 'axis', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
-  grid: { left: '3%', right: '4%', bottom: 60, containLabel: true },
-  xAxis: { type: 'category', data: categories, axisLabel: { color: '#7fb5d5', rotate: 35, fontSize: 11 }, axisLine: { lineStyle: { color: '#1e3a52' } } },
-  yAxis: { type: 'value', axisLabel: { color: '#7fb5d5' }, splitLine: { lineStyle: { color: '#1e3a52' } } },
-  series: Array.isArray(series) ? series : [{ data: series, type: 'bar', itemStyle: { color, borderRadius: [4, 4, 0, 0] } }],
-});
+// ── MARITIME COLOR PALETTE ──
+const CHART_PALETTE = [
+  '#0891b2', // cyan-600
+  '#0d9488', // teal-600
+  '#d97706', // amber-600
+  '#7c3aed', // violet-600
+  '#059669', // emerald-600
+  '#db2777', // pink-600
+  '#2563eb', // blue-600
+  '#ea580c', // orange-600
+  '#4f46e5', // indigo-600
+  '#16a34a', // green-600
+  '#9333ea', // purple-600
+  '#dc2626', // red-600
+];
 
-const makeHBarOption = (title, categories, values, color = '#22d3ee') => ({
+const makeHBarOption = (title, categories, values, color = '#0891b2') => ({
   ...darkTheme,
   title: { text: title, textStyle: { color: '#c8dff0', fontSize: 13, fontWeight: 'bold' } },
-  tooltip: { trigger: 'axis', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
-  grid: { left: 120, right: 20, top: 40, bottom: 20 },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  grid: { left: 140, right: 30, top: 40, bottom: 10 },
   xAxis: { type: 'value', axisLabel: { color: '#7fb5d5' }, splitLine: { lineStyle: { color: '#1e3a52' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#7fb5d5', fontSize: 11 } },
-  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] } }],
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#a3c7df', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
 });
 
 const makePieOption = (title, data, nameField, valueField) => ({
   ...darkTheme,
+  color: CHART_PALETTE,
   title: { text: title, textStyle: { color: '#c8dff0', fontSize: 13, fontWeight: 'bold' } },
   tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 40, bottom: 20, textStyle: { color: '#7fb5d5', fontSize: 10 } },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 40, bottom: 20, textStyle: { color: '#a3c7df', fontSize: 11 } },
   series: [{
     type: 'pie', radius: ['40%', '70%'], center: ['35%', '55%'],
     data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
-    label: { show: false }
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.3)' } }
   }]
 });
 
@@ -915,9 +619,9 @@ export default function AdminKelautanPesisir() {
         ]} 
       />;
     } },
-    { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-[#c8dff0]">{formatBulan(info.getValue())}</span> },
+    { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-foreground">{formatBulan(info.getValue())}</span> },
     { header: 'TW', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
-    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-bold text-[#c8dff0] bg-[#152d45] px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span> },
+    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-bold text-foreground bg-muted px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
     { header: 'Total Produksi', accessorKey: 'total_produksi_ton', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Total Stok', accessorKey: 'total_stok_ton', cell: info => <span className="font-bold text-amber-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
@@ -937,63 +641,61 @@ export default function AdminKelautanPesisir() {
         ]} 
       />;
     } },
+    { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground font-semibold">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
-    { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-xs bg-[#152d45] px-2 py-1 rounded text-[#7fb5d5] font-semibold">{info.getValue()}</span> },
-    { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-[#c8dff0] font-medium">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
+    { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground font-medium">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
     {
       header: 'Total Pantai (km)', accessorKey: 'total_garis_pantai',
       accessorFn: row => (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) + (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0),
       cell: info => <span className="font-bold text-cyan-400">{info.getValue().toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
     },
     { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md text-xs">{info.getValue()} pulau</span> },
-    { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-[#c8dff0]">{info.getValue() || 0}</span> },
-    { header: 'Konservasi (Ha)', accessorKey: 'luas_kawasan_konservasi_ha', cell: info => <span className="text-emerald-400 font-medium">{(info.getValue() || 0).toLocaleString('id-ID')}</span> },
-    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
+    { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-foreground">{info.getValue() || 0}</span> },
   ], []);
 
   // ── SUB-ROWS ─────────────────────────────────────────────────────────────────
   const renderSubGaram = ({ row }) => {
     const d = row.original;
     return (
-      <div className="p-6 bg-[#0b1929]/70 border-l-4 border-cyan-500">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 pb-5 border-b border-[#1e3a52] text-sm">
+      <div className="p-6 bg-background/70 border-l-4 border-cyan-500">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 pb-5 border-b border-border text-sm">
           {[
-            { label: 'Luas Total', value: `${(d.luas_total_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-[#c8dff0]', border: 'border-[#1e3a52]' },
-            { label: 'Luas Produksi', value: `${(d.luas_produksi_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-[#c8dff0]', border: 'border-[#1e3a52]' },
+            { label: 'Luas Total', value: `${(d.luas_total_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
+            { label: 'Luas Produksi', value: `${(d.luas_produksi_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
             { label: 'Produktivitas Lahan', value: `${(d.produktivitas || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha`, cls: 'text-emerald-300', border: 'border-emerald-500/30' },
-            { label: 'Jml Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-[#c8dff0]', border: 'border-[#1e3a52]' },
+            { label: 'Jml Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-foreground', border: 'border-border' },
           ].map(s => (
-            <div key={s.label} className={`bg-[#0f2236] p-3.5 rounded-xl border ${s.border}`}>
-              <span className="text-[#7fb5d5] text-xs font-semibold block mb-1 uppercase tracking-wider">{s.label}</span>
+            <div key={s.label} className={`bg-card p-3.5 rounded-xl border ${s.border}`}>
+              <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">{s.label}</span>
               <span className={`font-bold text-xl ${s.cls}`}>{s.value}</span>
             </div>
           ))}
         </div>
-        <h4 className="text-xs font-bold text-[#7fb5d5] mb-4 tracking-widest uppercase flex items-center gap-2">
+        <h4 className="text-xs font-bold text-muted-foreground mb-4 tracking-widest uppercase flex items-center gap-2">
           <Layers className="w-3.5 h-3.5" /> Rincian per Kualitas
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           {[
             { label: 'KUALITAS 1', badge: 'Tinggi', produksi: d.produksi_k1_ton, stok: d.stok_k1_ton, harga: d.harga_k1_rp, borderCls: 'border-cyan-500/20', accentCls: 'bg-cyan-500', headCls: 'text-cyan-300', badgeCls: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
             { label: 'KUALITAS 2', badge: 'Menengah', produksi: d.produksi_k2_ton, stok: d.stok_k2_ton, harga: d.harga_k2_rp, borderCls: 'border-amber-500/20', accentCls: 'bg-amber-500', headCls: 'text-amber-300', badgeCls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-            { label: 'KUALITAS 3', badge: 'Rendah', produksi: d.produksi_k3_ton, stok: d.stok_k3_ton, harga: d.harga_k3_rp, borderCls: 'border-[#1e3a52]', accentCls: 'bg-[#7fb5d5]/40', headCls: 'text-[#7fb5d5]', badgeCls: 'text-[#7fb5d5] bg-[#152d45] border-[#1e3a52]' },
+            { label: 'KUALITAS 3', badge: 'Rendah', produksi: d.produksi_k3_ton, stok: d.stok_k3_ton, harga: d.harga_k3_rp, borderCls: 'border-border', accentCls: 'bg-[#7fb5d5]/40', headCls: 'text-muted-foreground', badgeCls: 'text-muted-foreground bg-muted border-border' },
           ].map(k => (
-            <div key={k.label} className={`bg-[#0f2236] p-4 rounded-xl border ${k.borderCls} relative overflow-hidden`}>
+            <div key={k.label} className={`bg-card p-4 rounded-xl border ${k.borderCls} relative overflow-hidden`}>
               <div className={`absolute top-0 left-0 w-1 h-full ${k.accentCls}`}></div>
               <h5 className={`font-bold ${k.headCls} mb-3 flex items-center justify-between`}>
                 {k.label}
                 <span className={`text-xs font-normal px-2 py-0.5 rounded-full border ${k.badgeCls}`}>{k.badge}</span>
               </h5>
               <div className="space-y-2">
-                <div className="flex justify-between text-[#7fb5d5]"><span>Produksi:</span><span className="font-semibold text-[#c8dff0]">{(k.produksi || 0).toLocaleString('id-ID')} Ton</span></div>
-                <div className="flex justify-between text-[#7fb5d5]"><span>Stok:</span><span className="font-semibold text-[#c8dff0]">{(k.stok || 0).toLocaleString('id-ID')} Ton</span></div>
-                <div className="flex justify-between pt-2 border-t border-[#1e3a52] mt-2"><span className="text-[#7fb5d5] text-xs">Harga</span><span className="font-bold text-[#c8dff0]">Rp {(k.harga || 0).toLocaleString('id-ID')}/kg</span></div>
-                <div className="flex justify-between"><span className="text-[#7fb5d5] text-xs">Nilai Produksi</span><span className="font-bold text-[#c8dff0]">{((k.produksi || 0) * (k.harga || 0)).toLocaleString('id-ID')}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Produksi:</span><span className="font-semibold text-foreground">{(k.produksi || 0).toLocaleString('id-ID')} Ton</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Stok:</span><span className="font-semibold text-foreground">{(k.stok || 0).toLocaleString('id-ID')} Ton</span></div>
+                <div className="flex justify-between pt-2 border-t border-border mt-2"><span className="text-muted-foreground text-xs">Harga</span><span className="font-bold text-foreground">Rp {(k.harga || 0).toLocaleString('id-ID')}/kg</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground text-xs">Nilai Produksi</span><span className="font-bold text-foreground">{((k.produksi || 0) * (k.harga || 0)).toLocaleString('id-ID')}</span></div>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap gap-3 pt-4 border-t border-[#1e3a52]">
+        <div className="mt-4 flex flex-wrap gap-3 pt-4 border-t border-border">
           <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
             <span className="text-xs text-emerald-400/70 uppercase tracking-wider">Total Produksi</span>
             <span className="font-bold text-emerald-400">{(d.total_produksi_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span>
@@ -1007,56 +709,11 @@ export default function AdminKelautanPesisir() {
     );
   };
 
-  const renderSubPotensi = ({ row }) => {
-    const d = row.original;
-    const totalPantai = (d.panjang_pantai_utara_km || 0) + (d.panjang_pantai_selatan_km || 0) +
-      (d.panjang_pantai_timur_km || 0) + (d.panjang_pantai_barat_km || 0);
-    return (
-      <div className="p-6 bg-[#0b1929]/70 border-l-4 border-cyan-500">
-        <h4 className="text-xs font-bold text-[#7fb5d5] mb-4 tracking-widest uppercase flex items-center gap-2">
-          <Anchor className="w-3.5 h-3.5" /> Rincian Garis Pantai per Segmen
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-          {[
-            { label: 'Pantai Utara', value: `${(d.panjang_pantai_utara_km || 0).toLocaleString('id-ID')} km` },
-            { label: 'Pantai Selatan', value: `${(d.panjang_pantai_selatan_km || 0).toLocaleString('id-ID')} km` },
-            { label: 'Pantai Timur', value: `${(d.panjang_pantai_timur_km || 0).toLocaleString('id-ID')} km` },
-            { label: 'Pantai Barat', value: `${(d.panjang_pantai_barat_km || 0).toLocaleString('id-ID')} km` },
-            { label: 'Total Garis Pantai', value: `${totalPantai.toLocaleString('id-ID', { maximumFractionDigits: 2 })} km`, highlight: true },
-          ].map(s => (
-            <div key={s.label} className={`p-3.5 rounded-xl border ${s.highlight ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-[#1e3a52] bg-[#0f2236]'}`}>
-              <span className={`text-xs font-semibold block mb-1 uppercase tracking-wider ${s.highlight ? 'text-cyan-400' : 'text-[#7fb5d5]'}`}>{s.label}</span>
-              <span className={`font-bold text-lg ${s.highlight ? 'text-cyan-300' : 'text-[#c8dff0]'}`}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Pulau Berpenghuni', value: `${d.pulau_berpenghuni || 0} pulau`, cls: 'text-emerald-400', border: 'border-emerald-500/20' },
-            { label: 'Pulau Tdk Berpenghuni', value: `${d.pulau_tidak_berpenghuni || 0} pulau`, cls: 'text-[#7fb5d5]', border: 'border-[#1e3a52]' },
-            { label: 'Desa Pesisir', value: `${d.desa_pesisir || 0} desa`, cls: 'text-cyan-400', border: 'border-cyan-500/20' },
-            { label: 'Potensi Perikanan', value: `${(d.potensi_perikanan_ton_th || 0).toLocaleString('id-ID')} Ton/Th`, cls: 'text-amber-400', border: 'border-amber-500/20' },
-          ].map(s => (
-            <div key={s.label} className={`bg-[#0f2236] p-3.5 rounded-xl border ${s.border}`}>
-              <span className="text-[#7fb5d5] text-xs font-semibold block mb-1 uppercase tracking-wider">{s.label}</span>
-              <span className={`font-bold text-xl ${s.cls}`}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-        {d.keterangan && (
-          <div className="mt-4 p-3 bg-[#152d45] rounded-lg border border-[#1e3a52]">
-            <span className="text-xs text-[#7fb5d5] font-semibold uppercase tracking-wider block mb-1">Keterangan</span>
-            <p className="text-sm text-[#c8dff0]">{d.keterangan}</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // ── VISUALISASI ──────────────────────────────────────────────────────────────
   const renderVisualisasi = () => {
-    // ── KPI Potensi Perairan ──
-    const potensiPerKotaFrontend = Object.values(dataPotensiPerairan.reduce((agg, d) => {
+    // ── KPI Potensi Perairan (only VERIFIED data) ──
+    const verifiedPotensi = dataPotensiPerairan.filter(d => d.status === 'VERIFIED');
+    const potensiPerKotaFrontend = Object.values(verifiedPotensi.reduce((agg, d) => {
       const kab = d.kabupaten_kota || 'Unknown';
       if (!agg[kab]) agg[kab] = { ...d };
       else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
@@ -1070,8 +727,9 @@ export default function AdminKelautanPesisir() {
       desa_pesisir: potensiPerKotaFrontend.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
     };
 
-    // ── VISUALISASI GARAM ──
-    const filteredVisGaram = dataGaram.filter(d => 
+    // ── VISUALISASI GARAM (only VERIFIED data) ──
+    const verifiedGaram = dataGaram.filter(d => d.status === 'VERIFIED');
+    const filteredVisGaram = verifiedGaram.filter(d => 
       (!visGaramBulan || (d.bulan || '').toLowerCase() === visGaramBulan.toLowerCase()) &&
       (!visGaramTahun || String(d.tahun) === visGaramTahun) &&
       (!visGaramKab || d.kabupaten_kota === visGaramKab)
@@ -1109,28 +767,28 @@ export default function AdminKelautanPesisir() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Anchor className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-xl font-bold text-[#c8dff0]">Potensi Perairan</h2>
+            <h2 className="text-xl font-bold text-foreground">Potensi Perairan</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-400" /><p className="text-sm font-medium text-[#7fb5d5]">Jml. Pulau-Pulau Kecil</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-[#7fb5d5] font-normal">Pulau</span></p>
+              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-400" /><p className="text-sm font-medium text-muted-foreground">Jml. Pulau-Pulau Kecil</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Garis Pantai</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-[#7fb5d5] font-normal">Km</span></p>
+              <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-400" /><p className="text-sm font-medium text-muted-foreground">Total Garis Pantai</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-[#7fb5d5]">Luas Wilayah Laut</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-[#7fb5d5] font-normal">Km²</span></p>
+              <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-muted-foreground">Luas Wilayah Laut</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-muted-foreground font-normal">Km²</span></p>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-400" /><p className="text-sm font-medium text-[#7fb5d5]">Jumlah Desa Pesisir</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-[#7fb5d5] font-normal">Desa</span></p>
+              <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-400" /><p className="text-sm font-medium text-muted-foreground">Jumlah Desa Pesisir</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-muted-foreground font-normal">Desa</span></p>
             </div>
           </div>
         </div>
@@ -1140,20 +798,20 @@ export default function AdminKelautanPesisir() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
               <FlaskConical className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-xl font-bold text-[#c8dff0]">Visualisasi Produksi Garam</h2>
+              <h2 className="text-xl font-bold text-foreground">Visualisasi Produksi Garam</h2>
             </div>
             {/* Garam Filters */}
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[#7fb5d5]" />
-              <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
                 <option value="">Semua Tahun</option>
                 {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
-              <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+              <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
                 <option value="">Semua Bulan</option>
                 {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
-              <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] text-[#c8dff0] rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
+              <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
                 <option value="">Semua Kab/Kota</option>
                 {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
@@ -1162,56 +820,56 @@ export default function AdminKelautanPesisir() {
           
           {/* Garam KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Produksi Garam</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.produksi)} <span className="text-sm text-[#7fb5d5] font-normal">Ton</span></p>
+              <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-400" /><p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.produksi)} <span className="text-sm text-muted-foreground font-normal">Ton</span></p>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Petambak Garam</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.petambak)} <span className="text-sm text-[#7fb5d5] font-normal">Orang</span></p>
+              <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-400" /><p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.petambak)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-[#7fb5d5]">Total Luas Lahan Tambak</p></div>
-              <p className="text-3xl font-bold text-[#c8dff0]">{numFmt(kpiGaram.lahan)} <span className="text-sm text-[#7fb5d5] font-normal">Ha</span></p>
+              <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-400" /><p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.lahan)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
             </div>
           </div>
 
           {/* Garam Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
               {garamKota.length > 0
-                ? <ReactECharts option={makeBarOption('Volume Produksi Garam', garamKota, garamProduksi, '#10b981')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+                ? <ReactECharts option={makeHBarOption('Volume Produksi Garam', garamKota, garamProduksi, '#0891b2')} style={{ height: Math.max(300, garamKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Jumlah Kelompok per Kab/Kota</h3>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Kelompok per Kab/Kota</h3>
               {garamKota.length > 0
-                ? <ReactECharts option={makeHBarOption('Jumlah Kelompok Garam', garamKota, garamKelompok, '#8b5cf6')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+                ? <ReactECharts option={makeHBarOption('Jumlah Kelompok Garam', garamKota, garamKelompok, '#7c3aed')} style={{ height: Math.max(300, garamKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Luas Lahan per Kab/Kota</h3>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Lahan per Kab/Kota</h3>
               {garamKota.length > 0
                 ? <ReactECharts option={makePieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-[#0f2236] border border-[#1e3a52] rounded-xl p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#c8dff0] mb-3">Jumlah Petambak per Kab/Kota</h3>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Petambak per Kab/Kota</h3>
               {garamKota.length > 0
                 ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak')} style={{ height: '300px' }} />
-                : <div className="h-[300px] flex items-center justify-center text-[#7fb5d5] bg-[#152d45]/20 rounded-xl border border-dashed border-[#1e3a52]">Belum ada data</div>}
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
           </div>
         </div>
 
         {/* ── Placeholder Visualisasi Mangrove dkk ── */}
-        <div className="bg-[#152d45]/50 border border-dashed border-[#1e3a52] p-8 rounded-2xl flex flex-col items-center justify-center text-[#7fb5d5] text-center">
+        <div className="bg-muted/50 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
           <Info className="w-8 h-8 mb-2 opacity-50" />
-          <p className="font-medium text-[#c8dff0]">Visualisasi Mangrove, Terumbu Karang, dan Lamun</p>
+          <p className="font-medium text-foreground">Visualisasi Mangrove, Terumbu Karang, dan Lamun</p>
           <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
         </div>
       </div>
@@ -1220,7 +878,7 @@ export default function AdminKelautanPesisir() {
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
   const activeColumns = activeTab === 'garam' ? columnsGaram : columnsPotensi;
-  const activeSubRow = activeTab === 'garam' ? renderSubGaram : activeTab === 'potensi_perairan' ? renderSubPotensi : undefined;
+  const activeSubRow = activeTab === 'garam' ? renderSubGaram : undefined;
 
   const filteredData = useMemo(() => {
     let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : [];
@@ -1236,7 +894,7 @@ export default function AdminKelautanPesisir() {
       if (type === 'tahunan') {
         exportGaramExcelTahunan(data, filterTahun);
       } else {
-        exportGaramExcel(data);
+        exportGaramExcel(data, filterBulan, filterTahun);
       }
     } else if (activeTab === 'potensi_perairan') {
       exportPotensiExcel(data);
@@ -1266,28 +924,27 @@ export default function AdminKelautanPesisir() {
       );
     }
     return (
-      <div className="bg-[#0f2236] border border-[#1e3a52] p-12 rounded-2xl text-center">
-        <p className="text-[#7fb5d5] text-sm">Form untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
-        <button onClick={() => setIsFormOpen(false)} className="mt-4 px-6 py-2 border border-[#1e3a52] rounded-lg hover:bg-[#152d45] font-medium text-sm text-[#c8dff0]">Kembali</button>
+      <div className="bg-card border border-border p-12 rounded-2xl text-center shadow-sm">
+        <p className="text-muted-foreground text-sm">Form untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
+        <button onClick={() => setIsFormOpen(false)} className="mt-4 px-6 py-2 border border-border rounded-lg hover:bg-muted font-medium text-sm text-foreground transition-colors">Kembali</button>
       </div>
     );
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 bg-[#0b1929] min-h-screen text-[#c8dff0]">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-cyan-400/70 uppercase tracking-widest mb-1.5">Dinas Kelautan dan Perikanan — Jawa Timur</p>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Bidang Kelautan Pesisir</h1>
-          <p className="text-[#7fb5d5] mt-1.5 text-sm">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan Pesisir</h1>
+          <p className="text-muted-foreground mt-1">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
         </div>
         {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan') && (
           <button
             onClick={() => { setEditingData(null); setIsFormOpen(true); }}
-            className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-700/30 text-sm whitespace-nowrap"
+            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Tambah {DATA_TABS.find(t => t.key === activeTab)?.label}
           </button>
         )}
@@ -1296,120 +953,158 @@ export default function AdminKelautanPesisir() {
       {/* Delete Modal */}
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0f2236] border border-[#1e3a52] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 text-rose-400"><Trash2 className="w-5 h-5" /><h3 className="text-lg font-bold">Konfirmasi Hapus</h3></div>
-            <p className="text-[#7fb5d5] text-sm mb-6">Yakin ingin menghapus data <strong className="text-[#c8dff0]">{itemToDelete.kabupaten_kota}</strong>?</p>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 text-destructive"><Trash2 className="w-5 h-5" /><h3 className="text-lg font-bold">Konfirmasi Hapus</h3></div>
+            <p className="text-muted-foreground text-sm mb-6">Yakin ingin menghapus data <strong className="text-foreground">{itemToDelete.kabupaten_kota}</strong>?</p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-[#152d45] text-[#7fb5d5] hover:bg-[#1e3a52] text-sm">Batal</button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-rose-600 hover:bg-rose-500 text-white text-sm">Ya, Hapus</button>
+              <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-muted text-muted-foreground hover:bg-muted/80 text-sm transition-colors">Batal</button>
+              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm transition-colors">Ya, Hapus</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Tabs (Tabel / Visualisasi) */}
-      <div className="flex overflow-x-auto border-b border-[#1e3a52] gap-1">
-        {MAIN_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { setMainTab(tab.key); setIsFormOpen(false); }}
-            className={`flex items-center gap-2 px-5 py-3 rounded-t-xl font-medium transition-colors text-sm whitespace-nowrap border-b-2 ${
-              mainTab === tab.key
-                ? 'border-cyan-500 text-cyan-300 bg-cyan-500/10'
-                : 'border-transparent text-[#7fb5d5] hover:bg-[#152d45]'
-            }`}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs Filter & Statistik */}
+      {!isFormOpen && (
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-4 border-b border-border pb-4 overflow-x-auto">
+            {MAIN_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setMainTab(tab.key); setIsFormOpen(false); }}
+                className={`px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  mainTab === tab.key
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
 
-      {mainTab === 'tabel' ? (
-        <>
-          {/* Data Sub-Tabs */}
-          {!isFormOpen && (
-            <div className="flex overflow-x-auto gap-1 border-b border-[#1e3a52]">
-              {DATA_TABS.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium transition-colors text-xs whitespace-nowrap border-b-2 ${
-                    activeTab === tab.key
-                      ? 'border-[#7fb5d5] text-[#c8dff0] bg-[#152d45]'
-                      : 'border-transparent text-[#7fb5d5] hover:bg-[#152d45]/60'
-                  }`}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {isFormOpen ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              {renderForm()}
-            </div>
-          ) : (
-            <div className="bg-[#0f2236] rounded-2xl border border-[#1e3a52] overflow-hidden shadow-xl shadow-black/20">
-              {loading ? (
-                <div className="h-64 flex flex-col items-center justify-center gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-                  <p className="text-[#7fb5d5] text-sm">Memuat data...</p>
+          {mainTab === 'tabel' && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-slate-500" />
+                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Data</label>
+                <div className="flex flex-wrap gap-2">
+                  {DATA_TABS.map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center gap-2 ${
+                        activeTab === tab.key
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {tab.icon} {tab.label}
+                    </button>
+                  ))}
                 </div>
-              ) : (activeTab === 'garam' || activeTab === 'potensi_perairan') ? (
-                <>
-                  {/* Filters */}
-                  <div className="p-4 border-b border-[#1e3a52] bg-[#152d45]/50 flex flex-wrap gap-4 items-center">
-                    <span className="text-sm font-medium text-[#7fb5d5]">Filter:</span>
-                    <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[120px]">
+              </div>
+
+              {(activeTab === 'garam' || activeTab === 'potensi_perairan') && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                    <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Tahun</option>
                       {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
-                    <select value={filterKab} onChange={e => setFilterKab(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[150px]">
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                    <select value={filterKab} onChange={e => setFilterKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Kab/Kota</option>
                       {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
                     </select>
-                    {activeTab === 'garam' && (
-                      <>
-                        <select value={filterTw} onChange={e => setFilterTw(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[140px]">
+                  </div>
+                  {activeTab === 'garam' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
+                        <select value={filterTw} onChange={e => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                           <option value="">Semua Triwulan</option>
                           <option value="TW 1">TW 1</option><option value="TW 2">TW 2</option><option value="TW 3">TW 3</option><option value="TW 4">TW 4</option>
                         </select>
-                        <select value={filterBulan} onChange={e => setFilterBulan(e.target.value)} className="bg-[#0f2236] border border-[#1e3a52] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-cyan-500 min-w-[140px]">
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+                        <select value={filterBulan} onChange={e => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                           <option value="">Semua Bulan</option>
                           {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
-                      </>
-                    )}
-                    {(filterTahun || filterKab || filterTw || filterBulan) && (
-                      <button onClick={() => { setFilterTahun(''); setFilterKab(''); setFilterTw(''); setFilterBulan(''); }} className="text-rose-400 hover:text-rose-300 text-sm font-medium px-3 py-1.5 rounded-lg border border-rose-900/50 hover:bg-rose-900/20 transition-colors">Reset Filter</button>
-                    )}
-                  </div>
-                  <DataTable
-                    user={user}
-                    columns={activeColumns}
-                    data={filteredData}
-                    onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    onDelete={(row) => setItemToDelete(row)}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    renderSubComponent={activeSubRow}
-                    exportName={`Data_${activeTab}`}
-                    onCustomExport={handleCustomExport}
-                  />
-                </>
-              ) : (
-                <div className="p-16 text-center text-[#7fb5d5]">
-                  <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">Tabel data untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
+                      </div>
+                    </>
+                  )}
+                  {(filterTahun || filterKab || filterTw || filterBulan) && (
+                    <div className="md:col-span-4 mt-2">
+                      <button onClick={() => { setFilterTahun(''); setFilterKab(''); setFilterTw(''); setFilterBulan(''); }} className="text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">Reset Filter</button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
-        </>
+        </div>
+      )}
+
+      {/* Main Content Area Based on Active Tab */}
+      {isFormOpen ? (
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {renderForm()}
+        </div>
+      ) : mainTab === 'tabel' ? (
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          {loading ? (
+            <div className="h-64 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground text-sm">Memuat data...</p>
+            </div>
+          ) : (activeTab === 'garam' || activeTab === 'potensi_perairan') ? (
+            <DataTable
+              user={user}
+              columns={activeColumns}
+              data={filteredData}
+              onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onDelete={(row) => setItemToDelete(row)}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              renderSubComponent={activeSubRow}
+              exportName={`Data_${activeTab}`}
+              onCustomExport={handleCustomExport}
+              hideDefaultExport={activeTab === 'garam'}
+              customExportButton={
+                activeTab === 'garam' ? (
+                  <>
+                    <button onClick={() => handleCustomExport(filteredData, 'bulanan')} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Ekspor Bulanan
+                    </button>
+                    <button onClick={() => handleCustomExport(filteredData, 'tahunan')} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium shadow-sm shadow-primary/20">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Ekspor Tahunan
+                    </button>
+                  </>
+                ) : null
+              }
+            />
+          ) : (
+            <div className="p-16 text-center text-muted-foreground">
+              <Waves className="w-10 h-10 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">Tabel data untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
+            </div>
+          )}
+        </div>
       ) : (
         /* Visualisasi Tab */
-        <div className="bg-[#0f2236] rounded-2xl border border-[#1e3a52] p-6 shadow-xl shadow-black/20">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           {renderVisualisasi()}
         </div>
       )}

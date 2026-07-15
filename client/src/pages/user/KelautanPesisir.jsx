@@ -11,29 +11,39 @@ import ReactECharts from 'echarts-for-react';
 
 const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
-const barOption = (categories, values, color, unit) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
-  grid: { left: '3%', right: '4%', bottom: 70, containLabel: true },
-  xAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', rotate: 35, fontSize: 11 } },
-  yAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [4, 4, 0, 0] } }],
-});
+// ── MARITIME COLOR PALETTE ──
+const CHART_PALETTE = [
+  '#0891b2', // cyan-600
+  '#0d9488', // teal-600
+  '#d97706', // amber-600
+  '#7c3aed', // violet-600
+  '#059669', // emerald-600
+  '#db2777', // pink-600
+  '#2563eb', // blue-600
+  '#ea580c', // orange-600
+  '#4f46e5', // indigo-600
+  '#16a34a', // green-600
+  '#9333ea', // purple-600
+  '#dc2626', // red-600
+];
 
 const hBarOption = (categories, values, color, unit) => ({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
-  grid: { left: 120, right: 30, top: 20, bottom: 20 },
+  grid: { left: 140, right: 40, top: 10, bottom: 10 },
   xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontSize: 11 } },
-  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] } }],
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
 });
 
 const pieOption = (title, data, nameField, valueField) => ({
+  color: CHART_PALETTE,
   tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#64748b', fontSize: 10 } },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
   series: [{
     type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
     data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
-    label: { show: false }
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
   }]
 });
 
@@ -299,13 +309,13 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={barOption(garamKota, garamProduksi, '#10b981', 'Ton')} style={{ height: '320px' }} />
+              ? <ReactECharts option={hBarOption(garamKota, garamProduksi, '#0891b2', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#8b5cf6', 'Kelompok')} style={{ height: '320px' }} />
+              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#7c3aed', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
