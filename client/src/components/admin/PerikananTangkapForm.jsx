@@ -69,9 +69,12 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
   };
 
   const addTangkapan = () => {
+    const isPUD = formData.sumber_data === 'PUD';
+    const isKabKota = formData.sumber_data === 'KAB_KOTA';
+    const defaultKom = isPUD ? KOMODITAS_PUD_OPTIONS[0] : (isKabKota ? KOMODITAS_LAUT_OPTIONS[0] : KOMODITAS_OPTIONS[0]);
     setFormData(prev => ({
       ...prev,
-      tangkapan: [...prev.tangkapan, { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '', pud_tangkapan_sampel: '' }]
+      tangkapan: [...prev.tangkapan, { komoditas: defaultKom, volume: '', harga: '', pud_tangkapan_sampel: '' }]
     }));
   };
 

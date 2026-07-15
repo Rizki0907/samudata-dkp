@@ -221,6 +221,7 @@ model DataBulananTangkap {
   bulan           String
   sumber_data     String
   pelabuhan       String
+  jenis_perairan  String?
   komoditas       String
   volume          Float
   nilai           Float
@@ -230,7 +231,9 @@ model DataBulananTangkap {
   original_nilai  Float    @default(0)
   original_volume Float    @default(0)
 
-  @@unique([bulan, sumber_data, pelabuhan, komoditas])
+  // Use a composite unique key. Note: SQLite treats NULL in unique index as distinct, 
+  // so we should be careful, but we will always pass a value (like '-' or the actual string).
+  @@unique([bulan, sumber_data, pelabuhan, jenis_perairan, komoditas])
   @@index([bulan])
 }
 

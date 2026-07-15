@@ -4,10 +4,10 @@ import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
-import { 
+import {  
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
   Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle 
-} from 'lucide-react';
+, Clock } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
@@ -258,6 +258,20 @@ export default function AdminPerikananTangkap() {
     });
   }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas]);
 
+    const lastUpdated = useMemo(() => {
+      if (!filteredData || filteredData.length === 0) return null;
+      let maxDate = new Date(0);
+      filteredData.forEach(row => {
+        if (row.updated_at) {
+          const dt = new Date(row.updated_at);
+          if (dt > maxDate) maxDate = dt;
+        }
+      });
+      if (maxDate.getTime() === 0) return null;
+      
+      return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }, [filteredData]);
+    
   const computedStats = useMemo(() => {
     let total_volume = 0;
     let total_nilai = 0;
@@ -360,11 +374,12 @@ export default function AdminPerikananTangkap() {
   }, [filteredData, chartHargaKomoditas, chartHargaWilayah]);
 
   const lautVsPudData = useMemo(() => {
-    let totalLaut = 0;
+    let totalPelabuhan = 0;
     let totalPud = 0;
+    let totalNonPelabuhan = 0;
     
     filteredData.forEach(row => {
-      let kabKota = row.pelabuhan || row.kabupaten_kota || '';
+      let kabKota = row.kabupaten_kota || row.pelabuhan || '';
       if (row.sumber_data === 'PELABUHAN') {
         kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
       }
@@ -378,15 +393,18 @@ export default function AdminPerikananTangkap() {
       
       if (row.sumber_data === 'PUD') {
         totalPud += vol;
+      } else if (row.sumber_data === 'KAB_KOTA') {
+        totalNonPelabuhan += vol;
       } else {
-        totalLaut += vol;
+        totalPelabuhan += vol;
       }
     });
     
     return {
-      laut: totalLaut,
+      pelabuhan: totalPelabuhan,
       pud: totalPud,
-      total: totalLaut + totalPud
+      nonPelabuhan: totalNonPelabuhan,
+      total: totalPelabuhan + totalPud + totalNonPelabuhan
     };
   }, [filteredData, filterKabKotaChart]);
 
@@ -442,8 +460,8 @@ export default function AdminPerikananTangkap() {
       grid: { left: '5%', right: '5%', bottom: '10%', top: '20%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: ['Laut', 'PUD', 'Total'],
-        axisLabel: { color: '#f8fafc', fontWeight: 'bold', fontSize: 14 },
+        data: ['Pelabuhan', 'Non Pelabuhan', 'PUD', 'Total'],
+        axisLabel: { color: '#f8fafc', fontWeight: 'bold', fontSize: 12, interval: 0 },
         axisLine: { lineStyle: { color: '#334155' } }
       },
       yAxis: {
@@ -460,7 +478,7 @@ export default function AdminPerikananTangkap() {
           barWidth: '50%',
           data: [
             {
-              value: lautVsPudData.laut,
+              value: lautVsPudData.pelabuhan,
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
@@ -470,11 +488,21 @@ export default function AdminPerikananTangkap() {
               }
             },
             {
+              value: lautVsPudData.nonPelabuhan,
+              itemStyle: {
+                color: {
+                  type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [{ offset: 0, color: '#f59e0b' }, { offset: 1, color: '#b45309' }]
+                },
+                borderRadius: [8, 8, 0, 0]
+              }
+            },
+            {
               value: lautVsPudData.pud,
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#ef4444' }, { offset: 1, color: '#7f1d1d' }]
+                  colorStops: [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#064e3b' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -484,20 +512,12 @@ export default function AdminPerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#eab308' }, { offset: 1, color: '#713f12' }]
+                  colorStops: [{ offset: 0, color: '#8b5cf6' }, { offset: 1, color: '#4c1d95' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
             }
-          ],
-          label: {
-            show: true,
-            position: 'top',
-            formatter: (p) => Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(p.value),
-            color: '#ffffff',
-            fontWeight: 'bold',
-            fontSize: 14
-          }
+          ]
         }
       ]
     };
@@ -1144,10 +1164,6 @@ export default function AdminPerikananTangkap() {
                 onEdit={handleEdit}
                 searchable={true}
                 exportable={true}
-                onEdit={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? (row) => {
-                  setSelectedData(row);
-                  setIsFormOpen(true);
-                } : undefined}
                 onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
                 onApprove={handleApprove}
                 onReject={handleReject}
@@ -1305,6 +1321,12 @@ export default function AdminPerikananTangkap() {
             />
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex justify-end mb-4">
+                <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                  <Clock className="w-4 h-4 animate-pulse" />
+                  Terakhir Diperbarui: {lastUpdated || '-'}
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
@@ -1350,7 +1372,7 @@ export default function AdminPerikananTangkap() {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
-                          <p className="text-sm text-muted-foreground">Laut vs Perairan Darat (PUD)</p>
+                          <p className="text-sm text-muted-foreground">Berdasarkan Jenis Perairan</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

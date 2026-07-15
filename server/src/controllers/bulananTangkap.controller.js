@@ -16,20 +16,25 @@ const syncDataBulananInternal = async () => {
       const sumber = row.sumber_data || 'PELABUHAN';
       
       let pelabuhan = row.pelabuhan || 'Lainnya';
-      if (sumber === 'PUD' || sumber === 'KAB_KOTA') {
+      let jenisPerairan = '-';
+      if (sumber === 'PUD') {
+        pelabuhan = row.kabupaten_kota || 'Lainnya';
+        jenisPerairan = row.jenis_perairan || '-';
+      } else if (sumber === 'KAB_KOTA') {
         pelabuhan = row.kabupaten_kota || 'Lainnya';
       }
       
       if (row.tangkapan) {
         for (const t of row.tangkapan) {
           const komoditas = t.komoditas;
-          const key = `${yyyyMM}|${sumber}|${pelabuhan}|${komoditas}`;
+          const key = `${yyyyMM}|${sumber}|${pelabuhan}|${jenisPerairan || 'none'}|${komoditas}`;
           
           if (!aggregated[key]) {
             aggregated[key] = {
               bulan: yyyyMM,
               sumber_data: sumber,
               pelabuhan,
+              jenis_perairan: jenisPerairan,
               komoditas,
               volume: 0,
               nilai: 0
@@ -56,10 +61,11 @@ const syncDataBulananInternal = async () => {
     for (const item of aggrVals) {
       const existing = await prisma.dataBulananTangkap.findUnique({
         where: {
-          bulan_sumber_data_pelabuhan_komoditas: {
+          bulan_sumber_data_pelabuhan_jenis_perairan_komoditas: {
             bulan: item.bulan,
             sumber_data: item.sumber_data,
             pelabuhan: item.pelabuhan,
+            jenis_perairan: item.jenis_perairan,
             komoditas: item.komoditas
           }
         }

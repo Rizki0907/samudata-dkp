@@ -115,8 +115,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
 
   const handleExport = (isRiil) => {
     // Generate headers
-    const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
-    const headerRow2 = ['', '', '', '', ''];
+    const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi', 'Jenis Perairan (Khusus PUD)', 'Total Volume (Kg)', 'Total Nilai Produksi (Rp)'];
+    const headerRow2 = ['', '', '', '', '', ''];
 
     let komoditasArray = [];
     if (!filterCabang) {
@@ -209,11 +209,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
 
     const merges = [];
-    for (let i = 0; i <= 4; i++) {
+    for (let i = 0; i < 6; i++) {
       merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
     }
     
-    let currentCol = 5;
+    let currentCol = 6;
     komoditasArray.forEach(() => {
       merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
       currentCol += 3;
@@ -298,6 +298,14 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       }
     },
     { header: 'Wilayah / Lokasi', accessorKey: 'pelabuhan' },
+    {
+      header: 'Jenis Perairan (Khusus PUD)',
+      accessorKey: 'jenis_perairan',
+      cell: ({ row }) => {
+        const val = row.original.jenis_perairan;
+        return val && val !== '-' && val !== 'none' ? val : '-';
+      }
+    },
     {
       header: 'Total Volume (Kg)',
       accessorKey: 'volume',
