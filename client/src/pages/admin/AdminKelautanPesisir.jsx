@@ -525,6 +525,104 @@ export default function AdminKelautanPesisir() {
     }
   };
 
+  const handleBatchApprove = async (ids) => {
+    const selectedRows = filteredData.filter(row => ids.includes(row.id));
+    
+    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (jenis === '1') {
+      const invalidRows = selectedRows.filter(row => row.status === 'VERIFIED' || row.status === 'APPROVED');
+      if (invalidRows.length > 0) {
+        alert('Beberapa data yang dipilih sudah divalidasi Bidang/Program! Silakan pilih data yang berstatus PENDING saja.');
+        return;
+      }
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU_PESISIR_BIDANG';
+    } else if (jenis === '2') {
+      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED');
+      if (invalidRows.length > 0) {
+        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
+        return;
+      }
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC_PESISIR_PROGRAM';
+    } else {
+      alert('Pilihan tidak valid.');
+      return;
+    }
+
+    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      if (activeTab === 'garam') {
+        await api.post(`/kelautan-pesisir/garam/batch-status`, { ids, status: targetStatus });
+        await fetchGaram();
+      } else if (activeTab === 'potensi_perairan') {
+        await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, { ids, status: targetStatus });
+        await fetchPotensi();
+      }
+    } catch (error) {
+      console.error('Error batch approve:', error);
+      alert(`Gagal menyetujui data secara massal: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleBatchReject = async (ids) => {
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    const confirmText = window.prompt(`Ketik "TOLAK_PESISIR" (huruf kapital) untuk menyelesaikan penolakan massal:`);
+    if (confirmText !== 'TOLAK_PESISIR') {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      if (activeTab === 'garam') {
+        await api.post(`/kelautan-pesisir/garam/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchGaram();
+      } else if (activeTab === 'potensi_perairan') {
+        await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchPotensi();
+      }
+    } catch (error) {
+      console.error('Error batch reject:', error);
+      alert('Gagal menolak data secara massal');
+    }
+  };
+
+  const handleBatchDelete = async (ids) => {
+    if (window.confirm(`Yakin ingin menghapus ${ids.length} data ini secara massal?`)) {
+      try {
+        if (activeTab === 'garam') {
+          await api.post(`/kelautan-pesisir/garam/batch-delete`, { ids });
+          await fetchGaram();
+        } else if (activeTab === 'potensi_perairan') {
+          await api.post(`/kelautan-pesisir/potensi-perairan/batch-delete`, { ids });
+          await fetchPotensi();
+        }
+      } catch (error) {
+        console.error('Error batch delete:', error);
+        alert('Gagal menghapus data secara massal');
+      }
+    }
+  };
+
   const handleExport = (data, type) => {
     if (activeTab === 'garam') {
       if (type === 'tahunan') {
@@ -1028,9 +1126,14 @@ export default function AdminKelautanPesisir() {
               columns={activeColumns}
               data={filteredData}
               onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              onDelete={(row) => setItemToDelete(row)}
+              onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? (row) => setItemToDelete(row) : undefined}
               onApprove={handleApprove}
               onReject={handleReject}
+              onBatchApprove={user?.role === 'admin_pusat' ? handleBatchApprove : undefined}
+              onBatchReject={user?.role === 'admin_pusat' ? handleBatchReject : undefined}
+              onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDelete : undefined}
+              canBatchApprove={(selectedRows) => user?.role === 'admin_pusat' && selectedRows.some(row => ['PENDING', 'APPROVED', 'VERIFIED'].includes(row.status))}
+              canBatchReject={(selectedRows) => user?.role === 'admin_pusat' && selectedRows.some(row => ['PENDING', 'APPROVED', 'VERIFIED'].includes(row.status))}
               renderSubComponent={activeSubRow}
               exportName={`Data_${activeTab}`}
               onCustomExport={handleCustomExport}

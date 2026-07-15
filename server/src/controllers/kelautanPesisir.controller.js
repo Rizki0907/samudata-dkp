@@ -65,7 +65,17 @@ const createGaramData = async (req, res) => {
 const updateGaramData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.garam.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
+    }
+
     const payload = req.body;
+    if (req.user?.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      payload.status = 'PENDING';
+      payload.alasan_penolakan = null;
+    }
     payload.triwulan = getTriwulan(payload.bulan);
     payload.total_produksi_ton = (payload.produksi_k1_ton || 0) + (payload.produksi_k2_ton || 0) + (payload.produksi_k3_ton || 0);
     payload.total_stok_ton = (payload.stok_k1_ton || 0) + (payload.stok_k2_ton || 0) + (payload.stok_k3_ton || 0);
@@ -85,6 +95,11 @@ const updateGaramData = async (req, res) => {
 const deleteGaramData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.garam.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui' });
+    }
     await prisma.garam.delete({ where: { id: parseInt(id) } });
     res.json({ success: true, message: 'Data deleted successfully' });
   } catch (error) {
@@ -154,9 +169,21 @@ const createPotensiPerairanData = async (req, res) => {
 const updatePotensiPerairanData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.potensiPerairan.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
+    }
+
+    const payload = req.body;
+    if (req.user?.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      payload.status = 'PENDING';
+      payload.alasan_penolakan = null;
+    }
+    
     const updatedData = await prisma.potensiPerairan.update({
       where: { id: parseInt(id) },
-      data: req.body
+      data: payload
     });
     res.json({ success: true, data: updatedData });
   } catch (error) {
@@ -168,6 +195,11 @@ const updatePotensiPerairanData = async (req, res) => {
 const deletePotensiPerairanData = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.potensiPerairan.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui' });
+    }
     await prisma.potensiPerairan.delete({ where: { id: parseInt(id) } });
     res.json({ success: true, message: 'Data deleted successfully' });
   } catch (error) {
@@ -265,8 +297,88 @@ const getKelautanPesisirStats = async (req, res) => {
   }
 };
 
+const batchGaramStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.garam.updateMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      data: { status, alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null }
+    });
+    res.json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch garam status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDeleteGaram = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.garam.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+    res.json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch delete garam:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchPotensiPerairanStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.potensiPerairan.updateMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      data: { status, alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null }
+    });
+    res.json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch potensi status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDeletePotensiPerairan = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.potensiPerairan.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+    res.json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch delete potensi:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
 module.exports = {
-  getGaramData, getGaramPublicData, createGaramData, updateGaramData, deleteGaramData, updateGaramStatus,
-  getPotensiPerairanData, getPotensiPerairanPublicData, createPotensiPerairanData, updatePotensiPerairanData, deletePotensiPerairanData, updatePotensiPerairanStatus,
+  getGaramData,
+  getGaramPublicData,
+  createGaramData,
+  updateGaramData,
+  deleteGaramData,
+  updateGaramStatus,
+  batchGaramStatus,
+  batchDeleteGaram,
+  getPotensiPerairanData,
+  getPotensiPerairanPublicData,
+  createPotensiPerairanData,
+  updatePotensiPerairanData,
+  deletePotensiPerairanData,
+  updatePotensiPerairanStatus,
+  batchPotensiPerairanStatus,
+  batchDeletePotensiPerairan,
   getKelautanPesisirStats
 };
