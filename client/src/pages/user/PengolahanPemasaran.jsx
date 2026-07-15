@@ -10,6 +10,7 @@ import {
   MapPin,
   TrendingUp,
   Users,
+  Clock,
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -115,6 +116,7 @@ const getJenisDetail = row =>
 export default function PengolahanPemasaran() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState("-");
 
   // Filter utama dashboard dan tabel
   const [selectedYear, setSelectedYear] = useState('');
@@ -173,12 +175,31 @@ export default function PengolahanPemasaran() {
         setData(
           responseData.filter(item => item.status === 'VERIFIED'),
         );
-      } catch (error) {
-        console.error(
-          'Error fetching pengolahan & pemasaran:',
-          error.response?.data || error,
+
+        const verifiedData = responseData.filter(item => item.status === 'VERIFIED');
+        if (verifiedData.length > 0) {
+          const latest = verifiedData.reduce((a, b) =>
+            new Date(a.updated_at) > new Date(b.updated_at) ? a : b
+          );
+          setLastUpdated(
+            new Date(latest.updated_at).toLocaleString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+          })
         );
+      } else {
+        setLastUpdated("-");
+      }
+    } catch (error) {
+      console.error(
+        'Error fetching pengolahan & pemasaran:',
+        error.response?.data || error,
+      );
         setData([]);
+        setLastUpdated("-");
       } finally {
         setLoading(false);
       }
@@ -1175,6 +1196,31 @@ export default function PengolahanPemasaran() {
           </h1>
         </div>
 
+        <div 
+          className="
+            inline-flex item-center gap-2
+            whitespace-nowrap
+            px-4 py-2
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
+            rounded-full
+            text-sm 
+            font-medium
+            border border-cyan-200
+            dark:border-cyan-500/20
+            shadow-sm"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+          
+          <span className="font-semibold">
+            {lastUpdated}
+          </span> 
+          <span className="opacity-80">
+            Terakhir Diperbarui
+          </span>
+        </div>
+      </div>
+
         <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
           <select
             value={selectedJenisKegiatan}
@@ -1207,7 +1253,6 @@ export default function PengolahanPemasaran() {
             ))}
           </select>
         </div>
-      </div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">

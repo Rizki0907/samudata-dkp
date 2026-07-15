@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -1266,6 +1266,20 @@ export default function AdminPengolahanPemasaran() {
       }),
     [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
   );
+
+  const lastUpdated = useMemo(() => {
+        if (!filteredData || filteredData.length === 0) return null;
+        let maxDate = new Date(0);
+        filteredData.forEach(row => {
+          if (row.updated_at) {
+            const dt = new Date(row.updated_at);
+            if (dt > maxDate) maxDate = dt;
+          }
+        });
+        if (maxDate.getTime() === 0) return null;
+        
+        return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      }, [filteredData]);
 
   // Data sumber visualisasi: hanya baris yang sudah berstatus VERIFIED,
   // tetap menghormati filter multi-dimensi yang aktif di atas tabel.
@@ -2819,12 +2833,37 @@ export default function AdminPengolahanPemasaran() {
             </div>
 
             <div className="pt-5">
-              <div className="mb-4 flex items-center gap-2">
-                <Filter className="h-5 w-5 text-muted-foreground" />
-                <h3 className="text-lg font-semibold text-foreground">
-                  Filter Multi-Dimensi
-                </h3>
+              <div className="mb-5 flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Filter Multi-Dimensi
+                  </h3>
+                </div>
               </div>
+            {/*Badge */}
+             {activeTab !== "table" &&(
+              <div className="flex justify-end mb-4 mb-6">
+                <div 
+                  className="
+                    inline-flex items-center gap-2
+                    px-4 py-2
+                    bg-cyan-50 text-cyan-700
+                    dark:bg-cyan-500/10 dark:text-cyan-400
+                    rounded-full
+                    text-sm
+                    font-medium
+                    border border-cyan-200
+                    dark:border-cyan-500/20
+                    shadow-sm
+                    -mt-12
+                  "
+                >
+                  <Clock className="w-4 h-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
+              </div>
+              )}
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <FilterMultiSelect
@@ -2858,11 +2897,33 @@ export default function AdminPengolahanPemasaran() {
                   onChange={setFilterSkalaUsaha}
                   placeholder="Semua Skala Usaha"
                 />
-              </div>
-            </div>
-          </div>
+             </div>
 
-          {activeTab === 'table' ? dataPreview : dataVisualization}
+             {/* Badge Terakhir Diperbarui
+             {activeTab !== "table" &&(
+              <div className="flex justify-end mb-4 mb-6">
+                <div 
+                  className="
+                    inline-flex items-center gap-2
+                    px-4 py-2
+                    bg-cyan-50 text-cyan-700
+                    dark:bg-cyan-500/10 dark:text-cyan-400
+                    rounded-full
+                    text-sm
+                    font-medium
+                    border border-cyan-200
+                    dark:border-cyan-500/20
+                    shadow-sm
+                  "
+                >
+                  <Clock className="w-4 h-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
+              </div>
+              )} */}
+            </div>
+            {activeTab === 'table' ? dataPreview : dataVisualization}
+          </div>
         </>
       )}
     </div>
