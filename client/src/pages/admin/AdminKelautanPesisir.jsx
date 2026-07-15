@@ -3,7 +3,7 @@ import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
   TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark,
-  ChevronRight, ChevronDown
+  ChevronRight, ChevronDown, Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -891,7 +891,7 @@ export default function AdminKelautanPesisir() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan Pesisir</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan dan Pesisir</h1>
           <p className="text-muted-foreground mt-1">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
         </div>
         {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan') && (
@@ -1012,11 +1012,11 @@ export default function AdminKelautanPesisir() {
 
       {/* Main Content Area Based on Active Tab */}
       {isFormOpen ? (
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-[600px]">
           {renderForm()}
         </div>
       ) : mainTab === 'tabel' ? (
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm min-h-[600px]">
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1036,13 +1036,13 @@ export default function AdminKelautanPesisir() {
               onCustomExport={handleCustomExport}
               hideDefaultExport={activeTab === 'garam'}
               customExportButton={
-                              activeTab === 'garam' ? (
-                                <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-semibold shadow-md shadow-emerald-600/20">
-                                  <FileSpreadsheet className="w-5 h-5" />
-                                  Ekspor Excel
-                                </button>
-                              ) : null
-                            }
+                activeTab === 'garam' ? (
+                  <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
+                    <Download className="w-4 h-4" />
+                    Ekspor Excel
+                  </button>
+                ) : null
+              }
             />
           ) : (
             <div className="p-16 text-center text-muted-foreground">
@@ -1053,7 +1053,7 @@ export default function AdminKelautanPesisir() {
         </div>
       ) : (
         /* Visualisasi Tab */
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm min-h-[600px]">
           {renderVisualisasi()}
         </div>
       )}

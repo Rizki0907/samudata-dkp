@@ -223,7 +223,7 @@ export default function KelautanPesisir() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan Pesisir</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan dan Pesisir</h1>
           <p className="text-muted-foreground mt-1">
             Visualisasi data Kelautan, Pesisir, dan Potensi Perairan Jawa Timur.
           </p>
@@ -341,8 +341,8 @@ export default function KelautanPesisir() {
       </div>
 
       {/* ── Tabel Data + Filter ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan Pesisir (Verified)</h2>
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-x-auto min-h-[600px] mt-6">
+        <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan dan Pesisir (Verified)</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-lg w-fit">
             <button
