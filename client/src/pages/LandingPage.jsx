@@ -59,7 +59,7 @@ export default function LandingPage() {
           SAMUDERA
         </h1>
         <p className="text-muted-foreground max-w-lg mx-auto text-lg leading-relaxed">
-          Sistem Aplikasi Manunggal Data.<br className="hidden md:block"/>Pusat Informasi Kelautan & Perikanan Provinsi Jawa Timur yang terpadu, transparan, dan akurat.
+          Sistem Monitoring dan Analisis Data Kelautan dan Perikanan <br className="hidden md:block"/>Pusat Informasi Kelautan & Perikanan Provinsi Jawa Timur yang terpadu, transparan, dan akurat.
         </p>
       </div>
 
