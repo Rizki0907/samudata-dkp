@@ -209,11 +209,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
 
     const merges = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
     }
     
-    let currentCol = 6;
+    let currentCol = 5;
     komoditasArray.forEach(() => {
       merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
       currentCol += 3;
