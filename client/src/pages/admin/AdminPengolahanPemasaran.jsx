@@ -155,7 +155,7 @@ const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
 const FILTER_SELECT_CLASS =
-  'w-full rounded-full border border-border bg-background px-5 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10';
+  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
 
 const NUMERIC_FIELDS = [
   'tahun',
@@ -508,7 +508,7 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
         onClick={() => setIsOpen(previous => !previous)}
         className={`${FILTER_SELECT_CLASS} flex items-center justify-between gap-3 text-left`}
       >
-        <span className={normalizedValues.length ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
+        <span className="truncate font-medium text-white">
           {selectedText}
         </span>
         <ChevronDown
@@ -1606,7 +1606,7 @@ export default function AdminPengolahanPemasaran() {
   //         label: { show: false, color: '#fff' },
   //         emphasis: {
   //           label: { show: true, color: '#fff' },
-  //           itemStyle: { areaColor: '#f59e0b' },
+  //           itemStyle: { areaColor: '#38bdf8' },
   //         },
   //         itemStyle: {
   //           areaColor: '#1e293b',
@@ -1730,13 +1730,13 @@ export default function AdminPengolahanPemasaran() {
         },
 
         inRange: {
-          // Konvensi choropleth: nilai rendah lebih terang, nilai tinggi lebih gelap.
+          // Nilai rendah merah, lalu bertransisi hingga hijau emerald untuk nilai tertinggi.
           color: [
-            '#2563eb',
-            '#38bdf8', 
-            '#facc15', 
-            '#f97316', 
             '#dc2626',
+            '#f97316',
+            '#facc15',
+            '#a3e635',
+            '#34d399',
           ],
         },  
       },
@@ -1773,8 +1773,8 @@ export default function AdminPengolahanPemasaran() {
           },
 
           itemStyle: {
-            areaColor: '#1e293b',
-            borderColor: '#475569',
+            areaColor: '#0f172a',
+            borderColor: '#334155',
             borderWidth: 0.8,
           },
 
@@ -1786,7 +1786,7 @@ export default function AdminPengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#f59e0b',
+              areaColor: '#0284c7',
               borderColor: '#ffffff',
               borderWidth: 1.5,
             },
@@ -2210,7 +2210,7 @@ export default function AdminPengolahanPemasaran() {
         {
           name: 'Pengolahan',
           type: 'line',
-          smooth: true,
+          smooth: false,
           symbolSize: 8,
           data: stats.trenTahunan.map(item => item[pengolahanKey]),
           lineStyle: {
@@ -2224,7 +2224,7 @@ export default function AdminPengolahanPemasaran() {
         {
           name: 'Pemasaran',
           type: 'line',
-          smooth: true,
+          smooth: false,
           symbolSize: 8,
           data: stats.trenTahunan.map(item => item[pemasaranKey]),
           lineStyle: {
@@ -2458,9 +2458,6 @@ export default function AdminPengolahanPemasaran() {
                   Peta Sebaran Hasil
                 </h2>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Ketuk wilayah untuk melihat rincian datanya.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:flex">
@@ -2606,9 +2603,6 @@ export default function AdminPengolahanPemasaran() {
               <h2 className="text-lg font-semibold">
                 Donut Jumlah UPI
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Perbandingan UPI Pengolahan dan Pemasaran.
-              </p>
             </div>
           </div>
 
@@ -2636,10 +2630,6 @@ export default function AdminPengolahanPemasaran() {
                       Jenis Detail Kegiatan
                     </h2>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Jumlah UPI berdasarkan jenis detail{' '}
-                      {activeDetailKegiatan.toLowerCase()}.
-                    </p>
                   </div>
                 </div>
 
@@ -2805,12 +2795,13 @@ export default function AdminPengolahanPemasaran() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border border-primary/20 bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-6 border-b border-border pb-5">
+          {/* Box tab dan filter */}
+          <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-4 border-b border-border pb-4">
               <button
                 type="button"
                 onClick={() => setActiveTab('table')}
-                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   activeTab === 'table'
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -2822,7 +2813,7 @@ export default function AdminPengolahanPemasaran() {
               <button
                 type="button"
                 onClick={() => setActiveTab('visualisasi')}
-                className={`rounded-2xl px-5 py-3 text-sm font-semibold transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   activeTab === 'visualisasi'
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -2832,38 +2823,22 @@ export default function AdminPengolahanPemasaran() {
               </button>
             </div>
 
-            <div className="pt-5">
-              <div className="mb-5 flex items-start justify-between">
+            <div>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="h-5 w-5 text-muted-foreground" />
                   <h3 className="text-lg font-semibold text-foreground">
                     Filter Multi-Dimensi
                   </h3>
                 </div>
+
+                {activeTab !== 'table' ? (
+                  <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                    <Clock className="h-4 w-4 animate-pulse" />
+                    <span>Terakhir Diperbarui: {lastUpdated}</span>
+                  </div>
+                ) : null}
               </div>
-            {/*Badge */}
-             {activeTab !== "table" &&(
-              <div className="flex justify-end mb-4 mb-6">
-                <div 
-                  className="
-                    inline-flex items-center gap-2
-                    px-4 py-2
-                    bg-cyan-50 text-cyan-700
-                    dark:bg-cyan-500/10 dark:text-cyan-400
-                    rounded-full
-                    text-sm
-                    font-medium
-                    border border-cyan-200
-                    dark:border-cyan-500/20
-                    shadow-sm
-                    -mt-12
-                  "
-                >
-                  <Clock className="w-4 h-4 animate-pulse" />
-                  <span>Terakhir Diperbarui: {lastUpdated}</span>
-                </div>
-              </div>
-              )}
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <FilterMultiSelect
@@ -2897,33 +2872,12 @@ export default function AdminPengolahanPemasaran() {
                   onChange={setFilterSkalaUsaha}
                   placeholder="Semua Skala Usaha"
                 />
-             </div>
-
-             {/* Badge Terakhir Diperbarui
-             {activeTab !== "table" &&(
-              <div className="flex justify-end mb-4 mb-6">
-                <div 
-                  className="
-                    inline-flex items-center gap-2
-                    px-4 py-2
-                    bg-cyan-50 text-cyan-700
-                    dark:bg-cyan-500/10 dark:text-cyan-400
-                    rounded-full
-                    text-sm
-                    font-medium
-                    border border-cyan-200
-                    dark:border-cyan-500/20
-                    shadow-sm
-                  "
-                >
-                  <Clock className="w-4 h-4 animate-pulse" />
-                  <span>Terakhir Diperbarui: {lastUpdated}</span>
-                </div>
               </div>
-              )} */}
             </div>
-            {activeTab === 'table' ? dataPreview : dataVisualization}
           </div>
+
+          {/* Box tabel/search/export dipisahkan dari box filter */}
+          {activeTab === 'table' ? dataPreview : dataVisualization}
         </>
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Loader2, Save, Search, X } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 
 export const KABUPATEN_KOTA_OPTIONS = [
   'KAB. PACITAN',
@@ -634,7 +634,7 @@ function Field({
 }) {
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label className="text-xs font-normal uppercase tracking-wide text-white">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
       </label>
@@ -666,7 +666,7 @@ function SelectField({
 }) {
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label className="text-xs font-normal uppercase tracking-wide text-white">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
       </label>
@@ -695,7 +695,7 @@ function ChoiceButtons({ label, value, options, onChange, required = true, colum
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="text-xs font-normal uppercase tracking-wide text-white">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
       </div>
@@ -718,6 +718,138 @@ function ChoiceButtons({ label, value, options, onChange, required = true, colum
           );
         })}
       </div>
+    </div>
+  );
+}
+
+
+function SearchableSingleSelect({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder = 'Pilih salah satu',
+  required = true,
+  helpText,
+  className = '',
+}) {
+  const wrapperRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const normalizedOptions = [...new Set((options || []).filter(Boolean))];
+  const normalizedSearch = search.trim().toUpperCase();
+  const filteredOptions = normalizedOptions.filter(option =>
+    String(option).toUpperCase().includes(normalizedSearch),
+  );
+
+  useEffect(() => {
+    const handleOutsideClick = event => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handleSelect = option => {
+    onChange(option);
+    setSearch('');
+    setIsOpen(false);
+  };
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={`relative flex min-w-0 flex-col gap-1.5 ${
+        isOpen ? 'z-[90]' : 'z-0'
+      } ${className}`}
+    >
+      <label className="text-xs font-normal uppercase tracking-wide text-white">
+        {label}
+        {required ? <span className="ml-1 text-rose-500">*</span> : null}
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen(previous => !previous)}
+        aria-expanded={isOpen}
+        className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
+      >
+        <span className={value ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
+          {value || placeholder}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 right-0 top-full z-[100] mt-2 rounded-xl border border-border bg-card p-3 shadow-2xl">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              placeholder={`Cari ${label.toLowerCase()}...`}
+              className={`${INPUT_CLASS} pl-9`}
+              autoFocus
+            />
+          </div>
+
+          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+            {filteredOptions.length ? (
+              filteredOptions.map(option => {
+                const selected = option === value;
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleSelect(option)}
+                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      selected
+                        ? 'bg-primary/10 font-semibold text-primary'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                Tidak ada kabupaten/kota yang cocok.
+              </p>
+            )}
+          </div>
+
+          {value ? (
+            <div className="mt-3 border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('');
+                  setSearch('');
+                  setIsOpen(false);
+                }}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Bersihkan pilihan
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {helpText ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">{helpText}</p>
+      ) : null}
     </div>
   );
 }
@@ -841,7 +973,7 @@ function SearchableMultiSelect({
         isOpen ? 'z-[90]' : 'z-0'
       } ${className}`}
     >
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label className="text-xs font-normal uppercase tracking-wide text-white">
         {label}
         {required ? <span className="ml-1 text-rose-500">*</span> : null}
       </label>
@@ -997,7 +1129,7 @@ function ReadOnlyMetric({ label, value, suffix = '' }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label className="text-xs font-normal uppercase tracking-wide text-white">
         {label}
       </label>
       <input
@@ -1331,12 +1463,12 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
             maxLength={4}
             required
           />
-          <SelectField
+          <SearchableSingleSelect
             label="Kabupaten/Kota"
             value={form.kabupaten_kota}
-            onChange={setValue('kabupaten_kota')}
+            onChange={value => setChoice('kabupaten_kota', value)}
             options={KABUPATEN_KOTA_OPTIONS}
-            placeholder="Pilih kabupaten/kota"
+            placeholder="Cari atau pilih kabupaten/kota"
             required
           />
           <Field
@@ -1424,12 +1556,13 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
           <div className="rounded-2xl border border-border bg-muted/20 p-4 md:p-5">
             <h3 className="mb-4 text-sm font-semibold text-foreground">Alamat Domisili Pemilik</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <SelectField
-                label="Kabupaten 2"
+              <SearchableSingleSelect
+                label="Kabupaten/Kota Domisili"
                 value={form.kabupaten_kota_2}
-                onChange={setValue('kabupaten_kota_2')}
+                onChange={value => setChoice('kabupaten_kota_2', value)}
                 options={KABUPATEN_KOTA_OPTIONS}
-                placeholder="Pilih kabupaten/kota domisili"
+                placeholder="Cari atau pilih kabupaten/kota domisili"
+                required={false}
               />
               <Field
                 label="Kecamatan 2"
@@ -1983,8 +2116,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
             disabled={isLoading}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Simpan Data
+            {isLoading ? 'Menyimpan...' : 'Simpan Data'}
           </button>
         </div>
       </div>

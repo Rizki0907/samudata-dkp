@@ -181,15 +181,21 @@ export default function PengolahanPemasaran() {
           const latest = verifiedData.reduce((a, b) =>
             new Date(a.updated_at) > new Date(b.updated_at) ? a : b
           );
-          setLastUpdated(
-            new Date(latest.updated_at).toLocaleString("id-ID", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-          })
-        );
+          const updatedAt = new Date(latest.updated_at);
+          const datePart = updatedAt.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
+          const timePart = updatedAt
+            .toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })
+            .replace(':', '.');
+
+          setLastUpdated(`${datePart} ${timePart}`);
       } else {
         setLastUpdated("-");
       }
@@ -675,13 +681,13 @@ export default function PengolahanPemasaran() {
         },
 
         inRange: {
-          // Konvensi choropleth: nilai rendah lebih terang, nilai tinggi lebih gelap.
+          // Nilai rendah merah, lalu bertransisi hingga hijau emerald untuk nilai tertinggi.
           color: [
-            '#2563eb',
-            '#38bdf8', 
-            '#facc15', 
-            '#f97316', 
             '#dc2626',
+            '#f97316',
+            '#facc15',
+            '#a3e635',
+            '#34d399',
           ],
         },  
       },
@@ -718,8 +724,8 @@ export default function PengolahanPemasaran() {
           },
 
           itemStyle: {
-            areaColor: '#1e293b',
-            borderColor: '#475569',
+            areaColor: '#0f172a',
+            borderColor: '#334155',
             borderWidth: 0.8,
           },
 
@@ -731,7 +737,7 @@ export default function PengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#f59e0b',
+              areaColor: '#38bdf8',
               borderColor: '#ffffff',
               borderWidth: 1.5,
             },
@@ -746,7 +752,7 @@ export default function PengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#f59e0b',
+              areaColor: '#0284c7',
               borderColor: '#ffffff',
               borderWidth: 2,
             },
@@ -1100,7 +1106,7 @@ export default function PengolahanPemasaran() {
       {
         name: 'Pengolahan',
         type: 'line',
-        smooth: true,
+        smooth: false,
         symbolSize: 8,
         data: stats.trenTahunan.map(item => item[pengolahanKey]),
         lineStyle: {
@@ -1114,7 +1120,7 @@ export default function PengolahanPemasaran() {
       {
         name: 'Pemasaran',
         type: 'line',
-        smooth: true,
+        smooth: false,
         symbolSize: 8,
         data: stats.trenTahunan.map(item => item[pemasaranKey]),
         lineStyle: {
@@ -1212,11 +1218,11 @@ export default function PengolahanPemasaran() {
         >
           <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
           
+          <span className="opacity-80">
+            Terakhir Diperbarui:
+          </span>
           <span className="font-semibold">
             {lastUpdated}
-          </span> 
-          <span className="opacity-80">
-            Terakhir Diperbarui
           </span>
         </div>
       </div>
@@ -1338,9 +1344,6 @@ export default function PengolahanPemasaran() {
                       Peta Sebaran Hasil
                     </h2>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                    Ketuk wilayah untuk melihat rincian datanya.
-                  </p>
                   </div>
                   
                   <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:flex">
@@ -1512,9 +1515,6 @@ export default function PengolahanPemasaran() {
                   <h2 className="text-lg font-semibold">
                     Donut Jumlah UPI
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Perbandingan UPI Pengolahan dan Pemasaran.
-                  </p>
                 </div>
               </div>
 
@@ -1542,10 +1542,6 @@ export default function PengolahanPemasaran() {
                       Jenis Detail Kegiatan
                     </h2>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Jumlah UPI berdasarkan jenis detail{' '}
-                      {activeDetailKegiatan.toLowerCase()}.
-                    </p>
                   </div>
                 </div>
 
