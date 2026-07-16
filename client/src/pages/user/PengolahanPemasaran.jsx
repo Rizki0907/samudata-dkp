@@ -1513,7 +1513,7 @@ export default function PengolahanPemasaran() {
                 <Users className="h-5 w-5 text-purple-500" />
                 <div>
                   <h2 className="text-lg font-semibold">
-                    Donut Jumlah UPI
+                    Perbandingan Jumlah UPI
                   </h2>
                 </div>
               </div>
@@ -1603,11 +1603,6 @@ export default function PengolahanPemasaran() {
                       ? `Tren Tahunan ${selectedJenisKegiatan}`
                       : 'Tren Tahunan Pengolahan vs Pemasaran'}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedJenisKegiatan
-                      ? `Menampilkan perkembangan ${selectedJenisKegiatan.toLowerCase()} dari tahun ke tahun.`
-                      : 'Dua garis memudahkan perbandingan perkembangan setiap tahun.'}
-                  </p>
                 </div>
               </div>
 

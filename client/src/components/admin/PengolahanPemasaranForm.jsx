@@ -1490,7 +1490,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
             value={form.alamat}
             onChange={setUppercase('alamat')}
             placeholder="CTH: DUSUN KRAJAN, JL. IKAN TUNA NO. JALAN 10, NO. BANGUNAN A-2, RT 02/RW 03"
-            helpText="Cantumkan dusun, nama jalan, nomor jalan, nomor bangunan, serta RT/RW agar alamat mudah ditemukan."
             className="md:col-span-2"
             required
           />
@@ -1581,8 +1580,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
                 value={form.alamat_2}
                 onChange={setUppercase('alamat_2')}
                 placeholder="CTH: DUSUN KRAJAN, JL. IKAN TUNA NO. JALAN 10, NO. BANGUNAN A-2, RT 02/RW 03"
-                helpText="Cantumkan dusun, nama jalan, nomor jalan, nomor bangunan, serta RT/RW agar alamat mudah ditemukan."
-                className="md:col-span-2 xl:col-span-3"
+                    className="md:col-span-2 xl:col-span-3"
               />
             </div>
           </div>
@@ -1848,11 +1846,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading, onSubm
               onChange={setValue('jumlah_hari_produksi_per_bulan')}
               inputMode="numeric"
               placeholder="25"
-              helpText={
-                form.periode_produksi === 'Bulanan'
-                  ? 'Tetap dapat diisi sebagai informasi operasional. Nilai ini tidak mengubah perhitungan tahunan untuk periode bulanan.'
-                  : 'Digunakan dalam perhitungan tahunan untuk periode harian.'
-              }
             />
             <SearchableMultiSelect
               label="Bulan Produksi"
