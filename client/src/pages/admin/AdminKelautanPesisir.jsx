@@ -68,28 +68,38 @@ const cellStyle = (opts = {}) => ({
   fill: opts.fill ? { fgColor: { rgb: opts.fill } } : undefined,
 });
 
-const exportGaramExcelPintar = (data, filterTahun, filterTw, filterBulan, filterKab) => {
+const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, filterKab) => {
+  const data = dataRaw.filter(d => d.status === 'VERIFIED');
+  if (data.length === 0) {
+    alert("Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.");
+    return;
+  }
+
   const wb = XLSX.utils.book_new();
-  const currentYear = filterTahun || new Date().getFullYear();
-  const title = `DATA PRODUKSI GARAM RAKYAT JAWA TIMUR TAHUN ${currentYear}`;
+  const availableYears = [...new Set(data.map(d => d.tahun))].sort((a, b) => a - b);
+  const isMultiYear = availableYears.length > 1;
+  const yearString = filterTahun ? filterTahun : (isMultiYear ? 'MultiTahun' : availableYears[0]);
+  const titleBase = `DATA PRODUKSI GARAM RAKYAT JAWA TIMUR`;
 
-  // KASUS 1: User filter Kab/Kota -> Baris excel berubah jadi daftar Bulan
-  if (filterKab && !filterBulan && !filterTw) {
-    const ws = buildGaramSheet(data, title, `KABUPATEN/KOTA: ${filterKab.toUpperCase()}`, 'bulan');
-    XLSX.utils.book_append_sheet(wb, ws, filterKab.substring(0, 30));
-    XLSX.writeFile(wb, `Data_Garam_${filterKab}_${currentYear}.xlsx`);
-    return;
-  }
+  const processForYear = (yrData, yr) => {
+    const yrSuffix = isMultiYear ? ` ${yr}` : '';
+    const title = `${titleBase} TAHUN ${yr}`;
 
-  // KASUS 2: User filter Bulan tertentu (Contoh: Januari) -> Bikin 1 Sheet saja
-  if (filterBulan) {
-    const ws = buildGaramSheet(data, title, `BULAN: ${filterBulan.toUpperCase()}`, 'kabupaten');
-    XLSX.utils.book_append_sheet(wb, ws, filterBulan.substring(0, 3));
-    XLSX.writeFile(wb, `Data_Garam_${filterBulan}_${currentYear}.xlsx`);
-    return;
-  }
+    // KASUS 1: Filter Kab/Kota
+    if (filterKab && !filterBulan && !filterTw) {
+      const ws = buildGaramSheet(yrData, title, `KABUPATEN/KOTA: ${filterKab.toUpperCase()}`, 'bulan');
+      XLSX.utils.book_append_sheet(wb, ws, (filterKab.substring(0, 20) + yrSuffix));
+      return;
+    }
 
-  // KASUS 3: User filter Triwulan (TW 1) -> Bikin 3 Sheet Bulan + 1 Sheet Rekap
+    // KASUS 2: Filter Bulan
+    if (filterBulan) {
+      const ws = buildGaramSheet(yrData, title, `BULAN: ${filterBulan.toUpperCase()}`, 'kabupaten');
+      XLSX.utils.book_append_sheet(wb, ws, (filterBulan.substring(0, 3) + yrSuffix));
+      return;
+    }
+
+    // KASUS 3: Filter TW
     if (filterTw) {
       let bulanList = [];
       if (filterTw === 'TW 1') bulanList = ['Januari', 'Februari', 'Maret'];
@@ -98,35 +108,56 @@ const exportGaramExcelPintar = (data, filterTahun, filterTw, filterBulan, filter
       if (filterTw === 'TW 4') bulanList = ['Oktober', 'November', 'Desember'];
 
       bulanList.forEach(bln => {
-        // PERBAIKAN: Format angka bulan jadi teks dulu sebelum difilter
-        const dataBulan = data.filter(d => formatBulan(d.bulan).toLowerCase() === bln.toLowerCase());
+        const dataBulan = yrData.filter(d => formatBulan(d.bulan).toLowerCase() === bln.toLowerCase());
         const ws = buildGaramSheet(dataBulan, title, `BULAN: ${bln.toUpperCase()}`, 'kabupaten');
-        XLSX.utils.book_append_sheet(wb, ws, bln.substring(0, 3));
+        XLSX.utils.book_append_sheet(wb, ws, (bln.substring(0, 3) + yrSuffix));
       });
       
-      const wsRekap = buildGaramSheet(data, title, `REKAPITULASI ${filterTw}`, 'kabupaten');
-      XLSX.utils.book_append_sheet(wb, wsRekap, `Rekap ${filterTw}`);
-      XLSX.writeFile(wb, `Data_Garam_${filterTw}_${currentYear}.xlsx`);
+      const wsRekap = buildGaramSheet(yrData, title, `REKAPITULASI ${filterTw}`, 'kabupaten');
+      XLSX.utils.book_append_sheet(wb, wsRekap, (`Rekap ` + filterTw + yrSuffix).substring(0, 31));
       return;
     }
 
-    // KASUS 4: Tanpa Filter Bulan/TW/Kab -> Export Tahunan (12 Sheet Bulan + 1 Rekap Tahun)
+    // KASUS 4: Tidak ada filter (Full set for this year)
     const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     NAMA_BULAN.forEach(bln => {
-      // PERBAIKAN: Format angka bulan jadi teks dulu sebelum difilter
-      const dataBulan = data.filter(d => formatBulan(d.bulan).toLowerCase() === bln.toLowerCase());
+      const dataBulan = yrData.filter(d => formatBulan(d.bulan).toLowerCase() === bln.toLowerCase());
       const ws = buildGaramSheet(dataBulan, title, `BULAN: ${bln.toUpperCase()}`, 'kabupaten');
-      XLSX.utils.book_append_sheet(wb, ws, bln.substring(0, 3));
+      XLSX.utils.book_append_sheet(wb, ws, (bln.substring(0, 3) + yrSuffix));
     });
 
-    const wsRekap = buildGaramSheet(data, title, `REKAPITULASI TAHUN ${currentYear}`, 'kabupaten');
-    XLSX.utils.book_append_sheet(wb, wsRekap, `Rekap Tahun`);
-    XLSX.writeFile(wb, `Data_Garam_Tahunan_${currentYear}.xlsx`);
+    const wsRekap = buildGaramSheet(yrData, title, `REKAPITULASI TAHUN ${yr}`, 'kabupaten');
+    XLSX.utils.book_append_sheet(wb, wsRekap, (`Rekap ` + yr).substring(0, 31));
   };
+
+  if (isMultiYear) {
+    let subtitle = 'AGREGAT PER TAHUN';
+    if (filterKab) subtitle += ` - KAB: ${filterKab.toUpperCase()}`;
+    if (filterBulan) subtitle += ` - BULAN: ${filterBulan.toUpperCase()}`;
+    if (filterTw) subtitle += ` - ${filterTw}`;
+    
+    const wsMaster = buildGaramSheet(data, `${titleBase} (MULTI TAHUN)`, subtitle, 'tahun');
+    XLSX.utils.book_append_sheet(wb, wsMaster, 'Rekap Semua Tahun');
+
+    availableYears.forEach(yr => {
+      const yrData = data.filter(d => d.tahun === yr);
+      processForYear(yrData, yr);
+    });
+  } else {
+    processForYear(data, availableYears[0]);
+  }
+
+  let filename = `Data_Garam_${yearString}`;
+  if (filterKab) filename += `_${filterKab}`;
+  if (filterBulan) filename += `_${filterBulan}`;
+  if (filterTw) filename += `_${filterTw}`;
+  
+  XLSX.writeFile(wb, `${filename.replace(/\s+/g, '_')}.xlsx`);
+};
 
 // Fungsi Builder (Bisa switch rowMode 'kabupaten' atau 'bulan')
 const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') => {
-  const h1 = ['No', rowMode === 'kabupaten' ? 'Kab/Kota' : 'Bulan', 'L Total (Ha)', 'L Prod (Ha)', 'Σ Pok', 'Σ Petambak',
+  const h1 = ['No', rowMode === 'kabupaten' ? 'Kab/Kota' : rowMode === 'bulan' ? 'Bulan' : 'Tahun', 'L Total (Ha)', 'L Prod (Ha)', 'Σ Pok', 'Σ Petambak',
     'Produksi (Ton)', '', '', 'Σ Prod (Ton)', 'Prodtv',
     'Stok (Ton)', '', '', 'Σ Stok',
     'Harga (Rp)', '', '', 'Nilai Produksi', '', ''];
@@ -137,37 +168,55 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
 
   const aggData = {};
   dataRowsRaw.forEach(row => {
-    const key = rowMode === 'kabupaten' ? row.kabupaten_kota : formatBulan(row.bulan);
+    const key = rowMode === 'kabupaten' ? row.kabupaten_kota : rowMode === 'bulan' ? formatBulan(row.bulan) : row.tahun;
     if (!key) return;
 
     if (!aggData[key]) {
-      aggData[key] = { nama_baris: key, produksi_k1_ton: 0, produksi_k2_ton: 0, produksi_k3_ton: 0, stok_k1_ton: 0, stok_k2_ton: 0, stok_k3_ton: 0, total_produksi_ton: 0, total_stok_ton: 0, luas_total_ha: 0, luas_produksi_ha: 0, jumlah_kelompok: 0, jumlah_petambak: 0, harga_k1_rp: 0, harga_k2_rp: 0, harga_k3_rp: 0 };
+      aggData[key] = { 
+        nama_baris: key, 
+        produksi_k1_ton: 0, produksi_k2_ton: 0, produksi_k3_ton: 0, stok_k1_ton: 0, stok_k2_ton: 0, stok_k3_ton: 0, 
+        total_produksi_ton: 0, total_stok_ton: 0, harga_k1_rp: 0, harga_k2_rp: 0, harga_k3_rp: 0,
+        max_per_kab: {} 
+      };
     }
     
     const target = aggData[key];
     target.produksi_k1_ton += row.produksi_k1_ton || 0; target.produksi_k2_ton += row.produksi_k2_ton || 0; target.produksi_k3_ton += row.produksi_k3_ton || 0; target.total_produksi_ton += row.total_produksi_ton || 0;
     target.stok_k1_ton += row.stok_k1_ton || 0; target.stok_k2_ton += row.stok_k2_ton || 0; target.stok_k3_ton += row.stok_k3_ton || 0; target.total_stok_ton += row.total_stok_ton || 0;
 
-    target.luas_total_ha = Math.max(target.luas_total_ha, row.luas_total_ha || 0);
-    target.luas_produksi_ha = Math.max(target.luas_produksi_ha, row.luas_produksi_ha || 0);
-    target.jumlah_kelompok = Math.max(target.jumlah_kelompok, row.jumlah_kelompok || 0);
-    target.jumlah_petambak = Math.max(target.jumlah_petambak, row.jumlah_petambak || 0);
+    const kab = row.kabupaten_kota;
+    if (!target.max_per_kab[kab]) target.max_per_kab[kab] = { luas_total: 0, luas_prod: 0, pok: 0, petambak: 0 };
+    target.max_per_kab[kab].luas_total = Math.max(target.max_per_kab[kab].luas_total, row.luas_total_ha || 0);
+    target.max_per_kab[kab].luas_prod = Math.max(target.max_per_kab[kab].luas_prod, row.luas_produksi_ha || 0);
+    target.max_per_kab[kab].pok = Math.max(target.max_per_kab[kab].pok, row.jumlah_kelompok || 0);
+    target.max_per_kab[kab].petambak = Math.max(target.max_per_kab[kab].petambak, row.jumlah_petambak || 0);
 
     if (row.harga_k1_rp > 0) target.harga_k1_rp = target.harga_k1_rp === 0 ? row.harga_k1_rp : (target.harga_k1_rp + row.harga_k1_rp) / 2;
     if (row.harga_k2_rp > 0) target.harga_k2_rp = target.harga_k2_rp === 0 ? row.harga_k2_rp : (target.harga_k2_rp + row.harga_k2_rp) / 2;
     if (row.harga_k3_rp > 0) target.harga_k3_rp = target.harga_k3_rp === 0 ? row.harga_k3_rp : (target.harga_k3_rp + row.harga_k3_rp) / 2;
   });
 
-  const dataRows = Object.values(aggData).map((row, i) => {
-    totalProduksi += row.total_produksi_ton; totalStok += row.total_stok_ton; totalLuas += row.luas_total_ha; totalLProd += row.luas_produksi_ha; totalPok += row.jumlah_kelompok; totalPetambak += row.jumlah_petambak;
+  const sortedKeys = Object.keys(aggData);
+  if (rowMode === 'tahun') sortedKeys.sort((a, b) => parseInt(a) - parseInt(b));
+  else if (rowMode === 'bulan') sortedKeys.sort((a, b) => NAMA_BULAN_LIST.indexOf(a) - NAMA_BULAN_LIST.indexOf(b));
+  else sortedKeys.sort();
+
+  const dataRows = sortedKeys.map((key, i) => {
+    const row = aggData[key];
+    let rowLuas = 0, rowLProd = 0, rowPok = 0, rowPetambak = 0;
+    Object.values(row.max_per_kab).forEach(k => {
+      rowLuas += k.luas_total; rowLProd += k.luas_prod; rowPok += k.pok; rowPetambak += k.petambak;
+    });
+
+    totalProduksi += row.total_produksi_ton; totalStok += row.total_stok_ton; totalLuas += rowLuas; totalLProd += rowLProd; totalPok += rowPok; totalPetambak += rowPetambak;
     const nk1 = row.produksi_k1_ton * row.harga_k1_rp; const nk2 = row.produksi_k2_ton * row.harga_k2_rp; const nk3 = row.produksi_k3_ton * row.harga_k3_rp;
     totalNilaiK1 += nk1; totalNilaiK2 += nk2; totalNilaiK3 += nk3;
     if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
     if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
     if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
 
-    const prod = row.luas_produksi_ha > 0 ? row.total_produksi_ton / row.luas_produksi_ha : 0;
-    return [ i + 1, row.nama_baris, row.luas_total_ha.toLocaleString('id-ID'), row.luas_produksi_ha.toLocaleString('id-ID'), row.jumlah_kelompok, row.jumlah_petambak,
+    const prod = rowLProd > 0 ? row.total_produksi_ton / rowLProd : 0;
+    return [ i + 1, row.nama_baris, rowLuas.toLocaleString('id-ID'), rowLProd.toLocaleString('id-ID'), rowPok, rowPetambak,
       row.produksi_k1_ton.toLocaleString('id-ID'), row.produksi_k2_ton.toLocaleString('id-ID'), row.produksi_k3_ton.toLocaleString('id-ID'), row.total_produksi_ton.toLocaleString('id-ID'), prod.toLocaleString('id-ID', { maximumFractionDigits: 3 }),
       row.stok_k1_ton.toLocaleString('id-ID'), row.stok_k2_ton.toLocaleString('id-ID'), row.stok_k3_ton.toLocaleString('id-ID'), row.total_stok_ton.toLocaleString('id-ID'),
       row.harga_k1_rp.toLocaleString('id-ID'), row.harga_k2_rp.toLocaleString('id-ID'), row.harga_k3_rp.toLocaleString('id-ID'), nk1.toLocaleString('id-ID'), nk2.toLocaleString('id-ID'), nk3.toLocaleString('id-ID')
@@ -201,7 +250,13 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   return ws;
 };
 
-const exportPotensiExcel = (data) => {
+const exportPotensiExcel = (dataRaw) => {
+  const data = dataRaw.filter(d => d.status === 'VERIFIED');
+  if (data.length === 0) {
+    alert("Tidak ada data berstatus VERIFIED untuk diekspor!");
+    return;
+  }
+
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
   const h1 = ['No', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)',
     'Panjang Garis Pantai (km)', '', '', '', 'Total Pantai (km)',

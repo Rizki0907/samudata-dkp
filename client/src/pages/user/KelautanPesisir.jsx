@@ -184,29 +184,98 @@ export default function KelautanPesisir() {
   ], []);
 
   const handleExport = async (rows) => {
+    if (!rows || rows.length === 0) {
+      alert("Tidak ada data untuk diekspor!");
+      return;
+    }
+
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet(activeTable === 'garam' ? 'Data Garam' : 'Potensi Perairan');
-    const cols = activeTable === 'garam' ? columnsGaram : columnsPotensi;
+    const isGaram = activeTable === 'garam';
+    const cols = isGaram ? columnsGaram : columnsPotensi;
+    const yearField = isGaram ? 'tahun' : 'tahun_data';
 
-    sheet.addRow(cols.map(c => c.header));
-    sheet.getRow(1).eachCell(cell => {
-      cell.font = { bold: true };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-    });
+    const buildSheet = (sheetName, dataRows) => {
+      const safeName = sheetName.substring(0, 31).replace(/[\\/?*[\]]/g, '');
+      const sheet = workbook.addWorksheet(safeName);
 
-    rows.forEach(row => {
-      const rowData = cols.map(c => c.accessorFn ? c.accessorFn(row) : (row[c.accessorKey] ?? ''));
-      const addedRow = sheet.addRow(rowData);
-      addedRow.eachCell(cell => {
+      sheet.addRow(cols.map(c => c.header));
+      sheet.getRow(1).eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
       });
-    });
 
-    sheet.columns.forEach(col => { col.width = 18; });
+      dataRows.forEach(row => {
+        const rowData = cols.map(c => c.accessorFn ? c.accessorFn(row) : (row[c.accessorKey] ?? ''));
+        const addedRow = sheet.addRow(rowData);
+        addedRow.eachCell(cell => {
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+      });
+
+      sheet.columns.forEach(col => { col.width = 18; });
+    };
+
+    const availableYears = [...new Set(rows.map(r => r[yearField]))].sort((a, b) => a - b);
+    const isMultiYear = availableYears.length > 1;
+
+    if (!isGaram) {
+      if (isMultiYear) {
+        buildSheet('Rekap Semua Tahun', rows);
+        availableYears.forEach(yr => buildSheet(`Potensi ${yr}`, rows.filter(r => r[yearField] === yr)));
+      } else {
+        buildSheet(`Potensi ${availableYears[0] || 'Data'}`, rows);
+      }
+    } else {
+      const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      const normalizeBulan = (val) => {
+        if (!val && val !== 0) return '';
+        const b = String(val).trim().toLowerCase();
+        const num = parseInt(b, 10);
+        if (!isNaN(num) && num >= 1 && num <= 12) return NAMA_BULAN[num - 1].toLowerCase();
+        return b;
+      };
+
+      const processForYear = (yrData, yr) => {
+        const yrSuffix = isMultiYear ? ` ${yr}` : '';
+        
+        if (tableFilterKab && !tableFilterBulan) {
+          buildSheet(`KAB ${tableFilterKab.substring(0, 15)}${yrSuffix}`, yrData);
+          return;
+        }
+        if (tableFilterBulan) {
+          buildSheet(`${tableFilterBulan.substring(0, 3)}${yrSuffix}`, yrData);
+          return;
+        }
+
+        NAMA_BULAN.forEach(bln => {
+          const dataBulan = yrData.filter(d => normalizeBulan(d.bulan) === bln.toLowerCase());
+          if (dataBulan.length > 0) {
+            buildSheet(`${bln.substring(0, 3)}${yrSuffix}`, dataBulan);
+          }
+        });
+        buildSheet(`Rekap${yrSuffix}`, yrData);
+      };
+
+      if (isMultiYear) {
+        buildSheet('Rekap Semua Tahun', rows);
+        availableYears.forEach(yr => {
+          const yrData = rows.filter(r => r[yearField] === yr);
+          processForYear(yrData, yr);
+        });
+      } else {
+        processForYear(rows, availableYears[0]);
+      }
+    }
+
+    const yearString = tableFilterTahun ? tableFilterTahun : (isMultiYear ? 'MultiTahun' : (availableYears[0] || new Date().getFullYear()));
+    let filename = `Data_${isGaram ? 'Garam' : 'Potensi_Perairan'}_${yearString}`;
+    if (tableFilterKab) filename += `_${tableFilterKab}`;
+    if (tableFilterBulan && isGaram) filename += `_${tableFilterBulan}`;
+
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `Data_${activeTable === 'garam' ? 'Garam' : 'Potensi_Perairan'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    saveAs(new Blob([buffer]), `${filename.replace(/\s+/g, '_')}.xlsx`);
   };
 
   if (loading) {
