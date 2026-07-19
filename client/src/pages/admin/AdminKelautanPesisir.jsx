@@ -383,6 +383,39 @@ const makePieOption = (title, data, nameField, valueField) => ({
   }]
 });
 
+// Warna kategori kondisi mangrove: Jarang (merah), Sedang (kuning), Sangat Padat (hijau)
+const KONDISI_COLOR_MAP = {
+  'Sangat Padat (70-100%)': '#10b981',
+  'Sedang (30-70%)': '#f59e0b',
+  'Jarang (0-30%)': '#f43f5e',
+};
+
+const makeKondisiPieOption = (data) => ({
+  ...darkTheme,
+  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#a3c7df', fontSize: 11 } },
+  series: [{
+    type: 'pie', radius: ['40%', '70%'], center: ['35%', '55%'],
+    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_COLOR_MAP[d.name] } })),
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.3)' } }
+  }]
+});
+
+// Bar horizontal berdampingan: Luas Eksisting vs Luas Rehabilitasi per Kab/Kota
+const makeMangroveComboOption = (categories, eksisting, rehab) => ({
+  ...darkTheme,
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#a3c7df', fontSize: 11 } },
+  grid: { left: 140, right: 30, top: 40, bottom: 10 },
+  xAxis: { type: 'value', axisLabel: { color: '#7fb5d5' }, splitLine: { lineStyle: { color: '#1e3a52' } } },
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#a3c7df', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  series: [
+    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#06b6d4', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+  ],
+});
+
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
   { key: 'garam',            label: 'Garam',       icon: <Map className="w-4 h-4" /> },
@@ -420,6 +453,8 @@ export default function AdminKelautanPesisir() {
   const [visGaramBulan, setVisGaramBulan] = useState('');
   const [visGaramTahun, setVisGaramTahun] = useState('');
   const [visGaramKab, setVisGaramKab] = useState('');
+  const [visMangroveTahun, setVisMangroveTahun] = useState('');
+  const [visMangroveKab, setVisMangroveKab] = useState('');
 
   // Fetch garam data
   const fetchGaram = useCallback(async () => {
@@ -923,6 +958,45 @@ export default function AdminKelautanPesisir() {
 
     const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
+    // ── VISUALISASI MANGROVE (only VERIFIED data) ──
+    const verifiedMangrove = dataMangrove.filter(d => d.status === 'VERIFIED');
+    const filteredVisMangrove = verifiedMangrove.filter(d =>
+      (!visMangroveTahun || String(d.tahun) === visMangroveTahun) &&
+      (!visMangroveKab || d.kabupaten_kota === visMangroveKab)
+    );
+
+    const visMangrovePerKota = Object.values(filteredVisMangrove.reduce((agg, d) => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { name: kab, luas_eksisting: 0, luas_rehabilitasi: 0 };
+      agg[kab].luas_eksisting += (d.luas_eksisting_ha || 0);
+      agg[kab].luas_rehabilitasi += (d.luas_rehabilitasi_ha || 0);
+      return agg;
+    }, {})).sort((a, b) => b.luas_eksisting - a.luas_eksisting);
+
+    const kpiMangrove = {
+      luas_eksisting: visMangrovePerKota.reduce((s, d) => s + d.luas_eksisting, 0),
+      luas_rehabilitasi: visMangrovePerKota.reduce((s, d) => s + d.luas_rehabilitasi, 0),
+      jumlah_lokasi: filteredVisMangrove.length,
+    };
+
+    const mangroveKota = visMangrovePerKota.map(d => d.name);
+    const mangroveEksisting = visMangrovePerKota.map(d => parseFloat(d.luas_eksisting.toFixed(2)));
+    const mangroveRehab = visMangrovePerKota.map(d => parseFloat(d.luas_rehabilitasi.toFixed(2)));
+
+    const kondisiCountMap = filteredVisMangrove.reduce((agg, d) => {
+      const k = d.kondisi || 'Tidak Diketahui';
+      agg[k] = (agg[k] || 0) + 1;
+      return agg;
+    }, {});
+    const kondisiChartData = [
+      { name: 'Sangat Padat (70-100%)', value: kondisiCountMap['Sangat Padat (70-100%)'] || 0 },
+      { name: 'Sedang (30-70%)', value: kondisiCountMap['Sedang (30-70%)'] || 0 },
+      { name: 'Jarang (0-30%)', value: kondisiCountMap['Jarang (0-30%)'] || 0 },
+    ];
+
+    const tahunOptionsMangrove = [...new Set(dataMangrove.map(d => d.tahun).filter(Boolean))].sort((a, b) => b - a);
+    const kabupatenOptionsMangrove = [...new Set(dataMangrove.map(d => d.kabupaten_kota).filter(Boolean))].sort();
+
     return (
       <div className="space-y-8">
         {/* ── Potensi Perairan KPI (TOP) ── */}
@@ -1028,10 +1102,79 @@ export default function AdminKelautanPesisir() {
           </div>
         </div>
 
-        {/* ── Placeholder Visualisasi Mangrove dkk ── */}
+        {/* ── Visualisasi Mangrove ── */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <TreePine className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Mangrove</h2>
+            </div>
+            {/* Mangrove Filters */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <select value={visMangroveTahun} onChange={(e) => setVisMangroveTahun(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                <option value="">Semua Tahun</option>
+                {tahunOptionsMangrove.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={visMangroveKab} onChange={(e) => setVisMangroveKab(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                <option value="">Semua Kab/Kota</option>
+                {kabupatenOptionsMangrove.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Mangrove KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-emerald-400" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Leaf className="w-5 h-5 text-cyan-400" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-400" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
+            </div>
+          </div>
+
+          {/* Mangrove Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting per Kab/Kota (Ha)</h3>
+              {mangroveKota.length > 0
+                ? <ReactECharts option={makeHBarOption('Luas Eksisting Mangrove', mangroveKota, mangroveEksisting, '#10b981')} style={{ height: Math.max(300, mangroveKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+              {mangroveKota.length > 0
+                ? <ReactECharts option={makeHBarOption('Luas Rehabilitasi Mangrove', mangroveKota, mangroveRehab, '#06b6d4')} style={{ height: Math.max(300, mangroveKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
+              {kpiMangrove.jumlah_lokasi > 0
+                ? <ReactECharts option={makeKondisiPieOption(kondisiChartData)} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
+              {mangroveKota.length > 0
+                ? <ReactECharts option={makeMangroveComboOption(mangroveKota, mangroveEksisting, mangroveRehab)} style={{ height: Math.max(300, mangroveKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Placeholder Visualisasi Terumbu Karang & Lamun ── */}
         <div className="bg-muted/50 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
           <Info className="w-8 h-8 mb-2 opacity-50" />
-          <p className="font-medium text-foreground">Visualisasi Mangrove, Terumbu Karang, dan Lamun</p>
+          <p className="font-medium text-foreground">Visualisasi Terumbu Karang dan Lamun</p>
           <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
         </div>
       </div>

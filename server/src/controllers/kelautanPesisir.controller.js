@@ -430,12 +430,55 @@ const getKelautanPesisirStats = async (req, res) => {
       };
     });
 
+    // --- MANGROVE STATS ---
+    const mangroveWhere = { status: 'VERIFIED' };
+    if (tahun) mangroveWhere.tahun = parseInt(tahun);
+    const mangroveData = await prisma.mangrove.findMany({ where: mangroveWhere });
+
+    const mangrovePerKota = {};
+    const kondisiDistribution = { 'Sangat Padat (70-100%)': 0, 'Sedang (30-70%)': 0, 'Jarang (0-30%)': 0 };
+    let total_luas_eksisting_mangrove = 0;
+    let total_luas_rehabilitasi_mangrove = 0;
+
+    mangroveData.forEach(item => {
+      const k = item.kabupaten_kota || 'Tidak Diketahui';
+      if (!mangrovePerKota[k]) {
+        mangrovePerKota[k] = { luas_eksisting: 0, luas_rehabilitasi: 0, sumPersentase: 0, count: 0 };
+      }
+      const luasEksisting = item.luas_eksisting_ha || 0;
+      const luasRehab = item.luas_rehabilitasi_ha || 0;
+
+      mangrovePerKota[k].luas_eksisting += luasEksisting;
+      mangrovePerKota[k].luas_rehabilitasi += luasRehab;
+      mangrovePerKota[k].sumPersentase += item.persentase_kondisi || 0;
+      mangrovePerKota[k].count += 1;
+
+      total_luas_eksisting_mangrove += luasEksisting;
+      total_luas_rehabilitasi_mangrove += luasRehab;
+
+      if (kondisiDistribution[item.kondisi] !== undefined) {
+        kondisiDistribution[item.kondisi] += 1;
+      }
+    });
+
+    const mangrovePerKotaResult = Object.entries(mangrovePerKota).map(([name, stats]) => ({
+      name,
+      luas_eksisting: stats.luas_eksisting,
+      luas_rehabilitasi: stats.luas_rehabilitasi,
+      rata_persentase: stats.count > 0 ? stats.sumPersentase / stats.count : 0
+    }));
+
     res.json({
       success: true,
       data: {
-        summary: { total_produksi_garam, total_petambak_garam, total_luas_lahan_garam },
+        summary: {
+          total_produksi_garam, total_petambak_garam, total_luas_lahan_garam,
+          total_luas_eksisting_mangrove, total_luas_rehabilitasi_mangrove
+        },
         garamPerKota: Object.entries(garamPerKota).map(([name, stats]) => ({ name, ...stats })),
-        potensiPerKota: Object.entries(potensiPerKota).map(([name, stats]) => ({ name, ...stats }))
+        potensiPerKota: Object.entries(potensiPerKota).map(([name, stats]) => ({ name, ...stats })),
+        mangrovePerKota: mangrovePerKotaResult,
+        mangroveKondisiDistribution: Object.entries(kondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah }))
       }
     });
   } catch (error) {
