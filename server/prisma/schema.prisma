@@ -426,3 +426,28 @@ model BudidayaTahunan {
   @@index([status, tahun, kabupaten_kota])
 }
 
+model Mangrove {
+  id                   Int      @id @default(autoincrement())
+  
+  // Data Utama
+  tahun                Int
+  kabupaten_kota       String   @db.VarChar(100)
+  luas_eksisting_ha    Float    @default(0)
+  spesies              String   @db.Text
+  
+  // Kalkulasi Kondisi
+  persentase_kondisi   Float    @default(0)
+  kondisi              String   @db.VarChar(50) // "Sangat Padat (70-100%)", "Sedang (30-70%)", "Jarang (0-30%)"
+  
+  luas_rehabilitasi_ha Float    @default(0)
+
+  // Status Validasi Standar DKP
+  status               String   @default("PENDING") @db.VarChar(20) // PENDING, APPROVED, VERIFIED, REJECTED
+  alasan_penolakan     String?  @db.Text
+
+  // Waktu Pencatatan
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@map("mangrove") // (Opsional) Supaya nama tabel di database huruf kecil semua
+}

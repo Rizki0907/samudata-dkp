@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
+import { MangroveForm } from '@/components/admin/MangroveForm';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable } from '@/components/shared/DataTable';
 
@@ -57,6 +58,22 @@ const TwBadge = ({ tw }) => {
   };
   const cls = colorMap[tw] ?? 'bg-muted text-muted-foreground border-border';
   return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{tw ?? '-'}</span>;
+};
+
+// Kategorisasi otomatis kondisi mangrove berdasarkan persentase (0-100%)
+const getKondisiMangrove = (persentase) => {
+  const p = Number(persentase) || 0;
+  if (p >= 70) return 'Sangat Padat (70-100%)';
+  if (p >= 30) return 'Sedang (30-70%)';
+  return 'Jarang (0-30%)';
+};
+
+const KondisiBadge = ({ kondisi }) => {
+  const k = kondisi || '';
+  let cls = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+  if (k.startsWith('Sangat Padat')) cls = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  else if (k.startsWith('Sedang')) cls = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cls}`}>{k || '-'}</span>;
 };
 
 // ── EXCEL EXPORT HELPERS (SMART LOGIC) ────────────────────────────────────────────────────────
@@ -368,10 +385,10 @@ const makePieOption = (title, data, nameField, valueField) => ({
 
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
-  { key: 'garam',            label: 'Data Garam',       icon: <Map className="w-4 h-4" /> },
-  { key: 'mangrove',         label: 'Data Mangrove',    icon: <TreePine className="w-4 h-4" /> },
+  { key: 'garam',            label: 'Garam',       icon: <Map className="w-4 h-4" /> },
+  { key: 'mangrove',         label: 'Mangrove',    icon: <TreePine className="w-4 h-4" /> },
   { key: 'terumbu_karang',   label: 'Terumbu Karang',   icon: <Waves className="w-4 h-4" /> },
-  { key: 'lamun',            label: 'Padang Lamun',     icon: <Leaf className="w-4 h-4" /> },
+  { key: 'lamun',            label: 'Lamun',     icon: <Leaf className="w-4 h-4" /> },
   { key: 'potensi_perairan', label: 'Potensi Perairan', icon: <Globe className="w-4 h-4" /> },
 ];
 
@@ -386,6 +403,7 @@ export default function AdminKelautanPesisir() {
   const [activeTab, setActiveTab] = useState('garam');
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensiPerairan, setDataPotensiPerairan] = useState([]);
+  const [dataMangrove, setDataMangrove] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -429,6 +447,19 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
+  // Fetch mangrove data
+  const fetchMangrove = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/kelautan-pesisir/mangrove');
+      setDataMangrove(res.data.data || []);
+    } catch (err) {
+      console.error('Gagal memuat data mangrove:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Fetch stats for visualization
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -445,7 +476,8 @@ export default function AdminKelautanPesisir() {
   useEffect(() => {
     fetchGaram();
     fetchPotensi();
-  }, [fetchGaram, fetchPotensi]);
+    fetchMangrove();
+  }, [fetchGaram, fetchPotensi, fetchMangrove]);
 
   useEffect(() => {
     if (mainTab === 'visualisasi') fetchStats();
@@ -468,6 +500,13 @@ export default function AdminKelautanPesisir() {
           await api.post('/kelautan-pesisir/potensi-perairan', formData);
         }
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        if (editingData) {
+          await api.put(`/kelautan-pesisir/mangrove/${editingData.id}`, formData);
+        } else {
+          await api.post('/kelautan-pesisir/mangrove', formData);
+        }
+        await fetchMangrove();
       }
     } catch (err) {
       console.error('Gagal menyimpan data:', err);
@@ -488,6 +527,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'potensi_perairan') {
         await api.delete(`/kelautan-pesisir/potensi-perairan/${itemToDelete.id}`);
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        await api.delete(`/kelautan-pesisir/mangrove/${itemToDelete.id}`);
+        await fetchMangrove();
       }
     } catch (err) {
       console.error('Gagal menghapus data:', err);
@@ -546,6 +588,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'potensi_perairan') {
         await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
+        await fetchMangrove();
       }
     } catch (err) { 
       console.error(err);
@@ -573,6 +618,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'potensi_perairan') {
         await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchMangrove();
       }
     } catch (err) { 
       console.error(err);
@@ -627,6 +675,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'potensi_perairan') {
         await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, { ids, status: targetStatus });
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        await api.post(`/kelautan-pesisir/mangrove/batch-status`, { ids, status: targetStatus });
+        await fetchMangrove();
       }
     } catch (error) {
       console.error('Error batch approve:', error);
@@ -654,6 +705,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'potensi_perairan') {
         await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
         await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        await api.post(`/kelautan-pesisir/mangrove/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchMangrove();
       }
     } catch (error) {
       console.error('Error batch reject:', error);
@@ -670,6 +724,9 @@ export default function AdminKelautanPesisir() {
         } else if (activeTab === 'potensi_perairan') {
           await api.post(`/kelautan-pesisir/potensi-perairan/batch-delete`, { ids });
           await fetchPotensi();
+        } else if (activeTab === 'mangrove') {
+          await api.post(`/kelautan-pesisir/mangrove/batch-delete`, { ids });
+          await fetchMangrove();
         }
       } catch (error) {
         console.error('Error batch delete:', error);
@@ -735,6 +792,27 @@ export default function AdminKelautanPesisir() {
     },
     { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md text-xs">{info.getValue()} pulau</span> },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-foreground">{info.getValue() || 0}</span> },
+  ], []);
+
+  const columnsMangrove = useMemo(() => [
+    { header: 'Status', accessorKey: 'status', cell: info => {
+      const row = info.row.original;
+      return <StatusBadge
+        row={row}
+        contextFields={[
+          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Tahun', value: row.tahun }
+        ]}
+      />;
+    } },
+    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-bold text-foreground bg-muted px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span> },
+    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
+    { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="font-medium text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
+    { header: 'Spesies', accessorKey: 'spesies', cell: info => <p className="text-sm text-muted-foreground max-w-xs truncate" title={info.getValue()}>{info.getValue() || '-'}</p> },
+    { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiBadge kondisi={info.getValue()} /> },
+    { header: 'Persentase', accessorKey: 'persentase_kondisi', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
+    { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="font-medium text-cyan-300">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
+    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
   ], []);
 
   // ── SUB-ROWS ─────────────────────────────────────────────────────────────────
@@ -961,11 +1039,11 @@ export default function AdminKelautanPesisir() {
   };
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
-  const activeColumns = activeTab === 'garam' ? columnsGaram : columnsPotensi;
+  const activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : columnsPotensi;
   const activeSubRow = activeTab === 'garam' ? renderSubGaram : undefined;
 
   const filteredData = useMemo(() => {
-      let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : [];
+      let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : activeTab === 'mangrove' ? dataMangrove : [];
       
       if (filterTahun) {
         result = result.filter(d => String(d.tahun || d.tahun_data) === filterTahun);
@@ -998,7 +1076,7 @@ export default function AdminKelautanPesisir() {
       }
       
       return result;
-    }, [activeTab, dataGaram, dataPotensiPerairan, filterTahun, filterTw, filterBulan, filterKab]);
+    }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, filterTahun, filterTw, filterBulan, filterKab]);
 
   const handleCustomExport = (data) => {
       if (activeTab === 'garam') {
@@ -1031,6 +1109,16 @@ export default function AdminKelautanPesisir() {
         />
       );
     }
+    if (activeTab === 'mangrove') {
+      return (
+        <MangroveForm
+          initialData={editingData}
+          isLoading={submitLoading}
+          onSubmit={handleCreateOrUpdate}
+          onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+        />
+      );
+    }
     return (
       <div className="bg-card border border-border p-12 rounded-2xl text-center shadow-sm">
         <p className="text-muted-foreground text-sm">Form untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
@@ -1047,7 +1135,7 @@ export default function AdminKelautanPesisir() {
           <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan dan Pesisir</h1>
           <p className="text-muted-foreground mt-1">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
         </div>
-        {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan') && (
+        {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') && (
           <button
             onClick={() => { setEditingData(null); setIsFormOpen(true); }}
             className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
@@ -1117,20 +1205,20 @@ export default function AdminKelautanPesisir() {
                 </div>
               </div>
 
-              {(activeTab === 'garam' || activeTab === 'potensi_perairan') && (
+              {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                     <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Tahun</option>
-                      {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
+                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
                     <select value={filterKab} onChange={e => setFilterKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Kab/Kota</option>
-                      {[...new Set((activeTab === 'garam' ? dataGaram : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
+                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
                     </select>
                   </div>
                   {activeTab === 'garam' && (
@@ -1175,7 +1263,7 @@ export default function AdminKelautanPesisir() {
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-muted-foreground text-sm">Memuat data...</p>
             </div>
-          ) : (activeTab === 'garam' || activeTab === 'potensi_perairan') ? (
+          ) : (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') ? (
             <DataTable
               user={user}
               columns={activeColumns}

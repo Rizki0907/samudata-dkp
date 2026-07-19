@@ -13,6 +13,14 @@ const getTriwulan = (bulan) => {
   return '-';
 };
 
+// Auto-kategorisasi kondisi Mangrove berdasarkan persentase (0-100%)
+const getKondisiMangrove = (persentase) => {
+  const p = Number(persentase) || 0;
+  if (p >= 70) return 'Sangat Padat (70-100%)';
+  if (p >= 30) return 'Sedang (30-70%)';
+  return 'Jarang (0-30%)';
+};
+
 // ==============================
 // GARAM
 // ==============================
@@ -224,6 +232,145 @@ const updatePotensiPerairanStatus = async (req, res) => {
 };
 
 // ==============================
+// MANGROVE
+// ==============================
+
+const getMangroveData = async (req, res) => {
+  try {
+    const data = await prisma.mangrove.findMany({
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching mangrove data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const getMangrovePublicData = async (req, res) => {
+  try {
+    const { tahun } = req.query;
+    const where = { status: 'VERIFIED' };
+    if (tahun) where.tahun = parseInt(tahun);
+
+    const data = await prisma.mangrove.findMany({
+      where,
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching public mangrove data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const createMangroveData = async (req, res) => {
+  try {
+    const payload = req.body;
+    payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.kondisi = getKondisiMangrove(payload.persentase_kondisi);
+
+    const newData = await prisma.mangrove.create({ data: payload });
+    res.json({ success: true, data: newData });
+  } catch (error) {
+    console.error('Error creating mangrove data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateMangroveData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.mangrove.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
+    }
+
+    const payload = req.body;
+    if (req.user?.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      payload.status = 'PENDING';
+      payload.alasan_penolakan = null;
+    }
+    payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.kondisi = getKondisiMangrove(payload.persentase_kondisi);
+
+    const updatedData = await prisma.mangrove.update({
+      where: { id: parseInt(id) },
+      data: payload
+    });
+    res.json({ success: true, data: updatedData });
+  } catch (error) {
+    console.error('Error updating mangrove data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const deleteMangroveData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.mangrove.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui' });
+    }
+    await prisma.mangrove.delete({ where: { id: parseInt(id) } });
+    res.json({ success: true, message: 'Data deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting mangrove data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateMangroveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+    const updated = await prisma.mangrove.update({
+      where: { id: parseInt(id) },
+      data: { status, alasan_penolakan }
+    });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Error updating mangrove status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchMangroveStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.mangrove.updateMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      data: { status, alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null }
+    });
+    res.json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch mangrove status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDeleteMangrove = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.mangrove.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+    res.json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch delete mangrove:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// ==============================
 // STATS / AGGREGATION
 // ==============================
 
@@ -380,5 +527,13 @@ module.exports = {
   updatePotensiPerairanStatus,
   batchPotensiPerairanStatus,
   batchDeletePotensiPerairan,
+  getMangroveData,
+  getMangrovePublicData,
+  createMangroveData,
+  updateMangroveData,
+  deleteMangroveData,
+  updateMangroveStatus,
+  batchMangroveStatus,
+  batchDeleteMangrove,
   getKelautanPesisirStats
 };

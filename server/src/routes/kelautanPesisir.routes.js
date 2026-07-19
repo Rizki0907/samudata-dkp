@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/kelautanPesisir.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
+const {
+  getMangroveData,
+  getMangrovePublicData,
+  createMangroveData,
+  updateMangroveData,
+  deleteMangroveData,
+  updateMangroveStatus,
+  batchMangroveStatus,
+  batchDeleteMangrove,
+} = require('../controllers/kelautanPesisir.controller');
 
 // ==========================================
 // GARAM ROUTES
@@ -36,6 +46,21 @@ router.patch('/potensi-perairan/:id/status', verifyToken, controller.updatePoten
 router.post('/potensi-perairan/batch-status', verifyToken, controller.batchPotensiPerairanStatus);
 router.post('/potensi-perairan/batch-delete', verifyToken, controller.batchDeletePotensiPerairan);
 
+// ==============================
+// Mangrove
+// ==============================
+
+// Public
+router.get('/mangrove/public', getMangrovePublicData);
+
+// Admin (pasang middleware auth/role sesuai punyamu, contoh: verifyToken)
+router.get('/mangrove', verifyToken, getMangroveData);
+router.post('/mangrove', verifyToken, createMangroveData);
+router.put('/mangrove/:id', verifyToken, updateMangroveData);
+router.delete('/mangrove/:id', verifyToken, deleteMangroveData);
+router.patch('/mangrove/:id/status', verifyToken, updateMangroveStatus);
+router.post('/mangrove/batch-status', verifyToken, batchMangroveStatus);
+router.post('/mangrove/batch-delete', verifyToken, batchDeleteMangrove);
 
 // ==========================================
 // KELAUTAN & PESISIR AGGREGATE STATS (untuk Dashboard)
