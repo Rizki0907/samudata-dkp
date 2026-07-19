@@ -71,6 +71,7 @@ model Ekspor {
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
   nilai_usd          Float
+  nilai_rp           Float      @default(0)
   alasan_penolakan   String?
   status             DataStatus @default(PENDING)
 }

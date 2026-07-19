@@ -34,7 +34,7 @@ const createData = async (req, res) => {
     const { 
       bulan, tahun, tanggal_ekspor, nama_eksportir, 
       kategori_komoditas, nama_komoditas, volume, 
-      satuan_volume, nilai_usd, negara_tujuan 
+      satuan_volume, nilai_usd, nilai_rp, negara_tujuan 
     } = req.body;
 
     const statusData = req.user && req.user.role === 'admin_pusat' ? 'APPROVED' : 'PENDING';
@@ -51,6 +51,7 @@ const createData = async (req, res) => {
         volume: parseFloat(volume),
         satuan_volume,
         nilai_usd: parseFloat(nilai_usd),
+        nilai_rp: parseFloat(nilai_rp || 0),
         negara_tujuan
       }
     });
@@ -68,7 +69,7 @@ const updateData = async (req, res) => {
     const { 
       bulan, tahun, tanggal_ekspor, nama_eksportir, 
       kategori_komoditas, nama_komoditas, volume, 
-      satuan_volume, nilai_usd, negara_tujuan 
+      satuan_volume, nilai_usd, nilai_rp, negara_tujuan 
     } = req.body;
 
     const existing = await prisma.ekspor.findUnique({ where: { id: parseInt(id) } });
@@ -97,6 +98,7 @@ const updateData = async (req, res) => {
         volume: parseFloat(volume),
         satuan_volume,
         nilai_usd: parseFloat(nilai_usd),
+        nilai_rp: parseFloat(nilai_rp || 0),
         negara_tujuan
       }
     });
@@ -137,14 +139,14 @@ const getStats = async (req, res) => {
     // 1. Treemap (komoditas by kategori)
     const komoditasGroup = await prisma.ekspor.groupBy({
       by: ['kategori_komoditas', 'nama_komoditas'],
-      _sum: { nilai_usd: true },
+      _sum: { nilai_usd: true, nilai_rp: true },
       where
     });
 
     // 2. Line Chart (Top 5 Komoditas over months)
     const top5KomoditasAgg = await prisma.ekspor.groupBy({
       by: ['nama_komoditas'],
-      _sum: { nilai_usd: true },
+      _sum: { nilai_usd: true, nilai_rp: true },
       where,
       orderBy: { _sum: { nilai_usd: 'desc' } },
       take: 5
@@ -153,21 +155,21 @@ const getStats = async (req, res) => {
 
     const monthlyDataRaw = await prisma.ekspor.groupBy({
       by: ['bulan', 'kategori_komoditas', 'nama_komoditas', 'satuan_volume'],
-      _sum: { volume: true, nilai_usd: true },
+      _sum: { volume: true, nilai_usd: true, nilai_rp: true },
       where
     });
 
     // 3. Grouped Bar Chart (Volume vs Value per month)
     const monthlyAggregate = await prisma.ekspor.groupBy({
       by: ['bulan'],
-      _sum: { volume: true, nilai_usd: true },
+      _sum: { volume: true, nilai_usd: true, nilai_rp: true },
       where
     });
 
     // 4. Ranking Komoditas
     const rankingKomoditas = await prisma.ekspor.groupBy({
       by: ['nama_komoditas'],
-      _sum: { nilai_usd: true },
+      _sum: { nilai_usd: true, nilai_rp: true },
       where,
       orderBy: { _sum: { nilai_usd: 'desc' } }
     });
@@ -175,14 +177,14 @@ const getStats = async (req, res) => {
     // 5. Negara Tujuan
     const byNegara = await prisma.ekspor.groupBy({
       by: ['negara_tujuan'],
-      _sum: { volume: true, nilai_usd: true },
+      _sum: { volume: true, nilai_usd: true, nilai_rp: true },
       where,
       orderBy: { _sum: { nilai_usd: 'desc' } }
     });
 
     // KPIs
     const totalStats = await prisma.ekspor.aggregate({
-      _sum: { volume: true, nilai_usd: true },
+      _sum: { volume: true, nilai_usd: true, nilai_rp: true },
       _count: { id: true },
       where
     });
@@ -193,6 +195,7 @@ const getStats = async (req, res) => {
         kpi: {
           total_volume: totalStats._sum.volume || 0,
           total_nilai: totalStats._sum.nilai_usd || 0,
+          total_nilai_rp: totalStats._sum.nilai_rp || 0,
           total_transaksi: totalStats._count.id || 0
         },
         treemap: komoditasGroup,

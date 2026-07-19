@@ -178,8 +178,8 @@ export function DataTable({
       {/* Dynamic Batch Actions Toolbar */}
       {selectedIds.length > 0 && (() => {
         const selectedRows = data.filter(row => selectedIds.includes(row.id));
-        const showApprove = onBatchApprove && (!canBatchApprove || canBatchApprove(selectedRows));
-        const showReject = onBatchReject && (!canBatchReject || canBatchReject(selectedRows));
+        const showApprove = onBatchApprove && user?.role === 'admin_pusat' && (!canBatchApprove || canBatchApprove(selectedRows));
+        const showReject = onBatchReject && user?.role === 'admin_pusat' && (!canBatchReject || canBatchReject(selectedRows));
         const showDelete = onBatchDelete && (!canBatchDelete || canBatchDelete(selectedRows));
 
         return (
@@ -188,6 +188,18 @@ export function DataTable({
               {selectedIds.length} data terpilih
             </span>
             <div className="flex items-center gap-2">
+              {onEdit && selectedIds.length === 1 && (
+                <button
+                  onClick={() => {
+                    const row = data.find(r => r.id === selectedIds[0]);
+                    if (row) onEdit(row);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors text-sm font-medium"
+                >
+                  <Edit className="w-4 h-4"/>
+                  Edit Terpilih
+                </button>
+              )}
               {showApprove && (
                 <button
                   onClick={handleBatchApprove}
@@ -306,7 +318,7 @@ export function DataTable({
                               </button>
                             )}
 
-                            {onEdit && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && (
+                            {onEdit && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && selectedIds.length <= 1 && (
                               <button
                                 onClick={() => onEdit(row.original)}
                                 title="Edit Data"

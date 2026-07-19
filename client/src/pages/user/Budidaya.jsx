@@ -11,6 +11,18 @@ echarts.registerMap('jawa_timur', geoJsonData);
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+const TwBadge = ({ tw }) => {
+  const twStr = String(tw).startsWith('TW') ? String(tw) : `TW ${tw}`;
+  const colorMap = {
+    'TW 1': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    'TW 2': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    'TW 3': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    'TW 4': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  };
+  const cls = colorMap[twStr] ?? 'bg-muted text-muted-foreground border-border';
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{twStr}</span>;
+};
+
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
@@ -101,11 +113,14 @@ export default function Budidaya() {
         const alasan = info.row.original.alasan_penolakan;
         let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
         let label = 'PENDING';
-        if (status === 'APPROVED') {
+        if (status === 'VERIFIED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+          label = 'VERIFIED';
+        } else if (status === 'APPROVED') {
+          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
           label = 'APPROVED (PROGRAM)';
         } else if (status === 'APPROVED_BIDANG') {
-          colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+          colorClass = 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20';
           label = 'APPROVED (BIDANG)';
         } else if (status === 'REJECTED') {
           colorClass = 'bg-rose-500/10 text-rose-500 border-rose-500/20';
@@ -127,14 +142,14 @@ export default function Budidaya() {
     },
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
-    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{info.getValue()}</span>) },
+    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<TwBadge tw={info.getValue()} />) },
     { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
-    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID') },
-    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } },
-    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
+    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
+    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
+    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
   ], []);
 
   // 1. Peta Choropleth Jawa Timur (Log Scale)
@@ -158,7 +173,7 @@ export default function Budidaya() {
         trigger: 'item',
         formatter: (params) => {
           const val = params.value || 0;
-          return `${params.name}<br/>Total Produksi: <b>${val.toLocaleString('id-ID')} KG</b>`;
+          return `${params.name}<br/>Total Produksi: <b>${Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG</b>`;
         }
       },
       visualMap: {
@@ -207,8 +222,8 @@ export default function Budidaya() {
     const isProduksi = barFilter === 'produksi';
     const seriesName = isProduksi ? 'Produksi (KG)' : 'Nilai Total (Rp)';
     const formatter = isProduksi ?
-      val => val.toLocaleString('id-ID') + ' KG' :
-      val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+      val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' :
+      val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
 
     return {
       tooltip: {
@@ -219,7 +234,7 @@ export default function Budidaya() {
           return `${params[0].name}<br/>${seriesName}: <b>${formatter(val)}</b>`;
         }
       },
-      grid: { left: '3%', right: '4%', top: '5%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
       xAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: '#334155', type: 'dashed' } },
@@ -278,7 +293,7 @@ export default function Budidaya() {
     });
 
     return {
-      tooltip: { trigger: 'axis' },
+      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       legend: {
         data: [...stats.top5Wadah, 'Lainnya'],
         textStyle: { color: '#cbd5e1' },
@@ -311,7 +326,7 @@ export default function Budidaya() {
       tooltip: {
         formatter: (info) => {
           const val = info.value || 0;
-          return `<b>${info.name}</b><br/>Total Produksi: ${val.toLocaleString('id-ID')} KG`;
+          return `<b>${info.name}</b><br/>Total Produksi: ${Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`;
         }
       },
       series: [{
@@ -325,7 +340,12 @@ export default function Budidaya() {
         roam: false,
         nodeClick: false,
         breadcrumb: { show: false },
-        label: { show: true, formatter: '{b}\n\n{c} KG', color: '#fff', fontWeight: 'bold' },
+        label: { 
+          show: true, 
+          formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`, 
+          color: '#fff', 
+          fontWeight: 'bold' 
+        },
         itemStyle: { borderColor: '#0f172a', gapWidth: 2 },
         data: data,
         colorMappingBy: 'value',
@@ -364,7 +384,7 @@ export default function Budidaya() {
           const xIndex = params.data[0];
           const yIndex = params.data[1];
           const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0;
-          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} KG`;
+          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`;
         }
       },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
@@ -447,7 +467,7 @@ export default function Budidaya() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {stats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+                  {stats.kpi.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">KG</span>
                 </p>
               </div>
             </div>
@@ -471,7 +491,7 @@ export default function Budidaya() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.kpi.total_nilai)}
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(stats.kpi.total_nilai)}
                 </p>
               </div>
             </div>
@@ -598,17 +618,17 @@ export default function Budidaya() {
                   </button>
                 }
                 formatExportData={(exportData) => exportData.map(row => ({
-                  'Status': row.status,
-                  'Tahun': row.tahun,
-                  'Bulan': row.bulan,
-                  'Triwulan': row.triwulan,
-                  'Kabupaten/Kota': row.kabupaten_kota,
-                  'Kategori Komoditas': row.kategori_komoditas,
-                  'Komoditas': row.komoditas,
-                  'Jenis Wadah': row.jenis_wadah,
-                  'Produksi (KG)': row.produksi_kg,
-                  'Harga (Rp)': row.harga_rp,
-                  'Nilai Total (Rp)': row.nilai_rp
+                  'Status': row.status || '-',
+                  'Tahun': row.tahun || '-',
+                  'Bulan': row.bulan || '-',
+                  'Triwulan': row.triwulan || '-',
+                  'Kabupaten/Kota': row.kabupaten_kota || '-',
+                  'Kategori Komoditas': row.kategori_komoditas || '-',
+                  'Komoditas': row.komoditas || '-',
+                  'Jenis Wadah': row.jenis_wadah || '-',
+                  'Produksi (KG)': row.produksi_kg || '-',
+                  'Harga (Rp)': row.harga_rp || '-',
+                  'Nilai Total (Rp)': row.nilai_rp || '-'
                 }))}
               />
           </div>

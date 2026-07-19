@@ -29,6 +29,9 @@ export default function Ekspor() {
   const [filterNegara, setFilterNegara] = useState('');
   const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
   const [satuanFilter, setSatuanFilter] = useState('KG');
+  const [mataUangFilter, setMataUangFilter] = useState('USD');
+  const mataUangKey = mataUangFilter === 'RP' ? 'nilai_rp' : 'nilai_usd';
+  const mataUangPrefix = mataUangFilter === 'RP' ? 'Rp' : '$';
 
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
@@ -80,7 +83,10 @@ export default function Ekspor() {
         const alasan = info.row.original.alasan_penolakan;
         let colorClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
         let label = 'PENDING';
-        if (status === 'APPROVED') {
+        if (status === 'VERIFIED') {
+          colorClass = 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20';
+          label = 'VERIFIED';
+        } else if (status === 'APPROVED') {
           colorClass = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
           label = 'APPROVED (PROGRAM)';
         } else if (status === 'APPROVED_BIDANG') {
@@ -137,7 +143,12 @@ export default function Ekspor() {
     {
       header: 'Nilai (USD)',
       accessorKey: 'nilai_usd',
-      cell: info => `$${info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+      cell: info => `$${(info.getValue() || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+    },
+    {
+      header: 'Nilai (Rp)',
+      accessorKey: 'nilai_rp',
+      cell: info => `Rp ${(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}`
     },
     {
       header: 'Negara Tujuan',
@@ -151,19 +162,19 @@ export default function Ekspor() {
 
     const segarOlahan = stats.treemap
       .filter(t => t.kategori_komoditas === 'Segar dan Olahan')
-      .sort((a, b) => b._sum.nilai_usd - a._sum.nilai_usd)
+      .sort((a, b) => (b._sum[mataUangKey] || 0) - (a._sum[mataUangKey] || 0))
       .map((t, index) => ({
         name: t.nama_komoditas,
-        value: t._sum.nilai_usd,
+        value: t._sum[mataUangKey] || 0,
         itemStyle: { color: blueGradient[index % blueGradient.length] }
       }));
 
     const hidup = stats.treemap
       .filter(t => t.kategori_komoditas === 'Hidup')
-      .sort((a, b) => b._sum.nilai_usd - a._sum.nilai_usd)
+      .sort((a, b) => (b._sum[mataUangKey] || 0) - (a._sum[mataUangKey] || 0))
       .map((t, index) => ({
         name: t.nama_komoditas,
-        value: t._sum.nilai_usd,
+        value: t._sum[mataUangKey] || 0,
         itemStyle: { color: greenGradient[index % greenGradient.length] }
       }));
 
@@ -174,7 +185,7 @@ export default function Ekspor() {
           const treePath = info.treePathInfo;
           if (!treePath || treePath.length <= 1) return '';
           const pathStr = treePath.map(t => t.name).slice(1).join(' - ');
-          return `<b>${pathStr}</b><br/>Nilai: $${value.toLocaleString('en-US')}`;
+          return `<b>${pathStr}</b><br/>Nilai: ${mataUangPrefix}${value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
       },
       series: [{
@@ -201,9 +212,14 @@ export default function Ekspor() {
           { name: 'Segar dan Olahan', itemStyle: { color: 'transparent' }, children: segarOlahan },
           { name: 'Hidup', itemStyle: { color: 'transparent' }, children: hidup }
         ]
-      }]
+      }],
+      tooltip: {
+        formatter: function (info) {
+          return info.name + '<br/>' + (info.value ? Number(info.value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0');
+        }
+      }
     };
-  }, [stats.treemap]);
+  }, [stats.treemap, mataUangKey, mataUangPrefix]);
 
   const lineChartOption = useMemo(() => {
     const { top5_names, monthly_data_raw } = stats;
@@ -216,9 +232,9 @@ export default function Ekspor() {
     monthly_data_raw.forEach(item => {
       if (monthlyMap[item.bulan]) {
         if (top5_names.includes(item.nama_komoditas)) {
-          monthlyMap[item.bulan][item.nama_komoditas] += item._sum.nilai_usd || 0;
+          monthlyMap[item.bulan][item.nama_komoditas] += item._sum[mataUangKey] || 0;
         } else {
-          monthlyMap[item.bulan]['Lainnya'] += item._sum.nilai_usd || 0;
+          monthlyMap[item.bulan]['Lainnya'] += item._sum[mataUangKey] || 0;
         }
       }
     });
@@ -235,14 +251,14 @@ export default function Ekspor() {
     });
 
     return {
-      tooltip: { trigger: 'axis' },
+      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       legend: { data: legendData, bottom: 0, textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } },
-      yAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+      yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       series
     };
-  }, [stats]);
+  }, [stats, mataUangKey, mataUangFilter]);
 
   const groupedBarOption = useMemo(() => {
     const volumeLabel = `Volume (${satuanFilter.toUpperCase()})`;
@@ -260,34 +276,41 @@ export default function Ekspor() {
         if (x.bulan !== m || x.kategori_komoditas !== agregatFilter) return false;
         return (x.satuan_volume || '').toUpperCase() === satuanFilter.toUpperCase();
       });
-      return filtered.reduce((acc, curr) => acc + (curr._sum.nilai_usd || 0), 0);
+      return filtered.reduce((acc, curr) => acc + (curr._sum[mataUangKey] || 0), 0);
     });
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { data: [volumeLabel, 'Nilai (USD)'], top: 0, right: '4%', textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
       xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } }],
       yAxis: [
         { type: 'value', name: volumeLabel, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
-        { type: 'value', name: 'Nilai ($)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '${value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
+        { type: 'value', name: `Nilai (${mataUangPrefix})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${mataUangPrefix}{value}`, color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
         { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
-        { name: 'Nilai (USD)', type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
+        { name: `Nilai (${mataUangFilter})`, type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
-  }, [stats.monthly_aggregate, stats.monthly_data_raw, agregatFilter, satuanFilter]);
+  }, [stats.monthly_aggregate, stats.monthly_data_raw, agregatFilter, satuanFilter, mataUangFilter, mataUangKey, mataUangPrefix]);
 
   const rankingOption = useMemo(() => {
-    const sorted = [...stats.ranking_komoditas].sort((a, b) => a._sum.nilai_usd - b._sum.nilai_usd);
+    const sorted = [...stats.ranking_komoditas]
+      .sort((a, b) => (a._sum[mataUangKey] || 0) - (b._sum[mataUangKey] || 0))
+      .slice(-10);
     const categories = sorted.map(i => i.nama_komoditas);
-    const values = sorted.map(i => i._sum.nilai_usd);
+    const values = sorted.map(i => i._sum[mataUangKey] || 0);
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500', formatter: (val) => {
+        if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
+        if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
+        if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
+        return `${mataUangPrefix}${val}`;
+      } }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
         {
@@ -295,21 +318,34 @@ export default function Ekspor() {
           type: 'bar',
           data: values,
           itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => `$${(params.value / 1000).toFixed(1)}k` }
+          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+            const val = params.value;
+            if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
+            if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
+            if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
+            return `${mataUangPrefix}${val}`;
+          }}
         }
       ]
     };
-  }, [stats.ranking_komoditas]);
+  }, [stats.ranking_komoditas, mataUangKey, mataUangFilter, mataUangPrefix]);
 
   const negaraOption = useMemo(() => {
-    const sorted = [...stats.negara_tujuan].sort((a, b) => a._sum.nilai_usd - b._sum.nilai_usd);
+    const sorted = [...stats.negara_tujuan]
+      .sort((a, b) => (a._sum[mataUangKey] || 0) - (b._sum[mataUangKey] || 0))
+      .slice(-10);
     const categories = sorted.map(i => i.negara_tujuan);
-    const values = sorted.map(i => i._sum.nilai_usd);
+    const values = sorted.map(i => i._sum[mataUangKey] || 0);
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: 'Nilai (USD)', nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500', formatter: (val) => {
+        if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
+        if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
+        if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
+        return `${mataUangPrefix}${val}`;
+      } }, splitLine: { lineStyle: { color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' } },
       series: [
         {
@@ -317,11 +353,17 @@ export default function Ekspor() {
           type: 'bar',
           data: values,
           itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => `$${(params.value / 1000).toFixed(1)}k` }
+          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+            const val = params.value;
+            if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
+            if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
+            if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
+            return `${mataUangPrefix}${val}`;
+          }}
         }
       ]
     };
-  }, [stats.negara_tujuan]);
+  }, [stats.negara_tujuan, mataUangKey, mataUangFilter, mataUangPrefix]);
 
   if (loading) {
     return (
@@ -378,7 +420,7 @@ export default function Ekspor() {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Total Nilai Ekspor</p>
             <p className="text-2xl font-bold text-foreground">
-              ${stats.kpi.total_nilai.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {mataUangPrefix}{(stats.kpi[mataUangFilter === 'RP' ? 'total_nilai_rp' : 'total_nilai'] || stats.kpi.total_nilai || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
@@ -389,7 +431,7 @@ export default function Ekspor() {
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Top Negara Tujuan</p>
-            <p className="text-2xl font-bold text-foreground truncate max-w-[150px]">
+            <p className="text-2xl font-bold text-foreground break-words line-clamp-2">
               {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? stats.negara_tujuan[0].negara_tujuan : '-'}
             </p>
           </div>
@@ -495,8 +537,11 @@ export default function Ekspor() {
           )}
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden">
-          <h3 className="text-lg font-semibold text-foreground mb-4 mt-2">Ranking Negara Tujuan</h3>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Globe className="w-5 h-5 text-teal-500" />
+            <h3 className="text-lg font-semibold text-foreground">Ranking Negara Tujuan</h3>
+          </div>
           {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? (
             <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
           ) : (
@@ -517,7 +562,7 @@ export default function Ekspor() {
           <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
         </div>
         <div className="mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
               <option value="">Semua Tahun</option>
               {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -534,6 +579,10 @@ export default function Ekspor() {
               <option value="">Semua Negara Tujuan</option>
               {negaraOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
+            <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
+              <option value="USD">USD ($)</option>
+              <option value="RP">Rupiah (Rp)</option>
+            </select>
           </div>
 
           <DataTable
@@ -541,15 +590,16 @@ export default function Ekspor() {
             data={filteredData}
           exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
           formatExportData={(exportData) => exportData.map(row => ({
-            'Status': row.status,
-            'Bulan': row.bulan,
-            'Tahun': row.tahun,
-            'Kategori Komoditas': row.kategori_komoditas,
-            'Nama Komoditas': row.nama_komoditas,
-            'Volume': row.volume,
-            'Satuan Volume': row.satuan_volume,
-            'Nilai (USD)': row.nilai_usd,
-            'Negara Tujuan': row.negara_tujuan
+            'Status': row.status || '-',
+            'Bulan': row.bulan || '-',
+            'Tahun': row.tahun || '-',
+            'Kategori Komoditas': row.kategori_komoditas || '-',
+            'Nama Komoditas': row.nama_komoditas || '-',
+            'Volume': row.volume || '-',
+            'Satuan Volume': row.satuan_volume || '-',
+            'Nilai (USD)': row.nilai_usd || '-',
+            'Nilai (Rp)': row.nilai_rp || '-',
+            'Negara Tujuan': row.negara_tujuan || '-'
           }))}
         />
       </div>

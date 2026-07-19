@@ -11,6 +11,18 @@ import geoJsonData from '@/assets/jawa_timur.json';
 echarts.registerMap('jawa_timur', geoJsonData);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+const TwBadge = ({ tw }) => {
+  const twStr = String(tw).startsWith('TW') ? String(tw) : `TW ${tw}`;
+  const colorMap = {
+    'TW 1': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    'TW 2': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    'TW 3': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    'TW 4': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  };
+  const cls = colorMap[twStr] ?? 'bg-muted text-muted-foreground border-border';
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{twStr}</span>;
+};
+
 export default function AdminBudidaya() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -405,7 +417,7 @@ export default function AdminBudidaya() {
     const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
     return {
       title: { text: 'Produksi Budidaya per Kabupaten/Kota', textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
-      tooltip: { trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${(params.value || 0).toLocaleString('id-ID')} KG</b>` },
+      tooltip: { trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG</b>` },
       visualMap: { left: 'right', min: 1, max: maxVal || 100, inRange: { color: ['#0f172a', '#1e3a8a', '#3b82f6', '#93c5fd', '#34d399'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: '#94a3b8' }, calculable: true, type: 'piecewise', splitNumber: 5 },
       series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: '#1e293b', borderColor: '#334155' }, data: mapData }]
     };
@@ -416,10 +428,10 @@ export default function AdminBudidaya() {
     const top10 = sortedData.slice(0, 10).reverse();
     const isProduksi = barFilter === 'produksi';
     const seriesName = isProduksi ? 'Produksi (KG)' : 'Nilai Total (Rp)';
-    const formatter = isProduksi ? val => val.toLocaleString('id-ID') + ' KG' : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    const formatter = isProduksi ? val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => `${params[0].name}<br/>${seriesName}: <b>${formatter(params[0].value || 0)}</b>` },
-      grid: { left: '3%', right: '4%', top: '5%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
       xAxis: { type: 'value', splitLine: { lineStyle: { color: '#334155', type: 'dashed' } }, axisLabel: { color: '#94a3b8', formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: '#cbd5e1', fontSize: 11 } },
       series: [{ name: seriesName, type: 'bar', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#0ea5e9' }, { offset: 1, color: '#2563eb' }]), borderRadius: [0, 4, 4, 0] } }]
@@ -430,7 +442,7 @@ export default function AdminBudidaya() {
     const seriesData = computedStats.top5Wadah.map(wadah => ({ name: wadah, type: 'line', smooth: true, symbolSize: 6, data: computedStats.trenBulanan.map(m => m[wadah] || 0) }));
     seriesData.push({ name: 'Lainnya', type: 'line', smooth: true, lineStyle: { type: 'dashed', width: 2, color: '#94a3b8' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', data: computedStats.trenBulanan.map(m => m.Lainnya || 0) });
     return {
-      tooltip: { trigger: 'axis' },
+      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: '#cbd5e1' }, top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#94a3b8', fontSize: 11, rotate: 30 } },
@@ -442,8 +454,8 @@ export default function AdminBudidaya() {
   const treemapOption = useMemo(() => {
     const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w.value }));
     return {
-      tooltip: { formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${(info.value || 0).toLocaleString('id-ID')} KG` },
-      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: '{b}\n\n{c} KG', color: '#fff', fontWeight: 'bold' }, itemStyle: { borderColor: '#0f172a', gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] } } }]
+      tooltip: { formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG` },
+      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`, color: '#fff', fontWeight: 'bold' }, itemStyle: { borderColor: '#0f172a', gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] } } }]
     };
   }, [computedStats.komposisiWadah]);
 
@@ -461,7 +473,7 @@ export default function AdminBudidaya() {
       }
     });
     return {
-      tooltip: { position: 'top', formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${rawValue.toLocaleString('id-ID')} KG`; } },
+      tooltip: { position: 'top', formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`; } },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', rotate: 45 } },
       yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 } },
@@ -495,14 +507,14 @@ export default function AdminBudidaya() {
     },
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
-    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{info.getValue()}</span>) },
+    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<TwBadge tw={info.getValue()} />) },
     { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
-    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID') },
-    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } },
-    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val); } }
+    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
+    { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
+    { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
   ], []);
 
   return (
@@ -648,17 +660,17 @@ export default function AdminBudidaya() {
                     </button>
                   }
                   formatExportData={(exportData) => exportData.map(row => ({
-                    'Status': row.status,
-                    'Tahun': row.tahun,
-                    'Bulan': row.bulan,
-                    'Triwulan': row.triwulan,
-                    'Kabupaten/Kota': row.kabupaten_kota,
-                    'Kategori Komoditas': row.kategori_komoditas,
-                    'Komoditas': row.komoditas,
-                    'Jenis Wadah': row.jenis_wadah,
-                    'Produksi (KG)': row.produksi_kg,
-                    'Harga (Rp)': row.harga_rp,
-                    'Nilai Total (Rp)': row.nilai_rp
+                    'Status': row.status || '-',
+                    'Tahun': row.tahun || '-',
+                    'Bulan': row.bulan || '-',
+                    'Triwulan': row.triwulan || '-',
+                    'Kabupaten/Kota': row.kabupaten_kota || '-',
+                    'Kategori Komoditas': row.kategori_komoditas || '-',
+                    'Komoditas': row.komoditas || '-',
+                    'Jenis Wadah': row.jenis_wadah || '-',
+                    'Produksi (KG)': row.produksi_kg || '-',
+                    'Harga (Rp)': row.harga_rp || '-',
+                    'Nilai Total (Rp)': row.nilai_rp || '-'
                   }))}
                 />
               </div>
@@ -672,7 +684,7 @@ export default function AdminBudidaya() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
                       <p className="text-2xl font-bold text-foreground">
-                        {computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">KG</span>
+                        {computedStats.kpi.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">KG</span>
                       </p>
                     </div>
                   </div>
@@ -692,7 +704,7 @@ export default function AdminBudidaya() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
                       <p className="text-2xl font-bold text-foreground">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(computedStats.kpi.total_nilai)}
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(computedStats.kpi.total_nilai)}
                       </p>
                     </div>
                   </div>

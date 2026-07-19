@@ -350,18 +350,26 @@ const exportRingkasanWadah = async (req, res) => {
     const uniqueWadah = distinctWadahData.map(d => d.jenis_wadah).filter(Boolean).sort();
 
     const kabMap = {};
+    const kabMapNilai = {};
     data.forEach(item => {
       const kab = item.kabupaten_kota.toUpperCase();
       if (!kabMap[kab]) {
         kabMap[kab] = { jumlah: 0 };
-        uniqueWadah.forEach(w => kabMap[kab][w] = 0);
+        kabMapNilai[kab] = { jumlah: 0 };
+        uniqueWadah.forEach(w => {
+          kabMap[kab][w] = 0;
+          kabMapNilai[kab][w] = 0;
+        });
       }
       const wadahKey = item.jenis_wadah;
-      const tonase = item.produksi_kg; // Keep as KG
+      const tonase = item.produksi_kg || 0;
+      const nilai = (item.nilai_rp || 0) / 1000;
       if (wadahKey && uniqueWadah.includes(wadahKey)) {
          kabMap[kab][wadahKey] += tonase;
+         kabMapNilai[kab][wadahKey] += nilai;
       }
       kabMap[kab].jumlah += tonase;
+      kabMapNilai[kab].jumlah += nilai;
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -405,8 +413,8 @@ const exportRingkasanWadah = async (req, res) => {
     });
 
     // Row 5: JUMLAH TOTAL
-    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah];
-    uniqueWadah.forEach(w => totalRowValues.push(totals[w]));
+    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah || '-'];
+    uniqueWadah.forEach(w => totalRowValues.push(totals[w] || '-'));
 
     const totalRow = sheet.getRow(5);
     totalRow.values = totalRowValues;
@@ -419,8 +427,8 @@ const exportRingkasanWadah = async (req, res) => {
     let currentRow = 6;
     sortedKab.forEach(k => {
       const v = kabMap[k];
-      const rowValues = [k, v.jumlah];
-      uniqueWadah.forEach(w => rowValues.push(v[w]));
+      const rowValues = [k, v.jumlah || '-'];
+      uniqueWadah.forEach(w => rowValues.push(v[w] || '-'));
       
       const row = sheet.getRow(currentRow);
       row.values = rowValues;
@@ -428,6 +436,62 @@ const exportRingkasanWadah = async (req, res) => {
         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
       });
       currentRow++;
+    });
+
+    let startRow2 = currentRow + 2;
+
+    sheet.mergeCells(startRow2, 1, startRow2, totalCols);
+    sheet.getCell(startRow2, 1).value = `REKAPITULASI DATA NILAI PRODUKSI PERIKANAN BUDIDAYA PROVINSI JAWA TIMUR TAHUN ${tahun}`;
+    sheet.getCell(startRow2, 1).font = { bold: true, size: 14 };
+    sheet.getCell(startRow2, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    sheet.mergeCells(startRow2 + 1, 1, startRow2 + 1, totalCols);
+    sheet.getCell(startRow2 + 1, 1).value = `BERDASARKAN JENIS WADAH`;
+    sheet.getCell(startRow2 + 1, 1).font = { bold: true, size: 12 };
+    sheet.getCell(startRow2 + 1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    sheet.getCell(startRow2 + 2, totalCols).value = 'Satuan : Rp. 1000';
+    sheet.getCell(startRow2 + 2, totalCols).font = { italic: true };
+    sheet.getCell(startRow2 + 2, totalCols).alignment = { horizontal: 'right' };
+
+    headers.forEach((h, i) => {
+      const cell = sheet.getCell(startRow2 + 3, i + 1);
+      cell.value = h;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    const totalsNilai = { jumlah: 0 };
+    uniqueWadah.forEach(w => totalsNilai[w] = 0);
+
+    sortedKab.forEach(k => {
+      totalsNilai.jumlah += kabMapNilai[k].jumlah;
+      uniqueWadah.forEach(w => totalsNilai[w] += kabMapNilai[k][w]);
+    });
+
+    const totalRowValuesNilai = ['JUMLAH TOTAL', totalsNilai.jumlah || '-'];
+    uniqueWadah.forEach(w => totalRowValuesNilai.push(totalsNilai[w] || '-'));
+
+    const totalRowNilai = sheet.getRow(startRow2 + 4);
+    totalRowNilai.values = totalRowValuesNilai;
+    totalRowNilai.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    let currentRowNilai = startRow2 + 5;
+    sortedKab.forEach(k => {
+      const v = kabMapNilai[k];
+      const rowValues = [k, v.jumlah || '-'];
+      uniqueWadah.forEach(w => rowValues.push(v[w] || '-'));
+      
+      const row = sheet.getRow(currentRowNilai);
+      row.values = rowValues;
+      row.eachCell((cell) => {
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+      currentRowNilai++;
     });
 
     sheet.getColumn(1).width = 25;
@@ -468,25 +532,32 @@ const exportRingkasanKomoditas = async (req, res) => {
     }));
 
     const kabMap = {};
+    const kabMapNilai = {};
     data.forEach(item => {
       const kab = item.kabupaten_kota.toUpperCase();
       if (!kabMap[kab]) {
         kabMap[kab] = { jumlah_total: 0 };
+        kabMapNilai[kab] = { jumlah_total: 0 };
         wadahStructure.forEach(ws => {
           kabMap[kab][ws.wadah] = {};
+          kabMapNilai[kab][ws.wadah] = {};
           ws.komoditasList.forEach(k => {
             kabMap[kab][ws.wadah][k] = 0;
+            kabMapNilai[kab][ws.wadah][k] = 0;
           });
         });
       }
       const wadah = item.jenis_wadah || 'LAINNYA';
       const kom = item.komoditas || 'LAINNYA';
       const tonase = item.produksi_kg || 0;
+      const nilai = (item.nilai_rp || 0) / 1000;
       
       if (kabMap[kab][wadah] && kabMap[kab][wadah][kom] !== undefined) {
         kabMap[kab][wadah][kom] += tonase;
+        kabMapNilai[kab][wadah][kom] += nilai;
       }
       kabMap[kab].jumlah_total += tonase;
+      kabMapNilai[kab].jumlah_total += nilai;
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -571,10 +642,10 @@ const exportRingkasanKomoditas = async (req, res) => {
       });
     });
 
-    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah_total];
+    const totalRowValues = ['JUMLAH TOTAL', totals.jumlah_total || '-'];
     wadahStructure.forEach(ws => {
       ws.komoditasList.forEach(kom => {
-        totalRowValues.push(totals.wadah[ws.wadah][kom]);
+        totalRowValues.push(totals.wadah[ws.wadah][kom] || '-');
       });
     });
     
@@ -588,10 +659,10 @@ const exportRingkasanKomoditas = async (req, res) => {
     let currentRow = 7;
     sortedKab.forEach(k => {
       const v = kabMap[k];
-      const rowValues = [k, v.jumlah_total];
+      const rowValues = [k, v.jumlah_total || '-'];
       wadahStructure.forEach(ws => {
         ws.komoditasList.forEach(kom => {
-          rowValues.push(v[ws.wadah][kom]);
+          rowValues.push(v[ws.wadah][kom] || '-');
         });
       });
       
@@ -601,6 +672,113 @@ const exportRingkasanKomoditas = async (req, res) => {
         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
       });
       currentRow++;
+    });
+
+    let startRow2 = currentRow + 2;
+
+    sheet.mergeCells(startRow2, 1, startRow2, totalCols);
+    sheet.getCell(startRow2, 1).value = `REKAPITULASI DATA NILAI PRODUKSI PERIKANAN BUDIDAYA PROVINSI JAWA TIMUR TAHUN ${tahun}`;
+    sheet.getCell(startRow2, 1).font = { bold: true, size: 14 };
+    sheet.getCell(startRow2, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    sheet.mergeCells(startRow2 + 1, 1, startRow2 + 1, totalCols);
+    sheet.getCell(startRow2 + 1, 1).value = `BERDASARKAN KOMODITAS`;
+    sheet.getCell(startRow2 + 1, 1).font = { bold: true, size: 12 };
+    sheet.getCell(startRow2 + 1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    sheet.getCell(startRow2 + 2, totalCols).value = 'Satuan : Rp. 1000';
+    sheet.getCell(startRow2 + 2, totalCols).font = { italic: true };
+    sheet.getCell(startRow2 + 2, totalCols).alignment = { horizontal: 'right' };
+
+    sheet.getCell(startRow2 + 3, 1).value = 'KABUPATEN/KOTA';
+    sheet.getCell(startRow2 + 3, 1).font = { bold: true };
+    sheet.getCell(startRow2 + 3, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(startRow2 + 3, 1, startRow2 + 4, 1);
+    
+    sheet.getCell(startRow2 + 3, 2).value = 'JUMLAH';
+    sheet.getCell(startRow2 + 3, 2).font = { bold: true };
+    sheet.getCell(startRow2 + 3, 2).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.mergeCells(startRow2 + 3, 2, startRow2 + 4, 2);
+
+    let currentColNilai = 3;
+    wadahStructure.forEach(ws => {
+      const startCol = currentColNilai;
+      const endCol = startCol + ws.komoditasList.length - 1;
+      
+      sheet.getCell(startRow2 + 3, startCol).value = ws.wadah.toUpperCase();
+      sheet.getCell(startRow2 + 3, startCol).font = { bold: true };
+      sheet.getCell(startRow2 + 3, startCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      
+      if (endCol > startCol) {
+        sheet.mergeCells(startRow2 + 3, startCol, startRow2 + 3, endCol);
+      }
+      
+      ws.komoditasList.forEach((kom, i) => {
+        const cell = sheet.getCell(startRow2 + 4, startCol + i);
+        cell.value = kom;
+        cell.font = { bold: true };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      });
+      
+      currentColNilai = endCol + 1;
+    });
+
+    for(let i=1; i<=totalCols; i++) {
+      ['A'].forEach(() => { 
+         const cell4 = sheet.getCell(startRow2 + 3, i);
+         cell4.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+         const cell5 = sheet.getCell(startRow2 + 4, i);
+         cell5.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+    }
+
+    const totalsNilai = { jumlah_total: 0, wadah: {} };
+    wadahStructure.forEach(ws => {
+      totalsNilai.wadah[ws.wadah] = {};
+      ws.komoditasList.forEach(k => {
+        totalsNilai.wadah[ws.wadah][k] = 0;
+      });
+    });
+
+    sortedKab.forEach(k => {
+      totalsNilai.jumlah_total += kabMapNilai[k].jumlah_total;
+      wadahStructure.forEach(ws => {
+        ws.komoditasList.forEach(kom => {
+          totalsNilai.wadah[ws.wadah][kom] += kabMapNilai[k][ws.wadah][kom];
+        });
+      });
+    });
+
+    const totalRowValuesNilai = ['JUMLAH TOTAL', totalsNilai.jumlah_total || '-'];
+    wadahStructure.forEach(ws => {
+      ws.komoditasList.forEach(kom => {
+        totalRowValuesNilai.push(totalsNilai.wadah[ws.wadah][kom] || '-');
+      });
+    });
+    
+    const totalRowNilai = sheet.getRow(startRow2 + 5);
+    totalRowNilai.values = totalRowValuesNilai;
+    totalRowNilai.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
+
+    let currentRowNilai = startRow2 + 6;
+    sortedKab.forEach(k => {
+      const v = kabMapNilai[k];
+      const rowValues = [k, v.jumlah_total || '-'];
+      wadahStructure.forEach(ws => {
+        ws.komoditasList.forEach(kom => {
+          rowValues.push(v[ws.wadah][kom] || '-');
+        });
+      });
+      
+      const row = sheet.getRow(currentRowNilai);
+      row.values = rowValues;
+      row.eachCell((cell) => {
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+      currentRowNilai++;
     });
 
     sheet.getColumn(1).width = 25;

@@ -93,6 +93,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     volume: '',
     satuan_volume: 'KG', // default for Segar dan Olahan
     nilai_usd: '',
+    nilai_rp: '',
     negara_tujuan: '',
     negara_lainnya: ''
   });
@@ -112,6 +113,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         volume: initialData.volume || '',
         satuan_volume: initialData.satuan_volume || 'KG',
         nilai_usd: initialData.nilai_usd || '',
+        nilai_rp: initialData.nilai_rp || '',
         negara_tujuan: isNegaraPredefined ? initialData.negara_tujuan : 'Lainnya',
         negara_lainnya: !isNegaraPredefined ? initialData.negara_tujuan : ''
       });
@@ -157,6 +159,12 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
       newErrors.nilai_usd = 'Nilai (USD) wajib diisi';
     } else if (isNaN(formData.nilai_usd)) {
       newErrors.nilai_usd = 'Nilai harus berupa angka desimal';
+    }
+
+    if (!formData.nilai_rp) {
+      newErrors.nilai_rp = 'Nilai (Rp) wajib diisi';
+    } else if (isNaN(formData.nilai_rp)) {
+      newErrors.nilai_rp = 'Nilai harus berupa angka desimal';
     }
 
     if (!formData.negara_tujuan) {
@@ -337,6 +345,22 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                 />
               </div>
               {errors.nilai_usd && <p className="text-xs text-destructive mt-1">{errors.nilai_usd}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Nilai (Rp)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
+                <input 
+                  type="text" 
+                  name="nilai_rp" 
+                  value={formData.nilai_rp} 
+                  onChange={handleChange}
+                  placeholder="Misal: 15000000.50"
+                  className={cn("w-full rounded-lg border bg-background pl-10 pr-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_rp ? "border-destructive" : "border-input")}
+                />
+              </div>
+              {errors.nilai_rp && <p className="text-xs text-destructive mt-1">{errors.nilai_rp}</p>}
             </div>
           </div>
         </section>
