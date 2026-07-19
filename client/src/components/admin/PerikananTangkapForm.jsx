@@ -290,14 +290,16 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   <>
                     <div>
                       <label className="block text-sm font-medium mb-2">Daerah Operasi (WPP)</label>
-                      <input 
-                        type="text" 
+                      <select
                         name="jenis_perairan"
-                        placeholder="Contoh: 711"
                         value={formData.jenis_perairan}
                         onChange={handleChange}
                         className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                      />
+                      >
+                        <option value="">-- Pilih WPP --</option>
+                        <option value="WPP 571">WPP 571</option>
+                        <option value="WPP 573">WPP 573</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Perairan Pantai (Pendaratan)</label>
