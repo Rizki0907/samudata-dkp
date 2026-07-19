@@ -264,9 +264,7 @@ export default function PerikananTangkap() {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        formatter: (params) => {
-          return params.map(p => `${p.marker} <b>${p.name}</b>: ${Intl.NumberFormat('id-ID').format(p.value)} Ton`).join('<br/>');
-        }
+        formatter: (params) => { return params.map(p => `${p.marker} <b>${p.name}</b>: ${p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton`).join('<br/>'); }
       },
       grid: { left: '5%', right: '5%', bottom: '10%', top: '20%', containLabel: true },
       xAxis: {
@@ -341,9 +339,9 @@ export default function PerikananTangkap() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } },
+      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
-      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#ffffff', formatter: '{c} Kg' } }]
+      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#ffffff', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
     };
   }, [localKomoditas]);
 
@@ -409,10 +407,10 @@ export default function PerikananTangkap() {
 
     return {
       volume: {
-        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID')} Kg` },
+        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#f8fafc' } },
-        yAxis: { type: 'value', name: 'Volume (Kg)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
+        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
         series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
       },
