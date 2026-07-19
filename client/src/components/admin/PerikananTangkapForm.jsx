@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SearchableSelect from '@/components/shared/SearchableSelect';
 
 export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, isLoading }) {
   const [sumberData, setSumberData] = useState(null); // null, 'PELABUHAN', 'PUD', 'KAB_KOTA'
@@ -249,28 +250,25 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
             {isPelabuhan ? (
               <div>
                 <label className="block text-sm font-medium mb-2">Pelabuhan Pendaratan</label>
-                <select 
+                <SearchableSelect
                   name="pelabuhan"
                   value={formData.pelabuhan}
                   onChange={handleChange}
-                  className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                >
-                  {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                  options={PELABUHAN_OPTIONS}
+                  placeholder="Cari Pelabuhan..."
+                />
               </div>
             ) : (
               <>
                 <div>
                   <label className="block text-sm font-medium mb-2">Kabupaten / Kota</label>
-                  <select 
+                  <SearchableSelect
                     name="kabupaten_kota"
                     value={formData.kabupaten_kota}
                     onChange={handleChange}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  >
-                    <option value="">Pilih Kabupaten/Kota</option>
-                    {KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                    options={KAB_KOTA_OPTIONS}
+                    placeholder="Pilih Kabupaten/Kota..."
+                  />
                 </div>
                 
                 {isPUD && (
@@ -376,14 +374,13 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
                 <div>
                   <label className="block text-sm font-medium mb-2">GT Kapal</label>
-                  <select 
+                  <SearchableSelect
                     name="gt_kapal"
                     value={formData.gt_kapal}
                     onChange={handleChange}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  >
-                    {GT_KAPAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                    options={GT_KAPAL_OPTIONS}
+                    placeholder="Pilih GT Kapal..."
+                  />
                 </div>
                 
                 <div className="md:col-span-2">
@@ -403,28 +400,26 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
             <div className={cn(!isPelabuhan && !isPUD && !isKabKota && "md:col-span-2")}>
               <label className="block text-sm font-medium mb-2">Alat Tangkap</label>
-              <select 
+              <SearchableSelect
                 name="alat_tangkap"
                 value={formData.alat_tangkap}
                 onChange={handleChange}
-                className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-              >
-                {(isPUD ? ALAT_TANGKAP_PUD_OPTIONS : (isKabKota ? ALAT_TANGKAP_LAUT_OPTIONS : ALAT_TANGKAP_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+                options={isPUD ? ALAT_TANGKAP_PUD_OPTIONS : (isKabKota ? ALAT_TANGKAP_LAUT_OPTIONS : ALAT_TANGKAP_OPTIONS)}
+                placeholder="Pilih Alat Tangkap..."
+              />
             </div>
 
             {(isPUD || isKabKota) && (
               <>
                 <div>
                   <label className="block text-sm font-medium mb-2">{isPUD ? "Jenis Perahu / GT" : "Ukuran / GT Kapal"}</label>
-                  <select 
+                  <SearchableSelect
                     name="gt_kapal"
                     value={formData.gt_kapal}
                     onChange={handleChange}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  >
-                    {(isPUD ? PUD_JENIS_PERAHU_OPTIONS : (isKabKota ? KAB_KOTA_GT_KAPAL_OPTIONS : GT_KAPAL_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                    options={isPUD ? PUD_JENIS_PERAHU_OPTIONS : (isKabKota ? KAB_KOTA_GT_KAPAL_OPTIONS : GT_KAPAL_OPTIONS)}
+                    placeholder="Pilih Ukuran/GT..."
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Total Populasi Alat di {isPUD ? "Wilayah" : "Kab/Kota"}</label>
@@ -486,13 +481,13 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                 
                 <div className="md:col-span-4">
                   <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Komoditas</label>
-                  <select 
+                  <SearchableSelect
+                    name="komoditas"
                     value={item.komoditas}
                     onChange={(e) => handleTangkapanChange(index, 'komoditas', e.target.value)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  >
-                    {(isPUD ? KOMODITAS_PUD_OPTIONS : (isKabKota ? KOMODITAS_LAUT_OPTIONS : KOMODITAS_OPTIONS)).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                    options={isPUD ? KOMODITAS_PUD_OPTIONS : (isKabKota ? KOMODITAS_LAUT_OPTIONS : KOMODITAS_OPTIONS)}
+                    placeholder="Pilih Komoditas Ikan..."
+                  />
                 </div>
 
                 {(isPUD || isKabKota) ? (
