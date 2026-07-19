@@ -362,7 +362,9 @@ export const PERAIRAN_OPTIONS = [
   "Sungai",
   "Danau",
   "Waduk",
-  "Rawa",];
+  "Rawa",
+  "Genangan"
+];
 
 export const KOMODITAS_PUD_OPTIONS = [
   "Betok", "Sidat", "Belut", "Baung", "Tapah", "Keting", "Sepat rawa", "Sepat siam", "Gabus", 
