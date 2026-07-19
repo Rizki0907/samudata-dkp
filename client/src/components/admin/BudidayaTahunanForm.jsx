@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { KAB_KOTA_OPTIONS } from '@/utils/constants';
 import { BUDIDAYA_TAHUNAN_CONFIG } from '@/utils/BudidayaTahunanConfig';
-import { Save, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Save, AlertCircle, Loader2, CheckCircle2, Plus } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import api from '@/services/api';
 
@@ -82,23 +82,23 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
       }
 
       // Auto-calculate for Grup C
-      if (currentConfig.tipe === 'PRODUKSI' && fieldName !== 'JUMLAH') {
-        let total = 0;
-        currentConfig.seksi.forEach(s => {
-          if (s.title.includes('Produksi Benih')) {
-            s.fields.forEach(f => {
-              if (f !== 'JUMLAH') {
-                const val = (s.title === seksiTitle && f === fieldName) 
-                   ? (isNaN(parseFloat(value)) ? 0 : parseFloat(value))
-                   : parseFloat(newData[s.title]?.[f] || 0);
-                total += val;
-              }
-            });
-            if (!newData[s.title]) newData[s.title] = {};
-            newData[s.title]['JUMLAH'] = total;
-          }
-        });
-      }
+        if (currentConfig.tipe === 'PRODUKSI' && fieldName !== 'JUMLAH') {
+          currentConfig.seksi.forEach(s => {
+            if (s.title.includes('Produksi Benih') || s.title.includes('Nilai Benih')) {
+              let sectionTotal = 0;
+              s.fields.forEach(f => {
+                if (f !== 'JUMLAH') {
+                  const val = (s.title === seksiTitle && f === fieldName) 
+                     ? (isNaN(parseFloat(value)) ? 0 : parseFloat(value))
+                     : parseFloat(newData[s.title]?.[f] || 0);
+                  sectionTotal += val;
+                }
+              });
+              if (!newData[s.title]) newData[s.title] = {};
+              newData[s.title]['JUMLAH'] = sectionTotal;
+            }
+          });
+        }
 
       return newData;
     });
@@ -117,6 +117,19 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
       } else {
          const numVal = parseFloat(value);
          item[seksiTitle][fieldName] = isNaN(numVal) || numVal < 0 ? '' : numVal;
+      }
+      
+      // Auto-calculate for Grup C repeatable array
+      if (currentConfig.tipe === 'PRODUKSI' && currentConfig.isRepeatable && fieldName !== 'JUMLAH') {
+        currentConfig.seksi.forEach(s => {
+          if (s.title.includes('Produksi Benih') || s.title.includes('Nilai Benih')) {
+            if (!item[s.title]) item[s.title] = {};
+            const sum = Object.entries(item[s.title] || {})
+              .filter(([k]) => k !== 'JUMLAH' && k !== 'Lain-Lainnya')
+              .reduce((acc, [_, v]) => acc + (parseFloat(v) || 0), 0);
+            item[s.title]['JUMLAH'] = sum > 0 ? parseFloat(sum.toFixed(3)) : '';
+          }
+        });
       }
       
       newData.items[index] = item;
@@ -151,7 +164,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
 
     // Check if at least 1 field has data
     let hasData = false;
-    if (currentConfig.tipe === 'REPEATABLE') {
+    if (currentConfig.isRepeatable) {
       hasData = formData.items && formData.items.some(item => 
         Object.keys(item).some(k => k !== 'id' && Object.keys(item[k]).length > 0)
       );
@@ -177,9 +190,6 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
       
       await api.post('/budidaya-tahunan', payload);
       setSuccessMsg(`Modul ${currentConfig.title} berhasil disimpan!`);
-      
-      // Optional: Clear local storage upon successful submit? 
-      // The user can keep it to continue editing later if they want.
       
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -250,7 +260,6 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
               else acc.push({ group: curr.grup, items: [curr] });
               return acc;
             }, []).map((group, idx) => {
-              // If editing and no items in this group match the activeModule, don't render the group header
               if (isEditing && !group.items.some(mod => mod.id === activeModule)) return null;
 
               return (
@@ -289,9 +298,9 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                       ⚠️ Satuan Data: 1.000 Ekor
                     </span>
                   )}
-                  {currentConfig.tipe === 'REPEATABLE' && (
+                  {currentConfig.isRepeatable && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mt-2">
-                      ♻️ Bisa Input Lebih dari 1 Unit
+                      🔄 Bisa Input Lebih dari 1 Unit
                     </span>
                   )}
                 </div>
@@ -306,14 +315,14 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
 
               {successMsg && (
                 <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5" />
+                  <CheckCircle2 className="w-5 h-5" />
                   {successMsg}
                 </div>
               )}
 
               <form id="tahunanForm" onSubmit={handleSubmit} className="space-y-8">
                 
-                {currentConfig.tipe !== 'REPEATABLE' ? (
+                {!currentConfig.isRepeatable ? (
                   // STANDARD & PRODUKSI RENDERING
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {currentConfig.seksi.map((seksi, sIdx) => (
@@ -362,7 +371,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                           <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
                             {index + 1}
                           </span>
-                          Data BBI Unit {index + 1}
+                          Data Unit {index + 1}
                         </h4>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -378,8 +387,11 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                                       step="any"
                                       min="0"
                                       value={item[seksi.title]?.[field] ?? ''}
+                                      readOnly={field === 'JUMLAH' && currentConfig.tipe === 'PRODUKSI'}
                                       onChange={(e) => handleRepeatableChange(index, seksi.title, field, e.target.value)}
-                                      className="w-full px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-primary/50 outline-none transition-all bg-background text-foreground"
+                                      className={`w-full px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-primary/50 outline-none transition-all bg-background text-foreground ${
+                                        field === 'JUMLAH' ? 'bg-muted/50 font-bold' : ''
+                                      }`}
                                       placeholder={field.includes('Text') ? 'Masukkan teks' : '0'}
                                     />
                                   </div>
@@ -397,7 +409,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                       className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-medium border border-primary/20"
                     >
                       <Plus className="w-4 h-4" />
-                      Tambah Unit BBI Lainnya
+                      Tambah Unit Lainnya
                     </button>
                   </div>
                 )}

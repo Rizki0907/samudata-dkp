@@ -6,6 +6,7 @@ const { verifyToken } = require('../middleware/authMiddleware');
 // Protect all routes
 router.use(verifyToken);
 
+router.get('/export', budidayaTahunanController.exportExcel);
 router.get('/', budidayaTahunanController.getAll);
 router.post('/', budidayaTahunanController.createOrUpdate);
 router.post('/batch-status', budidayaTahunanController.batchUpdateStatus);

@@ -245,4 +245,4 @@ const BUDIDAYA_TAHUNAN_CONFIG = [
   }
 ];
 
-export { BUDIDAYA_TAHUNAN_CONFIG };
+module.exports = { BUDIDAYA_TAHUNAN_CONFIG };

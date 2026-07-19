@@ -377,35 +377,25 @@ export default function AdminBudidaya() {
       return;
     }
 
-    const endpoint = exportType === 'wadah' ? '/budidaya/export-wadah' : '/budidaya/export-komoditas';
-    const token = localStorage.getItem('token');
+    let endpoint = '';
+    let fileName = '';
 
-    // Create a form to trigger download
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}`;
-
-    const yearInput = document.createElement('input');
-    yearInput.type = 'hidden';
-    yearInput.name = 'tahun';
-    yearInput.value = exportYear;
-    form.appendChild(yearInput);
-
-    if (token) {
-      const tokenInput = document.createElement('input');
-      tokenInput.type = 'hidden';
-      tokenInput.name = 'token'; // Backend needs to support token via query for this to work perfectly, or we use fetch + blob
-      tokenInput.value = token;
-      // Note: for file downloads with auth, fetch + blob is better
+    if (activeTab === 'tahunan') {
+      endpoint = '/budidaya-tahunan/export';
+      fileName = `Data_Tahunan_Budidaya_${exportYear}.xlsx`;
+    } else {
+      endpoint = exportType === 'wadah' ? '/budidaya/export-wadah' : '/budidaya/export-komoditas';
+      fileName = `Ringkasan_${exportType}_${exportYear}.xlsx`;
     }
 
-    document.body.appendChild(form);
-    // Actually better to use fetch and blob to include auth headers properly
+    const token = localStorage.getItem('admin_token');
+
+    // Use fetch and blob to include auth headers properly
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}?tahun=${exportYear}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
         return response.blob();
       })
       .then(blob => {
@@ -413,7 +403,7 @@ export default function AdminBudidaya() {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `Ringkasan_${exportType}_${exportYear}.xlsx`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -421,7 +411,7 @@ export default function AdminBudidaya() {
       })
       .catch(err => {
         console.error('Export error:', err);
-        alert('Gagal mengunduh file');
+        alert(`Gagal mengunduh file: ${err.message}. Fetching URL: ${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}?tahun=${exportYear}`);
       });
   };
 
@@ -898,6 +888,16 @@ export default function AdminBudidaya() {
                   onBatchApprove={handleBatchApproveTahunan}
                   onBatchReject={handleBatchRejectTahunan}
                   onBatchDelete={handleBatchDeleteTahunan}
+                  exportName={`Data_Tahunan_Budidaya_${new Date().toISOString().split('T')[0]}`}
+                  customExportButton={
+                    <button
+                      onClick={() => setIsExportModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                    >
+                      <Download className="w-4 h-4" />
+                      Ekspor Ringkasan
+                    </button>
+                  }
                   searchable={true}
                   searchField="kabupaten_kota"
                   renderSubComponent={({ row }) => {
@@ -1114,7 +1114,8 @@ export default function AdminBudidaya() {
                 </button>
                 <h2 className="text-xl font-bold mb-4">Ekspor Data Budidaya</h2>
                 <div className="space-y-4">
-                  <div>
+                                    {activeTab !== 'tahunan' && (
+                  <div className="mb-4">
                     <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
                     <div className="grid grid-cols-2 gap-2">
                       <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
@@ -1127,6 +1128,7 @@ export default function AdminBudidaya() {
                       </label>
                     </div>
                   </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium mb-2">Tahun Laporan</label>
                     <select

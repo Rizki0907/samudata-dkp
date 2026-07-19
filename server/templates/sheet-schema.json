@@ -1,0 +1,3042 @@
+{
+  "IN LAUT": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IN TAMBAK": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IN KOLAM": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IN KERAMBA": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IN MINA PADI": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IN JAPUNG": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "BBI": {
+    "row_labels": [
+      {
+        "row": 7,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 37,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 38,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 39,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 40,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 41,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 42,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 43,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 44,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 45,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 46,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 47,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 48,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 49,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 50,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 51,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 52,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 53,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 54,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 55,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 56,
+        "label": "KOTA SURABAYA"
+      },
+      {
+        "row": 61,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 62,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 63,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 64,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 65,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 66,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 67,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 68,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 69,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 70,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 71,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 72,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 73,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 74,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 75,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 76,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 77,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 78,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 79,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 80,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 81,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 82,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 83,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 84,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 85,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 86,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 87,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 88,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 89,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 90,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 91,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 92,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 93,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 94,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 95,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 96,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 97,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 98,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 99,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "IH": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 7,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 35,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 37,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 38,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 41,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "PERBENIHAN TAWAR": {
+    "row_labels": [
+      {
+        "row": 7,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 36,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 37,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 38,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 39,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 41,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 42,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 43,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 44,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "PERBENIHAN PAYAU": {
+    "row_labels": [
+      {
+        "row": 7,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 8,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SITUBONDO (HSRT)"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN SITUBONDO (Perusahaan)"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 37,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 38,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 39,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 40,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 41,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 42,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 43,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 44,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 45,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "PRODUKSI PERBENIHAN BBI": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "Nama Kab/Kota"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 37,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 38,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 39,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 41,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 42,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 43,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 44,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 45,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 46,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 47,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 48,
+        "label": "KOTA SURABAYA"
+      },
+      {
+        "row": 58,
+        "label": "Nama Kab/Kota"
+      },
+      {
+        "row": 63,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 64,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 65,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 66,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 67,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 68,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 69,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 70,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 71,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 72,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 73,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 74,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 75,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 76,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 77,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 78,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 79,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 80,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 81,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 82,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 83,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 84,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 85,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 86,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 87,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 88,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 89,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 90,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 91,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 92,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 93,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 94,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 95,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 96,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 97,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 98,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 99,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 100,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "PRODUKSI PERBENIHAN BBI PAYAU": {
+    "row_labels": [
+      {
+        "row": 6,
+        "label": "Nama Kab/Kota"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 37,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 38,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 39,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 41,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 42,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 43,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 44,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 45,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 46,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 47,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 48,
+        "label": "KOTA SURABAYA"
+      },
+      {
+        "row": 57,
+        "label": "Nama Kab/Kota"
+      },
+      {
+        "row": 62,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 63,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 64,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 65,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 66,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 67,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 68,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 69,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 70,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 71,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 72,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 73,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 74,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 75,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 76,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 77,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 78,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 79,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 80,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 81,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 82,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 83,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 84,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 85,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 86,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 87,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 88,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 89,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 90,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 91,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 92,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 93,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 94,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 95,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 96,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 97,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 98,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 99,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "BENIH TAWAR UPR SWASTA": {
+    "row_labels": [
+      {
+        "row": 4,
+        "label": "NAMA KABUPATEN/KOTA"
+      },
+      {
+        "row": 9,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 37,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 38,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 39,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 40,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 41,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 42,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 43,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 44,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 45,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 46,
+        "label": "KOTA SURABAYA"
+      },
+      {
+        "row": 53,
+        "label": "NAMA KABUPATEN/KOTA"
+      },
+      {
+        "row": 58,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 59,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 60,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 61,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 62,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 63,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 64,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 65,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 66,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 67,
+        "label": "KABUPATEN LAMONGAN"
+      },
+      {
+        "row": 68,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 69,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 70,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 71,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 72,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 73,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 74,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 75,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 76,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 77,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 78,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 79,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 80,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 81,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 82,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 83,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 84,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 85,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 86,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 87,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 88,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 89,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 90,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 91,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 92,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 93,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 94,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 95,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  },
+  "BENIH PAYAU UPR SWASTA": {
+    "row_labels": [
+      {
+        "row": 5,
+        "label": "NAMA KABUPATEN/KOTA"
+      },
+      {
+        "row": 10,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 11,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 12,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 13,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 14,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 15,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 16,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 17,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 18,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 19,
+        "label": "KABUPATEN LAMONGAN (UPR)"
+      },
+      {
+        "row": 20,
+        "label": "KABUPATEN LAMONGAN (SWASTA)"
+      },
+      {
+        "row": 21,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 22,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 23,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 24,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 25,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 26,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 27,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 28,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 29,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 30,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 31,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 32,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 33,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 34,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 35,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 36,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 37,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 38,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 39,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 40,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 41,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 42,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 43,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 44,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 45,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 46,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 47,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 48,
+        "label": "KOTA SURABAYA"
+      },
+      {
+        "row": 56,
+        "label": "NAMA KABUPATEN/KOTA"
+      },
+      {
+        "row": 61,
+        "label": "KABUPATEN BANGKALAN"
+      },
+      {
+        "row": 62,
+        "label": "KABUPATEN BANYUWANGI"
+      },
+      {
+        "row": 63,
+        "label": "KABUPATEN BLITAR"
+      },
+      {
+        "row": 64,
+        "label": "KABUPATEN BOJONEGORO"
+      },
+      {
+        "row": 65,
+        "label": "KABUPATEN BONDOWOSO"
+      },
+      {
+        "row": 66,
+        "label": "KABUPATEN GRESIK"
+      },
+      {
+        "row": 67,
+        "label": "KABUPATEN JEMBER"
+      },
+      {
+        "row": 68,
+        "label": "KABUPATEN JOMBANG"
+      },
+      {
+        "row": 69,
+        "label": "KABUPATEN KEDIRI"
+      },
+      {
+        "row": 70,
+        "label": "KABUPATEN LAMONGAN (UPR)"
+      },
+      {
+        "row": 71,
+        "label": "KABUPATEN LAMONGAN (SWASTA)"
+      },
+      {
+        "row": 72,
+        "label": "KABUPATEN LUMAJANG"
+      },
+      {
+        "row": 73,
+        "label": "KABUPATEN MADIUN"
+      },
+      {
+        "row": 74,
+        "label": "KABUPATEN MAGETAN"
+      },
+      {
+        "row": 75,
+        "label": "KABUPATEN MALANG"
+      },
+      {
+        "row": 76,
+        "label": "KABUPATEN MOJOKERTO"
+      },
+      {
+        "row": 77,
+        "label": "KABUPATEN NGANJUK"
+      },
+      {
+        "row": 78,
+        "label": "KABUPATEN NGAWI"
+      },
+      {
+        "row": 79,
+        "label": "KABUPATEN PACITAN"
+      },
+      {
+        "row": 80,
+        "label": "KABUPATEN PAMEKASAN"
+      },
+      {
+        "row": 81,
+        "label": "KABUPATEN PASURUAN"
+      },
+      {
+        "row": 82,
+        "label": "KABUPATEN PONOROGO"
+      },
+      {
+        "row": 83,
+        "label": "KABUPATEN PROBOLINGGO"
+      },
+      {
+        "row": 84,
+        "label": "KABUPATEN SAMPANG"
+      },
+      {
+        "row": 85,
+        "label": "KABUPATEN SIDOARJO"
+      },
+      {
+        "row": 86,
+        "label": "KABUPATEN SITUBONDO"
+      },
+      {
+        "row": 87,
+        "label": "KABUPATEN SUMENEP"
+      },
+      {
+        "row": 88,
+        "label": "KABUPATEN TRENGGALEK"
+      },
+      {
+        "row": 89,
+        "label": "KABUPATEN TUBAN"
+      },
+      {
+        "row": 90,
+        "label": "KABUPATEN TULUNGAGUNG"
+      },
+      {
+        "row": 91,
+        "label": "KOTA BATU"
+      },
+      {
+        "row": 92,
+        "label": "KOTA BLITAR"
+      },
+      {
+        "row": 93,
+        "label": "KOTA KEDIRI"
+      },
+      {
+        "row": 94,
+        "label": "KOTA MADIUN"
+      },
+      {
+        "row": 95,
+        "label": "KOTA MALANG"
+      },
+      {
+        "row": 96,
+        "label": "KOTA MOJOKERTO"
+      },
+      {
+        "row": 97,
+        "label": "KOTA PASURUAN"
+      },
+      {
+        "row": 98,
+        "label": "KOTA PROBOLINGGO"
+      },
+      {
+        "row": 99,
+        "label": "KOTA SURABAYA"
+      }
+    ]
+  }
+}
