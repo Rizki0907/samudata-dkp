@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database } from 'lucide-react';
+import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
 
 const BULAN_OPTIONS = [
@@ -214,29 +215,27 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
               <label className="block text-sm font-medium mb-2">Bulan</label>
-              <select 
+              <SearchableSelect 
                 name="bulan" 
                 value={formData.bulan} 
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.bulan ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Bulan</option>
-                {BULAN_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
+                options={BULAN_OPTIONS}
+                placeholder="Pilih Bulan"
+                className={errors.bulan ? "border-destructive" : "border-input"}
+              />
               {errors.bulan && <p className="text-xs text-destructive mt-1">{errors.bulan}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <select 
+              <SearchableSelect 
                 name="tahun" 
                 value={formData.tahun} 
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tahun ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Tahun</option>
-                {TAHUN_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+                options={TAHUN_OPTIONS}
+                placeholder="Pilih Tahun"
+                className={errors.tahun ? "border-destructive" : "border-input"}
+              />
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
             </div>
           </div>
@@ -281,15 +280,14 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
 
             <div>
               <label className="block text-sm font-medium mb-2">Nama Komoditas</label>
-              <select 
+              <SearchableSelect 
                 name="nama_komoditas" 
                 value={formData.nama_komoditas} 
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nama_komoditas ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Komoditas</option>
-                {currentKomoditasList.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
+                options={currentKomoditasList}
+                placeholder="Pilih Komoditas"
+                className={errors.nama_komoditas ? "border-destructive" : "border-input"}
+              />
               {errors.nama_komoditas && <p className="text-xs text-destructive mt-1">{errors.nama_komoditas}</p>}
             </div>
 
@@ -376,16 +374,14 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
               <label className="block text-sm font-medium mb-2">Negara Tujuan</label>
-              <select 
+              <SearchableSelect 
                 name="negara_tujuan" 
                 value={formData.negara_tujuan} 
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.negara_tujuan ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Negara Tujuan</option>
-                {NEGARA_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
-                <option value="Lainnya">Lainnya</option>
-              </select>
+                options={[...NEGARA_OPTIONS, 'Lainnya']}
+                placeholder="Pilih Negara Tujuan"
+                className={errors.negara_tujuan ? "border-destructive" : "border-input"}
+              />
               {errors.negara_tujuan && <p className="text-xs text-destructive mt-1">{errors.negara_tujuan}</p>}
             </div>
 

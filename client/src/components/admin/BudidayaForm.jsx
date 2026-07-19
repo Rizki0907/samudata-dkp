@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database } from 'lucide-react';
+import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
 
 const KABUPATEN_KOTA_OPTIONS = [
@@ -132,43 +133,40 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-2">Kabupaten/Kota</label>
-              <select
+              <SearchableSelect
                 name="kabupaten_kota"
                 value={formData.kabupaten_kota}
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kabupaten_kota ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Kabupaten/Kota</option>
-                {KABUPATEN_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+                options={KABUPATEN_KOTA_OPTIONS}
+                placeholder="Pilih Kabupaten/Kota"
+                className={errors.kabupaten_kota ? "border-destructive" : "border-input"}
+              />
               {errors.kabupaten_kota && <p className="text-xs text-destructive mt-1">{errors.kabupaten_kota}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Bulan</label>
-              <select
+              <SearchableSelect
                 name="bulan"
                 value={formData.bulan}
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.bulan ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Bulan</option>
-                {BULAN_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
+                options={BULAN_OPTIONS}
+                placeholder="Pilih Bulan"
+                className={errors.bulan ? "border-destructive" : "border-input"}
+              />
               {errors.bulan && <p className="text-xs text-destructive mt-1">{errors.bulan}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <select
+              <SearchableSelect
                 name="tahun"
                 value={formData.tahun}
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.tahun ? "border-destructive" : "border-input")}
-              >
-                <option value="">Pilih Tahun</option>
-                {TAHUN_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+                options={TAHUN_OPTIONS}
+                placeholder="Pilih Tahun"
+                className={errors.tahun ? "border-destructive" : "border-input"}
+              />
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
             </div>
           </div>
@@ -184,46 +182,42 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div>
               <label className="block text-sm font-medium mb-2">Jenis Wadah</label>
-              <select
+              <SearchableSelect
                 name="jenis_wadah"
                 value={formData.jenis_wadah}
                 onChange={handleChange}
-                className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.jenis_wadah ? "border-destructive" : "border-input")}
-              >
-                {JENIS_WADAH_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+                options={JENIS_WADAH_OPTIONS}
+                placeholder="Pilih Jenis Wadah"
+                className={errors.jenis_wadah ? "border-destructive" : "border-input"}
+              />
               {errors.jenis_wadah && <p className="text-xs text-destructive mt-1">{errors.jenis_wadah}</p>}
             </div>
 
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               <div>
                 <label className="block text-sm font-medium mb-2">Kategori Komoditas</label>
-                <select
+                <SearchableSelect
                   name="kategori_komoditas"
                   value={formData.kategori_komoditas}
                   onChange={handleChange}
-                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kategori_komoditas ? "border-destructive" : "border-input")}
-                >
-                  <option value="">Pilih Kategori Komoditas</option>
-                  {Object.keys(KOMODITAS_DATA).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                  options={Object.keys(KOMODITAS_DATA)}
+                  placeholder="Pilih Kategori Komoditas"
+                  className={errors.kategori_komoditas ? "border-destructive" : "border-input"}
+                />
                 {errors.kategori_komoditas && <p className="text-xs text-destructive mt-1">{errors.kategori_komoditas}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Komoditas</label>
-                <select
+                <SearchableSelect
                   name="komoditas"
                   value={formData.komoditas}
                   onChange={handleChange}
                   disabled={!formData.kategori_komoditas}
-                  className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50", errors.komoditas ? "border-destructive" : "border-input")}
-                >
-                  <option value="">Pilih Komoditas</option>
-                  {formData.kategori_komoditas && KOMODITAS_DATA[formData.kategori_komoditas]?.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  options={formData.kategori_komoditas ? KOMODITAS_DATA[formData.kategori_komoditas] : []}
+                  placeholder="Pilih Komoditas"
+                  className={errors.komoditas ? "border-destructive" : "border-input"}
+                />
                 {errors.komoditas && <p className="text-xs text-destructive mt-1">{errors.komoditas}</p>}
               </div>
             </div>

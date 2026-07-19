@@ -410,3 +410,19 @@ model MasterData {
 
   @@unique([category, value])
 }
+
+model BudidayaTahunan {
+  id               Int        @id @default(autoincrement())
+  tahun            Int
+  kabupaten_kota   String
+  modul_id         String
+  data             Json
+  status           DataStatus @default(PENDING)
+  alasan_penolakan String?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+
+  @@unique([tahun, kabupaten_kota, modul_id])
+  @@index([status, tahun, kabupaten_kota])
+}
+

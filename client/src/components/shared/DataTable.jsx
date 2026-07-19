@@ -318,7 +318,7 @@ export function DataTable({
                               </button>
                             )}
 
-                            {onEdit && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && selectedIds.length <= 1 && (
+                            {onEdit && (['admin_pusat', 'admin_cabang'].includes(user?.role) || !lockedStatuses.includes(row.original.status)) && selectedIds.length <= 1 && (
                               <button
                                 onClick={() => onEdit(row.original)}
                                 title="Edit Data"
@@ -328,7 +328,7 @@ export function DataTable({
                               </button>
                             )}
                             
-                            {onDelete && (user?.role === 'admin_pusat' || !lockedStatuses.includes(row.original.status)) && (
+                            {onDelete && (['admin_pusat', 'admin_cabang'].includes(user?.role) || !lockedStatuses.includes(row.original.status)) && (
                               <button
                                 onClick={() => onDelete(row.original)}
                                 title="Hapus Data"

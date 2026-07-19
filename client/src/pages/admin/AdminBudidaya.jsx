@@ -4,6 +4,7 @@ import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import BudidayaForm from '@/components/admin/BudidayaForm';
+import { BudidayaTahunanForm } from '@/components/admin/BudidayaTahunanForm';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
@@ -25,8 +26,11 @@ const TwBadge = ({ tw }) => {
 
 export default function AdminBudidaya() {
   const [data, setData] = useState([]);
+  const [dataTahunan, setDataTahunan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isTahunanFormOpen, setIsTahunanFormOpen] = useState(false);
+  const [isSelectTypeModalOpen, setIsSelectTypeModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('data');
@@ -38,17 +42,28 @@ export default function AdminBudidaya() {
   const [filterTw, setFilterTw] = useState('');
   const [filterBulan, setFilterBulan] = useState('');
   const [filterTahun, setFilterTahun] = useState('');
+  const [filterModul, setFilterModul] = useState('');
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportType, setExportType] = useState('wadah');
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
 
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
-  const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
+  const kabupatenOptions = useMemo(() => [...new Set([...data.map(d => d.kabupaten_kota), ...dataTahunan.map(d => d.kabupaten_kota)])].filter(Boolean).sort(), [data, dataTahunan]);
   const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
   const twOptions = useMemo(() => [...new Set(data.map(d => d.triwulan))].filter(Boolean).sort(), [data]);
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
-  const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
+  const tahunOptions = useMemo(() => [...new Set([...data.map(d => d.tahun), ...dataTahunan.map(d => d.tahun)])].filter(Boolean).sort(), [data, dataTahunan]);
+  const modulOptions = useMemo(() => [...new Set(dataTahunan.map(d => d.modul_id))].filter(Boolean).sort(), [dataTahunan]);
+
+  const filteredDataTahunan = useMemo(() => {
+    return dataTahunan.filter(item => {
+      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
+      if (filterTahun && item.tahun?.toString() !== filterTahun?.toString()) return false;
+      if (filterModul && item.modul_id !== filterModul) return false;
+      return true;
+    });
+  }, [dataTahunan, filterKabupaten, filterTahun, filterModul]);
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
@@ -66,9 +81,15 @@ export default function AdminBudidaya() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/budidaya/admin');
+      const [response, tahRes] = await Promise.all([
+        api.get('/budidaya/admin'),
+        api.get('/budidaya-tahunan')
+      ]);
       if (response.data.success) {
         setData(response.data.data);
+      }
+      if (tahRes.data.success) {
+        setDataTahunan(tahRes.data.data);
       }
     } catch (error) {
       console.error('Error fetching budidaya:', error);
@@ -116,6 +137,40 @@ export default function AdminBudidaya() {
     setEditingData(row);
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleApproveTahunan = async (row) => {
+    if (window.confirm(`Yakin ingin menyetujui data tahunan ini?`)) {
+      try {
+        await api.put(`/budidaya-tahunan/${row.id}/status`, { status: 'APPROVED' });
+        fetchData();
+      } catch (error) {
+        alert('Gagal menyetujui data');
+      }
+    }
+  };
+
+  const handleRejectTahunan = async (row) => {
+    const alasan = window.prompt('Masukkan alasan penolakan:');
+    if (alasan) {
+      try {
+        await api.put(`/budidaya-tahunan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
+        fetchData();
+      } catch (error) {
+        alert('Gagal menolak data');
+      }
+    }
+  };
+
+  const handleDeleteTahunan = async (row) => {
+    if (window.confirm(`Yakin ingin menghapus data tahunan ${row.modul_id}?`)) {
+      try {
+        await api.delete(`/budidaya-tahunan/${row.id}`);
+        fetchData();
+      } catch (error) {
+        alert('Gagal menghapus data');
+      }
+    }
   };
 
   const handleApprove = async (row) => {
@@ -242,6 +297,71 @@ export default function AdminBudidaya() {
         fetchData();
       } catch (error) {
         console.error('Error batch delete:', error);
+        alert('Gagal menghapus data secara massal');
+      }
+    }
+  };
+
+  const handleBatchApproveTahunan = async (ids) => {
+    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (jenis === '1') {
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+    } else if (jenis === '2') {
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'SETUJU';
+    } else {
+      alert('Pilihan tidak valid');
+      return;
+    }
+
+    const confirmText = window.prompt(`Ketik "${expectedKeyword}" untuk mengonfirmasi validasi ${namaValidasi} untuk ${ids.length} data:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Validasi dibatalkan karena teks konfirmasi tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.post(`/budidaya-tahunan/batch-status`, { ids, status: targetStatus });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch approve tahunan:', error);
+      alert('Gagal menyetujui data secara massal');
+    }
+  };
+
+  const handleBatchRejectTahunan = async (ids) => {
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    try {
+      await api.post(`/budidaya-tahunan/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch reject tahunan:', error);
+      alert('Gagal menolak data secara massal');
+    }
+  };
+
+  const handleBatchDeleteTahunan = async (ids) => {
+    if (window.confirm(`Yakin ingin menghapus ${ids.length} data tahunan ini?`)) {
+      try {
+        await api.post(`/budidaya-tahunan/batch-delete`, { ids });
+        fetchData();
+      } catch (error) {
+        console.error('Error batch delete tahunan:', error);
         alert('Gagal menghapus data secara massal');
       }
     }
@@ -527,19 +647,84 @@ export default function AdminBudidaya() {
           </p>
         </div>
 
-        {!isFormOpen && (
-          <button
-            onClick={() => {
-              setEditingData(null);
-              setIsFormOpen(true);
-            }}
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-5 h-5" />
-            Tambah Data Baru
-          </button>
+        {!isFormOpen && !isTahunanFormOpen && !isSelectTypeModalOpen && (
+          <div className="relative">
+            <button
+              onClick={() => setIsSelectTypeModalOpen(true)}
+              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              <Plus className="w-5 h-5" />
+              Tambah Data Baru
+            </button>
+          </div>
         )}
       </div>
+
+      {isSelectTypeModalOpen && (
+        <div className="bg-card border border-border rounded-xl p-8 shadow-sm animate-in fade-in duration-300">
+          <div className="text-center max-w-xl mx-auto mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Pilih Jenis Data Budidaya</h2>
+            <p className="text-muted-foreground">Silakan pilih jenis laporan data budidaya yang ingin Anda kelola.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <button 
+              onClick={() => {
+                setIsSelectTypeModalOpen(false);
+                setEditingData(null);
+                setIsFormOpen(true);
+              }} 
+              className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/5 transition-all group"
+            >
+              <div className="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-foreground">Data Bulanan</h3>
+                <p className="text-sm text-muted-foreground mt-1">Laporan produksi ikan budidaya harian/bulanan.</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => {
+                setIsSelectTypeModalOpen(false);
+                setEditingData(null);
+                setIsTahunanFormOpen(true);
+              }} 
+              className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group"
+            >
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Box className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-foreground">Data Tahunan</h3>
+                <p className="text-sm text-muted-foreground mt-1">Laporan inventarisasi dan infrastruktur budidaya tahunan.</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="mt-8 text-center">
+            <button onClick={() => setIsSelectTypeModalOpen(false)} className="text-sm text-muted-foreground hover:text-foreground font-medium">Batalkan</button>
+          </div>
+        </div>
+      )}
+
+      {isTahunanFormOpen && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+          <BudidayaTahunanForm
+            initialData={editingData}
+            onClose={() => {
+              setIsTahunanFormOpen(false);
+              setEditingData(null);
+            }}
+            onSuccess={() => {
+              setIsTahunanFormOpen(false);
+              setEditingData(null);
+              fetchData();
+            }}
+          />
+        </div>
+      )}
 
       {isFormOpen && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
@@ -562,7 +747,7 @@ export default function AdminBudidaya() {
       ) : (
         <>
           {/* Tabs Filter & Statistik */}
-          {!isFormOpen && (
+          {!isFormOpen && !isTahunanFormOpen && !isSelectTypeModalOpen && (
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
               <div className="flex items-center gap-4 border-b border-border pb-4">
                 <button
@@ -570,6 +755,12 @@ export default function AdminBudidaya() {
                   className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                 >
                   Tabel Data
+                </button>
+                <button
+                  onClick={() => setActiveTab('tahunan')}
+                  className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'tahunan' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                >
+                  Data Tahunan
                 </button>
                 <button
                   onClick={() => setActiveTab('visual')}
@@ -587,57 +778,191 @@ export default function AdminBudidaya() {
                     <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                    <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Tahun</option>
-                      {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                {activeTab === 'tahunan' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                      <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Tahun</option>
+                        {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                      <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Kab/Kota</option>
+                        {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Modul</label>
+                      <select value={filterModul} onChange={(e) => setFilterModul(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Modul</option>
+                        {modulOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
-                    <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Triwulan</option>
-                      {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                      <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Tahun</option>
+                        {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
+                      <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Triwulan</option>
+                        {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+                      <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Bulan</option>
+                        {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                      <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Kab/Kota</option>
+                        {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
+                      <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Komoditas</option>
+                        {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Wadah</label>
+                      <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="">Semua Wadah</option>
+                        {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                    <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Bulan</option>
-                      {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                    <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Kab/Kota</option>
-                      {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                    <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Komoditas</option>
-                      {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Wadah</label>
-                    <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Wadah</option>
-                      {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
 
           {/* Main Content */}
-          {!isFormOpen && (
-            activeTab === 'data' ? (
+          {!isFormOpen && !isTahunanFormOpen && !isSelectTypeModalOpen && (
+            activeTab === 'tahunan' ? (
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <DataTable
+                  data={filteredDataTahunan}
+                  columns={[
+                    {
+                      header: 'Status',
+                      accessorKey: 'status',
+                      cell: info => {
+                        const row = info.row.original;
+                        const contextFields = [
+                          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+                          { label: 'Modul', value: row.modul_id },
+                          { label: 'Tahun', value: row.tahun }
+                        ];
+                        return (
+                          <StatusBadge 
+                            row={row} 
+                            onEdit={() => {
+                              setEditingData(row);
+                              setIsTahunanFormOpen(true);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }} 
+                            contextFields={contextFields} 
+                          />
+                        );
+                      }
+                    },
+                    { header: 'Tahun', accessorKey: 'tahun' },
+                    { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
+                    { header: 'Modul', accessorKey: 'modul_id' },
+                    { header: 'Terakhir Diubah', accessorKey: 'updated_at', cell: info => new Date(info.getValue()).toLocaleDateString('id-ID') }
+                  ]}
+                  onEdit={(row) => {
+                    setEditingData(row);
+                    setIsTahunanFormOpen(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onDelete={handleDeleteTahunan}
+                  onApprove={handleApproveTahunan}
+                  onReject={handleRejectTahunan}
+                  onBatchApprove={handleBatchApproveTahunan}
+                  onBatchReject={handleBatchRejectTahunan}
+                  onBatchDelete={handleBatchDeleteTahunan}
+                  searchable={true}
+                  searchField="kabupaten_kota"
+                  renderSubComponent={({ row }) => {
+                    const data = row.original.data || {};
+                    const formatVal = (val) => {
+                      if (val === null || val === undefined || val === '') return '-';
+                      if (typeof val === 'number') return val.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                      if (!isNaN(parseFloat(val)) && isFinite(val) && !val.toString().includes('Dummy')) return parseFloat(val).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                      return val;
+                    };
+
+                    if (data.items && Array.isArray(data.items)) {
+                      return (
+                        <div className="p-6 bg-muted/30 border-t border-border">
+                          <h4 className="text-sm font-semibold text-primary mb-4">Detail Data Modul: {row.original.modul_id} (Unit Berulang)</h4>
+                          <div className="space-y-6">
+                            {data.items.map((item, idx) => (
+                              <div key={idx} className="bg-card rounded-xl p-4 border border-border shadow-sm">
+                                <h5 className="font-medium text-foreground mb-3 text-sm border-b border-border pb-2">Unit {idx + 1}</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                  {Object.keys(item).filter(k => k !== 'id').map(sectionTitle => (
+                                    <div key={sectionTitle} className="space-y-2">
+                                      <h6 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{sectionTitle.replace(/^(MODUL\s*\d+\s*:\s*|Seksi\s*\d+\s*:\s*)/i, '').replace(/\s*[-—]\s*dalam\s+(.+)$/i, ' ($1)')}</h6>
+                                      <div className="space-y-3">
+                                        {Object.entries(item[sectionTitle] || {}).map(([key, val]) => (
+                                          <div key={key}>
+                                            <span className="text-[11px] text-muted-foreground block mb-0.5">{key}</span>
+                                            <span className="text-sm font-medium text-foreground">{formatVal(val)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="p-6 bg-muted/30 border-t border-border">
+                        <h4 className="text-sm font-semibold text-primary mb-4">Detail Data Modul: {row.original.modul_id}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {Object.keys(data).map(sectionTitle => (
+                            <div key={sectionTitle} className="bg-card rounded-xl p-4 border border-border shadow-sm">
+                              <h6 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 border-b border-border pb-2">{sectionTitle.replace(/^(MODUL\s*\d+\s*:\s*|Seksi\s*\d+\s*:\s*)/i, '').replace(/\s*[-—]\s*dalam\s+(.+)$/i, ' ($1)')}</h6>
+                              <div className="space-y-3">
+                                {Object.entries(data[sectionTitle] || {}).map(([key, val]) => (
+                                  <div key={key}>
+                                    <span className="text-[11px] text-muted-foreground block leading-tight mb-0.5">{key}</span>
+                                    <span className="text-sm font-medium text-foreground">{formatVal(val)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+              </div>
+            ) : activeTab === 'data' ? (
               <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
                 <DataTable
                   columns={columns}
