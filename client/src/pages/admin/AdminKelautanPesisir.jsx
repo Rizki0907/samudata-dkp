@@ -3,7 +3,7 @@ import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
   TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark,
-  ChevronRight, ChevronDown, Download, Clock
+  ChevronRight, ChevronDown, Download, Clock, Edit
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -671,8 +671,8 @@ export default function AdminKelautanPesisir() {
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU_PESISIR_BIDANG';
     } else if (jenis === '2') {
-      if (row.status === 'VERIFIED') {
-        alert('Data sudah divalidasi oleh Program sebelumnya!');
+      if (row.status !== 'APPROVED') {
+        alert('Validasi Program ditolak! Pastikan data ini sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
         return;
       }
       targetStatus = 'VERIFIED'; // Approve Program -> VERIFIED
@@ -1148,22 +1148,8 @@ export default function AdminKelautanPesisir() {
       { name: 'Miskin (0-30%)', value: kondisiLamunCountMap['Miskin (0-30%)'] || 0 },
     ];
 
-    const allData = [...dataGaram, ...dataMangrove, ...dataLamun, ...dataPotensiPerairan];
-    const latestDate = allData.length > 0
-      ? new Date(Math.max(...allData.map(d => new Date(d.updatedAt || d.createdAt || 0).getTime())))
-      : null;
-    const lastUpdated = latestDate && !isNaN(latestDate.getTime()) 
-      ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-      : '-';
-
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex justify-end mb-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
-            <Clock className="w-4 h-4 animate-pulse" />
-            Terakhir Diperbarui: {lastUpdated}
-          </div>
-        </div>
 
         {/* ── Potensi Perairan KPI (TOP) ── */}
         <div>
@@ -1311,6 +1297,13 @@ export default function AdminKelautanPesisir() {
           </div>
         </div>
 
+        {/* ── Placeholder Visualisasi Terumbu Karang ── */}
+        <div className="bg-muted/50 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center mb-8">
+          <Info className="w-8 h-8 mb-2 opacity-50" />
+          <p className="font-medium text-foreground">Visualisasi Terumbu Karang</p>
+          <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
+        </div>
+
         {/* ── Visualisasi Lamun ── */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
@@ -1367,19 +1360,45 @@ export default function AdminKelautanPesisir() {
             </div>
           </div>
         </div>
-
-        {/* ── Placeholder Visualisasi Terumbu Karang ── */}
-        <div className="bg-muted/50 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
-          <Info className="w-8 h-8 mb-2 opacity-50" />
-          <p className="font-medium text-foreground">Visualisasi Terumbu Karang</p>
-          <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
-        </div>
       </div>
     );
   };
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
-  const activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : activeTab === 'lamun' ? columnsLamun : columnsPotensi;
+  let activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : activeTab === 'lamun' ? columnsLamun : columnsPotensi;
+  
+  activeColumns = [
+    ...activeColumns,
+    {
+      id: 'updated_at',
+      accessorKey: 'updated_at',
+      header: 'Terakhir Diperbarui',
+      cell: ({ row }) => {
+        if (!row.original.updated_at) return '-';
+        return formatDistanceToNow(new Date(row.original.updated_at), { addSuffix: true, locale: idLocale });
+      }
+    }
+  ];
+
+  if (user?.role === 'admin_cabang') {
+    activeColumns = [
+      ...activeColumns,
+      {
+        header: 'Aksi',
+        id: 'aksi_cabang',
+        cell: info => {
+          const row = info.row.original;
+          if (row.status === 'APPROVED' || row.status === 'VERIFIED') return null;
+          return (
+            <div className="flex justify-end gap-2 pr-2">
+              <button onClick={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} title="Edit Data" className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"><Edit className="w-4 h-4" /></button>
+              <button onClick={() => setItemToDelete(row)} title="Hapus Data" className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          );
+        }
+      }
+    ];
+  }
   const activeSubRow = activeTab === 'garam' ? renderSubGaram : undefined;
 
   const filteredData = useMemo(() => {
@@ -1426,6 +1445,18 @@ export default function AdminKelautanPesisir() {
         exportPotensiExcel(data);
       }
     };
+
+  const allData = [...dataGaram, ...dataMangrove, ...dataLamun, ...dataPotensiPerairan];
+
+  const validDates = allData
+    .map(d => new Date(d.updatedAt || d.createdAt))
+    .filter(d => !isNaN(d.getTime()))
+    .map(d => d.getTime());
+
+  const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
+  const lastUpdated = latestDate 
+    ? formatDistanceToNow(latestDate, { addSuffix: true, locale: idLocale })
+    : '-';
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
   const renderForm = () => {
@@ -1531,10 +1562,13 @@ export default function AdminKelautanPesisir() {
 
           {mainTab === 'tabel' && (
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Filter className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+                </div>
               </div>
+
               
               <div className="mb-4">
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Data</label>
@@ -1601,9 +1635,15 @@ export default function AdminKelautanPesisir() {
 
           {mainTab === 'visualisasi' && (
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Filter className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Visualisasi)</h3>
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Visualisasi)</h3>
+                </div>
+                <div className="inline-flex items-center gap-2 self-start rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 shadow-sm dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-400 sm:self-auto">
+                  <Clock className="h-4 w-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -1663,10 +1703,10 @@ export default function AdminKelautanPesisir() {
               user={user}
               columns={activeColumns}
               data={filteredData}
-              onEdit={(row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? (row) => setItemToDelete(row) : undefined}
-              onApprove={handleApprove}
-              onReject={handleReject}
+              onEdit={user?.role === 'admin_pusat' ? (row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); } : undefined}
+              onDelete={user?.role === 'admin_pusat' ? (row) => setItemToDelete(row) : undefined}
+              onApprove={user?.role === 'admin_pusat' ? handleApprove : undefined}
+              onReject={user?.role === 'admin_pusat' ? handleReject : undefined}
               onBatchApprove={user?.role === 'admin_pusat' ? handleBatchApprove : undefined}
               onBatchReject={user?.role === 'admin_pusat' ? handleBatchReject : undefined}
               onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDelete : undefined}
