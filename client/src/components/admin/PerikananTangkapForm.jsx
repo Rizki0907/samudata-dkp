@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
+import { PERBEKALAN_OPTIONS, KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SearchableSelect from '@/components/shared/SearchableSelect';
@@ -17,7 +17,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     jenis_perairan: PERAIRAN_OPTIONS[0],
     pud_populasi_alat: '',
     pud_jumlah_sampel: '',
-    logistik: '',
+    logistik: [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }],
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     tangkapan: [
@@ -40,7 +40,16 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         jenis_perairan: initialData.jenis_perairan || PERAIRAN_OPTIONS[0],
         pud_populasi_alat: initialData.pud_populasi_alat || '',
         pud_jumlah_sampel: initialData.pud_jumlah_sampel || '',
-        logistik: initialData.logistik || '',
+        logistik: (() => {
+          if (!initialData.logistik) return [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }];
+          try {
+            const parsed = JSON.parse(initialData.logistik);
+            return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }];
+          } catch (e) {
+            // legacy string fallback
+            return [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '', legacy: initialData.logistik }];
+          }
+        })(),
         gt_kapal: initialData.gt_kapal || GT_KAPAL_OPTIONS[0],
         alat_tangkap: initialData.alat_tangkap || ALAT_TANGKAP_OPTIONS[0],
         tangkapan: [
@@ -67,6 +76,26 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     const newTangkapan = [...formData.tangkapan];
     newTangkapan[index][field] = value;
     setFormData(prev => ({ ...prev, tangkapan: newTangkapan }));
+  };
+
+  const handleLogistikChange = (index, field, value) => {
+    const newLogistik = [...formData.logistik];
+    newLogistik[index][field] = value;
+    setFormData(prev => ({ ...prev, logistik: newLogistik }));
+  };
+
+  const addLogistik = () => {
+    setFormData(prev => ({
+      ...prev,
+      logistik: [...prev.logistik, { nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }]
+    }));
+  };
+
+  const removeLogistik = (index) => {
+    if (formData.logistik.length > 1) {
+      const newLogistik = formData.logistik.filter((_, i) => i !== index);
+      setFormData(prev => ({ ...prev, logistik: newLogistik }));
+    }
   };
 
   const addTangkapan = () => {
@@ -126,6 +155,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     setFormData(prev => ({
       ...prev,
       pelabuhan: cabang === 'PELABUHAN' ? PELABUHAN_OPTIONS[0] : '',
+      logistik: [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }],
       jenis_perairan: cabang === 'PUD' ? PERAIRAN_OPTIONS[0] : '',
       gt_kapal: cabang === 'PUD' ? PUD_JENIS_PERAHU_OPTIONS[0] : (cabang === 'KAB_KOTA' ? KAB_KOTA_GT_KAPAL_OPTIONS[0] : GT_KAPAL_OPTIONS[0]),
       alat_tangkap: cabang === 'PUD' ? ALAT_TANGKAP_PUD_OPTIONS[0] : (cabang === 'KAB_KOTA' ? ALAT_TANGKAP_LAUT_OPTIONS[0] : ALAT_TANGKAP_OPTIONS[0]),
