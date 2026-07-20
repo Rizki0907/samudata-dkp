@@ -70,9 +70,9 @@ export default function AdminBudidaya() {
       if (filterKomoditas && item.komoditas !== filterKomoditas) return false;
       if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
       if (filterWadah && item.jenis_wadah !== filterWadah) return false;
-      if (filterTw && item.triwulan !== filterTw) return false;
+      if (filterTw && item.triwulan?.toString() !== filterTw?.toString()) return false;
       if (filterBulan && item.bulan !== filterBulan) return false;
-      if (filterTahun && item.tahun !== filterTahun) return false;
+      if (filterTahun && item.tahun?.toString() !== filterTahun?.toString()) return false;
       return true;
     });
   }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
@@ -140,13 +140,48 @@ export default function AdminBudidaya() {
   };
 
   const handleApproveTahunan = async (row) => {
-    if (window.confirm(`Yakin ingin menyetujui data tahunan ini?`)) {
-      try {
-        await api.put(`/budidaya-tahunan/${row.id}/status`, { status: 'APPROVED' });
-        fetchData();
-      } catch (error) {
-        alert('Gagal menyetujui data');
+    let promptMsg = 'Pilih jenis validasi (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    if (row.status === 'APPROVED') {
+      promptMsg = 'Data ini sudah disetujui Bidang.\nKetik "2" untuk melanjutkan Validasi Program:';
+    } else if (row.status === 'PENDING') {
+      promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
+    }
+
+    const jenis = window.prompt(promptMsg);
+    if (!jenis) return;
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (jenis === '1') {
+      if (row.status === 'APPROVED') {
+        alert('Data sudah divalidasi oleh Bidang sebelumnya!');
+        return;
       }
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+    } else if (jenis === '2') {
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'SETUJU';
+    } else {
+      alert('Pilihan tidak valid. Proses dibatalkan.');
+      return;
+    }
+
+    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.put(`/budidaya-tahunan/${row.id}/status`, { status: targetStatus });
+      fetchData();
+    } catch (error) {
+      alert('Gagal menyetujui data');
     }
   };
 
