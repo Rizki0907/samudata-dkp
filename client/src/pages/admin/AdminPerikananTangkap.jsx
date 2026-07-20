@@ -48,6 +48,15 @@ export default function AdminPerikananTangkap() {
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
 
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportModalPerairan, setExportModalPerairan] = useState('');
+  const [exportModalJenis, setExportModalJenis] = useState('');
+  const [exportModalTahun, setExportModalTahun] = useState('');
+  const [exportModalBulan, setExportModalBulan] = useState('');
+  const [exportModalWilayah, setExportModalWilayah] = useState('');
+
+
   // Local Chart Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
@@ -269,7 +278,11 @@ export default function AdminPerikananTangkap() {
       
       return matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas;
     });
-  }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas]);
+    }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas]);
+
+  const verifiedFilteredData = useMemo(() => {
+    return filteredData.filter(item => item.status === 'VERIFIED');
+  }, [filteredData]);
 
     const lastUpdated = useMemo(() => {
       if (!filteredData || filteredData.length === 0) return null;
@@ -292,7 +305,7 @@ export default function AdminPerikananTangkap() {
     const pelabuhanMap = {};
     const trenMap = {};
 
-    filteredData.forEach(row => {
+    verifiedFilteredData.forEach(row => {
       const pelabuhan = row.pelabuhan || row.kabupaten_kota || 'Tidak Diketahui';
       const date = row.tanggal ? row.tanggal.substring(0, 7) : 'Unknown';
 
@@ -319,7 +332,7 @@ export default function AdminPerikananTangkap() {
       }
     });
 
-    const total_trip = filteredData.length;
+    const total_trip = verifiedFilteredData.length;
     const avg_volume_per_trip = total_trip > 0 ? total_volume / total_trip : 0;
 
     const komoditas = Object.entries(komoditasMap)
@@ -351,7 +364,7 @@ export default function AdminPerikananTangkap() {
        hargaMap[p] = { vol: 0, nilai: 0 };
     });
     
-    filteredData.forEach(row => {
+    verifiedFilteredData.forEach(row => {
        const pel = row.pelabuhan || row.kabupaten_kota || 'Tidak Diketahui';
        if (hargaMap[pel]) {
           if (row.tangkapan) {
@@ -384,14 +397,14 @@ export default function AdminPerikananTangkap() {
       hargaCategories: targetPelabuhan,
       hargaSeries
     };
-  }, [filteredData, chartHargaKomoditas, chartHargaWilayah]);
+  }, [verifiedFilteredData, chartHargaKomoditas, chartHargaWilayah]);
 
   const lautVsPudData = useMemo(() => {
     let totalPelabuhan = 0;
     let totalPud = 0;
     let totalNonPelabuhan = 0;
     
-    filteredData.forEach(row => {
+    verifiedFilteredData.forEach(row => {
       let kabKota = row.kabupaten_kota || row.pelabuhan || '';
       if (row.sumber_data === 'PELABUHAN') {
         kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
@@ -419,11 +432,11 @@ export default function AdminPerikananTangkap() {
       nonPelabuhan: totalNonPelabuhan,
       total: totalPelabuhan + totalPud + totalNonPelabuhan
     };
-  }, [filteredData, filterKabKotaChart]);
+  }, [verifiedFilteredData, filterKabKotaChart]);
 
   const topKomoditasUnggulan = useMemo(() => {
     const komoditasMap = {};
-    filteredData.forEach(row => {
+    verifiedFilteredData.forEach(row => {
       let kabKota = row.pelabuhan || row.kabupaten_kota || 'Lainnya';
       if (row.sumber_data === 'PELABUHAN') {
         kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
@@ -459,7 +472,7 @@ export default function AdminPerikananTangkap() {
         topWilayah
       };
     });
-  }, [filteredData]);
+  }, [verifiedFilteredData]);
 
   const lautVsPudChartOption = useMemo(() => {
     return {
@@ -536,9 +549,9 @@ export default function AdminPerikananTangkap() {
 
 
 
-  const handleExportLaporanPUD = async () => {
+  const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
     try {
-      const pudData = filteredData.filter(d => d.sumber_data === 'PUD');
+      const pudData = exportData.filter(d => d.sumber_data === 'PUD');
       if (pudData.length === 0) {
         alert("Tidak ada data PUD untuk diekspor pada filter ini.");
         return;
@@ -548,16 +561,16 @@ export default function AdminPerikananTangkap() {
       
       const response = await api.post('/perikanan-tangkap/export-pud', {
         ids,
-        tahun: filterTahun,
-        bulan: filterBulan,
-        wilayah: filterWilayah
+        tahun: tahun,
+        bulan: bulan,
+        wilayah: wilayah
       }, { responseType: 'blob' });
 
       // response.data is already a Blob when using axios with responseType: 'blob'
       const url = window.URL.createObjectURL(response.data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PUHIT_${filterCabang || 'Semua'}_${filterTahun || 'All'}.xlsx`;
+      a.download = `PUHIT_PUD_${tahun || 'All'}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -569,13 +582,16 @@ export default function AdminPerikananTangkap() {
     }
   };
 
-  const handleExportLaporanPelabuhan = () => {
-    if (!filterWilayah) return;
-    const pelabuhanName = filterWilayah.toUpperCase();
-    const dateStr = filterTahun ? (filterBulan ? `${filterBulan}/${filterTahun}` : filterTahun) : 'Semua Waktu';
+  const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
+    if (!wilayah) {
+       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Rekap.");
+       return;
+    }
+    const pelabuhanName = wilayah.toUpperCase();
+    const dateStr = tahun ? (bulan ? `${bulan}/${tahun}` : tahun) : 'Semua Waktu';
     
     let summaryDateStr = dateStr;
-    if (filterTahun && filterBulan) {
+    if (tahun && bulan) {
        summaryDateStr = 'BULAN INI';
     } else if (filterTahun) {
        summaryDateStr = 'TAHUN INI';
@@ -605,7 +621,7 @@ export default function AdminPerikananTangkap() {
     let totalKeseluruhanNilai = 0;
     const apiSummaryMap = {};
 
-    const dataRows = filteredData.map((row, idx) => {
+    const dataRows = exportData.map((row, idx) => {
       let totalVol = 0;
       let totalNilai = 0;
       const komMap = {};
@@ -829,6 +845,35 @@ export default function AdminPerikananTangkap() {
     XLSX.writeFile(wb, `Laporan_${pelabuhanName}_${dateStr.replace('/', '-')}.xlsx`);
   };
 
+  const handleModalExport = () => {
+    if (exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'LM') {
+      alert("Fitur Ekspor Laporan Monitoring (LM) sedang dalam pengembangan.");
+      return;
+    }
+
+    const dataToExport = data.filter(item => {
+      const itemTahun = item.tanggal ? item.tanggal.substring(0, 4) : '';
+      const itemBulan = item.tanggal ? String(parseInt(item.tanggal.substring(5, 7))) : '';
+      
+      const matchTahun = !exportModalTahun || itemTahun === exportModalTahun;
+      const matchBulan = !exportModalBulan || itemBulan === exportModalBulan;
+      const matchCabang = !exportModalPerairan || (item.sumber_data || 'PELABUHAN') === exportModalPerairan;
+      const matchWilayah = !exportModalWilayah || (item.pelabuhan || item.kabupaten_kota || '') === exportModalWilayah;
+      
+      return matchTahun && matchBulan && matchCabang && matchWilayah;
+    });
+
+    if (exportModalPerairan === 'PELABUHAN') {
+      handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+    } else if (exportModalPerairan === 'PUD') {
+      handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+    } else {
+      alert(`Ekspor laporan untuk perairan ${exportModalPerairan} belum tersedia.`);
+    }
+    
+    setIsExportModalOpen(false);
+  };
+
   const columns = useMemo(() => [
     {
       header: 'Status',
@@ -1029,6 +1074,21 @@ export default function AdminPerikananTangkap() {
         </div>
         
         {!isFormOpen && (
+          <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+                setExportModalPerairan('');
+                setExportModalJenis('');
+                setExportModalTahun('');
+                setExportModalBulan('');
+                setExportModalWilayah('');
+                setIsExportModalOpen(true);
+              }}
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+          >
+            <FileText className="w-5 h-5" />
+            Ekspor Laporan
+          </button>
           <button
             onClick={() => {
               setEditingData(null);
@@ -1039,6 +1099,7 @@ export default function AdminPerikananTangkap() {
             <Plus className="w-5 h-5" />
             Tambah Data Baru
           </button>
+        </div>
         )}
       </div>
 
@@ -1088,15 +1149,7 @@ export default function AdminPerikananTangkap() {
                 <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi & Unduh Data)</h3>
               </div>
               <div className="flex items-center gap-2">
-                {filterCabang === 'PUD' && filterTahun && filterTahun !== 'Semua Waktu' && filterBulan && filterBulan !== 'Semua Bulan' && filterWilayah && (
-                  <button
-                    onClick={handleExportLaporanPUD}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Unduh Laporan PUD (Excel)
-                  </button>
-                )}
+                
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -1192,18 +1245,7 @@ export default function AdminPerikananTangkap() {
                   )}
                 exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
                 renderSubComponent={renderSubComponent}
-                customExportButton={
-                  filterWilayah && filterCabang === 'PELABUHAN' ? (
-                    <button
-                      onClick={handleExportLaporanPelabuhan}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
-                      title="Unduh Laporan Pelabuhan"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Unduh Laporan Pelabuhan
-                    </button>
-                  ) : null
-                }
+                customExportButton={null}
                 onCustomExport={(exportData) => {
                     let komoditasArray = [];
                     if (!filterCabang) {
@@ -1427,7 +1469,7 @@ export default function AdminPerikananTangkap() {
                       </div>
                     </div>
                     
-                    {filteredData.length > 0 ? (
+                    {verifiedFilteredData.length > 0 ? (
                       <ReactECharts option={lautVsPudChartOption} style={{ height: '350px', width: '100%' }} />
                     ) : (
                       <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
@@ -1523,6 +1565,129 @@ export default function AdminPerikananTangkap() {
           )
         )
       )}
-    </div>
+    
+      {/* Modal Ekspor Laporan */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl w-full max-w-lg shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground">Ekspor Laporan</h3>
+              <button onClick={() => setIsExportModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Sumber Perairan</label>
+                <select 
+                  value={exportModalPerairan} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setExportModalPerairan(val);
+                    setExportModalJenis('');
+                    setExportModalTahun('');
+                    setExportModalBulan('');
+                    setExportModalWilayah('');
+                  }} 
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                >
+                  <option value="" disabled>Pilih Sumber Perairan</option>
+                  <option value="PELABUHAN">Pelabuhan</option>
+                  <option value="PUD">PUD</option>
+                  <option value="KAB_KOTA">Non Pelabuhan</option>
+                </select>
+              </div>
+
+              {exportModalPerairan === 'PELABUHAN' && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Laporan</label>
+                  <select 
+                    value={exportModalJenis} 
+                    onChange={(e) => {
+                      setExportModalJenis(e.target.value);
+                      setExportModalTahun('');
+                      setExportModalBulan('');
+                      setExportModalWilayah('');
+                    }} 
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                  >
+                    <option value="" disabled>Pilih Jenis Laporan</option>
+                    <option value="REKAP">Rekap Bulanan</option>
+                    <option value="LM">Laporan Monitoring (LM)</option>
+                  </select>
+                </div>
+              )}
+
+              {((exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'REKAP') || 
+                (exportModalPerairan && exportModalPerairan !== 'PELABUHAN')) && (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Tahun</label>
+                    <select 
+                      value={exportModalTahun} 
+                      onChange={(e) => {
+                        setExportModalTahun(e.target.value);
+                        setExportModalWilayah('');
+                      }} 
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                    >
+                      <option value="" disabled>Pilih Tahun</option>
+                      {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Bulan</label>
+                    <select 
+                      value={exportModalBulan} 
+                      onChange={(e) => {
+                        setExportModalBulan(e.target.value);
+                        setExportModalWilayah('');
+                      }} 
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                    >
+                      <option value="" disabled>Pilih Bulan</option>
+                      {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {exportModalTahun && exportModalBulan && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    {exportModalPerairan === 'PELABUHAN' ? 'Wilayah / Pelabuhan' : 'Wilayah / Kabupaten Kota'}
+                  </label>
+                  <select 
+                    value={exportModalWilayah} 
+                    onChange={(e) => setExportModalWilayah(e.target.value)} 
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                  >
+                    <option value="" disabled>Pilih Wilayah</option>
+                    {exportModalPerairan === 'PELABUHAN'
+                      ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                      : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2 font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleModalExport}
+                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Unduh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
