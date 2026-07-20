@@ -1571,8 +1571,19 @@ export default function AdminKelautanPesisir() {
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
   let activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : activeTab === 'lamun' ? columnsLamun : activeTab === 'terumbu_karang' ? columnsTerumbuKarang : columnsPotensi;
-  
 
+  activeColumns = [
+    ...activeColumns,
+    {
+      id: 'updated_at',
+      accessorKey: 'updated_at',
+      header: 'Terakhir Diperbarui',
+      cell: ({ row }) => {
+        if (!row.original.updated_at) return '-';
+        return formatDistanceToNow(new Date(row.original.updated_at), { addSuffix: true, locale: idLocale });
+      }
+    }
+  ];
 
   if (user?.role === 'admin_cabang') {
     activeColumns = [
