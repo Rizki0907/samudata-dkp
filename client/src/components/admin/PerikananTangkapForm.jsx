@@ -413,17 +413,63 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   />
                 </div>
                 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">Data Operasional / Logistik</label>
-                  <input 
-                    type="text" 
-                    name="logistik"
-                    placeholder="Cth: Es 10 Balok, Solar 200 Liter, Umpan 5 Kg"
-                    value={formData.logistik}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Isi detail logistik keberangkatan jika ada.</p>
+                <div className="md:col-span-2 mt-4 border border-border rounded-xl p-4 bg-muted/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium">Data Operasional / Perbekalan</label>
+                    <button 
+                      type="button" 
+                      onClick={addLogistik}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary font-medium rounded-md hover:bg-primary/20 transition-colors text-xs"
+                    >
+                      <Plus className="w-3 h-3" /> Tambah Perbekalan
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {Array.isArray(formData.logistik) && formData.logistik.map((item, index) => {
+                      const selectedOption = PERBEKALAN_OPTIONS.find(opt => opt.nama === item.nama);
+                      const satuan = selectedOption ? selectedOption.satuan : '';
+                      return (
+                        <div key={index} className="flex items-end gap-3 relative">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jenis</label>
+                            <SearchableSelect
+                              name="logistik_nama"
+                              value={item.nama}
+                              onChange={(e) => handleLogistikChange(index, 'nama', e.target.value)}
+                              options={PERBEKALAN_OPTIONS.map(opt => opt.nama)}
+                              placeholder="Pilih Perbekalan..."
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jumlah ({satuan})</label>
+                            <input 
+                              type="number" 
+                              step="0.01" min="0"
+                              placeholder="Jumlah"
+                              value={item.jumlah}
+                              onChange={(e) => handleLogistikChange(index, 'jumlah', e.target.value)}
+                              className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input text-sm"
+                            />
+                          </div>
+                          {item.legacy && (
+                            <div className="flex-1 text-xs text-destructive">
+                              Data Lama: {item.legacy}
+                            </div>
+                          )}
+                          {formData.logistik.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => removeLogistik(index)}
+                              className="w-9 h-9 shrink-0 bg-destructive/10 text-destructive rounded-lg flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mb-0.5"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </>
             )}
