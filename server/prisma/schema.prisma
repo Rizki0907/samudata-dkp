@@ -71,9 +71,9 @@ model Ekspor {
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
   nilai_usd          Float
-  nilai_rp           Float      @default(0)
   alasan_penolakan   String?
   status             DataStatus @default(PENDING)
+  nilai_rp           Float      @default(0)
 }
 
 model Budidaya {
@@ -222,7 +222,6 @@ model DataBulananTangkap {
   bulan           String
   sumber_data     String
   pelabuhan       String
-  jenis_perairan  String?
   komoditas       String
   volume          Float
   nilai           Float
@@ -231,31 +230,30 @@ model DataBulananTangkap {
   updated_at      DateTime @updatedAt
   original_nilai  Float    @default(0)
   original_volume Float    @default(0)
+  jenis_perairan  String?
 
-  // Use a composite unique key. Note: SQLite treats NULL in unique index as distinct, 
-  // so we should be careful, but we will always pass a value (like '-' or the actual string).
   @@unique([bulan, sumber_data, pelabuhan, jenis_perairan, komoditas])
   @@index([bulan])
 }
 
 model PotensiPerairan {
-  id                         Int        @id @default(autoincrement())
-  status                     DataStatus @default(PENDING)
-  alasan_penolakan           String?
-  kabupaten_kota             String
-  tahun_data                 Int
-  luas_wilayah_laut_km2      Float      @default(0)
-  total_panjang_garis_pantai_km Float   @default(0)
-  luas_perairan_km2          Float      @default(0)
-  jumlah_pulau_kecil         Int        @default(0)
-  pulau_berpenghuni          Int        @default(0)
-  pulau_tidak_berpenghuni    Int        @default(0)
-  desa_pesisir               Int        @default(0)
-  luas_kawasan_konservasi_ha Float      @default(0)
-  potensi_perikanan_ton_th   Float      @default(0)
-  keterangan                 String?
-  created_at                 DateTime   @default(now())
-  updated_at                 DateTime   @updatedAt
+  id                            Int        @id @default(autoincrement())
+  status                        DataStatus @default(PENDING)
+  alasan_penolakan              String?
+  kabupaten_kota                String
+  tahun_data                    Int
+  luas_wilayah_laut_km2         Float      @default(0)
+  total_panjang_garis_pantai_km Float      @default(0)
+  luas_perairan_km2             Float      @default(0)
+  jumlah_pulau_kecil            Int        @default(0)
+  pulau_berpenghuni             Int        @default(0)
+  pulau_tidak_berpenghuni       Int        @default(0)
+  desa_pesisir                  Int        @default(0)
+  luas_kawasan_konservasi_ha    Float      @default(0)
+  potensi_perikanan_ton_th      Float      @default(0)
+  keterangan                    String?
+  created_at                    DateTime   @default(now())
+  updated_at                    DateTime   @updatedAt
 
   @@unique([kabupaten_kota, tahun_data])
 }
@@ -388,22 +386,9 @@ model PotensiPerairan_backup_before_revert_status {
   @@ignore
 }
 
-enum SumberDataPT {
-  PELABUHAN
-  PUD
-  KAB_KOTA
-}
-
-enum DataStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  VERIFIED
-}
-
 model MasterData {
   id         Int      @id @default(autoincrement())
-  category   String   // e.g. "KOMODITAS_TANGKAP", "ALAT_TANGKAP", "PELABUHAN", "KOMODITAS_PUD", "KAB_KOTA", dll
+  category   String
   value      String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -428,26 +413,30 @@ model BudidayaTahunan {
 
 model Mangrove {
   id                   Int      @id @default(autoincrement())
-  
-  // Data Utama
   tahun                Int
   kabupaten_kota       String   @db.VarChar(100)
   luas_eksisting_ha    Float    @default(0)
-  spesies              String   @db.Text
-  
-  // Kalkulasi Kondisi
+  spesies              String
   persentase_kondisi   Float    @default(0)
-  kondisi              String   @db.VarChar(50) // "Sangat Padat (70-100%)", "Sedang (30-70%)", "Jarang (0-30%)"
-  
+  kondisi              String   @db.VarChar(50)
   luas_rehabilitasi_ha Float    @default(0)
-
-  // Status Validasi Standar DKP
-  status               String   @default("PENDING") @db.VarChar(20) // PENDING, APPROVED, VERIFIED, REJECTED
-  alasan_penolakan     String?  @db.Text
-
-  // Waktu Pencatatan
+  status               String   @default("PENDING") @db.VarChar(20)
+  alasan_penolakan     String?
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
-  @@map("mangrove") // (Opsional) Supaya nama tabel di database huruf kecil semua
+  @@map("mangrove")
+}
+
+enum SumberDataPT {
+  PELABUHAN
+  PUD
+  KAB_KOTA
+}
+
+enum DataStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  VERIFIED
 }

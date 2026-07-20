@@ -12,7 +12,7 @@ const USER_MENUS = [
   { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Fish },
   { title: 'Kelautan dan Pesisir', path: '/user/kelautan-pesisir', icon: Sprout },
   { title: 'Budidaya', path: '/user/budidaya', icon: Waves },
-  { title: 'Pengolahan & Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
+  { title: 'Pengolahan dan Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/user/ekspor', icon: Globe },
 ];
@@ -22,7 +22,7 @@ const ADMIN_MENUS = [
   { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Fish },
   { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Sprout },
   { title: 'Budidaya', path: '/admin/budidaya', icon: Waves },
-  { title: 'Pengolahan & Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
+  { title: 'Pengolahan dan Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/admin/ekspor', icon: Globe },
   { title: 'Master Data', path: '/admin/master-data', icon: Database, reqPusat: true },
@@ -38,7 +38,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     <aside 
       className={cn(
         "bg-card border-r border-border h-screen sticky top-0 transition-all duration-300 flex flex-col z-40",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-20" : "w-72"
       )}
     >
       {/* Logo Area */}
