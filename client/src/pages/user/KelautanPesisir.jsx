@@ -52,16 +52,13 @@ export default function KelautanPesisir() {
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensi, setDataPotensi] = useState([]);
 
-  // Vis Garam Filters
-  const [visGaramBulan, setVisGaramBulan] = useState('');
-  const [visGaramTahun, setVisGaramTahun] = useState('');
-  const [visGaramKab, setVisGaramKab] = useState('');
+  // Global Filters
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState('');
+  const [filterKab, setFilterKab] = useState('');
 
   // Table Filters
   const [activeTable, setActiveTable] = useState('garam');
-  const [tableFilterBulan, setTableFilterBulan] = useState('');
-  const [tableFilterTahun, setTableFilterTahun] = useState('');
-  const [tableFilterKab, setTableFilterKab] = useState('');
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -95,9 +92,14 @@ export default function KelautanPesisir() {
   }, [dataGaram, dataPotensi]);
 
   // ── KPI Potensi Perairan ──
+  const filteredVisPotensi = useMemo(() => dataPotensi.filter(d => 
+    (!filterTahun || String(d.tahun_data) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataPotensi, filterTahun, filterKab]);
+
   const potensiPerKotaFrontend = useMemo(() => {
     const agg = {};
-    dataPotensi.forEach(d => {
+    filteredVisPotensi.forEach(d => {
       const kab = d.kabupaten_kota || 'Unknown';
       if (!agg[kab]) agg[kab] = { ...d };
       else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
@@ -116,10 +118,10 @@ export default function KelautanPesisir() {
 
   // ── VISUALISASI GARAM ──
   const filteredVisGaram = useMemo(() => dataGaram.filter(d => 
-    (!visGaramBulan || (d.bulan || '').toLowerCase() === visGaramBulan.toLowerCase()) &&
-    (!visGaramTahun || String(d.tahun) === visGaramTahun) &&
-    (!visGaramKab || d.kabupaten_kota === visGaramKab)
-  ), [dataGaram, visGaramBulan, visGaramTahun, visGaramKab]);
+    (!filterBulan || (d.bulan || '').toLowerCase() === filterBulan.toLowerCase()) &&
+    (!filterTahun || String(d.tahun) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataGaram, filterBulan, filterTahun, filterKab]);
 
   const visGaramPerKota = useMemo(() => {
     const agg = {};
@@ -150,15 +152,15 @@ export default function KelautanPesisir() {
 
   // ── TABEL DATA ──
   const filteredTableGaram = useMemo(() => dataGaram.filter(d =>
-    (!tableFilterBulan || (d.bulan || '').toLowerCase() === tableFilterBulan.toLowerCase()) &&
-    (!tableFilterTahun || String(d.tahun) === tableFilterTahun) &&
-    (!tableFilterKab || d.kabupaten_kota === tableFilterKab)
-  ), [dataGaram, tableFilterBulan, tableFilterTahun, tableFilterKab]);
+    (!filterBulan || (d.bulan || '').toLowerCase() === filterBulan.toLowerCase()) &&
+    (!filterTahun || String(d.tahun) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataGaram, filterBulan, filterTahun, filterKab]);
 
   const filteredTablePotensi = useMemo(() => dataPotensi.filter(d =>
-    (!tableFilterTahun || String(d.tahun_data) === tableFilterTahun) &&
-    (!tableFilterKab || d.kabupaten_kota === tableFilterKab)
-  ), [dataPotensi, tableFilterTahun, tableFilterKab]);
+    (!filterTahun || String(d.tahun_data) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataPotensi, filterTahun, filterKab]);
 
   const columnsGaram = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun' },
@@ -172,7 +174,6 @@ export default function KelautanPesisir() {
 
   const columnsPotensi = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun_data' },
-    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota' },
     { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
     {
       header: 'Total Garis Pantai (km)',
@@ -311,6 +312,36 @@ export default function KelautanPesisir() {
         </div>
       </div>
 
+      {/* ── Filter Global ── */}
+      <div className="bg-card border border-border p-4 rounded-xl flex flex-col md:flex-row gap-4 items-end shadow-sm">
+        <div className="flex-1 w-full">
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+          <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+            <option value="">Semua Tahun</option>
+            {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 w-full">
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+          <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+            <option value="">Semua Bulan</option>
+            {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 w-full">
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+          <select value={filterKab} onChange={(e) => setFilterKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+            <option value="">Semua Kab/Kota</option>
+            {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+        {(filterTahun || filterBulan || filterKab) && (
+          <button onClick={() => { setFilterTahun(''); setFilterBulan(''); setFilterKab(''); }} className="w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2.5 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
+            Reset Filter
+          </button>
+        )}
+      </div>
+
       {/* ── Potensi Perairan KPI (TOP) ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
@@ -347,22 +378,6 @@ export default function KelautanPesisir() {
           <div className="flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-emerald-500" />
             <h2 className="text-xl font-bold text-foreground">Visualisasi Produksi Garam</h2>
-          </div>
-          {/* Garam Filters */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-              <option value="">Semua Tahun</option>
-              {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-              <option value="">Semua Bulan</option>
-              {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-              <option value="">Semua Kab/Kota</option>
-              {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
-            </select>
           </div>
         </div>
         
@@ -423,7 +438,7 @@ export default function KelautanPesisir() {
 
       {/* ── Tabel Data + Filter ── */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-x-auto min-h-[600px] mt-6">
-        <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan dan Pesisir (Verified)</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan dan Pesisir</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-lg w-fit">
             <button
@@ -438,24 +453,6 @@ export default function KelautanPesisir() {
             >
               <Anchor className="w-4 h-4 inline mr-1.5" /> Potensi Perairan
             </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <select value={tableFilterTahun} onChange={(e) => setTableFilterTahun(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-              <option value="">Semua Tahun</option>
-              {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            {activeTable === 'garam' && (
-              <select value={tableFilterBulan} onChange={(e) => setTableFilterBulan(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="">Semua Bulan</option>
-                {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            )}
-            <select value={tableFilterKab} onChange={(e) => setTableFilterKab(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-              <option value="">Semua Kab/Kota</option>
-              {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
-            </select>
           </div>
         </div>
 

@@ -905,7 +905,6 @@ export default function AdminKelautanPesisir() {
       />;
     } },
     { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground font-semibold">{info.getValue()}</span> },
-    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
     { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground font-medium">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
     {
       header: 'Total Pantai (km)', accessorKey: 'total_garis_pantai',
@@ -1159,7 +1158,12 @@ export default function AdminKelautanPesisir() {
 
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+            <Clock className="w-4 h-4 animate-pulse" />
+            Terakhir Diperbarui: {lastUpdated}
+          </div>
+        </div>
 
         {/* ── Potensi Perairan KPI (TOP) ── */}
         <div>
