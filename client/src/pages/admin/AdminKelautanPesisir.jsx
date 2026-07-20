@@ -14,6 +14,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 import { MangroveForm } from '@/components/admin/MangroveForm';
+import { LamunForm } from '@/components/admin/LamunForm';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable } from '@/components/shared/DataTable';
 
@@ -73,6 +74,22 @@ const KondisiBadge = ({ kondisi }) => {
   let cls = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
   if (k.startsWith('Sangat Padat')) cls = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
   else if (k.startsWith('Sedang')) cls = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cls}`}>{k || '-'}</span>;
+};
+
+// Kategorisasi otomatis kondisi Lamun berdasarkan persentase tutupan (0-100%)
+const getKondisiLamun = (persentase) => {
+  const p = Number(persentase) || 0;
+  if (p >= 60) return 'Kaya (60-100%)';
+  if (p >= 30) return 'Kurang Kaya (30-60%)';
+  return 'Miskin (0-30%)';
+};
+
+const KondisiLamunBadge = ({ kondisi }) => {
+  const k = kondisi || '';
+  let cls = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+  if (k.startsWith('Kaya')) cls = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  else if (k.startsWith('Kurang Kaya')) cls = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
   return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${cls}`}>{k || '-'}</span>;
 };
 
@@ -416,6 +433,39 @@ const makeMangroveComboOption = (categories, eksisting, rehab) => ({
   ],
 });
 
+// Warna kategori kondisi lamun: Miskin (merah), Kurang Kaya (kuning), Kaya (hijau)
+const KONDISI_LAMUN_COLOR_MAP = {
+  'Kaya (60-100%)': '#10b981',
+  'Kurang Kaya (30-60%)': '#f59e0b',
+  'Miskin (0-30%)': '#f43f5e',
+};
+
+const makeKondisiLamunPieOption = (data) => ({
+  ...darkTheme,
+  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)', backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#a3c7df', fontSize: 11 } },
+  series: [{
+    type: 'pie', radius: ['40%', '70%'], center: ['35%', '55%'],
+    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_LAMUN_COLOR_MAP[d.name] } })),
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.3)' } }
+  }]
+});
+
+// Bar horizontal berdampingan: Luas Eksisting vs Luas Rehabilitasi Lamun per Kab/Kota
+const makeLamunComboOption = (categories, eksisting, rehab) => ({
+  ...darkTheme,
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f2236', borderColor: '#1e3a52', textStyle: { color: '#c8dff0' } },
+  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#a3c7df', fontSize: 11 } },
+  grid: { left: 140, right: 30, top: 40, bottom: 10 },
+  xAxis: { type: 'value', axisLabel: { color: '#7fb5d5' }, splitLine: { lineStyle: { color: '#1e3a52' } } },
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#a3c7df', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  series: [
+    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#8b5cf6', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+  ],
+});
+
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
   { key: 'garam',            label: 'Garam',       icon: <Map className="w-4 h-4" /> },
@@ -437,6 +487,7 @@ export default function AdminKelautanPesisir() {
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensiPerairan, setDataPotensiPerairan] = useState([]);
   const [dataMangrove, setDataMangrove] = useState([]);
+  const [dataLamun, setDataLamun] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -493,6 +544,19 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
+  // Fetch lamun data
+  const fetchLamun = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/kelautan-pesisir/lamun');
+      setDataLamun(res.data.data || []);
+    } catch (err) {
+      console.error('Gagal memuat data lamun:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Fetch stats for visualization
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -510,7 +574,8 @@ export default function AdminKelautanPesisir() {
     fetchGaram();
     fetchPotensi();
     fetchMangrove();
-  }, [fetchGaram, fetchPotensi, fetchMangrove]);
+    fetchLamun();
+  }, [fetchGaram, fetchPotensi, fetchMangrove, fetchLamun]);
 
   useEffect(() => {
     if (mainTab === 'visualisasi') fetchStats();
@@ -540,6 +605,13 @@ export default function AdminKelautanPesisir() {
           await api.post('/kelautan-pesisir/mangrove', formData);
         }
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        if (editingData) {
+          await api.put(`/kelautan-pesisir/lamun/${editingData.id}`, formData);
+        } else {
+          await api.post('/kelautan-pesisir/lamun', formData);
+        }
+        await fetchLamun();
       }
     } catch (err) {
       console.error('Gagal menyimpan data:', err);
@@ -563,6 +635,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'mangrove') {
         await api.delete(`/kelautan-pesisir/mangrove/${itemToDelete.id}`);
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        await api.delete(`/kelautan-pesisir/lamun/${itemToDelete.id}`);
+        await fetchLamun();
       }
     } catch (err) {
       console.error('Gagal menghapus data:', err);
@@ -624,6 +699,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'mangrove') {
         await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        await api.patch(`/kelautan-pesisir/lamun/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
+        await fetchLamun();
       }
     } catch (err) { 
       console.error(err);
@@ -654,6 +732,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'mangrove') {
         await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        await api.patch(`/kelautan-pesisir/lamun/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchLamun();
       }
     } catch (err) { 
       console.error(err);
@@ -711,6 +792,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'mangrove') {
         await api.post(`/kelautan-pesisir/mangrove/batch-status`, { ids, status: targetStatus });
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        await api.post(`/kelautan-pesisir/lamun/batch-status`, { ids, status: targetStatus });
+        await fetchLamun();
       }
     } catch (error) {
       console.error('Error batch approve:', error);
@@ -741,6 +825,9 @@ export default function AdminKelautanPesisir() {
       } else if (activeTab === 'mangrove') {
         await api.post(`/kelautan-pesisir/mangrove/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
         await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        await api.post(`/kelautan-pesisir/lamun/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
+        await fetchLamun();
       }
     } catch (error) {
       console.error('Error batch reject:', error);
@@ -760,6 +847,9 @@ export default function AdminKelautanPesisir() {
         } else if (activeTab === 'mangrove') {
           await api.post(`/kelautan-pesisir/mangrove/batch-delete`, { ids });
           await fetchMangrove();
+        } else if (activeTab === 'lamun') {
+          await api.post(`/kelautan-pesisir/lamun/batch-delete`, { ids });
+          await fetchLamun();
         }
       } catch (error) {
         console.error('Error batch delete:', error);
@@ -800,7 +890,6 @@ export default function AdminKelautanPesisir() {
     { header: 'Total Produksi', accessorKey: 'total_produksi_ton', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Total Stok', accessorKey: 'total_stok_ton', cell: info => <span className="font-bold text-amber-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Produktivitas', accessorKey: 'produktivitas', cell: info => <span className="text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-md text-xs">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
-    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
   ], []);
 
   const columnsPotensi = useMemo(() => [
@@ -845,7 +934,25 @@ export default function AdminKelautanPesisir() {
     { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiBadge kondisi={info.getValue()} /> },
     { header: 'Persentase', accessorKey: 'persentase_kondisi', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
     { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="font-medium text-cyan-300">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
-    { header: 'Terakhir Diperbarui', accessorKey: 'updated_at', cell: info => info.getValue() ? <span className="whitespace-nowrap text-sm text-muted-foreground">{formatDistanceToNow(new Date(info.getValue()), { addSuffix: true, locale: idLocale })}</span> : '-' },
+  ], []);
+
+  const columnsLamun = useMemo(() => [
+    { header: 'Status', accessorKey: 'status', cell: info => {
+      const row = info.row.original;
+      return <StatusBadge
+        row={row}
+        contextFields={[
+          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Tahun', value: row.tahun }
+        ]}
+      />;
+    } },
+    { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="font-bold text-foreground bg-muted px-2.5 py-1 rounded-md text-xs">{info.getValue()}</span> },
+    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-bold text-cyan-300">{info.getValue()}</p> },
+    { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="font-medium text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
+    { header: 'Tutupan', accessorKey: 'persentase_tutupan', cell: info => <span className="font-bold text-emerald-400">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
+    { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiLamunBadge kondisi={info.getValue()} /> },
+    { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="font-medium text-cyan-300">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
   ], []);
 
   // ── SUB-ROWS ─────────────────────────────────────────────────────────────────
@@ -910,11 +1017,13 @@ export default function AdminKelautanPesisir() {
     const tahunOptions = [...new Set([
       ...dataGaram.map(d => d.tahun),
       ...dataMangrove.map(d => d.tahun),
+      ...dataLamun.map(d => d.tahun),
       ...dataPotensiPerairan.map(d => d.tahun_data)
     ].filter(Boolean))].sort((a, b) => b - a);
     const kabupatenOptions = [...new Set([
       ...dataGaram.map(d => d.kabupaten_kota),
       ...dataMangrove.map(d => d.kabupaten_kota),
+      ...dataLamun.map(d => d.kabupaten_kota),
       ...dataPotensiPerairan.map(d => d.kabupaten_kota)
     ].filter(Boolean))].sort();
 
@@ -1004,7 +1113,43 @@ export default function AdminKelautanPesisir() {
       { name: 'Jarang (0-30%)', value: kondisiCountMap['Jarang (0-30%)'] || 0 },
     ];
 
-    const allData = [...dataGaram, ...dataMangrove, ...dataPotensiPerairan];
+    // ── VISUALISASI LAMUN (only VERIFIED data) ──
+    const verifiedLamun = dataLamun.filter(d => d.status === 'VERIFIED');
+    const filteredVisLamun = verifiedLamun.filter(d =>
+      (!visTahun || String(d.tahun) === visTahun) &&
+      (!visKab || d.kabupaten_kota === visKab)
+    );
+
+    const visLamunPerKota = Object.values(filteredVisLamun.reduce((agg, d) => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { name: kab, luas_eksisting: 0, luas_rehabilitasi: 0 };
+      agg[kab].luas_eksisting += (d.luas_eksisting_ha || 0);
+      agg[kab].luas_rehabilitasi += (d.luas_rehabilitasi_ha || 0);
+      return agg;
+    }, {})).sort((a, b) => b.luas_eksisting - a.luas_eksisting);
+
+    const kpiLamun = {
+      luas_eksisting: visLamunPerKota.reduce((s, d) => s + d.luas_eksisting, 0),
+      luas_rehabilitasi: visLamunPerKota.reduce((s, d) => s + d.luas_rehabilitasi, 0),
+      jumlah_lokasi: filteredVisLamun.length,
+    };
+
+    const lamunKota = visLamunPerKota.map(d => d.name);
+    const lamunEksisting = visLamunPerKota.map(d => parseFloat(d.luas_eksisting.toFixed(2)));
+    const lamunRehab = visLamunPerKota.map(d => parseFloat(d.luas_rehabilitasi.toFixed(2)));
+
+    const kondisiLamunCountMap = filteredVisLamun.reduce((agg, d) => {
+      const k = d.kondisi || 'Tidak Diketahui';
+      agg[k] = (agg[k] || 0) + 1;
+      return agg;
+    }, {});
+    const kondisiLamunChartData = [
+      { name: 'Kaya (60-100%)', value: kondisiLamunCountMap['Kaya (60-100%)'] || 0 },
+      { name: 'Kurang Kaya (30-60%)', value: kondisiLamunCountMap['Kurang Kaya (30-60%)'] || 0 },
+      { name: 'Miskin (0-30%)', value: kondisiLamunCountMap['Miskin (0-30%)'] || 0 },
+    ];
+
+    const allData = [...dataGaram, ...dataMangrove, ...dataLamun, ...dataPotensiPerairan];
     const latestDate = allData.length > 0
       ? new Date(Math.max(...allData.map(d => new Date(d.updatedAt || d.createdAt || 0).getTime())))
       : null;
@@ -1014,12 +1159,7 @@ export default function AdminKelautanPesisir() {
 
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex justify-end mb-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
-            <Clock className="w-4 h-4 animate-pulse" />
-            Terakhir Diperbarui: {lastUpdated}
-          </div>
-        </div>
+
 
         {/* ── Potensi Perairan KPI (TOP) ── */}
         <div>
@@ -1167,10 +1307,67 @@ export default function AdminKelautanPesisir() {
           </div>
         </div>
 
-        {/* ── Placeholder Visualisasi Terumbu Karang & Lamun ── */}
+        {/* ── Visualisasi Lamun ── */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Leaf className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Lamun</h2>
+            </div>
+          </div>
+
+          {/* Lamun KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><Leaf className="w-5 h-5 text-emerald-400" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-cyan-400" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+            </div>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+              <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-400" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
+            </div>
+          </div>
+
+          {/* Lamun Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting per Kab/Kota (Ha)</h3>
+              {lamunKota.length > 0
+                ? <ReactECharts option={makeHBarOption('Luas Eksisting Lamun', lamunKota, lamunEksisting, '#10b981')} style={{ height: Math.max(300, lamunKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+              {lamunKota.length > 0
+                ? <ReactECharts option={makeHBarOption('Luas Rehabilitasi Lamun', lamunKota, lamunRehab, '#8b5cf6')} style={{ height: Math.max(300, lamunKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
+              {kpiLamun.jumlah_lokasi > 0
+                ? <ReactECharts option={makeKondisiLamunPieOption(kondisiLamunChartData)} style={{ height: '300px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
+              {lamunKota.length > 0
+                ? <ReactECharts option={makeLamunComboOption(lamunKota, lamunEksisting, lamunRehab)} style={{ height: Math.max(300, lamunKota.length * 38) + 'px' }} />
+                : <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Placeholder Visualisasi Terumbu Karang ── */}
         <div className="bg-muted/50 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
           <Info className="w-8 h-8 mb-2 opacity-50" />
-          <p className="font-medium text-foreground">Visualisasi Terumbu Karang dan Lamun</p>
+          <p className="font-medium text-foreground">Visualisasi Terumbu Karang</p>
           <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
         </div>
       </div>
@@ -1178,11 +1375,11 @@ export default function AdminKelautanPesisir() {
   };
 
   // ── ACTIVE DATA / COLUMNS / SUB-ROW ─────────────────────────────────────────
-  const activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : columnsPotensi;
+  const activeColumns = activeTab === 'garam' ? columnsGaram : activeTab === 'potensi_perairan' ? columnsPotensi : activeTab === 'mangrove' ? columnsMangrove : activeTab === 'lamun' ? columnsLamun : columnsPotensi;
   const activeSubRow = activeTab === 'garam' ? renderSubGaram : undefined;
 
   const filteredData = useMemo(() => {
-      let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : activeTab === 'mangrove' ? dataMangrove : [];
+      let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : activeTab === 'mangrove' ? dataMangrove : activeTab === 'lamun' ? dataLamun : [];
       
       if (filterTahun) {
         result = result.filter(d => String(d.tahun || d.tahun_data) === filterTahun);
@@ -1215,7 +1412,7 @@ export default function AdminKelautanPesisir() {
       }
       
       return result;
-    }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, filterTahun, filterTw, filterBulan, filterKab]);
+    }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, dataLamun, filterTahun, filterTw, filterBulan, filterKab]);
 
   const handleCustomExport = (data) => {
       if (activeTab === 'garam') {
@@ -1258,6 +1455,16 @@ export default function AdminKelautanPesisir() {
         />
       );
     }
+    if (activeTab === 'lamun') {
+      return (
+        <LamunForm
+          initialData={editingData}
+          isLoading={submitLoading}
+          onSubmit={handleCreateOrUpdate}
+          onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+        />
+      );
+    }
     return (
       <div className="bg-card border border-border p-12 rounded-2xl text-center shadow-sm">
         <p className="text-muted-foreground text-sm">Form untuk {DATA_TABS.find(t => t.key === activeTab)?.label} sedang disiapkan.</p>
@@ -1274,7 +1481,7 @@ export default function AdminKelautanPesisir() {
           <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan dan Pesisir</h1>
           <p className="text-muted-foreground mt-1">Kelola laporan Garam, Mangrove, Terumbu Karang, Lamun, dan Potensi Perairan.</p>
         </div>
-        {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') && (
+        {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun') && (
           <button
             onClick={() => { setEditingData(null); setIsFormOpen(true); }}
             className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
@@ -1344,20 +1551,20 @@ export default function AdminKelautanPesisir() {
                 </div>
               </div>
 
-              {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') && (
+              {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun') && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                     <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Tahun</option>
-                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
+                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort().map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
                     <select value={filterKab} onChange={e => setFilterKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Semua Kab/Kota</option>
-                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
+                      {[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort().map(k => <option key={k} value={k}>{k}</option>)}
                     </select>
                   </div>
                   {activeTab === 'garam' && (
@@ -1447,7 +1654,7 @@ export default function AdminKelautanPesisir() {
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-muted-foreground text-sm">Memuat data...</p>
             </div>
-          ) : (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove') ? (
+          ) : (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun') ? (
             <DataTable
               user={user}
               columns={activeColumns}

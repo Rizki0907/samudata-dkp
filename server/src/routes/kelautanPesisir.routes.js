@@ -11,6 +11,14 @@ const {
   updateMangroveStatus,
   batchMangroveStatus,
   batchDeleteMangrove,
+  getLamunData,
+  getLamunPublicData,
+  createLamunData,
+  updateLamunData,
+  deleteLamunData,
+  updateLamunStatus,
+  batchLamunStatus,
+  batchDeleteLamun,
 } = require('../controllers/kelautanPesisir.controller');
 
 // ==========================================
@@ -61,6 +69,22 @@ router.delete('/mangrove/:id', verifyToken, deleteMangroveData);
 router.patch('/mangrove/:id/status', verifyToken, updateMangroveStatus);
 router.post('/mangrove/batch-status', verifyToken, batchMangroveStatus);
 router.post('/mangrove/batch-delete', verifyToken, batchDeleteMangrove);
+
+// ==============================
+// Lamun
+// ==============================
+
+// Public
+router.get('/lamun/public', getLamunPublicData);
+
+// Admin (pasang middleware auth/role sesuai punyamu, contoh: verifyToken)
+router.get('/lamun', verifyToken, getLamunData);
+router.post('/lamun', verifyToken, createLamunData);
+router.put('/lamun/:id', verifyToken, updateLamunData);
+router.delete('/lamun/:id', verifyToken, deleteLamunData);
+router.patch('/lamun/:id/status', verifyToken, updateLamunStatus);
+router.post('/lamun/batch-status', verifyToken, batchLamunStatus);
+router.post('/lamun/batch-delete', verifyToken, batchDeleteLamun);
 
 // ==========================================
 // KELAUTAN & PESISIR AGGREGATE STATS (untuk Dashboard)

@@ -21,6 +21,14 @@ const getKondisiMangrove = (persentase) => {
   return 'Jarang (0-30%)';
 };
 
+// Auto-kategorisasi kondisi Lamun berdasarkan persentase tutupan (0-100%)
+const getKondisiLamun = (persentase) => {
+  const p = Number(persentase) || 0;
+  if (p >= 60) return 'Kaya (60-100%)';
+  if (p >= 30) return 'Kurang Kaya (30-60%)';
+  return 'Miskin (0-30%)';
+};
+
 // ==============================
 // GARAM
 // ==============================
@@ -371,6 +379,145 @@ const batchDeleteMangrove = async (req, res) => {
 };
 
 // ==============================
+// LAMUN
+// ==============================
+
+const getLamunData = async (req, res) => {
+  try {
+    const data = await prisma.lamun.findMany({
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching lamun data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const getLamunPublicData = async (req, res) => {
+  try {
+    const { tahun } = req.query;
+    const where = { status: 'VERIFIED' };
+    if (tahun) where.tahun = parseInt(tahun);
+
+    const data = await prisma.lamun.findMany({
+      where,
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching public lamun data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const createLamunData = async (req, res) => {
+  try {
+    const payload = req.body;
+    payload.persentase_tutupan = Number(payload.persentase_tutupan) || 0;
+    payload.kondisi = getKondisiLamun(payload.persentase_tutupan);
+
+    const newData = await prisma.lamun.create({ data: payload });
+    res.json({ success: true, data: newData });
+  } catch (error) {
+    console.error('Error creating lamun data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateLamunData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.lamun.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
+    }
+
+    const payload = req.body;
+    if (req.user?.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      payload.status = 'PENDING';
+      payload.alasan_penolakan = null;
+    }
+    payload.persentase_tutupan = Number(payload.persentase_tutupan) || 0;
+    payload.kondisi = getKondisiLamun(payload.persentase_tutupan);
+
+    const updatedData = await prisma.lamun.update({
+      where: { id: parseInt(id) },
+      data: payload
+    });
+    res.json({ success: true, data: updatedData });
+  } catch (error) {
+    console.error('Error updating lamun data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const deleteLamunData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.lamun.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui' });
+    }
+    await prisma.lamun.delete({ where: { id: parseInt(id) } });
+    res.json({ success: true, message: 'Data deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting lamun data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateLamunStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+    const updated = await prisma.lamun.update({
+      where: { id: parseInt(id) },
+      data: { status, alasan_penolakan }
+    });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Error updating lamun status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchLamunStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.lamun.updateMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      data: { status, alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null }
+    });
+    res.json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch lamun status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDeleteLamun = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+    await prisma.lamun.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+    res.json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch delete lamun:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// ==============================
 // STATS / AGGREGATION
 // ==============================
 
@@ -468,17 +615,58 @@ const getKelautanPesisirStats = async (req, res) => {
       rata_persentase: stats.count > 0 ? stats.sumPersentase / stats.count : 0
     }));
 
+    // --- LAMUN STATS ---
+    const lamunWhere = { status: 'VERIFIED' };
+    if (tahun) lamunWhere.tahun = parseInt(tahun);
+    const lamunData = await prisma.lamun.findMany({ where: lamunWhere });
+
+    const lamunPerKota = {};
+    const lamunKondisiDistribution = { 'Kaya (60-100%)': 0, 'Kurang Kaya (30-60%)': 0, 'Miskin (0-30%)': 0 };
+    let total_luas_eksisting_lamun = 0;
+    let total_luas_rehabilitasi_lamun = 0;
+
+    lamunData.forEach(item => {
+      const k = item.kabupaten_kota || 'Tidak Diketahui';
+      if (!lamunPerKota[k]) {
+        lamunPerKota[k] = { luas_eksisting: 0, luas_rehabilitasi: 0, sumPersentase: 0, count: 0 };
+      }
+      const luasEksisting = item.luas_eksisting_ha || 0;
+      const luasRehab = item.luas_rehabilitasi_ha || 0;
+
+      lamunPerKota[k].luas_eksisting += luasEksisting;
+      lamunPerKota[k].luas_rehabilitasi += luasRehab;
+      lamunPerKota[k].sumPersentase += item.persentase_tutupan || 0;
+      lamunPerKota[k].count += 1;
+
+      total_luas_eksisting_lamun += luasEksisting;
+      total_luas_rehabilitasi_lamun += luasRehab;
+
+      if (lamunKondisiDistribution[item.kondisi] !== undefined) {
+        lamunKondisiDistribution[item.kondisi] += 1;
+      }
+    });
+
+    const lamunPerKotaResult = Object.entries(lamunPerKota).map(([name, stats]) => ({
+      name,
+      luas_eksisting: stats.luas_eksisting,
+      luas_rehabilitasi: stats.luas_rehabilitasi,
+      rata_persentase: stats.count > 0 ? stats.sumPersentase / stats.count : 0
+    }));
+
     res.json({
       success: true,
       data: {
         summary: {
           total_produksi_garam, total_petambak_garam, total_luas_lahan_garam,
-          total_luas_eksisting_mangrove, total_luas_rehabilitasi_mangrove
+          total_luas_eksisting_mangrove, total_luas_rehabilitasi_mangrove,
+          total_luas_eksisting_lamun, total_luas_rehabilitasi_lamun
         },
         garamPerKota: Object.entries(garamPerKota).map(([name, stats]) => ({ name, ...stats })),
         potensiPerKota: Object.entries(potensiPerKota).map(([name, stats]) => ({ name, ...stats })),
         mangrovePerKota: mangrovePerKotaResult,
-        mangroveKondisiDistribution: Object.entries(kondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah }))
+        mangroveKondisiDistribution: Object.entries(kondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah })),
+        lamunPerKota: lamunPerKotaResult,
+        lamunKondisiDistribution: Object.entries(lamunKondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah }))
       }
     });
   } catch (error) {
@@ -578,5 +766,13 @@ module.exports = {
   updateMangroveStatus,
   batchMangroveStatus,
   batchDeleteMangrove,
+  getLamunData,
+  getLamunPublicData,
+  createLamunData,
+  updateLamunData,
+  deleteLamunData,
+  updateLamunStatus,
+  batchLamunStatus,
+  batchDeleteLamun,
   getKelautanPesisirStats
 };
