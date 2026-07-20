@@ -3,7 +3,7 @@ import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
   TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark,
-  ChevronRight, ChevronDown, Download
+  ChevronRight, ChevronDown, Download, Clock
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -450,11 +450,9 @@ export default function AdminKelautanPesisir() {
   const [filterTw, setFilterTw] = useState('');
   const [filterBulan, setFilterBulan] = useState('');
   const [filterKab, setFilterKab] = useState('');
-  const [visGaramBulan, setVisGaramBulan] = useState('');
-  const [visGaramTahun, setVisGaramTahun] = useState('');
-  const [visGaramKab, setVisGaramKab] = useState('');
-  const [visMangroveTahun, setVisMangroveTahun] = useState('');
-  const [visMangroveKab, setVisMangroveKab] = useState('');
+  const [visBulan, setVisBulan] = useState('');
+  const [visTahun, setVisTahun] = useState('');
+  const [visKab, setVisKab] = useState('');
 
   // Fetch garam data
   const fetchGaram = useCallback(async () => {
@@ -908,9 +906,25 @@ export default function AdminKelautanPesisir() {
 
   // ── VISUALISASI ──────────────────────────────────────────────────────────────
   const renderVisualisasi = () => {
+    const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const tahunOptions = [...new Set([
+      ...dataGaram.map(d => d.tahun),
+      ...dataMangrove.map(d => d.tahun),
+      ...dataPotensiPerairan.map(d => d.tahun_data)
+    ].filter(Boolean))].sort((a, b) => b - a);
+    const kabupatenOptions = [...new Set([
+      ...dataGaram.map(d => d.kabupaten_kota),
+      ...dataMangrove.map(d => d.kabupaten_kota),
+      ...dataPotensiPerairan.map(d => d.kabupaten_kota)
+    ].filter(Boolean))].sort();
+
     // ── KPI Potensi Perairan (only VERIFIED data) ──
     const verifiedPotensi = dataPotensiPerairan.filter(d => d.status === 'VERIFIED');
-    const potensiPerKotaFrontend = Object.values(verifiedPotensi.reduce((agg, d) => {
+    const filteredVisPotensi = verifiedPotensi.filter(d =>
+      (!visTahun || String(d.tahun_data) === visTahun) &&
+      (!visKab || d.kabupaten_kota === visKab)
+    );
+    const potensiPerKotaFrontend = Object.values(filteredVisPotensi.reduce((agg, d) => {
       const kab = d.kabupaten_kota || 'Unknown';
       if (!agg[kab]) agg[kab] = { ...d };
       else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
@@ -927,9 +941,9 @@ export default function AdminKelautanPesisir() {
     // ── VISUALISASI GARAM (only VERIFIED data) ──
     const verifiedGaram = dataGaram.filter(d => d.status === 'VERIFIED');
     const filteredVisGaram = verifiedGaram.filter(d => 
-      (!visGaramBulan || (d.bulan || '').toLowerCase() === visGaramBulan.toLowerCase()) &&
-      (!visGaramTahun || String(d.tahun) === visGaramTahun) &&
-      (!visGaramKab || d.kabupaten_kota === visGaramKab)
+      (!visBulan || (d.bulan || '').toLowerCase() === visBulan.toLowerCase()) &&
+      (!visTahun || String(d.tahun) === visTahun) &&
+      (!visKab || d.kabupaten_kota === visKab)
     );
 
     const visGaramPerKota = Object.values(filteredVisGaram.reduce((agg, d) => {
@@ -952,17 +966,13 @@ export default function AdminKelautanPesisir() {
     const garamProduksi = visGaramPerKota.map(d => parseFloat(d.produksi.toFixed(2)));
     const garamKelompok = visGaramPerKota.map(d => d.kelompok);
 
-    const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    const tahunOptions = [...new Set(dataGaram.map(d => d.tahun).filter(Boolean))].sort((a, b) => b - a);
-    const kabupatenOptions = [...new Set(dataGaram.map(d => d.kabupaten_kota).filter(Boolean))].sort();
-
     const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
     // ── VISUALISASI MANGROVE (only VERIFIED data) ──
     const verifiedMangrove = dataMangrove.filter(d => d.status === 'VERIFIED');
     const filteredVisMangrove = verifiedMangrove.filter(d =>
-      (!visMangroveTahun || String(d.tahun) === visMangroveTahun) &&
-      (!visMangroveKab || d.kabupaten_kota === visMangroveKab)
+      (!visTahun || String(d.tahun) === visTahun) &&
+      (!visKab || d.kabupaten_kota === visKab)
     );
 
     const visMangrovePerKota = Object.values(filteredVisMangrove.reduce((agg, d) => {
@@ -994,11 +1004,23 @@ export default function AdminKelautanPesisir() {
       { name: 'Jarang (0-30%)', value: kondisiCountMap['Jarang (0-30%)'] || 0 },
     ];
 
-    const tahunOptionsMangrove = [...new Set(dataMangrove.map(d => d.tahun).filter(Boolean))].sort((a, b) => b - a);
-    const kabupatenOptionsMangrove = [...new Set(dataMangrove.map(d => d.kabupaten_kota).filter(Boolean))].sort();
+    const allData = [...dataGaram, ...dataMangrove, ...dataPotensiPerairan];
+    const latestDate = allData.length > 0
+      ? new Date(Math.max(...allData.map(d => new Date(d.updatedAt || d.createdAt || 0).getTime())))
+      : null;
+    const lastUpdated = latestDate && !isNaN(latestDate.getTime()) 
+      ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+      : '-';
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+            <Clock className="w-4 h-4 animate-pulse" />
+            Terakhir Diperbarui: {lastUpdated}
+          </div>
+        </div>
+
         {/* ── Potensi Perairan KPI (TOP) ── */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -1036,22 +1058,7 @@ export default function AdminKelautanPesisir() {
               <FlaskConical className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-foreground">Visualisasi Produksi Garam</h2>
             </div>
-            {/* Garam Filters */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <select value={visGaramTahun} onChange={(e) => setVisGaramTahun(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
-                <option value="">Semua Tahun</option>
-                {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <select value={visGaramBulan} onChange={(e) => setVisGaramBulan(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
-                <option value="">Semua Bulan</option>
-                {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <select value={visGaramKab} onChange={(e) => setVisGaramKab(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500">
-                <option value="">Semua Kab/Kota</option>
-                {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
+            {/* Filters removed (moved to global) */}
           </div>
           
           {/* Garam KPI Cards */}
@@ -1109,18 +1116,7 @@ export default function AdminKelautanPesisir() {
               <TreePine className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Mangrove</h2>
             </div>
-            {/* Mangrove Filters */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <select value={visMangroveTahun} onChange={(e) => setVisMangroveTahun(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
-                <option value="">Semua Tahun</option>
-                {tahunOptionsMangrove.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <select value={visMangroveKab} onChange={(e) => setVisMangroveKab(e.target.value)} className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
-                <option value="">Semua Kab/Kota</option>
-                {kabupatenOptionsMangrove.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
+            {/* Filters removed (moved to global) */}
           </div>
 
           {/* Mangrove KPI Cards */}
@@ -1391,6 +1387,51 @@ export default function AdminKelautanPesisir() {
               )}
             </div>
           )}
+
+          {mainTab === 'visualisasi' && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-slate-500" />
+                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Visualisasi)</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                  <select value={visTahun} onChange={(e) => setVisTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Tahun</option>
+                    {[...new Set([
+                      ...dataGaram.map(d => d.tahun),
+                      ...dataMangrove.map(d => d.tahun),
+                      ...dataPotensiPerairan.map(d => d.tahun_data)
+                    ].filter(Boolean))].sort((a, b) => b - a).map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
+                  <select value={visBulan} onChange={(e) => setVisBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Bulan</option>
+                    {['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                  <select value={visKab} onChange={(e) => setVisKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">Semua Kab/Kota</option>
+                    {[...new Set([
+                      ...dataGaram.map(d => d.kabupaten_kota),
+                      ...dataMangrove.map(d => d.kabupaten_kota),
+                      ...dataPotensiPerairan.map(d => d.kabupaten_kota)
+                    ].filter(Boolean))].sort().map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                {(visTahun || visBulan || visKab) && (
+                  <div className="md:col-span-4 mt-2">
+                    <button onClick={() => { setVisTahun(''); setVisBulan(''); setVisKab(''); }} className="text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">Reset Filter</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1442,7 +1483,7 @@ export default function AdminKelautanPesisir() {
         </div>
       ) : (
         /* Visualisasi Tab */
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm min-h-[600px]">
+        <div className="min-h-[600px]">
           {renderVisualisasi()}
         </div>
       )}

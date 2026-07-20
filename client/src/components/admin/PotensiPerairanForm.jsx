@@ -14,7 +14,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState(initialData || {
-    kabupaten_kota: '',
+    kabupaten_kota: 'Jawa Timur',
     tahun_data: CURRENT_YEAR,
     luas_wilayah_laut_km2: '',
     total_panjang_garis_pantai_km: '',
@@ -66,21 +66,10 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
             Identitas Wilayah
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-              <label className={labelClass}>Kabupaten / Kota</label>
-              <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputClass + " pr-10"} required>
-                <option value="" disabled>-- Pilih Kab/Kota --</option>
-                {KAB_KOTA_JATIM.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
             <div>
               <label className={labelClass}>Tahun Data</label>
               <input type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} required />
-            </div>
-            <div>
-              <label className={labelClass}>Desa Pesisir</label>
-              <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
           </div>
         </section>
@@ -95,12 +84,12 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className={labelClass}>Luas Wilayah Laut (KmA)</label>
-              <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={inputClass} placeholder="0" />
+              <label className={labelClass}>Desa Pesisir</label>
+              <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
             <div>
-              <label className={labelClass}>Luas Perairan (kmA)</label>
-              <input type="number" step="0.01" min="0" name="luas_perairan_km2" value={formData.luas_perairan_km2} onChange={handleChange} className={inputClass} placeholder="0" />
+              <label className={labelClass}>Luas Wilayah Laut (km²)</label>
+              <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Pulau-pulau Kecil</label>

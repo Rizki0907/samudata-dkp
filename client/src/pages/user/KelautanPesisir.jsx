@@ -5,7 +5,7 @@ import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import {
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
-  TreePine, Landmark, Globe, Fish, Info
+  TreePine, Landmark, Globe, Fish, Info, Clock
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
@@ -287,6 +287,14 @@ export default function KelautanPesisir() {
     );
   }
 
+  const allData = [...dataGaram, ...dataPotensi];
+  const latestDate = allData.length > 0
+    ? new Date(Math.max(...allData.map(d => new Date(d.updatedAt || d.createdAt || 0).getTime())))
+    : null;
+  const lastUpdated = latestDate && !isNaN(latestDate.getTime()) 
+    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+    : '-';
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       {/* Header */}
@@ -296,6 +304,10 @@ export default function KelautanPesisir() {
           <p className="text-muted-foreground mt-1">
             Visualisasi data Kelautan, Pesisir, dan Potensi Perairan Jawa Timur.
           </p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm shrink-0">
+          <Clock className="w-4 h-4 animate-pulse" />
+          Terakhir Diperbarui: {lastUpdated}
         </div>
       </div>
 
