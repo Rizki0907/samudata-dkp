@@ -11,13 +11,26 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
+import { PERBEKALAN_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+const formatLogistikText = (val) => {
+  if (!val) return '-';
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed)) {
+      return parsed.map(p => `${p.nama} (${p.jumlah} ${p.satuan})`).join(', ');
+    }
+    return val;
+  } catch (e) {
+    return val;
+  }
+};
 
 export default function AdminPerikananTangkap() {
   const user = useAuthStore(state => state.user);
@@ -1203,9 +1216,21 @@ export default function AdminPerikananTangkap() {
                       komoditasArray = [...KOMODITAS_OPTIONS];
                     }
 
-                  const headerRow1 = ['Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Catatan/Logistik / Jml Sampel (PUD)', 'Total Volume (Kg)', 'Total Nilai (Rp)'];
-                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', '', ''];
+                  const showLogistikCols = !filterCabang || filterCabang === 'PELABUHAN';
+
+                  const headerRow1 = ['Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', ''];
                   
+                  if (showLogistikCols) {
+                    PERBEKALAN_OPTIONS.forEach(pb => {
+                      headerRow1.push(`${pb.nama} (${pb.satuan})`);
+                      headerRow2.push('');
+                    });
+                  }
+
+                  headerRow1.push('Total Volume (Kg)', 'Total Nilai (Rp)');
+                  headerRow2.push('', '');
+
                   komoditasArray.forEach(kom => {
                     headerRow1.push(kom, '', '');
                     headerRow2.push('Volume (Kg)', 'Harga', 'Nilai (Rp)');
@@ -1238,10 +1263,27 @@ export default function AdminPerikananTangkap() {
                       row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
                       row.alat_tangkap || '-',
                       row.pelabuhan || row.kabupaten_kota || '-',
-                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : (formatLogistikText(row.logistik)),
-                      totalVol,
-                      totalNilai
+                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : '-'
                     ];
+
+                    if (showLogistikCols) {
+                      const logistikData = {};
+                      if (row.logistik && row.sumber_data === 'PELABUHAN') {
+                        try {
+                          const parsed = JSON.parse(row.logistik);
+                          if (Array.isArray(parsed)) {
+                            parsed.forEach(item => {
+                              logistikData[item.nama] = parseFloat(item.jumlah) || '';
+                            });
+                          }
+                        } catch(e) {}
+                      }
+                      PERBEKALAN_OPTIONS.forEach(pb => {
+                        baseRow.push(logistikData[pb.nama] || '');
+                      });
+                    }
+
+                    baseRow.push(totalVol, totalNilai);
 
                     komoditasArray.forEach(kom => {
                       if (komMap[kom]) {
