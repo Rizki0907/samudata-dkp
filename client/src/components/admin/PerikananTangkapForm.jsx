@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
+import { PERBEKALAN_OPTIONS, KAB_KOTA_GT_KAPAL_OPTIONS, GT_KAPAL_OPTIONS, ALAT_TANGKAP_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, PERAIRAN_OPTIONS, KOMODITAS_PUD_OPTIONS, ALAT_TANGKAP_PUD_OPTIONS, PUD_JENIS_PERAHU_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SearchableSelect from '@/components/shared/SearchableSelect';
@@ -17,7 +17,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     jenis_perairan: PERAIRAN_OPTIONS[0],
     pud_populasi_alat: '',
     pud_jumlah_sampel: '',
-    logistik: '',
+    logistik: [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }],
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     tangkapan: [
@@ -40,7 +40,16 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         jenis_perairan: initialData.jenis_perairan || PERAIRAN_OPTIONS[0],
         pud_populasi_alat: initialData.pud_populasi_alat || '',
         pud_jumlah_sampel: initialData.pud_jumlah_sampel || '',
-        logistik: initialData.logistik || '',
+        logistik: (() => {
+          if (!initialData.logistik) return [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }];
+          try {
+            const parsed = JSON.parse(initialData.logistik);
+            return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }];
+          } catch (e) {
+            // legacy string fallback
+            return [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '', legacy: initialData.logistik }];
+          }
+        })(),
         gt_kapal: initialData.gt_kapal || GT_KAPAL_OPTIONS[0],
         alat_tangkap: initialData.alat_tangkap || ALAT_TANGKAP_OPTIONS[0],
         tangkapan: [
@@ -67,6 +76,26 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     const newTangkapan = [...formData.tangkapan];
     newTangkapan[index][field] = value;
     setFormData(prev => ({ ...prev, tangkapan: newTangkapan }));
+  };
+
+  const handleLogistikChange = (index, field, value) => {
+    const newLogistik = [...formData.logistik];
+    newLogistik[index][field] = value;
+    setFormData(prev => ({ ...prev, logistik: newLogistik }));
+  };
+
+  const addLogistik = () => {
+    setFormData(prev => ({
+      ...prev,
+      logistik: [...prev.logistik, { nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }]
+    }));
+  };
+
+  const removeLogistik = (index) => {
+    if (formData.logistik.length > 1) {
+      const newLogistik = formData.logistik.filter((_, i) => i !== index);
+      setFormData(prev => ({ ...prev, logistik: newLogistik }));
+    }
   };
 
   const addTangkapan = () => {
@@ -126,6 +155,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     setFormData(prev => ({
       ...prev,
       pelabuhan: cabang === 'PELABUHAN' ? PELABUHAN_OPTIONS[0] : '',
+      logistik: [{ nama: PERBEKALAN_OPTIONS[0].nama, jumlah: '' }],
       jenis_perairan: cabang === 'PUD' ? PERAIRAN_OPTIONS[0] : '',
       gt_kapal: cabang === 'PUD' ? PUD_JENIS_PERAHU_OPTIONS[0] : (cabang === 'KAB_KOTA' ? KAB_KOTA_GT_KAPAL_OPTIONS[0] : GT_KAPAL_OPTIONS[0]),
       alat_tangkap: cabang === 'PUD' ? ALAT_TANGKAP_PUD_OPTIONS[0] : (cabang === 'KAB_KOTA' ? ALAT_TANGKAP_LAUT_OPTIONS[0] : ALAT_TANGKAP_OPTIONS[0]),
@@ -383,17 +413,63 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   />
                 </div>
                 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">Data Operasional / Logistik</label>
-                  <input 
-                    type="text" 
-                    name="logistik"
-                    placeholder="Cth: Es 10 Balok, Solar 200 Liter, Umpan 5 Kg"
-                    value={formData.logistik}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Isi detail logistik keberangkatan jika ada.</p>
+                <div className="md:col-span-2 mt-4 border border-border rounded-xl p-4 bg-muted/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium">Data Operasional / Perbekalan</label>
+                    <button 
+                      type="button" 
+                      onClick={addLogistik}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary font-medium rounded-md hover:bg-primary/20 transition-colors text-xs"
+                    >
+                      <Plus className="w-3 h-3" /> Tambah Perbekalan
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {Array.isArray(formData.logistik) && formData.logistik.map((item, index) => {
+                      const selectedOption = PERBEKALAN_OPTIONS.find(opt => opt.nama === item.nama);
+                      const satuan = selectedOption ? selectedOption.satuan : '';
+                      return (
+                        <div key={index} className="flex items-end gap-3 relative">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jenis</label>
+                            <SearchableSelect
+                              name="logistik_nama"
+                              value={item.nama}
+                              onChange={(e) => handleLogistikChange(index, 'nama', e.target.value)}
+                              options={PERBEKALAN_OPTIONS.map(opt => opt.nama)}
+                              placeholder="Pilih Perbekalan..."
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jumlah ({satuan})</label>
+                            <input 
+                              type="number" 
+                              step="0.01" min="0"
+                              placeholder="Jumlah"
+                              value={item.jumlah}
+                              onChange={(e) => handleLogistikChange(index, 'jumlah', e.target.value)}
+                              className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input text-sm"
+                            />
+                          </div>
+                          {item.legacy && (
+                            <div className="flex-1 text-xs text-destructive">
+                              Data Lama: {item.legacy}
+                            </div>
+                          )}
+                          {formData.logistik.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => removeLogistik(index)}
+                              className="w-9 h-9 shrink-0 bg-destructive/10 text-destructive rounded-lg flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors mb-0.5"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </>
             )}

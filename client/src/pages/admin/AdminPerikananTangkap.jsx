@@ -633,7 +633,7 @@ export default function AdminPerikananTangkap() {
         row.gt_kapal || '-',
         row.alat_tangkap || '-',
         '',
-        row.logistik || '-',
+        formatLogistikText(row.logistik),
         totalVol,
         totalNilai
       ];
@@ -1238,7 +1238,7 @@ export default function AdminPerikananTangkap() {
                       row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
                       row.alat_tangkap || '-',
                       row.pelabuhan || row.kabupaten_kota || '-',
-                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : (row.logistik || '-'),
+                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : (formatLogistikText(row.logistik)),
                       totalVol,
                       totalNilai
                     ];

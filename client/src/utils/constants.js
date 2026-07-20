@@ -609,3 +609,20 @@ export const PELABUHAN_TO_KABKOTA = {
   'Pelabuhan Perikanan Tambakrejo': 'Blitar',
   'Pelabuhan Perikanan Tamperan': 'Pacitan'
 };
+
+export const PERBEKALAN_OPTIONS = [
+  { nama: 'Es', satuan: 'Kilogram' },
+  { nama: 'Air', satuan: 'Liter' },
+  { nama: 'Solar', satuan: 'Liter' },
+  { nama: 'Oli', satuan: 'Liter' },
+  { nama: 'Bensin', satuan: 'Liter' },
+  { nama: 'Umpan', satuan: 'Kilogram' },
+  { nama: 'Garam', satuan: 'Kilogram' },
+  { nama: 'Beras', satuan: 'Kilogram' },
+  { nama: 'Gula', satuan: 'Kilogram' },
+  { nama: 'Minyak Goreng', satuan: 'Liter' },
+  { nama: 'Rokok', satuan: 'Kilogram' },
+  { nama: 'Freon', satuan: 'Tabung' },
+  { nama: 'Gas LPG', satuan: 'Kilogram' }
+];
+
