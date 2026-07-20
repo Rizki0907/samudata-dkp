@@ -646,7 +646,45 @@ const getKelautanPesisirStats = async (req, res) => {
       }
     });
 
+    // --- TERUMBU KARANG STATS (RAW SQL) ---
+    let tkQuery = `SELECT * FROM "terumbu_karang" WHERE "status" = 'VERIFIED'`;
+    if (tahun) tkQuery += ` AND "tahun" = ${parseInt(tahun)}`;
+    const terumbuData = await prisma.$queryRawUnsafe(tkQuery);
+
+    const terumbuPerKota = {};
+    const terumbuKondisiDistribution = { 'Sangat Baik (75-100%)': 0, 'Baik (50-75%)': 0, 'Rusak (0-50%)': 0 };
+    let total_luas_eksisting_terumbu = 0;
+    let total_luas_rehabilitasi_terumbu = 0;
+
+    terumbuData.forEach(item => {
+      const k = item.kabupaten_kota || 'Tidak Diketahui';
+      if (!terumbuPerKota[k]) {
+        terumbuPerKota[k] = { luas_eksisting: 0, luas_rehabilitasi: 0, sumPersentase: 0, count: 0 };
+      }
+      const luasEksisting = item.luas_eksisting_ha || 0;
+      const luasRehab = item.luas_rehabilitasi_ha || 0;
+
+      terumbuPerKota[k].luas_eksisting += luasEksisting;
+      terumbuPerKota[k].luas_rehabilitasi += luasRehab;
+      terumbuPerKota[k].sumPersentase += item.persentase_tutupan || 0;
+      terumbuPerKota[k].count += 1;
+
+      total_luas_eksisting_terumbu += luasEksisting;
+      total_luas_rehabilitasi_terumbu += luasRehab;
+
+      if (terumbuKondisiDistribution[item.kondisi] !== undefined) {
+        terumbuKondisiDistribution[item.kondisi] += 1;
+      }
+    });
+
     const lamunPerKotaResult = Object.entries(lamunPerKota).map(([name, stats]) => ({
+      name,
+      luas_eksisting: stats.luas_eksisting,
+      luas_rehabilitasi: stats.luas_rehabilitasi,
+      rata_persentase: stats.count > 0 ? stats.sumPersentase / stats.count : 0
+    }));
+
+    const terumbuPerKotaResult = Object.entries(terumbuPerKota).map(([name, stats]) => ({
       name,
       luas_eksisting: stats.luas_eksisting,
       luas_rehabilitasi: stats.luas_rehabilitasi,
@@ -659,14 +697,17 @@ const getKelautanPesisirStats = async (req, res) => {
         summary: {
           total_produksi_garam, total_petambak_garam, total_luas_lahan_garam,
           total_luas_eksisting_mangrove, total_luas_rehabilitasi_mangrove,
-          total_luas_eksisting_lamun, total_luas_rehabilitasi_lamun
+          total_luas_eksisting_lamun, total_luas_rehabilitasi_lamun,
+          total_luas_eksisting_terumbu, total_luas_rehabilitasi_terumbu
         },
         garamPerKota: Object.entries(garamPerKota).map(([name, stats]) => ({ name, ...stats })),
         potensiPerKota: Object.entries(potensiPerKota).map(([name, stats]) => ({ name, ...stats })),
         mangrovePerKota: mangrovePerKotaResult,
         mangroveKondisiDistribution: Object.entries(kondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah })),
         lamunPerKota: lamunPerKotaResult,
-        lamunKondisiDistribution: Object.entries(lamunKondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah }))
+        lamunKondisiDistribution: Object.entries(lamunKondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah })),
+        terumbuPerKota: terumbuPerKotaResult,
+        terumbuKondisiDistribution: Object.entries(terumbuKondisiDistribution).map(([kondisi, jumlah]) => ({ kondisi, jumlah }))
       }
     });
   } catch (error) {
@@ -741,6 +782,147 @@ const batchDeletePotensiPerairan = async (req, res) => {
   }
 };
 
+// ==============================
+// TERUMBU KARANG (RAW SQL BYPASS)
+// ==============================
+
+const getTerumbuKarangData = async (req, res) => {
+  try {
+    const data = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" ORDER BY "created_at" DESC`);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching terumbu karang data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const getTerumbuKarangPublicData = async (req, res) => {
+  try {
+    const { tahun } = req.query;
+    let query = `SELECT * FROM "terumbu_karang" WHERE "status" = 'VERIFIED'`;
+    if (tahun) query += ` AND "tahun" = ${parseInt(tahun)}`;
+    query += ` ORDER BY "created_at" DESC`;
+    const data = await prisma.$queryRawUnsafe(query);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching public terumbu karang data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const createTerumbuKarangData = async (req, res) => {
+  try {
+    const { tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, kondisi, luas_rehabilitasi_ha } = req.body;
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "terumbu_karang" (
+        "tahun", "kabupaten_kota", "luas_eksisting_ha", "persentase_tutupan", 
+        "kondisi", "luas_rehabilitasi_ha", "status", "created_at", "updated_at"
+      ) VALUES (
+        ${tahun}, '${kabupaten_kota}', ${luas_eksisting_ha || 0}, ${persentase_tutupan || 0}, 
+        '${kondisi}', ${luas_rehabilitasi_ha || 0}, 'PENDING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      )
+    `);
+    res.json({ success: true, message: 'Berhasil membuat data terumbu karang' });
+  } catch (error) {
+    console.error('Error creating terumbu karang data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateTerumbuKarangData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, kondisi, luas_rehabilitasi_ha } = req.body;
+    const existingArr = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" WHERE "id" = ${parseInt(id)}`);
+    if (!existingArr || existingArr.length === 0) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    const existing = existingArr[0];
+    
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
+    }
+
+    let statusUpdate = ``;
+    if (req.user?.role === 'admin_cabang' && existing.status === 'REJECTED') {
+      statusUpdate = `, "status" = 'PENDING', "alasan_penolakan" = NULL`;
+    }
+
+    await prisma.$executeRawUnsafe(`
+      UPDATE "terumbu_karang" 
+      SET 
+        "tahun" = ${tahun},
+        "kabupaten_kota" = '${kabupaten_kota}',
+        "luas_eksisting_ha" = ${luas_eksisting_ha || 0},
+        "persentase_tutupan" = ${persentase_tutupan || 0},
+        "kondisi" = '${kondisi}',
+        "luas_rehabilitasi_ha" = ${luas_rehabilitasi_ha || 0},
+        "updated_at" = CURRENT_TIMESTAMP
+        ${statusUpdate}
+      WHERE "id" = ${parseInt(id)}
+    `);
+    res.json({ success: true, message: 'Data updated successfully' });
+  } catch (error) {
+    console.error('Error updating terumbu karang data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const deleteTerumbuKarangData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existingArr = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" WHERE "id" = ${parseInt(id)}`);
+    if (!existingArr || existingArr.length === 0) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    const existing = existingArr[0];
+    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
+      return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui' });
+    }
+    await prisma.$executeRawUnsafe(`DELETE FROM "terumbu_karang" WHERE "id" = ${parseInt(id)}`);
+    res.json({ success: true, message: 'Data deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting terumbu karang data:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const updateTerumbuKarangStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, alasan_penolakan } = req.body;
+    const alasan = alasan_penolakan ? `'${alasan_penolakan}'` : 'NULL';
+    await prisma.$executeRawUnsafe(`UPDATE "terumbu_karang" SET "status" = '${status}', "alasan_penolakan" = ${alasan}, "updated_at" = CURRENT_TIMESTAMP WHERE "id" = ${parseInt(id)}`);
+    res.json({ success: true, message: 'Status updated' });
+  } catch (error) {
+    console.error('Error updating terumbu karang status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchTerumbuKarangStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    const idList = ids.map(id => parseInt(id)).join(',');
+    const alasan = status === 'REJECTED' && alasan_penolakan ? `'${alasan_penolakan}'` : 'NULL';
+    await prisma.$executeRawUnsafe(`UPDATE "terumbu_karang" SET "status" = '${status}', "alasan_penolakan" = ${alasan}, "updated_at" = CURRENT_TIMESTAMP WHERE "id" IN (${idList})`);
+    res.json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch terumbu karang status:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+const batchDeleteTerumbuKarang = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!req.user || req.user.role !== 'admin_pusat') return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    const idList = ids.map(id => parseInt(id)).join(',');
+    await prisma.$executeRawUnsafe(`DELETE FROM "terumbu_karang" WHERE "id" IN (${idList})`);
+    res.json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
+  } catch (error) {
+    console.error('Error batch delete terumbu karang:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
 module.exports = {
   getGaramData,
   getGaramPublicData,
@@ -774,5 +956,13 @@ module.exports = {
   updateLamunStatus,
   batchLamunStatus,
   batchDeleteLamun,
-  getKelautanPesisirStats
+  getKelautanPesisirStats,
+  getTerumbuKarangData,
+  getTerumbuKarangPublicData,
+  createTerumbuKarangData,
+  updateTerumbuKarangData,
+  deleteTerumbuKarangData,
+  updateTerumbuKarangStatus,
+  batchTerumbuKarangStatus,
+  batchDeleteTerumbuKarang
 };

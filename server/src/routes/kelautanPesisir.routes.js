@@ -19,6 +19,14 @@ const {
   updateLamunStatus,
   batchLamunStatus,
   batchDeleteLamun,
+  getTerumbuKarangData,
+  getTerumbuKarangPublicData,
+  createTerumbuKarangData,
+  updateTerumbuKarangData,
+  deleteTerumbuKarangData,
+  updateTerumbuKarangStatus,
+  batchTerumbuKarangStatus,
+  batchDeleteTerumbuKarang,
 } = require('../controllers/kelautanPesisir.controller');
 
 // ==========================================
@@ -37,6 +45,21 @@ router.patch('/garam/:id/status', verifyToken, controller.updateGaramStatus);
 router.post('/garam/batch-status', verifyToken, controller.batchGaramStatus);
 router.post('/garam/batch-delete', verifyToken, controller.batchDeleteGaram);
 
+// ==========================================
+// TERUMBU KARANG ROUTES
+// ==========================================
+
+// Public Route
+router.get('/terumbu-karang/public', getTerumbuKarangPublicData);
+
+// Admin Routes
+router.get('/terumbu-karang', verifyToken, getTerumbuKarangData);
+router.post('/terumbu-karang', verifyToken, createTerumbuKarangData);
+router.put('/terumbu-karang/:id', verifyToken, updateTerumbuKarangData);
+router.delete('/terumbu-karang/:id', verifyToken, deleteTerumbuKarangData);
+router.patch('/terumbu-karang/:id/status', verifyToken, updateTerumbuKarangStatus);
+router.post('/terumbu-karang/batch-status', verifyToken, batchTerumbuKarangStatus);
+router.post('/terumbu-karang/batch-delete', verifyToken, batchDeleteTerumbuKarang);
 
 // ==========================================
 // POTENSI PERAIRAN ROUTES

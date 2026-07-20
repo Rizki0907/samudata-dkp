@@ -8,7 +8,7 @@ import {
   TreePine, Landmark, Globe, Fish, Info, Clock, Leaf
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
@@ -77,6 +77,34 @@ const mangroveComboOption = (categories, eksisting, rehab) => ({
   ],
 });
 
+const KONDISI_TERUMBU_COLOR_MAP = {
+  'Sangat Baik (75-100%)': '#10b981',
+  'Baik (50-75%)': '#f59e0b',
+  'Rusak (0-50%)': '#f43f5e',
+};
+const kondisiTerumbuPieOption = (data) => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
+  series: [{
+    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
+    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_TERUMBU_COLOR_MAP[d.name] } })),
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
+  }]
+});
+
+const terumbuComboOption = (categories, eksisting, rehab) => ({
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#475569', fontSize: 11 } },
+  grid: { left: 140, right: 30, top: 40, bottom: 10 },
+  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  series: [
+    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#0ea5e9', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
+  ],
+});
+
 const KONDISI_LAMUN_COLOR_MAP = {
   'Kaya (60-100%)': '#10b981',
   'Kurang Kaya (30-60%)': '#f59e0b',
@@ -111,6 +139,7 @@ export default function KelautanPesisir() {
   const [dataPotensi, setDataPotensi] = useState([]);
   const [dataMangrove, setDataMangrove] = useState([]);
   const [dataLamun, setDataLamun] = useState([]);
+  const [dataTerumbuKarang, setDataTerumbuKarang] = useState([]);
 
   // Global Filters
   const [filterBulan, setFilterBulan] = useState('');
@@ -124,16 +153,18 @@ export default function KelautanPesisir() {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const [garamRes, potensiRes, mangroveRes, lamunRes] = await Promise.all([
+        const [garamRes, potensiRes, mangroveRes, lamunRes, terumbuRes] = await Promise.all([
           api.get('/kelautan-pesisir/garam/public'),
           api.get('/kelautan-pesisir/potensi-perairan/public'),
           api.get('/kelautan-pesisir/mangrove/public'),
-          api.get('/kelautan-pesisir/lamun/public')
+          api.get('/kelautan-pesisir/lamun/public'),
+          api.get('/kelautan-pesisir/terumbu-karang/public')
         ]);
         setDataGaram(garamRes.data.data || []);
         setDataPotensi(potensiRes.data.data || []);
         setDataMangrove(mangroveRes.data.data || []);
         setDataLamun(lamunRes.data.data || []);
+        setDataTerumbuKarang(terumbuRes.data.data || []);
       } catch (error) {
         console.error('Error fetching kelautan pesisir data:', error);
       } finally {
@@ -146,19 +177,20 @@ export default function KelautanPesisir() {
   const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   
   const kabupatenOptions = useMemo(() => {
-    const set = new Set([...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun].map(d => d.kabupaten_kota).filter(Boolean));
+    const set = new Set([...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang].map(d => d.kabupaten_kota).filter(Boolean));
     return [...set].sort();
-  }, [dataGaram, dataPotensi, dataMangrove, dataLamun]);
+  }, [dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
 
   const tahunOptions = useMemo(() => {
     const set = new Set([
       ...dataGaram.map(d => d.tahun), 
       ...dataPotensi.map(d => d.tahun_data),
       ...dataMangrove.map(d => d.tahun),
-      ...dataLamun.map(d => d.tahun)
+      ...dataLamun.map(d => d.tahun),
+      ...dataTerumbuKarang.map(d => d.tahun)
     ].filter(Boolean));
     return [...set].sort((a, b) => b - a);
-  }, [dataGaram, dataPotensi, dataMangrove, dataLamun]);
+  }, [dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
 
   // ── KPI Potensi Perairan ──
   const filteredVisPotensi = useMemo(() => dataPotensi.filter(d => 
@@ -303,6 +335,48 @@ export default function KelautanPesisir() {
     ];
   }, [filteredVisLamun]);
 
+  // ── VISUALISASI TERUMBU KARANG ──
+  const filteredVisTerumbu = useMemo(() => dataTerumbuKarang.filter(d =>
+    (!filterTahun || String(d.tahun) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataTerumbuKarang, filterTahun, filterKab]);
+
+  const visTerumbuPerKota = useMemo(() => {
+    const agg = {};
+    filteredVisTerumbu.forEach(d => {
+      const kab = d.kabupaten_kota || 'Unknown';
+      if (!agg[kab]) agg[kab] = { name: kab, luas_eksisting: 0, luas_rehabilitasi: 0 };
+      agg[kab].luas_eksisting += (d.luas_eksisting_ha || 0);
+      agg[kab].luas_rehabilitasi += (d.luas_rehabilitasi_ha || 0);
+    });
+    return Object.values(agg).sort((a, b) => b.luas_eksisting - a.luas_eksisting);
+  }, [filteredVisTerumbu]);
+
+  const kpiTerumbu = useMemo(() => {
+    return {
+      luas_eksisting: visTerumbuPerKota.reduce((s, d) => s + d.luas_eksisting, 0),
+      luas_rehabilitasi: visTerumbuPerKota.reduce((s, d) => s + d.luas_rehabilitasi, 0),
+      jumlah_lokasi: filteredVisTerumbu.length,
+    };
+  }, [visTerumbuPerKota, filteredVisTerumbu.length]);
+
+  const terumbuKota = visTerumbuPerKota.map(d => d.name);
+  const terumbuEksisting = visTerumbuPerKota.map(d => parseFloat(d.luas_eksisting.toFixed(2)));
+  const terumbuRehab = visTerumbuPerKota.map(d => parseFloat(d.luas_rehabilitasi.toFixed(2)));
+
+  const kondisiTerumbuChartData = useMemo(() => {
+    const agg = {};
+    filteredVisTerumbu.forEach(d => {
+      const k = d.kondisi || 'Tidak Diketahui';
+      agg[k] = (agg[k] || 0) + 1;
+    });
+    return [
+      { name: 'Sangat Baik (75-100%)', value: agg['Sangat Baik (75-100%)'] || 0 },
+      { name: 'Baik (50-75%)', value: agg['Baik (50-75%)'] || 0 },
+      { name: 'Rusak (0-50%)', value: agg['Rusak (0-50%)'] || 0 },
+    ];
+  }, [filteredVisTerumbu]);
+
   // ── TABEL DATA ──
   const filteredTableGaram = useMemo(() => dataGaram.filter(d =>
     (!filterBulan || (d.bulan || '').toLowerCase() === filterBulan.toLowerCase()) &&
@@ -324,6 +398,11 @@ export default function KelautanPesisir() {
     (!filterTahun || String(d.tahun) === filterTahun) &&
     (!filterKab || d.kabupaten_kota === filterKab)
   ), [dataLamun, filterTahun, filterKab]);
+
+  const filteredTableTerumbu = useMemo(() => dataTerumbuKarang.filter(d =>
+    (!filterTahun || String(d.tahun) === filterTahun) &&
+    (!filterKab || d.kabupaten_kota === filterKab)
+  ), [dataTerumbuKarang, filterTahun, filterKab]);
 
   const columnsGaram = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun' },
@@ -366,6 +445,15 @@ export default function KelautanPesisir() {
     { header: 'Luas Rehabilitasi (Ha)', accessorKey: 'luas_rehabilitasi_ha', cell: info => numFmt(info.getValue()) },
   ], []);
 
+  const columnsTerumbuKarang = useMemo(() => [
+    { header: 'Tahun', accessorKey: 'tahun' },
+    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota' },
+    { header: 'Luas Eksisting (Ha)', accessorKey: 'luas_eksisting_ha', cell: info => numFmt(info.getValue()) },
+    { header: 'Tutupan (%)', accessorKey: 'persentase_tutupan', cell: info => numFmt(info.getValue()) },
+    { header: 'Kondisi', accessorKey: 'kondisi' },
+    { header: 'Luas Rehabilitasi (Ha)', accessorKey: 'luas_rehabilitasi_ha', cell: info => numFmt(info.getValue()) },
+  ], []);
+
   const handleExport = async (rows) => {
     if (!rows || rows.length === 0) {
       alert("Tidak ada data untuk diekspor!");
@@ -380,6 +468,7 @@ export default function KelautanPesisir() {
     if (activeTable === 'garam') { cols = columnsGaram; yearField = 'tahun'; }
     else if (activeTable === 'potensi') { cols = columnsPotensi; yearField = 'tahun_data'; }
     else if (activeTable === 'mangrove') { cols = columnsMangrove; yearField = 'tahun'; }
+    else if (activeTable === 'terumbu_karang') { cols = columnsTerumbuKarang; yearField = 'tahun'; }
     else if (activeTable === 'lamun') { cols = columnsLamun; yearField = 'tahun'; }
 
     const buildSheet = (sheetName, dataRows) => {
@@ -475,16 +564,16 @@ export default function KelautanPesisir() {
     );
   }
 
-  const allData = [...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun];
+  const allData = [...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang];
 
   const validDates = allData
-    .map(d => new Date(d.updatedAt || d.createdAt))
+    .map(d => new Date(d.updated_at || d.updatedAt || d.created_at || d.createdAt))
     .filter(d => !isNaN(d.getTime()))
     .map(d => d.getTime());
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
   const lastUpdated = latestDate 
-    ? formatDistanceToNow(latestDate, { addSuffix: true, locale: idLocale })
+    ? format(latestDate, "dd MMMM yyyy 'pukul' HH:mm", { locale: idLocale })
     : '-';
 
   return (
@@ -677,11 +766,61 @@ export default function KelautanPesisir() {
         </div>
       </div>
 
-      {/* ── Placeholder Visualisasi Terumbu Karang ── */}
-      <div className="bg-muted/30 border border-dashed border-border p-8 rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-center">
-        <Info className="w-8 h-8 mb-2 opacity-50" />
-        <p className="font-medium text-foreground">Visualisasi Terumbu Karang</p>
-        <p className="text-sm">Segera hadir pada pembaruan berikutnya.</p>
+      {/* ── Visualisasi Terumbu Karang ── */}
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Waves className="w-5 h-5 text-cyan-500" />
+            <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Terumbu Karang</h2>
+          </div>
+        </div>
+
+        {/* Terumbu Karang KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
+            <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
+          </div>
+        </div>
+
+        {/* Terumbu Karang Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting per Kab/Kota (Ha)</h3>
+            {terumbuKota.length > 0
+              ? <ReactECharts option={hBarOption(terumbuKota, terumbuEksisting, '#0ea5e9', 'Ha')} style={{ height: Math.max(320, terumbuKota.length * 38) + 'px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            {terumbuKota.length > 0
+              ? <ReactECharts option={hBarOption(terumbuKota, terumbuRehab, '#ec4899', 'Ha')} style={{ height: Math.max(320, terumbuKota.length * 38) + 'px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
+            {kpiTerumbu.jumlah_lokasi > 0
+              ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData)} style={{ height: '320px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
+            {terumbuKota.length > 0
+              ? <ReactECharts option={terumbuComboOption(terumbuKota, terumbuEksisting, terumbuRehab)} style={{ height: Math.max(320, terumbuKota.length * 38) + 'px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+        </div>
       </div>
 
       {/* ── Visualisasi Lamun ── */}
@@ -765,6 +904,12 @@ export default function KelautanPesisir() {
               <TreePine className="w-4 h-4 inline mr-1.5" /> Mangrove
             </button>
             <button
+              onClick={() => setActiveTable('terumbu_karang')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTable === 'terumbu_karang' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}
+            >
+              <Waves className="w-4 h-4 inline mr-1.5" /> Terumbu Karang
+            </button>
+            <button
               onClick={() => setActiveTable('lamun')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTable === 'lamun' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}
             >
@@ -774,8 +919,8 @@ export default function KelautanPesisir() {
         </div>
 
         <DataTable
-          columns={activeTable === 'garam' ? columnsGaram : activeTable === 'potensi' ? columnsPotensi : activeTable === 'mangrove' ? columnsMangrove : columnsLamun}
-          data={activeTable === 'garam' ? filteredTableGaram : activeTable === 'potensi' ? filteredTablePotensi : activeTable === 'mangrove' ? filteredTableMangrove : filteredTableLamun}
+          columns={activeTable === 'garam' ? columnsGaram : activeTable === 'potensi' ? columnsPotensi : activeTable === 'mangrove' ? columnsMangrove : activeTable === 'terumbu_karang' ? columnsTerumbuKarang : columnsLamun}
+          data={activeTable === 'garam' ? filteredTableGaram : activeTable === 'potensi' ? filteredTablePotensi : activeTable === 'mangrove' ? filteredTableMangrove : activeTable === 'terumbu_karang' ? filteredTableTerumbu : filteredTableLamun}
           exportName={`Data_${activeTable}`}
           onCustomExport={handleExport}
         />
