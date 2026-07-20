@@ -7,7 +7,7 @@ import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import {  
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
   Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle 
-, Clock } from 'lucide-react';
+, Clock, Download, Calendar, Map, Layers, ChevronDown } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
@@ -549,7 +549,331 @@ export default function AdminPerikananTangkap() {
 
 
 
-  const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
+  
+  const handleExportLMPelabuhan = (exportData, tahun, bulan, wilayah) => {
+    if (!wilayah) {
+       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Monitoring.");
+       return;
+    }
+    const pelabuhanName = wilayah.toUpperCase();
+    let kotaName = '-';
+    // PELABUHAN_TO_KABKOTA might not map the exact string depending on spacing, so let's do a safe lookup
+    Object.keys(PELABUHAN_TO_KABKOTA).forEach(k => {
+        if (k.toUpperCase() === pelabuhanName) {
+            kotaName = PELABUHAN_TO_KABKOTA[k].toUpperCase();
+        }
+    });
+    
+    let totalVol = 0;
+    let totalNilai = 0;
+    const logistikSummaryMap = {};
+    const apiToKomoditasMap = {};
+
+    exportData.forEach(row => {
+      // Logistik
+      if (row.logistik) {
+        try {
+          const parsed = JSON.parse(row.logistik);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+              const val = parseFloat(item.jumlah) || 0;
+              logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
+            });
+          }
+        } catch(e) {}
+      }
+
+      // Komoditas
+      const apiName = (row.alat_tangkap || 'TIDAK DIKETAHUI').toUpperCase();
+      if (!apiToKomoditasMap[apiName]) {
+        apiToKomoditasMap[apiName] = {};
+      }
+      
+      if (row.tangkapan && Array.isArray(row.tangkapan)) {
+        row.tangkapan.forEach(t => {
+          const kName = t.komoditas.toUpperCase();
+          const v = parseFloat(t.volume) || 0;
+          const n = parseFloat(t.nilai) || 0;
+          
+          if (!apiToKomoditasMap[apiName][kName]) {
+             apiToKomoditasMap[apiName][kName] = { vol: 0, nilai: 0 };
+          }
+          apiToKomoditasMap[apiName][kName].vol += v;
+          apiToKomoditasMap[apiName][kName].nilai += n;
+          
+          totalVol += v;
+          totalNilai += n;
+        });
+      }
+    });
+
+    const rows = [];
+    
+    // HEADER
+    rows.push(['LAPORAN MONITORING PELABUHAN PERIKANAN (PP)', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['LAPORAN BULANAN (12 X 1 TAHUN)', '', '', 'KODE LAPORAN', ': ', '']);
+    rows.push(['', '', '', 'PROVINSI', ': JAWA TIMUR', '']);
+    rows.push(['LAPORAN MONITORING', '', '', 'KOTA', `: ${kotaName}`, '']);
+    rows.push(['PELABUHAN PERIKANAN (PP)', '', '', 'PPP', `: ${pelabuhanName}`, '']);
+    rows.push(['', '', '', 'TAHUN', `: ${tahun || 'Semua'}`, '']);
+    
+    let namaBulan = 'Semua';
+    if (bulan) {
+       const blnInt = parseInt(bulan);
+       if (blnInt >= 1 && blnInt <= 12) {
+          namaBulan = BULAN_OPTIONS[blnInt - 1].toUpperCase();
+       }
+    }
+    rows.push(['', '', '', 'BULAN', `: ${namaBulan}`, '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 1 
+    rows.push(['No', 'Uraian', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Nelayan', '', '', '', '']);
+    rows.push(['', ' - Nelayan Utama', '', 'Orang', '', '']);
+    rows.push(['', ' - Nelayan Sambilan', '', 'Orang', '', '']);
+    rows.push(['2', 'Armada Perikanan', '', '', '', '']);
+    rows.push(['', 'a. Kapal Motor', '', 'Unit', '', '']);
+    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 31 - 50 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 51 - 100 GT', '', 'Unit', '', '']);
+    rows.push(['', '*101 - 200 GT', '', 'Unit', '', '']);
+    rows.push(['', '*201 - 300 GT', '', 'Unit', '', '']);
+    rows.push(['', '*301 - 500 GT', '', 'Unit', '', '']);
+    rows.push(['', '* > 500 GT', '', 'Unit', '', '']);
+    rows.push(['', 'b.  Motor Tempel', '', 'Unit', '', '']);
+    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
+    rows.push(['', '* > 30 GT', '', 'Unit', '', '']);
+    rows.push(['', 'c. Perahu Tanpa Motor', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Kecil', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Sedang', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Besar', '', 'Unit', '', '']);
+    rows.push(['', 'd. Jukung', '', 'Unit', '', '']);
+    
+    // TABEL (Lanjutan 1)
+    rows.push(['3', 'Alat Penangkap Ikan (unit)', '', '', '', '']);
+    rows.push(['', '* Jaring lingkar bertali kerut (Purse Seine)', '', 'Unit', '', '']);
+    rows.push(['', '* Pancing Ulur Tuna', '', 'Unit', '', '']);
+    rows.push(['', '* Tonda', '', 'Unit', '', '']);
+    rows.push(['', '* Rawai Dasar', '', 'Unit', '', '']);
+    rows.push(['', '* Payang', '', 'Unit', '', '']);
+    rows.push(['', '* Jaring Insang Hanyut/J. insang oseanik', '', 'Unit', '', '']);
+    rows.push(['', '* Lain-2', '', 'Unit', '', '']);
+    
+    rows.push(['4', 'Kapal Pengangkut', '', 'Unit', '', '']);
+    rows.push(['5', 'Bakul / Pedagang (orang)', '', 'Orang', '', '']);
+    rows.push(['6', 'Pengolah (unit)', '', 'Unit', '', '']);
+    rows.push(['', '* (harap disesuaikan dengan alat tangkap masing masing di pelabuhan)', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 2 (Data Kapal)
+    rows.push(['2.    Data Kapal yang bersandar', '', '', '', '', '']);
+    rows.push(['No', 'Kategori Kapal', 'Jumlah (Unit)', 'Frekuensi (Kali)', 'Rata-Rata Periode Operasi (Hari)', 'Keterangan']);
+    rows.push(['1.', 'Kapal Motor', '', '', '', '']);
+    rows.push(['', '* < 5 GT', '', '', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
+    rows.push(['', '* 31 - 50 GT', '', '', '', '']);
+    rows.push(['', '* 51 - 100 GT', '', '', '', '']);
+    rows.push(['', '*101 - 200 GT', '', '', '', '']);
+    rows.push(['', '*201 - 300 GT', '', '', '', '']);
+    rows.push(['', '*301 - 500 GT', '', '', '', '']);
+    rows.push(['', '* > 500 GT', '', '', '', '']);
+    rows.push(['2.', 'Motor Tempel', '', '', '', '']);
+    rows.push(['', '* < 5 GT', '', '', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
+    rows.push(['', '* > 30 GT', '', '', '', '']);
+    rows.push(['3.', 'Perahu Tanpa Motor', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Kecil', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Sedang', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Besar', '', '', '', '']);
+    rows.push(['4.', 'Jukung', '', '', '', '']);
+    rows.push(['Jumlah', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 3 (Operasional)
+    rows.push(['3.    Data Operasional Kapal Perikanan dan ABK', '', '', '', '', '']);
+    rows.push(['No.', 'Uraian Kegiatan', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Jumlah Kapal', '', '', '', '']);
+    rows.push(['', '* Melaut', '', 'Kapal', '', '']);
+    rows.push(['', '* Tidak Melaut', '', 'Kapal', '', '']);
+    rows.push(['', '* dI Daerah Lain', '', 'Kapal', '', '']);
+    rows.push(['2', 'Jumlah ABK', '', '', '', '']);
+    rows.push(['', '* Melaut', '', 'Orang', '', '']);
+    rows.push(['', '* Tidak Melaut', '', 'Orang', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 4 (Produksi)
+    rows.push(['4.    Produksi, Nilai Produksi serta Retribusi Lelang', '', '', '', '', '']);
+    rows.push(['No.', 'Uraian Data', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Produksi Ikan', totalVol, 'Kilogram', '', '']);
+    rows.push(['2', 'Nilai Produksi', totalNilai, 'Rupiah', '', '']);
+    rows.push(['3', 'Retribusi Lelang', '', 'Rupiah', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 5 (Alat Tangkap)
+    rows.push(['5.    Jenis Ikan dan Alat Tangkap yang Digunakan', '', '', '', '', '']);
+    
+    let counter5 = 1;
+    Object.keys(apiToKomoditasMap).sort().forEach(api => {
+       rows.push([`5.${counter5} ${api}`, '', '', '', '', '']);
+       rows.push(['No.', 'Jenis Ikan', 'Volume (Kg)', 'Harga (Rp)', 'Nilai (Rp)', 'Keterangan']);
+       
+       let subCounter = 1;
+       let subTotalVol = 0;
+       let subTotalNilai = 0;
+       
+       Object.keys(apiToKomoditasMap[api]).sort().forEach(kom => {
+           const valObj = apiToKomoditasMap[api][kom];
+           const hargaRata = valObj.vol > 0 ? (valObj.nilai / valObj.vol) : 0;
+           subTotalVol += valObj.vol;
+           subTotalNilai += valObj.nilai;
+           
+           rows.push([subCounter++, kom, valObj.vol, hargaRata, valObj.nilai, '']);
+       });
+       
+       rows.push(['', 'TOTAL', subTotalVol, '', subTotalNilai, '']);
+       rows.push(['', '', '', '', '', '']);
+       counter5++;
+    });
+    
+    // TABEL 6
+    rows.push(['6.    Daerah Pemasaran dan Tujuan Pemasaran Ikan', '', '', '', '', '']);
+    rows.push(['No.', 'Wilayah', 'Kota', 'Jumlah', 'Keterangan', '']);
+    rows.push(['1', 'Dalam Kota', '', '', '', '']);
+    rows.push(['2', 'Luar Kota', '', '', '', '']);
+    rows.push(['3', 'Luar Provinsi', '', '', '', '']);
+    rows.push(['4', 'Luar Negeri', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 7
+    rows.push(['7.    Bentuk Ikan yang Dipasarkan', '', '', '', '', '']);
+    rows.push(['No.', 'Jenis Ikan', 'Olahan', 'Jumlah (Kg)', 'Keterangan', '']);
+    rows.push(['1', '', '', '', '', '']);
+    rows.push(['2', '', '', '', '', '']);
+    rows.push(['', 'TOTAL', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 8
+    rows.push(['8.    Perbekalan Kapal', '', '', '', '', '']);
+    rows.push(['No.', 'Perbekalan', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    
+    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
+        const val = logistikSummaryMap[pb.nama] || '';
+        rows.push([idx + 1, pb.nama, val, pb.satuan, '', '']);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    const merges = [];
+    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+    merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 1 } });
+    merges.push({ s: { r: 5, c: 0 }, e: { r: 5, c: 1 } });
+    merges.push({ s: { r: 6, c: 0 }, e: { r: 6, c: 1 } });
+    ws['!merges'] = merges;
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    let activeEndCol = 5;
+    
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const firstCell = rows[R] ? rows[R][0] : '';
+      
+      let isRowEmpty = true;
+      for (let C = 0; C <= 5; ++C) {
+         if (rows[R] && rows[R][C] !== '') {
+             isRowEmpty = false;
+         }
+      }
+      
+      if (isRowEmpty) {
+         activeEndCol = 0;
+         continue;
+      }
+
+      const isMainTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.\s+/);
+      const isSubTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.[0-9]+/);
+      const isTableTitle = isMainTableTitle || isSubTableTitle;
+      const isTableHeader = firstCell === 'No' || firstCell === 'No.';
+      
+      if (isTableHeader) {
+         let maxCol = 0;
+         for (let C = 0; C <= 5; ++C) {
+            if (rows[R][C] !== '') maxCol = C;
+         }
+         activeEndCol = maxCol;
+      }
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+
+        if (typeof ws[cellRef].v === 'number') {
+            if (ws[cellRef].v === 0) {
+               ws[cellRef].v = '-';
+               ws[cellRef].t = 's';
+            } else {
+               ws[cellRef].z = '#,##0';
+            }
+        }
+
+        if (R === 0) {
+           ws[cellRef].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } };
+        } else if (R >= 3 && R <= 8) {
+           ws[cellRef].s = { font: { bold: true } };
+        } else if (R >= 10 && !isRowEmpty) {
+           if (isTableTitle) {
+              if (C === 0) {
+                 ws[cellRef].s = { 
+                    font: { bold: true, sz: 11, color: { rgb: "1E293B" } }, 
+                    fill: { fgColor: { rgb: "F1F5F9" } },
+                    alignment: { vertical: 'center' }
+                 };
+                 if (!ws['!merges']) ws['!merges'] = [];
+                 ws['!merges'].push({ s: { r: R, c: 0 }, e: { r: R, c: 5 } });
+              }
+           } else if (C <= activeEndCol) {
+               const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+               ws[cellRef].s = { border: borderStyle, alignment: { vertical: 'center' } };
+               
+               if (isTableHeader) {
+                  ws[cellRef].s.font = { bold: true, color: { rgb: "FFFFFF" } };
+                  ws[cellRef].s.fill = { fgColor: { rgb: "3B82F6" } };
+                  ws[cellRef].s.alignment = { horizontal: 'center', vertical: 'center' };
+               } else {
+                  if (C === 0 && typeof ws[cellRef].v === 'string' && ws[cellRef].v.match(/^[0-9]\.$/)) {
+                     ws[cellRef].s.font = { bold: true };
+                  }
+                  if (rows[R][1] === 'TOTAL' || rows[R][0] === 'Jumlah') {
+                     ws[cellRef].s.font = { bold: true };
+                     ws[cellRef].s.fill = { fgColor: { rgb: "F8FAFC" } };
+                  }
+               }
+           }
+        }
+      }
+    }
+
+    const colWidths = [{ wch: 8 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 25 }];
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan_Monitoring");
+    XLSX.writeFile(wb, `LM_${pelabuhanName}_${namaBulan}_${tahun || ''}.xlsx`);
+  };
+
+const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
     try {
       const pudData = exportData.filter(d => d.sumber_data === 'PUD');
       if (pudData.length === 0) {
@@ -582,7 +906,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
-  const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
+    const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
     if (!wilayah) {
        alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Rekap.");
        return;
@@ -605,9 +929,20 @@ export default function AdminPerikananTangkap() {
     const row2 = [];
     const row3 = ['1. PRODUKSI PELABUHAN'];
     
-    const row4 = ['NO', 'TANGGAL', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Catatan', 'Total Produksi', '', 'I k a n'];
-    const row5 = ['', '', '', '', '', '', '', '', '', '', '', '', ''];
-    const row6 = ['', '', '', '', '', '', '', '', '', '', '', 'Volume', 'Nilai'];
+    const row4 = ['NO', 'TANGGAL', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Logistik / Perbekalan'];
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length - 1; i++) row4.push('');
+    row4.push('Total Produksi', '', 'I k a n');
+    
+    const row5 = ['', '', '', '', '', '', '', '', '', ''];
+    const row6 = ['', '', '', '', '', '', '', '', '', ''];
+    
+    PERBEKALAN_OPTIONS.forEach(pb => {
+      row5.push(`${pb.nama} (${pb.satuan})`);
+      row6.push('');
+    });
+    
+    row5.push('', '');
+    row6.push('Volume', 'Nilai');
     
     const komoditasTotalMap = {};
     const komoditasArray = [...KOMODITAS_OPTIONS];
@@ -620,6 +955,7 @@ export default function AdminPerikananTangkap() {
     let totalKeseluruhanVol = 0;
     let totalKeseluruhanNilai = 0;
     const apiSummaryMap = {};
+    const logistikSummaryMap = {};
 
     const dataRows = exportData.map((row, idx) => {
       let totalVol = 0;
@@ -661,11 +997,27 @@ export default function AdminPerikananTangkap() {
         row.nama_kapal || '-',
         row.gt_kapal || '-',
         row.alat_tangkap || '-',
-        '',
-        formatLogistikText(row.logistik),
-        totalVol,
-        totalNilai
+        ''
       ];
+      
+      const logistikData = {};
+      if (row.logistik) {
+        try {
+          const parsed = JSON.parse(row.logistik);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => { 
+                const val = parseFloat(item.jumlah) || 0;
+                logistikData[item.nama] = val; 
+                logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
+              });
+          }
+        } catch(e) {}
+      }
+      PERBEKALAN_OPTIONS.forEach(pb => {
+        baseRow.push(logistikData[pb.nama] || '');
+      });
+
+      baseRow.push(totalVol, totalNilai);
 
       komoditasArray.forEach(kom => {
         if (komMap[kom]) {
@@ -677,11 +1029,16 @@ export default function AdminPerikananTangkap() {
       return baseRow;
     });
 
-    // Baris Total Tangkapan & Nilai di akhir data
-    const rowTotal1 = ['TOTAL TANGKAPAN', '', '', '', '', '', '', '', '', '', '', totalKeseluruhanVol, ''];
-    const rowTotal2 = ['Nilai', '', '', '', '', '', '', '', '', '', '', '', totalKeseluruhanNilai];
+    const rowTotal1 = ['TOTAL TANGKAPAN', '', '', '', '', '', '', '', '', ''];
+    const rowTotal2 = ['Nilai', '', '', '', '', '', '', '', '', ''];
     
-    // Padding sisa kolom komoditas agar format border tetap rapi
+    PERBEKALAN_OPTIONS.forEach(() => {
+        rowTotal1.push('');
+        rowTotal2.push('');
+    });
+    rowTotal1.push(totalKeseluruhanVol, '');
+    rowTotal2.push('', totalKeseluruhanNilai);
+    
     komoditasArray.forEach(kom => {
       const tot = komoditasTotalMap[kom];
       if (tot.vol > 0 || tot.nilai > 0) {
@@ -715,6 +1072,34 @@ export default function AdminPerikananTangkap() {
     
     const summaryTotalRow = ['Total Produksi', '', totalKeseluruhanVol, totalKeseluruhanNilai, '-', '-'];
 
+    
+    const operasionalHeader = ['2. OPERASIONAL PELABUHAN'];
+    const operasionalRows = [
+      ['1', 'Jumlah kapal yang terlayani', '', '', '', '', '', '', '', ''],
+      ['', 'a. Di dalam Kolam Labuh', '', '', '', '', '', '', 'Unit', ''],
+      ['', 'b. Di luar kolam (Area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
+      ['', 'c. Diluar kolam (luar area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
+      ['2', 'Trip Kapal', '', '', '', '', '', '', 'Trip', ''],
+      ['3', 'STBLKK', '', '', '', '', '', '', '', ''],
+      ['', 'a. Keberangkatan', '', '', '', '', '', '', 'Dokumen', ''],
+      ['', 'b. Kedatangan', '', '', '', '', '', '', 'Dokumen', ''],
+      ['4', 'Rekomendasi BBM Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
+      ['5', 'Rekomendasi BBM Non Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
+      ['6', 'Penerbitan SPB', '', '', '', '', '', '', 'Dokumen', ''],
+      ['7', 'Penerbitan CPIB', '', '', '', '', '', '', 'Dokumen', ''],
+      ['8', 'Penerimaan Logbook', '', '', '', '', '', '', 'Dokumen', ''],
+      ['9', 'Penerbitan SHTI', '', '', '', '', '', '', 'Dokumen', ''],
+      ['10', 'Penerbitan ICCAT', '', '', '', '', '', '', 'Dokumen', ''],
+      ['11', 'Data Logistik :', '', '', '', '', '', '', '', '']
+    ];
+
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
+        const logistikTotalValue = logistikSummaryMap[pb.nama] || 0;
+        const letter = alphabet[idx] || '';
+        operasionalRows.push(['', `${letter}. ${pb.nama}`, '', '', '', '', logistikTotalValue > 0 ? logistikTotalValue : '-', '', pb.satuan, '']);
+    });
+
     const allRowsToRender = [
       row0, row1, row2, row3, row4, row5, row6, 
       ...dataRows, 
@@ -722,7 +1107,10 @@ export default function AdminPerikananTangkap() {
       emptyRow, emptyRow,
       summaryHeader1, summaryHeader2, summaryHeader3,
       ...summaryRows,
-      summaryTotalRow
+      summaryTotalRow,
+      emptyRow, emptyRow,
+      operasionalHeader,
+      ...operasionalRows
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
@@ -731,15 +1119,17 @@ export default function AdminPerikananTangkap() {
     const boldCenter = { font: { bold: true, color: { rgb: "000000" } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
     const normalCenter = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
     
-    // Style khusus untuk baris bawah
     const totalRowStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
     const totalRowStyle2 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
     const summaryHeaderStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
     const summaryDataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
-    const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } }; // Merah redup
+    const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } };
     const summaryGreenStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
 
     const summaryStartRowIndex = 7 + dataRows.length + 4; // index 0-based
+
+    
+    const operasionalStartIndex = allRowsToRender.indexOf(operasionalHeader);
 
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -757,24 +1147,20 @@ export default function AdminPerikananTangkap() {
               else ws[cellRef].z = '#,##0';
             }
         } else if (R === 7 + dataRows.length) {
-            // TOTAL TANGKAPAN (Seluruh Kolom)
             ws[cellRef].s = totalRowStyle1; 
             if (typeof ws[cellRef].v === 'number') {
               if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
               else ws[cellRef].z = '#,##0';
             }
         } else if (R === 7 + dataRows.length + 1) {
-            // Nilai (Seluruh Kolom)
             ws[cellRef].s = totalRowStyle2;
             if (typeof ws[cellRef].v === 'number') {
               if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
               else ws[cellRef].z = '#,##0';
             }
         } else if (R === summaryStartRowIndex || R === summaryStartRowIndex + 1 || R === summaryStartRowIndex + 2) {
-            // SUMMARY HEADER
             if (C <= 5) ws[cellRef].s = summaryHeaderStyle1;
         } else if (R > summaryStartRowIndex + 2 && R < summaryStartRowIndex + 3 + summaryRows.length) {
-            // SUMMARY DATA
             if (C <= 5) {
               ws[cellRef].s = summaryDataStyle;
               if (typeof ws[cellRef].v === 'number') {
@@ -783,7 +1169,6 @@ export default function AdminPerikananTangkap() {
               }
             }
         } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
-            // SUMMARY TOTAL
             if (C <= 5) {
               ws[cellRef].s = summaryTotalStyle;
               if (typeof ws[cellRef].v === 'number') {
@@ -791,52 +1176,80 @@ export default function AdminPerikananTangkap() {
                 else ws[cellRef].z = '#,##0';
               }
             }
+        } else if (R === operasionalStartIndex) {
+            if (C <= 9) ws[cellRef].s = { font: { bold: true, sz: 12 }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E69138" } } };
+        } else if (R > operasionalStartIndex && R <= operasionalStartIndex + operasionalRows.length) {
+            if (C <= 9) {
+               ws[cellRef].s = { alignment: { vertical: 'center' }, border: borderStyle };
+               if (C === 0) ws[cellRef].s.alignment.horizontal = 'center'; // No.
+               if (C === 6) ws[cellRef].s.alignment.horizontal = 'center'; // Value
+               if (C === 8) ws[cellRef].s.alignment.horizontal = 'center'; // Unit
+               if (C === 6 && typeof ws[cellRef].v === 'number') {
+                  ws[cellRef].z = '#,##0';
+               }
+            }
         }
       }
     }
 
+    const totalBaseCols = 10 + PERBEKALAN_OPTIONS.length + 2;
+    const totalCols = totalBaseCols + (komoditasArray.length * 3);
+    const totalColStart = 10 + PERBEKALAN_OPTIONS.length;
+    const ikanColStart = totalColStart + 2;
+    
     const merges = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, // REKAPITULASI...
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }, // Hari, Tanggal...
-      { s: { r: 3, c: 0 }, e: { r: 3, c: 10 } }, // 1. PRODUKSI IKAN
-      { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } },
-      { s: { r: 4, c: 1 }, e: { r: 6, c: 1 } },
-      { s: { r: 4, c: 2 }, e: { r: 6, c: 2 } },
-      { s: { r: 4, c: 3 }, e: { r: 6, c: 3 } },
-      { s: { r: 4, c: 4 }, e: { r: 6, c: 4 } },
-      { s: { r: 4, c: 5 }, e: { r: 6, c: 5 } },
-      { s: { r: 4, c: 6 }, e: { r: 6, c: 6 } },
-      { s: { r: 4, c: 7 }, e: { r: 6, c: 7 } },
-      { s: { r: 4, c: 8 }, e: { r: 6, c: 8 } },
-      { s: { r: 4, c: 9 }, e: { r: 6, c: 9 } },
-      { s: { r: 4, c: 10 }, e: { r: 6, c: 10 } },
-      { s: { r: 4, c: 11 }, e: { r: 5, c: 12 } },
-      { s: { r: 4, c: 13 }, e: { r: 4, c: 12 + komoditasArray.length * 3 } }
+      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } }
     ];
     
-    let currentCol = 13;
+    for (let i = 0; i < 10; i++) {
+      merges.push({ s: { r: 4, c: i }, e: { r: 6, c: i } });
+    }
+    
+    merges.push({ s: { r: 4, c: 10 }, e: { r: 4, c: 10 + PERBEKALAN_OPTIONS.length - 1 } });
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) {
+      merges.push({ s: { r: 5, c: 10 + i }, e: { r: 6, c: 10 + i } });
+    }
+    
+    merges.push({ s: { r: 4, c: totalColStart }, e: { r: 5, c: totalColStart + 1 } });
+    merges.push({ s: { r: 4, c: ikanColStart }, e: { r: 4, c: totalCols - 1 } });
+    
+    let currentCol = ikanColStart;
     komoditasArray.forEach(() => {
       merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 2 } });
       currentCol += 3;
     });
 
-    // Merge TOTAL TANGKAPAN (dari NO ke Catatan)
-    merges.push({ s: { r: 7 + dataRows.length, c: 0 }, e: { r: 7 + dataRows.length, c: 10 } });
+    // Merge TOTAL TANGKAPAN (dari NO ke ujung Logistik)
+    merges.push({ s: { r: 7 + dataRows.length, c: 0 }, e: { r: 7 + dataRows.length, c: totalColStart - 1 } });
     // Merge Nilai (dari NO ke Total Produksi Volume)
-    merges.push({ s: { r: 7 + dataRows.length + 1, c: 0 }, e: { r: 7 + dataRows.length + 1, c: 11 } });
+    merges.push({ s: { r: 7 + dataRows.length + 1, c: 0 }, e: { r: 7 + dataRows.length + 1, c: totalColStart } });
 
+    
     // Merges for summary table
     merges.push({ s: { r: summaryStartRowIndex, c: 0 }, e: { r: summaryStartRowIndex, c: 5 } });
     merges.push({ s: { r: summaryStartRowIndex + 1, c: 0 }, e: { r: summaryStartRowIndex + 2, c: 0 } }); // No.
     merges.push({ s: { r: summaryStartRowIndex + 1, c: 1 }, e: { r: summaryStartRowIndex + 2, c: 1 } }); // Alat Penangkapan Ikan
     merges.push({ s: { r: summaryStartRowIndex + 1, c: 2 }, e: { r: summaryStartRowIndex + 1, c: 3 } }); // Pendaratan Langsung
     merges.push({ s: { r: summaryStartRowIndex + 1, c: 4 }, e: { r: summaryStartRowIndex + 1, c: 5 } }); // Alih Muat
-
     merges.push({ s: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 0 }, e: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 1 } }); // Total Produksi
+
+    // Merges for Operasional table
+    merges.push({ s: { r: operasionalStartIndex, c: 0 }, e: { r: operasionalStartIndex, c: 9 } });
+    for (let rIdx = 0; rIdx < operasionalRows.length; rIdx++) {
+       const actRow = operasionalStartIndex + 1 + rIdx;
+       merges.push({ s: { r: actRow, c: 1 }, e: { r: actRow, c: 5 } }); // Nama item (cols 1-5)
+       merges.push({ s: { r: actRow, c: 6 }, e: { r: actRow, c: 7 } }); // Value (cols 6-7)
+       merges.push({ s: { r: actRow, c: 8 }, e: { r: actRow, c: 9 } }); // Unit (cols 8-9)
+    }
 
     ws['!merges'] = merges;
 
-    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 20 }];
+    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) colWidths.push({ wch: 15 });
+    colWidths.push({ wch: 15 }, { wch: 20 }); // Total Produksi Vol & Nilai
+    
     komoditasArray.forEach(() => colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 12 }));
     ws['!cols'] = colWidths;
 
@@ -845,36 +1258,58 @@ export default function AdminPerikananTangkap() {
     XLSX.writeFile(wb, `Laporan_${pelabuhanName}_${dateStr.replace('/', '-')}.xlsx`);
   };
 
+  
   const handleModalExport = () => {
+    // Filter by VERIFIED only
+    let dataToExport = data.filter(d => d.status === 'VERIFIED');
+    
+    if (exportModalPerairan) {
+      dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
+    }
+    
+    if (exportModalTahun) {
+      dataToExport = dataToExport.filter(d => {
+        if (!d.tanggal) return false;
+        const dYear = new Date(d.tanggal).getFullYear().toString();
+        return dYear === exportModalTahun;
+      });
+    }
+    
+    if (exportModalBulan) {
+      dataToExport = dataToExport.filter(d => {
+        if (!d.tanggal) return false;
+        const dMonth = String(new Date(d.tanggal).getMonth() + 1);
+        return dMonth === exportModalBulan || dMonth.padStart(2, '0') === exportModalBulan;
+      });
+    }
+    
+    if (exportModalWilayah) {
+      dataToExport = dataToExport.filter(d => {
+         const matchesPelabuhan = (d.pelabuhan || '').toUpperCase() === exportModalWilayah.toUpperCase();
+         const matchesKabKota = (d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase();
+         return matchesPelabuhan || matchesKabKota;
+      });
+    }
+    
     if (exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'LM') {
-      alert("Fitur Ekspor Laporan Monitoring (LM) sedang dalam pengembangan.");
+      handleExportLMPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+      setIsExportModalOpen(false);
       return;
     }
-
-    const dataToExport = data.filter(item => {
-      const itemTahun = item.tanggal ? item.tanggal.substring(0, 4) : '';
-      const itemBulan = item.tanggal ? String(parseInt(item.tanggal.substring(5, 7))) : '';
-      
-      const matchTahun = !exportModalTahun || itemTahun === exportModalTahun;
-      const matchBulan = !exportModalBulan || itemBulan === exportModalBulan;
-      const matchCabang = !exportModalPerairan || (item.sumber_data || 'PELABUHAN') === exportModalPerairan;
-      const matchWilayah = !exportModalWilayah || (item.pelabuhan || item.kabupaten_kota || '') === exportModalWilayah;
-      
-      return matchTahun && matchBulan && matchCabang && matchWilayah;
-    });
-
+    
     if (exportModalPerairan === 'PELABUHAN') {
       handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
     } else if (exportModalPerairan === 'PUD') {
       handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+    } else if (exportModalPerairan === 'KAB_KOTA') {
+      handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
     } else {
-      alert(`Ekspor laporan untuk perairan ${exportModalPerairan} belum tersedia.`);
+      alert('Pilih Sumber Perairan terlebih dahulu.');
     }
-    
     setIsExportModalOpen(false);
   };
 
-  const columns = useMemo(() => [
+const columns = useMemo(() => [
     {
       header: 'Status',
       accessorKey: 'status',
@@ -1264,10 +1699,12 @@ export default function AdminPerikananTangkap() {
                   const headerRow2 = ['', '', '', '', '', '', '', '', '', ''];
                   
                   if (showLogistikCols) {
-                    PERBEKALAN_OPTIONS.forEach(pb => {
-                      headerRow1.push(`${pb.nama} (${pb.satuan})`);
-                      headerRow2.push('');
-                    });
+                    headerRow1.push('Logistik / Perbekalan');
+                    headerRow2.push(`${PERBEKALAN_OPTIONS[0].nama} (${PERBEKALAN_OPTIONS[0].satuan})`);
+                    for (let i = 1; i < PERBEKALAN_OPTIONS.length; i++) {
+                      headerRow1.push('');
+                      headerRow2.push(`${PERBEKALAN_OPTIONS[i].nama} (${PERBEKALAN_OPTIONS[i].satuan})`);
+                    }
                   }
 
                   headerRow1.push('Total Volume (Kg)', 'Total Nilai (Rp)');
@@ -1278,7 +1715,7 @@ export default function AdminPerikananTangkap() {
                     headerRow2.push('Volume (Kg)', 'Harga', 'Nilai (Rp)');
                   });
 
-                  const dataRows = exportData.map(row => {
+                  const dataRows = exportData.filter(row => row.status === 'VERIFIED').map(row => {
                     let totalVol = 0;
                     let totalNilai = 0;
                     const komMap = {};
@@ -1345,6 +1782,16 @@ export default function AdminPerikananTangkap() {
                   const komoditasHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
                   const subHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
                   const dataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
+                  
+                  const logistikHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "EAD1DC" } } };
+
+                  const totalBaseCols = 10;
+                  const totalLogistikCols = showLogistikCols ? PERBEKALAN_OPTIONS.length : 0;
+                  const totalTotalsCols = 2; // Total Volume, Total Nilai
+                  
+                  const logistikStartCol = totalBaseCols;
+                  const totalsStartCol = totalBaseCols + totalLogistikCols;
+                  const komoditasStartCol = totalsStartCol + totalTotalsCols;
 
                   const range = XLSX.utils.decode_range(ws['!ref']);
                   for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -1353,9 +1800,13 @@ export default function AdminPerikananTangkap() {
                       if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
 
                       if (R === 0) {
-                        ws[cellRef].s = C > 11 ? komoditasHeaderStyle : headerStyle;
+                        if (C >= komoditasStartCol) ws[cellRef].s = komoditasHeaderStyle;
+                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = logistikHeaderStyle;
+                        else ws[cellRef].s = headerStyle;
                       } else if (R === 1) {
-                        ws[cellRef].s = C > 11 ? subHeaderStyle : headerStyle;
+                        if (C >= komoditasStartCol) ws[cellRef].s = subHeaderStyle;
+                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = subHeaderStyle;
+                        else ws[cellRef].s = headerStyle;
                       } else {
                         ws[cellRef].s = dataStyle;
                         if (typeof ws[cellRef].v === 'number') {
@@ -1371,18 +1822,35 @@ export default function AdminPerikananTangkap() {
                   }
 
                   const merges = [];
-                  for (let i = 0; i <= 11; i++) {
+                  // Base columns merged vertically
+                  for (let i = 0; i < totalBaseCols; i++) {
                     merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
                   }
                   
-                  let currentCol = 12;
+                  if (showLogistikCols) {
+                    // Logistik main header merged horizontally
+                    merges.push({ s: { r: 0, c: logistikStartCol }, e: { r: 0, c: totalsStartCol - 1 } });
+                  }
+                  
+                  // Totals merged vertically
+                  merges.push({ s: { r: 0, c: totalsStartCol }, e: { r: 1, c: totalsStartCol } });
+                  merges.push({ s: { r: 0, c: totalsStartCol + 1 }, e: { r: 1, c: totalsStartCol + 1 } });
+                  
+                  let currentCol = komoditasStartCol;
                   komoditasArray.forEach(() => {
                     merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
                     currentCol += 3;
                   });
                   ws['!merges'] = merges;
 
-                  const colWidths = [{ wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 20 }];
+                  const colWidths = [
+                      { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, 
+                      { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }
+                    ];
+                    if (showLogistikCols) {
+                      PERBEKALAN_OPTIONS.forEach(() => colWidths.push({ wch: 15 }));
+                    }
+                    colWidths.push({ wch: 20 }, { wch: 20 });
                   komoditasArray.forEach(() => {
                     colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
                   });
@@ -1568,126 +2036,175 @@ export default function AdminPerikananTangkap() {
     
       {/* Modal Ekspor Laporan */}
       {isExportModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-background rounded-2xl w-full max-w-lg shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Ekspor Laporan</h3>
-              <button onClick={() => setIsExportModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Sumber Perairan</label>
-                <select 
-                  value={exportModalPerairan} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setExportModalPerairan(val);
-                    setExportModalJenis('');
-                    setExportModalTahun('');
-                    setExportModalBulan('');
-                    setExportModalWilayah('');
-                  }} 
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
-                >
-                  <option value="" disabled>Pilih Sumber Perairan</option>
-                  <option value="PELABUHAN">Pelabuhan</option>
-                  <option value="PUD">PUD</option>
-                  <option value="KAB_KOTA">Non Pelabuhan</option>
-                </select>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="bg-background rounded-3xl w-full max-w-lg shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="relative p-6 bg-gradient-to-br from-blue-600 to-indigo-700 overflow-hidden">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-black/10 rounded-full blur-xl"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm shadow-sm">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Ekspor Laporan</h3>
+                    <p className="text-blue-100 text-sm mt-0.5">Unduh data berdasarkan parameter</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsExportModalOpen(false)} className="p-2 text-blue-100 hover:text-white hover:bg-white/20 rounded-full transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
+            </div>
 
-              {exportModalPerairan === 'PELABUHAN' && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Laporan</label>
+            {/* Body */}
+            <div className="p-7 space-y-5 bg-gradient-to-b from-background to-muted/10">
+              {/* Sumber Perairan */}
+              <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                  <Map className="w-4 h-4 text-blue-500" />
+                  Sumber Perairan
+                </label>
+                <div className="relative">
                   <select 
-                    value={exportModalJenis} 
+                    value={exportModalPerairan} 
                     onChange={(e) => {
-                      setExportModalJenis(e.target.value);
+                      setExportModalPerairan(e.target.value);
+                      setExportModalJenis('');
                       setExportModalTahun('');
                       setExportModalBulan('');
                       setExportModalWilayah('');
                     }} 
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
+                    className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer hover:border-blue-500/50"
                   >
-                    <option value="" disabled>Pilih Jenis Laporan</option>
-                    <option value="REKAP">Rekap Bulanan</option>
-                    <option value="LM">Laporan Monitoring (LM)</option>
+                    <option value="" disabled>Pilih Sumber Perairan...</option>
+                    <option value="PELABUHAN">Pelabuhan</option>
+                    <option value="PUD">PUD</option>
+                    <option value="KAB_KOTA">Non Pelabuhan</option>
                   </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
-              )}
+              </div>
 
-              {((exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'REKAP') || 
-                (exportModalPerairan && exportModalPerairan !== 'PELABUHAN')) && (
-                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Tahun</label>
-                    <select 
-                      value={exportModalTahun} 
-                      onChange={(e) => {
-                        setExportModalTahun(e.target.value);
-                        setExportModalWilayah('');
-                      }} 
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
-                    >
-                      <option value="" disabled>Pilih Tahun</option>
-                      {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Bulan</label>
-                    <select 
-                      value={exportModalBulan} 
-                      onChange={(e) => {
-                        setExportModalBulan(e.target.value);
-                        setExportModalWilayah('');
-                      }} 
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
-                    >
-                      <option value="" disabled>Pilih Bulan</option>
-                      {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {exportModalTahun && exportModalBulan && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="block text-sm font-medium text-foreground mb-1.5">
-                    {exportModalPerairan === 'PELABUHAN' ? 'Wilayah / Pelabuhan' : 'Wilayah / Kabupaten Kota'}
+              {/* Jenis Laporan */}
+              {exportModalPerairan === 'PELABUHAN' && (
+                <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                    <Layers className="w-4 h-4 text-indigo-500" />
+                    Jenis Laporan
                   </label>
-                  <select 
-                    value={exportModalWilayah} 
-                    onChange={(e) => setExportModalWilayah(e.target.value)} 
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none"
-                  >
-                    <option value="" disabled>Pilih Wilayah</option>
-                    {exportModalPerairan === 'PELABUHAN'
-                      ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                      : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={exportModalJenis} 
+                      onChange={(e) => {
+                        setExportModalJenis(e.target.value);
+                        setExportModalTahun('');
+                        setExportModalBulan('');
+                        setExportModalWilayah('');
+                      }} 
+                      className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all cursor-pointer hover:border-indigo-500/50"
+                    >
+                      <option value="" disabled>Pilih Jenis Laporan...</option>
+                      <option value="REKAP">Rekap Bulanan</option>
+                      <option value="LM">Laporan Monitoring (LM)</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              {/* Tahun & Bulan */}
+              {((exportModalPerairan === 'PELABUHAN' && exportModalJenis) || 
+                (exportModalPerairan && exportModalPerairan !== 'PELABUHAN')) && (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                      <Calendar className="w-4 h-4 text-emerald-500" />
+                      Tahun
+                    </label>
+                    <div className="relative">
+                      <select 
+                        value={exportModalTahun} 
+                        onChange={(e) => {
+                          setExportModalTahun(e.target.value);
+                          setExportModalWilayah('');
+                        }} 
+                        className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all cursor-pointer hover:border-emerald-500/50"
+                      >
+                        <option value="" disabled>Tahun...</option>
+                        {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                      <Calendar className="w-4 h-4 text-emerald-500" />
+                      Bulan
+                    </label>
+                    <div className="relative">
+                      <select 
+                        value={exportModalBulan} 
+                        onChange={(e) => {
+                          setExportModalBulan(e.target.value);
+                          setExportModalWilayah('');
+                        }} 
+                        className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all cursor-pointer hover:border-emerald-500/50"
+                      >
+                        <option value="" disabled>Bulan...</option>
+                        {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Wilayah */}
+              {exportModalTahun && exportModalBulan && (
+                <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                    <MapPin className="w-4 h-4 text-rose-500" />
+                    {exportModalPerairan === 'PELABUHAN' ? 'Pilih Pelabuhan' : 'Wilayah / Kabupaten Kota'}
+                  </label>
+                  <div className="relative">
+                    <select 
+                      value={exportModalWilayah} 
+                      onChange={(e) => setExportModalWilayah(e.target.value)} 
+                      className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-rose-500/50 outline-none transition-all cursor-pointer hover:border-rose-500/50"
+                    >
+                      <option value="" disabled>Pilih lokasi...</option>
+                      {exportModalPerairan === 'PELABUHAN'
+                        ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Footer */}
             <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
               <button 
                 onClick={() => setIsExportModalOpen(false)}
-                className="px-4 py-2 font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                className="px-6 py-2.5 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
               >
                 Batal
               </button>
               <button 
                 onClick={handleModalExport}
-                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:shadow-indigo-500/20 flex items-center gap-2 group"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Unduh
+                <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+                Unduh Laporan
               </button>
             </div>
           </div>
         </div>
       )}
+
 </div>
   );
 }
