@@ -7,6 +7,7 @@ import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm'
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
+import * as XLSX from 'xlsx'; // npm install xlsx (jika belum ada di package.json)
 
 const normalizeRegionKey = value => {
   let text = String(value ?? '')
@@ -663,7 +664,7 @@ function StatusBadge({ row, onEdit }) {
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg font-bold text-foreground">Data Ini Ditolak</h3>
                   <p className="mt-0.5 break-words text-sm text-muted-foreground">
-                    {row?.nama_upi || '(Tanpa Nama UPI)'}
+                    {row?.kabupaten_kota || '-'} &middot; {row?.jenis_kegiatan || '-'}
                   </p>
                 </div>
                 <button
@@ -678,21 +679,21 @@ function StatusBadge({ row, onEdit }) {
               {/* Konteks data */}
               <dl className="mt-5 grid grid-cols-1 gap-x-4 gap-y-3 rounded-2xl bg-muted/60 p-4 text-sm sm:grid-cols-2">
                 <div className="min-w-0">
-                  <dt className="text-xs font-medium text-muted-foreground">Nama UPI</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">Kategori</dt>
                   <dd className="break-words font-semibold text-foreground">
-                    {row?.nama_upi || '-'}
-                  </dd>
-                </div>
-                <div className="min-w-0">
-                  <dt className="text-xs font-medium text-muted-foreground">Nama Pemilik</dt>
-                  <dd className="break-words font-semibold text-foreground">
-                    {row?.nama_pemilik || '-'}
+                    {row?.kategori_kegiatan || '-'}
                   </dd>
                 </div>
                 <div className="min-w-0">
                   <dt className="text-xs font-medium text-muted-foreground">Jenis Kegiatan</dt>
                   <dd className="break-words font-semibold text-foreground">
                     {row?.jenis_kegiatan || '-'}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium text-muted-foreground">Skala Usaha</dt>
+                  <dd className="break-words font-semibold text-foreground">
+                    {row?.skala_usaha || '-'}
                   </dd>
                 </div>
                 <div className="min-w-0">
@@ -768,10 +769,113 @@ const getRowTotalTenagaKerja = row => {
   );
 };
 
-const getJenisDetail = row =>
-  row.jenis_kegiatan === 'Pengolahan'
-    ? row.jenis_kegiatan_pengolahan
-    : row.jenis_kegiatan_pemasaran;
+// Skema baru: row.jenis_kegiatan sudah berisi sub-jenis kegiatan langsung
+// (mis. "Fermentasi", "Pengecer"), sedangkan kategorinya ada di row.kategori_kegiatan.
+const getJenisDetail = row => row?.jenis_kegiatan || '';
+
+// ============================================================================
+// EXPORT REKAP STATISTIK (format pivot ala file "HASIL_ANALISIS_STATISTIK")
+// Setiap sheet: baris = Kabupaten/Kota (urutan sesuai KABUPATEN_KOTA_OPTIONS,
+// diberi nomor urut 01, 02, dst.), kolom = kategori, nilai = SUM dari data
+// yang lolos filter aktif, ditutup dengan kolom "Jumlah Total".
+// ============================================================================
+const SERTIFIKAT_PRODUK_FIELDS_EXPORT = [
+  ['HACCP', 'sertifikat_haccp'],
+  ['SNI', 'sertifikat_sni'],
+  ['HALAL', 'sertifikat_halal'],
+  ['SKP', 'sertifikat_skp'],
+  ['PIRT', 'sertifikat_pirt'],
+  ['MD', 'sertifikat_md'],
+  ['Lain-lain', 'sertifikat_lainnya'],
+];
+
+const IZIN_USAHA_FIELDS_EXPORT = [
+  ['NIB', 'izin_nib'],
+  ['NPWP', 'izin_npwp'],
+  ['KUSUKA', 'izin_kusuka'],
+  ['Pengesahan MENKUMHAM', 'izin_menkumham'],
+  ['Akta Pendirian Usaha', 'izin_akta_pendirian'],
+  ['Lokasi/Domisili', 'izin_lokasi_domisili'],
+  ['IMB', 'izin_imb'],
+  ['SIUP Perikanan', 'izin_siup_perikanan'],
+  ['SIUP Perdagangan', 'izin_siup_perdagangan'],
+  ['Lain-lain', 'izin_lainnya'],
+];
+
+const SERTIFIKAT_LB_FIELDS_EXPORT = [
+  ['SHM', 'shm_count'],
+  ['Non SHM', 'non_shm_count'],
+];
+
+const KEGIATAN_CATEGORIES_EXPORT = [...JENIS_PENGOLAHAN_OPTIONS, ...JENIS_PEMASARAN_OPTIONS];
+
+// Sheet pivot generik: baris = Kabupaten/Kota, kolom = kategori (jenis_kegiatan),
+// nilai = SUM(valueField) untuk baris yang jenis_kegiatan-nya cocok kategori tsb.
+const buildKegiatanPivotSheet = (rows, valueField, categories) => {
+  const header = ['No', 'Kabupaten/Kota', ...categories, 'Jumlah Total'];
+  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
+    const values = categories.map(category =>
+      rows
+        .filter(row => row.kabupaten_kota === kab && row.jenis_kegiatan === category)
+        .reduce((sum, row) => sum + toNumber(row[valueField]), 0),
+    );
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
+  });
+  return [header, ...body];
+};
+
+// Sheet pivot kategori tetap (sertifikat/izin), nilainya SUM dari field masing-masing
+// kategori untuk seluruh baris di kabupaten tsb (tidak bergantung jenis_kegiatan).
+const buildFixedCategoryPivotSheet = (rows, fields) => {
+  const header = ['No', 'Kabupaten/Kota', ...fields.map(([label]) => label), 'Jumlah Total'];
+  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
+    const kabRows = rows.filter(row => row.kabupaten_kota === kab);
+    const values = fields.map(([, key]) => kabRows.reduce((sum, row) => sum + toNumber(row[key]), 0));
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
+  });
+  return [header, ...body];
+};
+
+const buildSkalaUsahaPivotSheet = (rows, valueField) => {
+  const categories = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
+  const header = ['No', 'Kabupaten/Kota', ...categories, 'Jumlah Total'];
+  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
+    const values = categories.map(skala =>
+      rows
+        .filter(row => row.kabupaten_kota === kab && row.skala_usaha === skala)
+        .reduce((sum, row) => sum + toNumber(row[valueField]), 0),
+    );
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
+  });
+  return [header, ...body];
+};
+
+const exportRekapStatistikExcel = rows => {
+  const workbook = XLSX.utils.book_new();
+
+  const addSheet = (name, aoa) => {
+    const sheet = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(workbook, sheet, name);
+  };
+
+  addSheet(
+    'Unit Usaha',
+    buildKegiatanPivotSheet(rows, 'jumlah_unit_usaha', KEGIATAN_CATEGORIES_EXPORT),
+  );
+  addSheet('Hasil (Kg)', buildKegiatanPivotSheet(rows, 'hasil_kg', KEGIATAN_CATEGORIES_EXPORT));
+  addSheet('Hasil (Rp)', buildKegiatanPivotSheet(rows, 'hasil_rp', KEGIATAN_CATEGORIES_EXPORT));
+  addSheet('Modal (Rp)', buildKegiatanPivotSheet(rows, 'modal_rp', KEGIATAN_CATEGORIES_EXPORT));
+  addSheet('Unit Usaha - Skala', buildSkalaUsahaPivotSheet(rows, 'jumlah_unit_usaha'));
+  addSheet('Sertifikat Produk', buildFixedCategoryPivotSheet(rows, SERTIFIKAT_PRODUK_FIELDS_EXPORT));
+  addSheet('Ijin Usaha', buildFixedCategoryPivotSheet(rows, IZIN_USAHA_FIELDS_EXPORT));
+  addSheet('Sertifikat LB', buildFixedCategoryPivotSheet(rows, SERTIFIKAT_LB_FIELDS_EXPORT));
+
+  const todayLabel = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(workbook, `Rekap_Statistik_Pengolahan_Pemasaran_${todayLabel}.xlsx`);
+};
 
 export default function AdminPengolahanPemasaran() {
   const { user } = useAuthStore();
@@ -891,7 +995,7 @@ export default function AdminPengolahanPemasaran() {
   };
 
   const handleDelete = async row => {
-    if (!window.confirm(`Yakin ingin menghapus data ${row.nama_upi || row.kabupaten_kota}?`)) {
+    if (!window.confirm(`Yakin ingin menghapus data ${row.kabupaten_kota} - ${row.jenis_kegiatan} (${row.tahun})?`)) {
       return;
     }
 
@@ -1260,7 +1364,7 @@ export default function AdminPengolahanPemasaran() {
       data.filter(item => {
         if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
         if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.jenis_kegiatan)) return false;
+        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.kategori_kegiatan)) return false;
         if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
         return true;
       }),
@@ -2259,11 +2363,9 @@ export default function AdminPengolahanPemasaran() {
         accessorKey: 'kabupaten_kota',
         cell: info => <span className="font-medium text-foreground">{info.getValue()}</span>,
       },
-      { header: 'Nama UPI', accessorKey: 'nama_upi' },
-      { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
       {
-        header: 'Jenis Kegiatan',
-        accessorKey: 'jenis_kegiatan',
+        header: 'Kategori',
+        accessorKey: 'kategori_kegiatan',
         cell: info => {
           const value = info.getValue();
           const colorClass =
@@ -2283,20 +2385,24 @@ export default function AdminPengolahanPemasaran() {
         },
       },
       {
-        header: 'Jenis Detail',
-        id: 'jenis_detail',
+        header: 'Jenis Kegiatan',
+        id: 'jenis_kegiatan_detail',
         cell: info => getJenisDetail(info.row.original) || '-',
       },
       { header: 'Skala Usaha', accessorKey: 'skala_usaha' },
-      { header: 'Jenis Produk', accessorKey: 'jenis_produk' },
       {
-        header: 'Hasil/Tahun (Kg)',
-        accessorKey: 'hasil_produksi_per_tahun_kg',
+        header: 'Unit Usaha',
+        accessorKey: 'jumlah_unit_usaha',
         cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
       },
       {
-        header: 'Nilai Hasil Produksi/Tahun (Rp)',
-        accessorKey: 'nilai_hasil_produksi_per_tahun_rp',
+        header: 'Hasil Produksi (Kg)',
+        accessorKey: 'hasil_kg',
+        cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
+      },
+      {
+        header: 'Nilai Produksi (Rp)',
+        accessorKey: 'hasil_rp',
         cell: info =>
           new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -2305,9 +2411,14 @@ export default function AdminPengolahanPemasaran() {
           }).format(toNumber(info.getValue())),
       },
       {
-        header: 'Total Tenaga Kerja',
-        id: 'total_tenaga_kerja',
-        cell: info => getRowTotalTenagaKerja(info.row.original).toLocaleString('id-ID'),
+        header: 'Modal (Rp)',
+        accessorKey: 'modal_rp',
+        cell: info =>
+          new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+          }).format(toNumber(info.getValue())),
       },
     ],
     [],
@@ -2321,7 +2432,7 @@ export default function AdminPengolahanPemasaran() {
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
           <h3 className="text-lg font-semibold text-foreground">Tolak Data</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            {rejectTarget.nama_upi || '(Tanpa Nama UPI)'} &middot; {rejectTarget.kabupaten_kota} &middot; Tahun {rejectTarget.tahun}
+            {rejectTarget.jenis_kegiatan || '-'} &middot; {rejectTarget.kabupaten_kota} &middot; Tahun {rejectTarget.tahun}
           </p>
 
           <label className="mb-1.5 mt-4 block text-xs font-medium text-muted-foreground">
@@ -2364,6 +2475,18 @@ export default function AdminPengolahanPemasaran() {
 
   const dataPreview = (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => exportRekapStatistikExcel(filteredData)}
+          disabled={!filteredData.length}
+          title="Export mengikuti filter yang sedang aktif (Tahun, Kabupaten/Kota, dsb.)"
+          className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Ekspor Rekap Statistik (Excel)
+        </button>
+      </div>
+
       <DataTable
         columns={columns}
         data={filteredData}

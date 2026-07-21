@@ -518,8 +518,8 @@ export default function PengolahanPemasaran() {
           </p>
         ),
       },
-      { header: 'Nama UPI', accessorKey: 'nama_upi' },
-      { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
+      // { header: 'Nama UPI', accessorKey: 'nama_upi' },
+      // { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
       {
         header: 'Jenis Kegiatan',
         accessorKey: 'jenis_kegiatan',
@@ -1677,7 +1677,7 @@ export default function PengolahanPemasaran() {
                 exportData.map(row => ({
                   Tahun: row.tahun,
                   'Kabupaten/Kota': row.kabupaten_kota,
-                  'Nama UPI': row.nama_upi,
+                  // 'Nama UPI': row.nama_upi,
                   'Jenis Kegiatan': row.jenis_kegiatan,
                   'Jenis Detail': getJenisDetail(row),
                   'Skala Usaha': row.skala_usaha,
@@ -1686,8 +1686,8 @@ export default function PengolahanPemasaran() {
                     row.hasil_produksi_per_tahun_kg,
                   'Nilai Hasil/Tahun (Rp)':
                     row.nilai_hasil_produksi_per_tahun_rp,
-                  'Total Tenaga Kerja':
-                    row.total_seluruh_tenaga_kerja,
+                  // 'Total Tenaga Kerja':
+                  //   row.total_seluruh_tenaga_kerja,
                 }))
               }
             />

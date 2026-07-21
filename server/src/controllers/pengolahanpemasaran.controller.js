@@ -576,97 +576,6 @@ const createData = async (req, res) => {
   }
 };
 
-// const updateStatus = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { status, alasan_penolakan } = req.body;
-
-//     if (!req.user || req.user.role !== 'admin_pusat') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data',
-//       });
-//     }
-
-//     const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
-
-//     if (!allowedStatuses.includes(status)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Status tidak valid',
-//       });
-//     }
-
-//     const existing = await prisma.pengolahanPemasaran.findUnique({
-//       where: { id: parseInt(id, 10) },
-//     });
-
-//     if (!existing) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Data tidak ditemukan',
-//       });
-//     }
-
-//     if (existing.status === 'APPROVED') {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Data sudah selesai divalidasi Program',
-//       });
-//     }
-
-//     if (existing.status === 'REJECTED') {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Data yang ditolak harus diperbaiki terlebih dahulu',
-//       });
-//     }
-
-//     if (status === 'APPROVED_BIDANG' && existing.status !== 'PENDING') {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Validasi Bidang hanya bisa dilakukan pada data berstatus PENDING',
-//       });
-//     }
-
-//     if (status === 'APPROVED' && existing.status !== 'APPROVED_BIDANG') {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Data harus divalidasi Bidang terlebih dahulu sebelum Validasi Program',
-//       });
-//     }
-
-//     if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Alasan penolakan wajib diisi',
-//       });
-//     }
-
-//     const updated = await prisma.pengolahanPemasaran.update({
-//       where: { id: parseInt(id, 10) },
-//       data: {
-//         status,
-//         alasan_penolakan:
-//           status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
-//       },
-//     });
-
-//     res.json({
-//       success: true,
-//       message: `Status berhasil diubah menjadi ${status}`,
-//       data: updated,
-//     });
-//   } catch (error) {
-//     console.error('Error updating pengolahan pemasaran status:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Server Error',
-//       error: error.message,
-//     });
-//   }
-// };
-
 const updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -853,89 +762,6 @@ const deleteData = async (req, res) => {
 };
 
 
-// const batchStatus = async (req, res) => {
-//   try {
-//     const { ids, status, alasan_penolakan } = req.body;
-
-//     if (!req.user || req.user.role !== 'admin_pusat') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Hanya Admin Pusat yang dapat memvalidasi atau menolak data',
-//       });
-//     }
-
-//     if (!Array.isArray(ids) || ids.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Tidak ada data yang dipilih',
-//       });
-//     }
-
-//     const allowedStatuses = ['APPROVED_BIDANG', 'APPROVED', 'REJECTED'];
-
-//     if (!allowedStatuses.includes(status)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Status tidak valid',
-//       });
-//     }
-
-//     if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Alasan penolakan wajib diisi',
-//       });
-//     }
-
-//     const parsedIds = ids
-//       .map(id => parseInt(id, 10))
-//       .filter(id => Number.isInteger(id));
-
-//     let whereStatus = {};
-
-//     if (status === 'APPROVED_BIDANG') {
-//       whereStatus = { status: 'PENDING' };
-//     }
-
-//     if (status === 'APPROVED') {
-//       whereStatus = { status: 'APPROVED_BIDANG' };
-//     }
-
-//     if (status === 'REJECTED') {
-//       whereStatus = {
-//         status: {
-//           in: ['PENDING', 'APPROVED_BIDANG'],
-//         },
-//       };
-//     }
-
-//     const result = await prisma.pengolahanPemasaran.updateMany({
-//       where: {
-//         id: { in: parsedIds },
-//         ...whereStatus,
-//       },
-//       data: {
-//         status,
-//         alasan_penolakan:
-//           status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
-//       },
-//     });
-
-//     res.json({
-//       success: true,
-//       message: `${result.count} data berhasil diproses`,
-//       count: result.count,
-//     });
-//   } catch (error) {
-//     console.error('Error batch status pengolahan pemasaran:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Server Error',
-//       error: error.message,
-//     });
-//   }
-// };
-
 const batchStatus = async (req, res) => {
   try {
     const { ids, status, alasan_penolakan } = req.body;
@@ -1067,6 +893,117 @@ const batchDelete = async (req, res) => {
       message: 'Server Error',
       error: error.message,
     });
+  }
+};
+
+ExcelJS = require('exceljs'); // Pastikan sudah dipasang via: npm i exceljs
+
+const exportExcel = async (req, res) => {
+  try {
+    const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
+    const where = { status: 'VERIFIED' };
+
+    if (tahun) where.tahun = toInt(tahun);
+    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
+    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
+    if (skala_usaha) where.skala_usaha = skala_usaha;
+
+    // Ambil data yang sudah terverifikasi dari Prisma
+    const data = await prisma.pengolahanPemasaran.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Dinas Kelautan dan Perikanan';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Pengolahan & Pemasaran');
+
+    // Header Kolom
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Tahun', key: 'tahun', width: 8 },
+      { header: 'Nama UPI', key: 'nama_upi', width: 25 },
+      { header: 'Nama Pemilik', key: 'nama_pemilik', width: 20 },
+      { header: 'Kabupaten/Kota', key: 'kabupaten_kota', width: 20 },
+      { header: 'Kecamatan', key: 'kecamatan', width: 15 },
+      { header: 'Desa', key: 'desa', width: 15 },
+      { header: 'Jenis Kegiatan', key: 'jenis_kegiatan', width: 15 },
+      { header: 'Detail Kegiatan', key: 'detail_kegiatan', width: 25 },
+      { header: 'Skala Usaha', key: 'skala_usaha', width: 15 },
+      { header: 'Jenis Produk', key: 'jenis_produk', width: 20 },
+      { header: 'Hasil Produksi (Kg/Thn)', key: 'hasil_produksi_per_tahun_kg', width: 22 },
+      { header: 'Nilai Produksi (Rp/Thn)', key: 'nilai_hasil_produksi_per_tahun_rp', width: 22 },
+      { header: 'Total Pemasaran (Kg/Thn)', key: 'total_pemasaran_per_tahun_kg', width: 22 },
+      { header: 'Total Tenaga Kerja', key: 'total_seluruh_tenaga_kerja', width: 18 },
+    ];
+
+    // Style Header (Baris Pertama)
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '1F4E78' }, // Biru Navy
+    };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Isi Data Baris demi Baris
+    data.forEach((item, index) => {
+      worksheet.addRow({
+        no: index + 1,
+        tahun: item.tahun || '-',
+        nama_upi: item.nama_upi || '-',
+        nama_pemilik: item.nama_pemilik || '-',
+        kabupaten_kota: item.kabupaten_kota || '-',
+        kecamatan: item.kecamatan || '-',
+        desa: item.desa || '-',
+        jenis_kegiatan: item.jenis_kegiatan || '-',
+        detail_kegiatan:
+          item.jenis_kegiatan === 'Pengolahan'
+            ? item.jenis_kegiatan_pengolahan
+            : item.jenis_kegiatan_pemasaran || '-',
+        skala_usaha: item.skala_usaha || '-',
+        jenis_produk: item.jenis_produk || '-',
+        hasil_produksi_per_tahun_kg: item.hasil_produksi_per_tahun_kg || 0,
+        nilai_hasil_produksi_per_tahun_rp: item.nilai_hasil_produksi_per_tahun_rp || 0,
+        total_pemasaran_per_tahun_kg: item.total_pemasaran_per_tahun_kg || 0,
+        total_seluruh_tenaga_kerja: item.total_seluruh_tenaga_kerja || 0,
+      });
+    });
+
+    // Formatting Angka & Border untuk Semua Sel Data
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.getCell('hasil_produksi_per_tahun_kg').numFmt = '#,##0.00';
+        row.getCell('nilai_hasil_produksi_per_tahun_rp').numFmt = 'Rp#,##0';
+        row.getCell('total_pemasaran_per_tahun_kg').numFmt = '#,##0.00';
+        row.getCell('total_seluruh_tenaga_kerja').numFmt = '#,##0';
+      }
+
+      row.eachCell(cell => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+    });
+
+    // Header Response untuk Download
+    const fileName = `Data_Pengolahan_Pemasaran_${tahun || 'Semua_Tahun'}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting excel:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 
