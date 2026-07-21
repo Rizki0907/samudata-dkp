@@ -65,18 +65,6 @@ const kondisiPieOption = (data) => ({
   }]
 });
 
-const mangroveComboOption = (categories, eksisting, rehab) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#475569', fontSize: 11 } },
-  grid: { left: 140, right: 30, top: 40, bottom: 10 },
-  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
-  series: [
-    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#06b6d4', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-  ],
-});
-
 const KONDISI_TERUMBU_COLOR_MAP = {
   'Sangat Baik (75-100%)': '#10b981',
   'Baik (50-75%)': '#f59e0b',
@@ -93,18 +81,6 @@ const kondisiTerumbuPieOption = (data) => ({
   }]
 });
 
-const terumbuComboOption = (categories, eksisting, rehab) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#475569', fontSize: 11 } },
-  grid: { left: 140, right: 30, top: 40, bottom: 10 },
-  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
-  series: [
-    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#0ea5e9', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-  ],
-});
-
 const KONDISI_LAMUN_COLOR_MAP = {
   'Kaya (60-100%)': '#10b981',
   'Kurang Kaya (30-60%)': '#f59e0b',
@@ -119,18 +95,6 @@ const kondisiLamunPieOption = (data) => ({
     label: { show: false },
     emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
   }]
-});
-
-const lamunComboOption = (categories, eksisting, rehab) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['Luas Eksisting', 'Luas Rehabilitasi'], top: 0, textStyle: { color: '#475569', fontSize: 11 } },
-  grid: { left: 140, right: 30, top: 40, bottom: 10 },
-  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
-  series: [
-    { name: 'Luas Eksisting', data: eksisting, type: 'bar', itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-    { name: 'Luas Rehabilitasi', data: rehab, type: 'bar', itemStyle: { color: '#8b5cf6', borderRadius: [0, 4, 4, 0] }, barMaxWidth: 14 },
-  ],
 });
 
 export default function KelautanPesisir() {
@@ -719,7 +683,7 @@ export default function KelautanPesisir() {
         </div>
 
         {/* Mangrove KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
@@ -729,11 +693,6 @@ export default function KelautanPesisir() {
             <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Leaf className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
-          </div>
-          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-            <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
-            <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
           </div>
         </div>
 
@@ -751,16 +710,10 @@ export default function KelautanPesisir() {
               ? <ReactECharts option={hBarOption(mangroveKota, mangroveRehab, '#06b6d4', 'Ha')} style={{ height: Math.max(320, mangroveKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
             <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiMangrove.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiPieOption(kondisiChartData)} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
-            {mangroveKota.length > 0
-              ? <ReactECharts option={mangroveComboOption(mangroveKota, mangroveEksisting, mangroveRehab)} style={{ height: Math.max(320, mangroveKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -776,7 +729,7 @@ export default function KelautanPesisir() {
         </div>
 
         {/* Terumbu Karang KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
@@ -786,11 +739,6 @@ export default function KelautanPesisir() {
             <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
-          </div>
-          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-            <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
-            <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
           </div>
         </div>
 
@@ -808,16 +756,10 @@ export default function KelautanPesisir() {
               ? <ReactECharts option={hBarOption(terumbuKota, terumbuRehab, '#ec4899', 'Ha')} style={{ height: Math.max(320, terumbuKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
             <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiTerumbu.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData)} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
-            {terumbuKota.length > 0
-              ? <ReactECharts option={terumbuComboOption(terumbuKota, terumbuEksisting, terumbuRehab)} style={{ height: Math.max(320, terumbuKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -833,7 +775,7 @@ export default function KelautanPesisir() {
         </div>
 
         {/* Lamun KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Leaf className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Eksisting</p></div>
@@ -843,11 +785,6 @@ export default function KelautanPesisir() {
             <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><TreePine className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Rehabilitasi</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-sm text-muted-foreground font-normal">Ha</span></p>
-          </div>
-          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-            <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Titik Data</p></div>
-            <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.jumlah_lokasi)} <span className="text-sm text-muted-foreground font-normal">Lokasi</span></p>
           </div>
         </div>
 
@@ -865,16 +802,10 @@ export default function KelautanPesisir() {
               ? <ReactECharts option={hBarOption(lamunKota, lamunRehab, '#8b5cf6', 'Ha')} style={{ height: Math.max(320, lamunKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
             <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiLamun.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiLamunPieOption(kondisiLamunChartData)} style={{ height: '320px' }} />
-              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Eksisting vs Rehabilitasi per Kab/Kota</h3>
-            {lamunKota.length > 0
-              ? <ReactECharts option={lamunComboOption(lamunKota, lamunEksisting, lamunRehab)} style={{ height: Math.max(320, lamunKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
