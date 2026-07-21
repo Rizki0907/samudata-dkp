@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown, Save, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Search, X } from 'lucide-react';
 
 // ============================================================================
 // MASTER DATA & OPTIONS
@@ -66,7 +66,7 @@ export const IZIN_USAHA_LIST = [
 const INITIAL_FORM_DATA = {
   tahun: String(CURRENT_YEAR),
   kabupaten_kota: '',
-  kategori_kegiatan: 'pengolahan',
+  kategori_kegiatan: 'Pengolahan',
   jenis_kegiatan: '',
   skala_usaha: 'Mikro',
   jumlah_unit_usaha: '0',
@@ -85,7 +85,7 @@ const INITIAL_FORM_DATA = {
 const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
-const LABEL_CLASS = 'mb-1 block text-xs font-medium uppercase text-muted-foreground';
+const LABEL_CLASS = 'mb-1 block text-xs font-normal uppercase tracking-wide text-white';
 
 // ============================================================================
 // HELPERS
@@ -107,6 +107,75 @@ const toRawNumber = (val) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+
+const normalizeKategori = (value) =>
+  String(value ?? '').trim().toLowerCase() === 'pemasaran'
+    ? 'Pemasaran'
+    : 'Pengolahan';
+
+const normalizeOptionKey = (value) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ');
+
+const findCanonicalOption = (value, options) => {
+  const key = normalizeOptionKey(value);
+  return options.find((option) => normalizeOptionKey(option) === key) || value || '';
+};
+
+const createEmptyFormData = () => ({
+  ...INITIAL_FORM_DATA,
+  sertifikat_produk: { ...INITIAL_FORM_DATA.sertifikat_produk },
+  izin_usaha: { ...INITIAL_FORM_DATA.izin_usaha },
+});
+
+const createFormData = (initialData) => {
+  if (!initialData) return createEmptyFormData();
+
+  const kategori = normalizeKategori(initialData.kategori_kegiatan);
+  const jenisOptions =
+    kategori === 'Pengolahan'
+      ? JENIS_KEGIATAN_PENGOLAHAN
+      : JENIS_KEGIATAN_PEMASARAN;
+
+  return {
+    tahun: String(initialData.tahun ?? CURRENT_YEAR),
+    kabupaten_kota: initialData.kabupaten_kota ?? '',
+    kategori_kegiatan: kategori,
+    jenis_kegiatan: findCanonicalOption(initialData.jenis_kegiatan, jenisOptions),
+    skala_usaha: initialData.skala_usaha ?? 'Mikro',
+    jumlah_unit_usaha: formatThousand(initialData.jumlah_unit_usaha ?? 0),
+    modal_rp: formatThousand(initialData.modal_rp ?? 0),
+    hasil_kg: formatThousand(initialData.hasil_kg ?? 0),
+    hasil_rp: formatThousand(initialData.hasil_rp ?? 0),
+    sertifikat_produk: {
+      haccp: formatThousand(initialData.sertifikat_haccp ?? 0),
+      sni: formatThousand(initialData.sertifikat_sni ?? 0),
+      halal: formatThousand(initialData.sertifikat_halal ?? 0),
+      skp: formatThousand(initialData.sertifikat_skp ?? 0),
+      pirt: formatThousand(initialData.sertifikat_pirt ?? 0),
+      md: formatThousand(initialData.sertifikat_md ?? 0),
+      lainnya: formatThousand(initialData.sertifikat_lainnya ?? 0),
+    },
+    izin_usaha: {
+      nib: formatThousand(initialData.izin_nib ?? 0),
+      npwp: formatThousand(initialData.izin_npwp ?? 0),
+      kusuka: formatThousand(initialData.izin_kusuka ?? 0),
+      menkumham: formatThousand(initialData.izin_menkumham ?? 0),
+      akta_pendirian: formatThousand(initialData.izin_akta_pendirian ?? 0),
+      lokasi_domisili: formatThousand(initialData.izin_lokasi_domisili ?? 0),
+      imb: formatThousand(initialData.izin_imb ?? 0),
+      siup_perikanan: formatThousand(initialData.izin_siup_perikanan ?? 0),
+      siup_perdagangan: formatThousand(initialData.izin_siup_perdagangan ?? 0),
+      lainnya: formatThousand(initialData.izin_lainnya ?? 0),
+    },
+    shm_count: formatThousand(initialData.shm_count ?? 0),
+    non_shm_count: formatThousand(initialData.non_shm_count ?? 0),
+  };
+};
+
 // Format nilai HANYA untuk tampilan/export rekap (mis. generate file Excel): 0/kosong -> "-".
 // JANGAN pakai fungsi ini untuk payload yang dikirim ke API, karena kolom di database
 // bertipe Int/Float dan akan ditolak Prisma kalau menerima string seperti "-" atau "15.000".
@@ -120,15 +189,21 @@ const formatValueForDisplay = (val) => {
 // ============================================================================
 // REUSABLE FIELDS
 // ============================================================================
-function SectionCard({ number, title, description, children }) {
+function SectionCard({ number, title, children }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-foreground">
-        Section {number}: {title} <span className="text-red-500">*</span>
-      </h2>
-      {description ? <p className="mb-4 text-xs text-muted-foreground">{description}</p> : null}
-      {children}
-    </div>
+    <section className="relative overflow-visible rounded-2xl border border-border bg-card shadow-sm">
+      <div className="rounded-t-2xl border-b border-border bg-muted/35 px-5 py-4 md:px-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+            {number}
+          </span>
+          <h2 className="font-heading text-base font-semibold leading-tight text-foreground">
+            {title}
+          </h2>
+        </div>
+      </div>
+      <div className="p-5 md:p-6">{children}</div>
+    </section>
   );
 }
 
@@ -136,7 +211,7 @@ function SelectField({ label, value, onChange, options, placeholder = '-- Pilih 
   return (
     <div>
       <label className={LABEL_CLASS}>
-        {label} {required ? '*' : ''}
+        {label} {required ? <span className="text-rose-500">*</span> : null}
       </label>
       <div className="relative">
         <select
@@ -159,11 +234,130 @@ function SelectField({ label, value, onChange, options, placeholder = '-- Pilih 
   );
 }
 
+function SearchableSingleSelect({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder = 'Pilih salah satu',
+  required = true,
+}) {
+  const wrapperRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const normalizedOptions = [...new Set((options || []).filter(Boolean))];
+  const normalizedSearch = search.trim().toUpperCase();
+  const filteredOptions = normalizedOptions.filter((option) =>
+    String(option).toUpperCase().includes(normalizedSearch),
+  );
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handleSelect = (option) => {
+    onChange(option);
+    setSearch('');
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={wrapperRef} className={`relative ${isOpen ? 'z-[90]' : 'z-0'}`}>
+      <label className={LABEL_CLASS}>
+        {label} {required ? <span className="text-rose-500">*</span> : null}
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((previous) => !previous)}
+        aria-expanded={isOpen}
+        className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
+      >
+        <span className={value ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
+          {value || placeholder}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 right-0 top-full z-[100] mt-2 rounded-xl border border-border bg-card p-3 shadow-2xl">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Ketik nama kabupaten/kota..."
+              className={`${INPUT_CLASS} pl-9`}
+              autoFocus
+            />
+          </div>
+
+          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+            {filteredOptions.length ? (
+              filteredOptions.map((option) => {
+                const selected = option === value;
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleSelect(option)}
+                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      selected
+                        ? 'bg-primary/10 font-semibold text-primary'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                Tidak ada kabupaten/kota yang cocok.
+              </p>
+            )}
+          </div>
+
+          {value ? (
+            <div className="mt-3 border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('');
+                  setSearch('');
+                  setIsOpen(false);
+                }}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Bersihkan pilihan
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function NumberField({ label, value, onChange, required = true }) {
   return (
     <div>
       <label className={LABEL_CLASS}>
-        {label} {required ? '*' : ''}
+        {label} {required ? <span className="text-rose-500">*</span> : null}
       </label>
       <input
         type="text"
@@ -183,7 +377,7 @@ function NestedAmountGrid({ category, list, values, onChangeItem }) {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {list.map((item) => (
         <div key={item.key}>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">{item.label} *</label>
+          <label className="mb-1 block text-xs font-normal text-white">{item.label} <span className="text-rose-500">*</span></label>
           <input
             type="text"
             required
@@ -201,11 +395,15 @@ function NestedAmountGrid({ category, list, values, onChangeItem }) {
 // ============================================================================
 // MAIN COMPONENT (DIRECT REKAP MODE ONLY)
 // ============================================================================
-export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading }) {
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+export default function PengolahanPemasaranForm({ initialData, onSubmit, onCancel, isLoading }) {
+  const [formData, setFormData] = useState(() => createFormData(initialData));
+
+  useEffect(() => {
+    setFormData(createFormData(initialData));
+  }, [initialData]);
 
   const subJenisOptions = useMemo(
-    () => (formData.kategori_kegiatan === 'pengolahan' ? JENIS_KEGIATAN_PENGOLAHAN : JENIS_KEGIATAN_PEMASARAN),
+    () => (formData.kategori_kegiatan === 'Pengolahan' ? JENIS_KEGIATAN_PENGOLAHAN : JENIS_KEGIATAN_PEMASARAN),
     [formData.kategori_kegiatan],
   );
 
@@ -268,11 +466,10 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-5xl space-y-6 p-4">
-      {/* SECTION 1: TAHUN & WILAYAH */}
+      {/* Bagian 1 */}
       <SectionCard
         number="1"
         title="Tahun & Wilayah Kabupaten / Kota"
-        description="Pilih tahun data dan lokasi kabupaten/kota target input rekapitulasi."
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <SelectField
@@ -282,31 +479,30 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
             options={TAHUN_OPTIONS}
             placeholder={null}
           />
-          <SelectField
+          <SearchableSingleSelect
             label="Kabupaten / Kota"
             value={formData.kabupaten_kota}
-            onChange={(e) => setField('kabupaten_kota', e.target.value)}
+            onChange={(value) => setField('kabupaten_kota', value)}
             options={KABUPATEN_KOTA_OPTIONS}
-            placeholder="-- Pilih Kabupaten / Kota --"
+            placeholder="Cari atau pilih kabupaten/kota"
           />
         </div>
       </SectionCard>
 
-      {/* SECTION 2: KLASIFIKASI & SKALA */}
+      {/* Bagian 2 */}
       <SectionCard
         number="2"
         title="Klasifikasi Jenis Usaha & Skala Usaha"
-        description="Pilih kategori utama, jenis kegiatan, dan skala usaha."
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-medium uppercase text-muted-foreground">
-              Kategori Utama *
+            <label className="mb-2 block text-xs font-normal uppercase tracking-wide text-white">
+              Kategori Utama <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-6">
               {[
-                { value: 'pengolahan', label: 'Pengolahan' },
-                { value: 'pemasaran', label: 'Pemasaran' },
+                { value: 'Pengolahan', label: 'Pengolahan' },
+                { value: 'Pemasaran', label: 'Pemasaran' },
               ].map((opt) => (
                 <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
                   <input
@@ -325,7 +521,7 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectField
-              label={`Jenis Kegiatan (${formData.kategori_kegiatan === 'pengolahan' ? 'Pengolahan' : 'Pemasaran'})`}
+              label={`Jenis Kegiatan (${formData.kategori_kegiatan === 'Pengolahan' ? 'Pengolahan' : 'Pemasaran'})`}
               value={formData.jenis_kegiatan}
               onChange={(e) => setField('jenis_kegiatan', e.target.value)}
               options={subJenisOptions}
@@ -342,8 +538,8 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
         </div>
       </SectionCard>
 
-      {/* SECTION 3: UNIT USAHA & MODAL */}
-      <SectionCard number="3" title="Unit Usaha & Modal Investasi" description="Isi 0 jika tidak ada data.">
+      {/* Bagian 3 */}
+      <SectionCard number="3" title="Unit Usaha & Modal Investasi">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
             label="Jumlah Unit Usaha (Unit)"
@@ -358,8 +554,8 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
         </div>
       </SectionCard>
 
-      {/* SECTION 4: CAPAIAN PRODUKSI */}
-      <SectionCard number="4" title="Capaian Hasil Produksi / Penjualan" description="Isi 0 jika tidak ada data.">
+      {/* Bagian 4 */}
+      <SectionCard number="4" title="Capaian Hasil Produksi / Penjualan">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
             label="Hasil Produksi (Kg)"
@@ -374,11 +570,10 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
         </div>
       </SectionCard>
 
-      {/* SECTION 5: SERTIFIKAT PRODUK */}
+      {/* Bagian 5 */}
       <SectionCard
         number="5"
         title="Rekapitulasi Sertifikat Produk"
-        description="Wajib diisi semua. Ketik 0 jika belum ada."
       >
         <NestedAmountGrid
           category="sertifikat_produk"
@@ -388,11 +583,10 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
         />
       </SectionCard>
 
-      {/* SECTION 6: IZIN USAHA */}
+      {/* Bagian 6 */}
       <SectionCard
         number="6"
         title="Rekapitulasi Izin Usaha"
-        description="Wajib diisi semua. Ketik 0 jika belum ada."
       >
         <NestedAmountGrid
           category="izin_usaha"
@@ -402,11 +596,10 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
         />
       </SectionCard>
 
-      {/* SECTION 7: LAHAN & BANGUNAN */}
+      {/* Bagian 7 */}
       <SectionCard
         number="7"
         title="Rekapitulasi Sertifikat Lahan & Bangunan"
-        description="Isi 0 jika tidak ada data."
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
@@ -436,8 +629,7 @@ export default function PengolahanPemasaranForm({ onSubmit, onCancel, isLoading 
           disabled={isLoading}
           className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:opacity-50"
         >
-          <Save className="h-4 w-4" />
-          {isLoading ? 'Menyimpan...' : 'Simpan Data Rekap'}
+          {isLoading ? 'Menyimpan...' : 'Simpan Data'}
         </button>
       </div>
     </form>

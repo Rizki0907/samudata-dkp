@@ -1,574 +1,249 @@
 const prisma = require('../utils/prisma');
 
-const toStringValue = value => String(value ?? '').trim();
-
-const toOptionalString = value => {
-  if (Array.isArray(value)) {
-    const text = value.map(item => String(item).trim()).filter(Boolean).join(', ');
-    return text || null;
-  }
-
-  const text = String(value ?? '').trim();
-  return text || null;
-};
-
 const toNumber = value => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0;
   }
 
-  let normalized = String(value ?? '').trim().replace(/\s/g, '');
+  let normalized = String(value ?? '')
+    .trim()
+    .replace(/\s/g, '');
+
   if (!normalized) return 0;
 
   if (normalized.includes(',')) {
-    normalized = normalized.replace(/\./g, '').replace(',', '.');
+    normalized = normalized
+      .replace(/\./g, '')
+      .replace(',', '.');
   } else if (/^-?\d{1,3}(\.\d{3})+$/.test(normalized)) {
     normalized = normalized.replace(/\./g, '');
   }
 
   normalized = normalized.replace(/[^0-9.-]/g, '');
+
   const parsed = Number(normalized);
+
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const toFloat = value => toNumber(value);
 const toInt = value => Math.trunc(toNumber(value));
 
-const toOptionalInt = value => {
-  if (value === '' || value === null || value === undefined) return null;
-  return toInt(value);
-};
+const toFloat = value => toNumber(value);
 
-const toDateOrNull = value => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
+const normalizeKategori = value =>
+  String(value ?? '').trim().toLowerCase() === 'pemasaran'
+    ? 'Pemasaran'
+    : 'Pengolahan';
 
-const MONTHS = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+const normalizeText = value =>
+  String(value ?? '').trim();
+
+const normalizeKabupaten = value =>
+  normalizeText(value).toUpperCase();
+
+const REKAP_INT_FIELDS = [
+  'jumlah_unit_usaha',
+
+  'shm_count',
+  'non_shm_count',
+
+  'sertifikat_haccp',
+  'sertifikat_sni',
+  'sertifikat_halal',
+  'sertifikat_skp',
+  'sertifikat_pirt',
+  'sertifikat_md',
+  'sertifikat_lainnya',
+
+  'izin_nib',
+  'izin_npwp',
+  'izin_kusuka',
+  'izin_menkumham',
+  'izin_akta_pendirian',
+  'izin_imb',
+  'izin_lokasi_domisili',
+  'izin_siup_perikanan',
+  'izin_siup_perdagangan',
+  'izin_lainnya',
 ];
 
-const TENAGA_KERJA_FIELDS = [
-  'tenaga_kerja_tetap_laki_laki',
-  'tenaga_kerja_tetap_perempuan',
-  'tenaga_kerja_tidak_tetap_laki_laki',
-  'tenaga_kerja_tidak_tetap_perempuan',
-  'tenaga_kerja_keluarga_laki_laki',
-  'tenaga_kerja_keluarga_perempuan',
-  'tenaga_kerja_tetap_laki_laki_2',
-  'tenaga_kerja_tetap_perempuan_2',
-  'tenaga_kerja_tidak_tetap_laki_laki_2',
-  'tenaga_kerja_tidak_tetap_perempuan_2',
+const REKAP_FLOAT_FIELDS = [
+  'hasil_kg',
+  'hasil_rp',
+  'modal_rp',
 ];
 
 const buildPayload = body => {
-  const totalBulanProduksi = toFloat(body.jumlah_total_bulan_produksi_per_tahun);
-  const hariProduksiPerBulan = toFloat(body.jumlah_hari_produksi_per_bulan);
-
-  const multiplier =
-    body.periode_produksi === 'Harian'
-      ? totalBulanProduksi * hariProduksiPerBulan
-      : body.periode_produksi === 'Bulanan'
-        ? totalBulanProduksi
-        : 0;
-
-  const biayaProduksiPerTahun =
-    toFloat(body.biaya_produksi_per_periode_rp) * multiplier;
-  const kapasitasPerTahun =
-    toFloat(body.kapasitas_per_periode_kg) * multiplier;
-  const hasilProduksiPerTahun =
-    toFloat(body.hasil_produksi_per_periode_kg) * multiplier;
-  const nilaiHasilProduksiPerTahun =
-    hasilProduksiPerTahun * toFloat(body.harga_jual_rp_kg);
-
-  const totalTenagaKerja = TENAGA_KERJA_FIELDS.reduce(
-    (total, key) => total + toInt(body[key]),
-    0,
-  );
-
-  return {
+  const payload = {
     tahun: toInt(body.tahun),
-    jenis_kegiatan: toStringValue(body.jenis_kegiatan),
-    skala_usaha: toStringValue(body.skala_usaha),
-    jenis_kegiatan_pengolahan:
-      body.jenis_kegiatan === 'Pengolahan'
-        ? toOptionalString(body.jenis_kegiatan_pengolahan)
-        : null,
-    jenis_kegiatan_pemasaran:
-      body.jenis_kegiatan === 'Pemasaran'
-        ? toOptionalString(body.jenis_kegiatan_pemasaran)
-        : null,
 
-    nama_upi: toStringValue(body.nama_upi),
-    alamat: toStringValue(body.alamat),
-    desa: toStringValue(body.desa),
-    kecamatan: toStringValue(body.kecamatan),
-    kabupaten_kota: toStringValue(body.kabupaten_kota),
-    nomor_telepon: toStringValue(body.nomor_telepon),
-    tahun_berdiri: toOptionalInt(body.tahun_berdiri),
+    kabupaten_kota: normalizeKabupaten(
+      body.kabupaten_kota,
+    ),
 
-    perizinan: toOptionalString(body.perizinan),
-    nama_pemilik: toStringValue(body.nama_pemilik),
-    jenis_kelamin: toStringValue(body.jenis_kelamin),
-    alamat_2: toOptionalString(body.alamat_2),
-    desa_2: toOptionalString(body.desa_2),
-    kecamatan_2: toOptionalString(body.kecamatan_2),
-    kabupaten_kota_2: toOptionalString(body.kabupaten_kota_2),
-    nomor_telepon_2: toOptionalString(body.nomor_telepon_2),
+    kategori_kegiatan: normalizeKategori(
+      body.kategori_kegiatan,
+    ),
 
-    nilai_aset_rp: toFloat(body.nilai_aset_rp),
-    cold_storage_kg: toFloat(body.cold_storage_kg),
-    status_cold_storage: toOptionalString(body.status_cold_storage),
-    aset_cold_storage_rp: toFloat(body.aset_cold_storage_rp),
-    status_lahan_usaha: toOptionalString(body.status_lahan_usaha),
-    sertifikat_lahan: toOptionalString(body.sertifikat_lahan),
-    luas_lahan_m2: toFloat(body.luas_lahan_m2),
-    nilai_lahan_rp: toFloat(body.nilai_lahan_rp),
-    sertifikat_bangunan: toOptionalString(body.sertifikat_bangunan),
-    luas_bangunan_m2: toFloat(body.luas_bangunan_m2),
-    nilai_bangunan_rp: toFloat(body.nilai_bangunan_rp),
-    biaya_sewa_per_tahun_rp: toFloat(body.biaya_sewa_per_tahun_rp),
+    jenis_kegiatan: normalizeText(
+      body.jenis_kegiatan,
+    ),
 
-    jumlah_modal_sendiri_rp: toFloat(body.jumlah_modal_sendiri_rp),
-    jumlah_laba_ditanam_rp: toFloat(body.jumlah_laba_ditanam_rp),
-    pinjaman_modal: toOptionalString(body.pinjaman_modal),
-    jumlah_pinjaman_rp: toFloat(body.jumlah_pinjaman_rp),
-    pemberi_pinjaman: toOptionalString(body.pemberi_pinjaman),
-    tanggal_akad_pinjaman: toDateOrNull(body.tanggal_akad_pinjaman),
-    tenor_pinjaman_tahun: toFloat(body.tenor_pinjaman_tahun),
-
-    nama_merek: toOptionalString(body.nama_merek),
-    jenis_produk: toOptionalString(body.jenis_produk),
-    sertifikat_umum: toOptionalString(body.sertifikat_umum),
-    sertifikat_bpom: toOptionalString(body.sertifikat_bpom),
-    periode_produksi: toOptionalString(body.periode_produksi),
-
-    biaya_produksi_per_periode_rp: toFloat(body.biaya_produksi_per_periode_rp),
-    biaya_lain_lain_per_periode_rp: toFloat(body.biaya_lain_lain_per_periode_rp),
-    hasil_produksi_per_periode_kg: toFloat(body.hasil_produksi_per_periode_kg),
-    kapasitas_per_periode_kg: toFloat(body.kapasitas_per_periode_kg),
-    harga_jual_rp_kg: toFloat(body.harga_jual_rp_kg),
-    bulan_produksi: toOptionalString(body.bulan_produksi),
-    jumlah_total_bulan_produksi_per_tahun: totalBulanProduksi,
-    jumlah_hari_produksi_per_bulan: hariProduksiPerBulan,
-
-    biaya_produksi_per_tahun_rp: biayaProduksiPerTahun,
-    kapasitas_per_tahun_kg: kapasitasPerTahun,
-    hasil_produksi_per_tahun_kg: hasilProduksiPerTahun,
-    nilai_hasil_produksi_per_tahun_rp: nilaiHasilProduksiPerTahun,
-
-    nama_bahan_baku: toOptionalString(body.nama_bahan_baku),
-    total_bahan_baku_per_periode_kg: toFloat(body.total_bahan_baku_per_periode_kg),
-    asal_bahan_baku_kabupaten_kota: toOptionalString(body.asal_bahan_baku_kabupaten_kota),
-    provinsi_asal_bahan_baku: toOptionalString(body.provinsi_asal_bahan_baku),
-    asal_negara_bahan_baku: toOptionalString(body.asal_negara_bahan_baku),
-
-    total_pemasaran_per_tahun_kg: toFloat(body.total_pemasaran_per_tahun_kg),
-    pasar_dalam_kota_kab_per_tahun_kg: toFloat(body.pasar_dalam_kota_kab_per_tahun_kg),
-    pasar_kota_dalam_jatim_per_tahun_kg: toFloat(body.pasar_kota_dalam_jatim_per_tahun_kg),
-    pasar_luar_jatim_per_tahun_kg: toFloat(body.pasar_luar_jatim_per_tahun_kg),
-    pasar_luar_negeri_per_tahun_kg: toFloat(body.pasar_luar_negeri_per_tahun_kg),
-    tujuan_pemasaran_kabupaten_kota: toOptionalString(body.tujuan_pemasaran_kabupaten_kota),
-    provinsi_tujuan_pemasaran: toOptionalString(body.provinsi_tujuan_pemasaran),
-    negara_tujuan_pemasaran: toOptionalString(body.negara_tujuan_pemasaran),
-
-    tenaga_kerja_tetap_laki_laki: toInt(body.tenaga_kerja_tetap_laki_laki),
-    tenaga_kerja_tetap_perempuan: toInt(body.tenaga_kerja_tetap_perempuan),
-    tenaga_kerja_tidak_tetap_laki_laki: toInt(body.tenaga_kerja_tidak_tetap_laki_laki),
-    tenaga_kerja_tidak_tetap_perempuan: toInt(body.tenaga_kerja_tidak_tetap_perempuan),
-    tenaga_kerja_keluarga_laki_laki: toInt(body.tenaga_kerja_keluarga_laki_laki),
-    tenaga_kerja_keluarga_perempuan: toInt(body.tenaga_kerja_keluarga_perempuan),
-    tenaga_kerja_tetap_laki_laki_2: toInt(body.tenaga_kerja_tetap_laki_laki_2),
-    tenaga_kerja_tetap_perempuan_2: toInt(body.tenaga_kerja_tetap_perempuan_2),
-    tenaga_kerja_tidak_tetap_laki_laki_2: toInt(body.tenaga_kerja_tidak_tetap_laki_laki_2),
-    tenaga_kerja_tidak_tetap_perempuan_2: toInt(body.tenaga_kerja_tidak_tetap_perempuan_2),
-    total_seluruh_tenaga_kerja: totalTenagaKerja,
+    skala_usaha: normalizeText(
+      body.skala_usaha,
+    ),
   };
+
+  REKAP_INT_FIELDS.forEach(field => {
+    payload[field] = Math.max(
+      0,
+      toInt(body[field]),
+    );
+  });
+
+  REKAP_FLOAT_FIELDS.forEach(field => {
+    payload[field] = Math.max(
+      0,
+      toFloat(body[field]),
+    );
+  });
+
+  return payload;
+};
+
+const validatePayload = payload => {
+  if (!payload.tahun) {
+    return 'Tahun wajib diisi';
+  }
+
+  if (!payload.kabupaten_kota) {
+    return 'Kabupaten/Kota wajib dipilih';
+  }
+
+  if (!payload.kategori_kegiatan) {
+    return 'Kategori kegiatan wajib dipilih';
+  }
+
+  if (!payload.jenis_kegiatan) {
+    return 'Jenis kegiatan wajib dipilih';
+  }
+
+  if (!payload.skala_usaha) {
+    return 'Skala usaha wajib dipilih';
+  }
+
+  return null;
+};
+
+const buildDuplicateWhere = (
+  payload,
+  excludedId = null,
+) => ({
+  tahun: payload.tahun,
+
+  kabupaten_kota: {
+    equals: payload.kabupaten_kota,
+    mode: 'insensitive',
+  },
+
+  kategori_kegiatan: {
+    equals: payload.kategori_kegiatan,
+    mode: 'insensitive',
+  },
+
+  jenis_kegiatan: {
+    equals: payload.jenis_kegiatan,
+    mode: 'insensitive',
+  },
+
+  skala_usaha: {
+    equals: payload.skala_usaha,
+    mode: 'insensitive',
+  },
+
+  ...(excludedId
+    ? {
+        id: {
+          not: excludedId,
+        },
+      }
+    : {}),
+});
+
+const buildPublicWhere = query => {
+  const where = {
+    status: 'VERIFIED',
+  };
+
+  if (query.tahun) {
+    where.tahun = toInt(query.tahun);
+  }
+
+  if (query.kabupaten_kota) {
+    where.kabupaten_kota =
+      query.kabupaten_kota;
+  }
+
+  if (query.skala_usaha) {
+    where.skala_usaha =
+      query.skala_usaha;
+  }
+
+  if (query.kategori_kegiatan) {
+    where.kategori_kegiatan =
+      normalizeKategori(
+        query.kategori_kegiatan,
+      );
+  }
+
+  if (query.jenis_kegiatan) {
+    const value = normalizeText(
+      query.jenis_kegiatan,
+    );
+
+    if (
+      /^(pengolahan|pemasaran)$/i.test(value)
+    ) {
+      where.kategori_kegiatan =
+        normalizeKategori(value);
+    } else {
+      where.jenis_kegiatan = value;
+    }
+  }
+
+  return where;
 };
 
 const getAllData = async (req, res) => {
   try {
-    const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'VERIFIED' };
+    const data =
+      await prisma.pengolahanPemasaranRekap.findMany({
+        where: buildPublicWhere(req.query),
 
-    if (tahun) where.tahun = toInt(tahun);
-    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
-    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
-    if (skala_usaha) where.skala_usaha = skala_usaha;
-
-    const data = await prisma.pengolahanPemasaran.findMany({
-      where,
-      orderBy: { created_at: 'desc' },
-    });
-
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching pengolahan pemasaran data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-const getAdminData = async (req, res) => {
-  try {
-    const data = await prisma.pengolahanPemasaran.findMany({
-      orderBy: { created_at: 'desc' },
-    });
-
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching pengolahan pemasaran admin data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-const getStats = async (req, res) => {
-  try {
-    const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'VERIFIED' };
-
-    if (tahun) where.tahun = toInt(tahun);
-    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
-    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
-    if (skala_usaha) where.skala_usaha = skala_usaha;
-
-    const data = await prisma.pengolahanPemasaran.findMany({ where });
-
-    const kpi = {
-      total_unit_usaha: data.length,
-      total_produksi_kg: 0,
-      total_nilai_produksi_rp: 0,
-      total_pemasaran_kg: 0,
-      total_tenaga_kerja: 0,
-    };
-
-    const kabupatenMap = {};
-    const jenisKegiatanMap = {};
-    const jenisPengolahanMap = {};
-    const jenisPemasaranMap = {};
-    const skalaUsahaMap = {};
-
-    const distribusiPemasaran = {
-      dalam_kota_kab: 0,
-      kota_dalam_jatim: 0,
-      luar_jatim: 0,
-      luar_negeri: 0,
-    };
-
-    const tenagaKerja = {
-      tetap_laki_laki: 0,
-      tetap_perempuan: 0,
-      tidak_tetap_laki_laki: 0,
-      tidak_tetap_perempuan: 0,
-      keluarga_laki_laki: 0,
-      keluarga_perempuan: 0,
-      tetap_laki_laki_2: 0,
-      tetap_perempuan_2: 0,
-      tidak_tetap_laki_laki_2: 0,
-      tidak_tetap_perempuan_2: 0,
-    };
-
-    data.forEach(item => {
-      kpi.total_produksi_kg += item.hasil_produksi_per_tahun_kg || 0;
-      kpi.total_nilai_produksi_rp += item.nilai_hasil_produksi_per_tahun_rp || 0;
-      kpi.total_pemasaran_kg += item.total_pemasaran_per_tahun_kg || 0;
-      kpi.total_tenaga_kerja += item.total_seluruh_tenaga_kerja || 0;
-
-      if (!kabupatenMap[item.kabupaten_kota]) {
-        kabupatenMap[item.kabupaten_kota] = {
-          name: item.kabupaten_kota,
-          jumlah_unit: 0,
-          produksi_kg: 0,
-          nilai_produksi_rp: 0,
-          pemasaran_kg: 0,
-          tenaga_kerja: 0,
-        };
-      }
-
-      kabupatenMap[item.kabupaten_kota].jumlah_unit += 1;
-      kabupatenMap[item.kabupaten_kota].produksi_kg += item.hasil_produksi_per_tahun_kg || 0;
-      kabupatenMap[item.kabupaten_kota].nilai_produksi_rp += item.nilai_hasil_produksi_per_tahun_rp || 0;
-      kabupatenMap[item.kabupaten_kota].pemasaran_kg += item.total_pemasaran_per_tahun_kg || 0;
-      kabupatenMap[item.kabupaten_kota].tenaga_kerja += item.total_seluruh_tenaga_kerja || 0;
-
-      if (item.jenis_kegiatan) {
-        jenisKegiatanMap[item.jenis_kegiatan] =
-          (jenisKegiatanMap[item.jenis_kegiatan] || 0) + 1;
-      }
-
-      if (item.jenis_kegiatan_pengolahan) {
-        jenisPengolahanMap[item.jenis_kegiatan_pengolahan] =
-          (jenisPengolahanMap[item.jenis_kegiatan_pengolahan] || 0) + 1;
-      }
-
-      if (item.jenis_kegiatan_pemasaran) {
-        jenisPemasaranMap[item.jenis_kegiatan_pemasaran] =
-          (jenisPemasaranMap[item.jenis_kegiatan_pemasaran] || 0) + 1;
-      }
-
-      if (item.skala_usaha) {
-        skalaUsahaMap[item.skala_usaha] =
-          (skalaUsahaMap[item.skala_usaha] || 0) + 1;
-      }
-
-      distribusiPemasaran.dalam_kota_kab += item.pasar_dalam_kota_kab_per_tahun_kg || 0;
-      distribusiPemasaran.kota_dalam_jatim += item.pasar_kota_dalam_jatim_per_tahun_kg || 0;
-      distribusiPemasaran.luar_jatim += item.pasar_luar_jatim_per_tahun_kg || 0;
-      distribusiPemasaran.luar_negeri += item.pasar_luar_negeri_per_tahun_kg || 0;
-
-      tenagaKerja.tetap_laki_laki += item.tenaga_kerja_tetap_laki_laki || 0;
-      tenagaKerja.tetap_perempuan += item.tenaga_kerja_tetap_perempuan || 0;
-      tenagaKerja.tidak_tetap_laki_laki += item.tenaga_kerja_tidak_tetap_laki_laki || 0;
-      tenagaKerja.tidak_tetap_perempuan += item.tenaga_kerja_tidak_tetap_perempuan || 0;
-      tenagaKerja.keluarga_laki_laki += item.tenaga_kerja_keluarga_laki_laki || 0;
-      tenagaKerja.keluarga_perempuan += item.tenaga_kerja_keluarga_perempuan || 0;
-      tenagaKerja.tetap_laki_laki_2 += item.tenaga_kerja_tetap_laki_laki_2 || 0;
-      tenagaKerja.tetap_perempuan_2 += item.tenaga_kerja_tetap_perempuan_2 || 0;
-      tenagaKerja.tidak_tetap_laki_laki_2 += item.tenaga_kerja_tidak_tetap_laki_laki_2 || 0;
-      tenagaKerja.tidak_tetap_perempuan_2 += item.tenaga_kerja_tidak_tetap_perempuan_2 || 0;
-    });
-
-    const mapToArray = map =>
-      Object.entries(map)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
-
-    res.json({
-      success: true,
-      stats: {
-        kpi,
-        produksiPerKabupaten: Object.values(kabupatenMap).sort(
-          (a, b) => b.produksi_kg - a.produksi_kg,
-        ),
-        komposisiJenisKegiatan: mapToArray(jenisKegiatanMap),
-        komposisiJenisPengolahan: mapToArray(jenisPengolahanMap),
-        komposisiJenisPemasaran: mapToArray(jenisPemasaranMap),
-        komposisiSkalaUsaha: mapToArray(skalaUsahaMap),
-        distribusiPemasaran: [
-          { name: 'Dalam Kota/Kabupaten', value: distribusiPemasaran.dalam_kota_kab },
-          { name: 'Kota Dalam Jawa Timur', value: distribusiPemasaran.kota_dalam_jatim },
-          { name: 'Luar Jawa Timur', value: distribusiPemasaran.luar_jatim },
-          { name: 'Luar Negeri', value: distribusiPemasaran.luar_negeri },
+        orderBy: [
+          {
+            tahun: 'desc',
+          },
+          {
+            kabupaten_kota: 'asc',
+          },
+          {
+            jenis_kegiatan: 'asc',
+          },
         ],
-        tenagaKerja: [
-          { name: 'Tetap Laki-Laki', value: tenagaKerja.tetap_laki_laki },
-          { name: 'Tetap Perempuan', value: tenagaKerja.tetap_perempuan },
-          { name: 'Tidak Tetap Laki-Laki', value: tenagaKerja.tidak_tetap_laki_laki },
-          { name: 'Tidak Tetap Perempuan', value: tenagaKerja.tidak_tetap_perempuan },
-          { name: 'Keluarga Laki-Laki', value: tenagaKerja.keluarga_laki_laki },
-          { name: 'Keluarga Perempuan', value: tenagaKerja.keluarga_perempuan },
-          { name: 'Tetap Laki-Laki 2', value: tenagaKerja.tetap_laki_laki_2 },
-          { name: 'Tetap Perempuan 2', value: tenagaKerja.tetap_perempuan_2 },
-          { name: 'Tidak Tetap Laki-Laki 2', value: tenagaKerja.tidak_tetap_laki_laki_2 },
-          { name: 'Tidak Tetap Perempuan 2', value: tenagaKerja.tidak_tetap_perempuan_2 },
-        ],
-      },
-    });
-  } catch (error) {
-    console.error('Error generating pengolahan pemasaran stats:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-/**
- * Endpoint khusus untuk Dashboard Pengolahan & Pemasaran (peta, bar chart, tren bulanan,
- * treemap, dan heatmap). Dibuat terpisah dari getStats() supaya kontrak getStats() lama
- * yang mungkin sudah dipakai di halaman lain tidak berubah.
- *
- * Query params yang didukung: tahun, bulan, kabupaten_kota, jenis_kegiatan, skala_usaha
- */
-const getDashboardStats = async (req, res) => {
-  try {
-    const { tahun, bulan, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'VERIFIED' };
-
-    if (tahun) where.tahun = toInt(tahun);
-    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
-    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
-    if (skala_usaha) where.skala_usaha = skala_usaha;
-
-    // Ambil data tahunan penuh (dipakai untuk tren bulanan & heatmap agar konteks 12 bulan tetap utuh)
-    const data = await prisma.pengolahanPemasaran.findMany({ where });
-
-    // Untuk KPI, peta, bar chart, dan treemap: bisa difilter tambahan per bulan produksi aktif
-    const filteredByBulan = bulan
-      ? data.filter(item =>
-          (item.bulan_produksi || '')
-            .split(',')
-            .map(b => b.trim())
-            .includes(bulan),
-        )
-      : data;
-
-    // 1. KPI + agregasi jenis produk (dipakai juga untuk top5Jenis)
-    let totalVolume = 0;
-    let totalNilai = 0;
-    const jenisProdukVolume = {};
-    const upiSet = new Set();
-
-    filteredByBulan.forEach(item => {
-      totalVolume += item.hasil_produksi_per_tahun_kg || 0;
-      totalNilai += item.nilai_hasil_produksi_per_tahun_rp || 0;
-
-      if (item.jenis_produk) {
-        jenisProdukVolume[item.jenis_produk] =
-          (jenisProdukVolume[item.jenis_produk] || 0) + (item.hasil_produksi_per_tahun_kg || 0);
-      }
-
-      if (item.nama_upi) {
-        upiSet.add(`${item.nama_upi}__${item.kabupaten_kota}`);
-      }
-    });
-
-    const topJenisProdukEntry = Object.entries(jenisProdukVolume).sort((a, b) => b[1] - a[1])[0];
-
-    const kpi = {
-      total_volume: totalVolume,
-      top_jenis_produk: topJenisProdukEntry ? topJenisProdukEntry[0] : '-',
-      total_nilai: totalNilai,
-      total_upi: upiSet.size,
-    };
-
-    // 2. Produksi & Nilai per Kabupaten/Kota -> untuk peta choropleth & bar chart Top 10
-    const kabupatenMap = {};
-    filteredByBulan.forEach(item => {
-      if (!item.kabupaten_kota) return;
-      if (!kabupatenMap[item.kabupaten_kota]) {
-        kabupatenMap[item.kabupaten_kota] = { name: item.kabupaten_kota, produksi: 0, nilai: 0 };
-      }
-      kabupatenMap[item.kabupaten_kota].produksi += item.hasil_produksi_per_tahun_kg || 0;
-      kabupatenMap[item.kabupaten_kota].nilai += item.nilai_hasil_produksi_per_tahun_rp || 0;
-    });
-    const produksiPerKabupaten = Object.values(kabupatenMap).sort((a, b) => b.produksi - a.produksi);
-
-    // 3. Top 5 Jenis Produk (untuk legend tren bulanan)
-    const top5Jenis = Object.entries(jenisProdukVolume)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name]) => name);
-
-    // 4. Tren Bulanan: hasil_produksi_per_tahun_kg didistribusikan rata ke setiap bulan_produksi yang aktif
-    const trenBulananMap = {};
-    MONTHS.forEach(bulanName => {
-      trenBulananMap[bulanName] = { bulan: bulanName, Lainnya: 0 };
-      top5Jenis.forEach(jenis => {
-        trenBulananMap[bulanName][jenis] = 0;
       });
-    });
 
-    data.forEach(item => {
-      const bulanAktif = (item.bulan_produksi || '')
-        .split(',')
-        .map(b => b.trim())
-        .filter(b => MONTHS.includes(b));
-
-      if (!bulanAktif.length) return;
-
-      const volumePerBulan = (item.hasil_produksi_per_tahun_kg || 0) / bulanAktif.length;
-      const targetKey =
-        item.jenis_produk && top5Jenis.includes(item.jenis_produk) ? item.jenis_produk : 'Lainnya';
-
-      bulanAktif.forEach(bulanName => {
-        trenBulananMap[bulanName][targetKey] =
-          (trenBulananMap[bulanName][targetKey] || 0) + volumePerBulan;
-      });
-    });
-
-    const trenBulanan = MONTHS.map(bulanName => trenBulananMap[bulanName]);
-
-    // 5. Komposisi Jenis Kegiatan (treemap): gabungan jenis_kegiatan_pengolahan & jenis_kegiatan_pemasaran
-    const komposisiMap = {};
-    filteredByBulan.forEach(item => {
-      const label =
-        item.jenis_kegiatan === 'Pengolahan'
-          ? item.jenis_kegiatan_pengolahan
-          : item.jenis_kegiatan_pemasaran;
-
-      if (!label) return;
-
-      const value =
-        item.jenis_kegiatan === 'Pengolahan'
-          ? item.hasil_produksi_per_tahun_kg || 0
-          : item.total_pemasaran_per_tahun_kg || 0;
-
-      komposisiMap[label] = (komposisiMap[label] || 0) + value;
-    });
-
-    const komposisiKegiatan = Object.entries(komposisiMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-
-    // 6. Heatmap Kabupaten x Bulan (dinormalisasi per kabupaten terhadap titik tertinggi kabupaten itu sendiri)
-    const heatmapRaw = {}; // { kabupaten: { bulan: totalKg } }
-
-    data.forEach(item => {
-      if (!item.kabupaten_kota) return;
-      const bulanAktif = (item.bulan_produksi || '')
-        .split(',')
-        .map(b => b.trim())
-        .filter(b => MONTHS.includes(b));
-
-      if (!bulanAktif.length) return;
-
-      const volumePerBulan = (item.hasil_produksi_per_tahun_kg || 0) / bulanAktif.length;
-
-      if (!heatmapRaw[item.kabupaten_kota]) heatmapRaw[item.kabupaten_kota] = {};
-
-      bulanAktif.forEach(bulanName => {
-        heatmapRaw[item.kabupaten_kota][bulanName] =
-          (heatmapRaw[item.kabupaten_kota][bulanName] || 0) + volumePerBulan;
-      });
-    });
-
-    const heatmapData = [];
-    Object.entries(heatmapRaw).forEach(([kabupaten, bulanValues]) => {
-      const maxInKabupaten = Math.max(...Object.values(bulanValues), 0);
-      MONTHS.forEach(bulanName => {
-        const produksi = bulanValues[bulanName] || 0;
-        heatmapData.push({
-          kabupaten,
-          bulan: bulanName,
-          produksi,
-          normalized: maxInKabupaten > 0 ? produksi / maxInKabupaten : 0,
-        });
-      });
-    });
-
-    res.json({
-      success: true,
-      stats: {
-        kpi,
-        produksiPerKabupaten,
-        trenBulanan,
-        top5Jenis,
-        komposisiKegiatan,
-        heatmapData,
-      },
-    });
-  } catch (error) {
-    console.error('Error generating pengolahan pemasaran dashboard stats:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-const createData = async (req, res) => {
-  try {
-    const data = await prisma.pengolahanPemasaran.create({
-      data: {
-        status: 'PENDING',
-        ...buildPayload(req.body),
-      },
-    });
-
-    res.status(201).json({
+    return res.json({
       success: true,
       data,
-      message: 'Data berhasil ditambahkan',
     });
   } catch (error) {
-    console.error('Error creating pengolahan pemasaran data:', error);
-    res.status(500).json({
+    console.error(
+      'Error fetching pengolahan pemasaran data:',
+      error,
+    );
+
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message,
@@ -576,30 +251,444 @@ const createData = async (req, res) => {
   }
 };
 
-const updateStatus = async (req, res) => {
+const getAdminData = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, alasan_penolakan } = req.body;
+    const data =
+      await prisma.pengolahanPemasaranRekap.findMany({
+        orderBy: [
+          {
+            created_at: 'desc',
+          },
+        ],
+      });
 
-    if (!req.user || req.user.role !== 'admin_pusat') {
-      return res.status(403).json({
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error(
+      'Error fetching pengolahan pemasaran admin data:',
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const mapToSortedArray = map =>
+  [...map.entries()]
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort(
+      (a, b) => b.value - a.value,
+    );
+
+const getStats = async (req, res) => {
+  try {
+    const data =
+      await prisma.pengolahanPemasaranRekap.findMany({
+        where: buildPublicWhere(req.query),
+      });
+
+    const kpi = {
+      total_unit_usaha: 0,
+      total_produksi_kg: 0,
+      total_nilai_produksi_rp: 0,
+      total_modal_rp: 0,
+    };
+
+    const kabupatenMap = new Map();
+    const kategoriMap = new Map();
+    const pengolahanMap = new Map();
+    const pemasaranMap = new Map();
+    const skalaMap = new Map();
+
+    data.forEach(item => {
+      const jumlahUnit = toInt(
+        item.jumlah_unit_usaha,
+      );
+
+      const hasilKg = toFloat(
+        item.hasil_kg,
+      );
+
+      const hasilRp = toFloat(
+        item.hasil_rp,
+      );
+
+      const modalRp = toFloat(
+        item.modal_rp,
+      );
+
+      const kategori = normalizeKategori(
+        item.kategori_kegiatan,
+      );
+
+      kpi.total_unit_usaha += jumlahUnit;
+      kpi.total_produksi_kg += hasilKg;
+      kpi.total_nilai_produksi_rp +=
+        hasilRp;
+      kpi.total_modal_rp += modalRp;
+
+      if (
+        !kabupatenMap.has(
+          item.kabupaten_kota,
+        )
+      ) {
+        kabupatenMap.set(
+          item.kabupaten_kota,
+          {
+            name: item.kabupaten_kota,
+            jumlah_unit: 0,
+            produksi_kg: 0,
+            nilai_produksi_rp: 0,
+            modal_rp: 0,
+          },
+        );
+      }
+
+      const wilayah = kabupatenMap.get(
+        item.kabupaten_kota,
+      );
+
+      wilayah.jumlah_unit += jumlahUnit;
+      wilayah.produksi_kg += hasilKg;
+      wilayah.nilai_produksi_rp +=
+        hasilRp;
+      wilayah.modal_rp += modalRp;
+
+      kategoriMap.set(
+        kategori,
+        (kategoriMap.get(kategori) || 0) +
+          jumlahUnit,
+      );
+
+      skalaMap.set(
+        item.skala_usaha,
+        (skalaMap.get(
+          item.skala_usaha,
+        ) || 0) + jumlahUnit,
+      );
+
+      const targetMap =
+        kategori === 'Pemasaran'
+          ? pemasaranMap
+          : pengolahanMap;
+
+      targetMap.set(
+        item.jenis_kegiatan,
+        (targetMap.get(
+          item.jenis_kegiatan,
+        ) || 0) + jumlahUnit,
+      );
+    });
+
+    return res.json({
+      success: true,
+
+      stats: {
+        kpi,
+
+        produksiPerKabupaten: [
+          ...kabupatenMap.values(),
+        ].sort(
+          (a, b) =>
+            b.produksi_kg -
+            a.produksi_kg,
+        ),
+
+        komposisiJenisKegiatan:
+          mapToSortedArray(
+            kategoriMap,
+          ),
+
+        komposisiJenisPengolahan:
+          mapToSortedArray(
+            pengolahanMap,
+          ),
+
+        komposisiJenisPemasaran:
+          mapToSortedArray(
+            pemasaranMap,
+          ),
+
+        komposisiSkalaUsaha:
+          mapToSortedArray(
+            skalaMap,
+          ),
+
+        distribusiPemasaran: [],
+        tenagaKerja: [],
+      },
+    });
+  } catch (error) {
+    console.error(
+      'Error generating pengolahan pemasaran stats:',
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const getDashboardStats = async (
+  req,
+  res,
+) => {
+  try {
+    const data =
+      await prisma.pengolahanPemasaranRekap.findMany({
+        where: buildPublicWhere(req.query),
+      });
+
+    const kabupatenMap = new Map();
+    const kegiatanMap = new Map();
+
+    let totalVolume = 0;
+    let totalNilai = 0;
+    let totalUnit = 0;
+
+    data.forEach(item => {
+      const hasilKg = toFloat(
+        item.hasil_kg,
+      );
+
+      const hasilRp = toFloat(
+        item.hasil_rp,
+      );
+
+      const jumlahUnit = toInt(
+        item.jumlah_unit_usaha,
+      );
+
+      totalVolume += hasilKg;
+      totalNilai += hasilRp;
+      totalUnit += jumlahUnit;
+
+      if (
+        !kabupatenMap.has(
+          item.kabupaten_kota,
+        )
+      ) {
+        kabupatenMap.set(
+          item.kabupaten_kota,
+          {
+            name: item.kabupaten_kota,
+            produksi: 0,
+            nilai: 0,
+            upi: 0,
+          },
+        );
+      }
+
+      const wilayah = kabupatenMap.get(
+        item.kabupaten_kota,
+      );
+
+      wilayah.produksi += hasilKg;
+      wilayah.nilai += hasilRp;
+      wilayah.upi += jumlahUnit;
+
+      if (
+        !kegiatanMap.has(
+          item.jenis_kegiatan,
+        )
+      ) {
+        kegiatanMap.set(
+          item.jenis_kegiatan,
+          {
+            name: item.jenis_kegiatan,
+            value: 0,
+            produksi: 0,
+            nilai: 0,
+          },
+        );
+      }
+
+      const kegiatan = kegiatanMap.get(
+        item.jenis_kegiatan,
+      );
+
+      kegiatan.value += jumlahUnit;
+      kegiatan.produksi += hasilKg;
+      kegiatan.nilai += hasilRp;
+    });
+
+    const kegiatan = [
+      ...kegiatanMap.values(),
+    ].sort(
+      (a, b) =>
+        b.produksi - a.produksi,
+    );
+
+    const topKegiatan =
+      kegiatan[0]?.name || '-';
+
+    return res.json({
+      success: true,
+
+      stats: {
+        kpi: {
+          total_volume: totalVolume,
+          top_jenis_produk:
+            topKegiatan,
+          total_nilai: totalNilai,
+          total_upi: totalUnit,
+        },
+
+        produksiPerKabupaten: [
+          ...kabupatenMap.values(),
+        ].sort(
+          (a, b) =>
+            b.produksi - a.produksi,
+        ),
+
+        trenBulanan: [],
+
+        top5Jenis: kegiatan
+          .slice(0, 5)
+          .map(item => item.name),
+
+        komposisiKegiatan: kegiatan,
+
+        heatmapData: [],
+      },
+    });
+  } catch (error) {
+    console.error(
+      'Error generating pengolahan pemasaran dashboard stats:',
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const createData = async (req, res) => {
+  try {
+    const payload = buildPayload(
+      req.body,
+    );
+
+    const validationError =
+      validatePayload(payload);
+
+    if (validationError) {
+      return res.status(400).json({
         success: false,
-        message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data',
+        message: validationError,
       });
     }
 
-    const allowedStatuses = ['APPROVED', 'VERIFIED', 'REJECTED'];
+    const duplicate =
+      await prisma.pengolahanPemasaranRekap.findFirst({
+        where: buildDuplicateWhere(
+          payload,
+        ),
+      });
 
-    if (!allowedStatuses.includes(status)) {
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+
+        message:
+          'Data dengan tahun, kabupaten/kota, jenis kegiatan, dan skala usaha tersebut sudah tersedia.',
+      });
+    }
+
+    const data =
+      await prisma.pengolahanPemasaranRekap.create({
+        data: {
+          ...payload,
+
+          status: 'PENDING',
+
+          alasan_penolakan: null,
+        },
+      });
+
+    return res.status(201).json({
+      success: true,
+      data,
+
+      message:
+        'Data berhasil ditambahkan dengan status PENDING',
+    });
+  } catch (error) {
+    console.error(
+      'Error creating pengolahan pemasaran data:',
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
+  }
+};
+
+const updateStatus = async (
+  req,
+  res,
+) => {
+  try {
+    const id = parseInt(
+      req.params.id,
+      10,
+    );
+
+    const {
+      status,
+      alasan_penolakan,
+    } = req.body;
+
+    if (
+      !req.user ||
+      req.user.role !== 'admin_pusat'
+    ) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          'Hanya Admin Pusat yang dapat menyetujui atau menolak data',
+      });
+    }
+
+    if (
+      ![
+        'APPROVED',
+        'VERIFIED',
+        'REJECTED',
+      ].includes(status)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Status tidak valid',
       });
     }
 
-    const existing = await prisma.pengolahanPemasaran.findUnique({
-      where: { id: parseInt(id, 10) },
-    });
+    const existing =
+      await prisma.pengolahanPemasaranRekap.findUnique({
+        where: {
+          id,
+        },
+      });
 
     if (!existing) {
       return res.status(404).json({
@@ -611,58 +700,82 @@ const updateStatus = async (req, res) => {
     if (existing.status === 'REJECTED') {
       return res.status(400).json({
         success: false,
-        message: 'Data yang ditolak harus diperbaiki terlebih dahulu',
+
+        message:
+          'Data yang ditolak harus diperbaiki terlebih dahulu',
       });
     }
 
-    if (status === 'APPROVED' && existing.status !== 'PENDING') {
+    if (
+      status === 'APPROVED' &&
+      existing.status !== 'PENDING'
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'APPROVED hanya bisa dilakukan pada data berstatus PENDING',
+
+        message:
+          'APPROVED hanya bisa dilakukan pada data berstatus PENDING',
       });
     }
 
-    if (status === 'VERIFIED' && existing.status !== 'APPROVED') {
+    if (
+      status === 'VERIFIED' &&
+      existing.status !== 'APPROVED'
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'VERIFIED hanya bisa dilakukan setelah data APPROVED',
+
+        message:
+          'VERIFIED hanya bisa dilakukan setelah data APPROVED',
       });
     }
 
     if (
       status === 'REJECTED' &&
-      !['PENDING', 'APPROVED', 'VERIFIED'].includes(existing.status)
+      !normalizeText(
+        alasan_penolakan,
+      )
     ) {
       return res.status(400).json({
         success: false,
-        message: 'Data tidak bisa ditolak pada status ini',
+
+        message:
+          'Alasan penolakan wajib diisi',
       });
     }
 
-    if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Alasan penolakan wajib diisi',
+    const data =
+      await prisma.pengolahanPemasaranRekap.update({
+        where: {
+          id,
+        },
+
+        data: {
+          status,
+
+          alasan_penolakan:
+            status === 'REJECTED'
+              ? normalizeText(
+                  alasan_penolakan,
+                )
+              : null,
+        },
       });
-    }
 
-    const updated = await prisma.pengolahanPemasaran.update({
-      where: { id: parseInt(id, 10) },
-      data: {
-        status,
-        alasan_penolakan:
-          status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
-      },
-    });
-
-    res.json({
+    return res.json({
       success: true,
+
       message: `Status berhasil diubah menjadi ${status}`,
-      data: updated,
+
+      data,
     });
   } catch (error) {
-    console.error('Error updating pengolahan pemasaran status:', error);
-    res.status(500).json({
+    console.error(
+      'Error updating pengolahan pemasaran status:',
+      error,
+    );
+
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message,
@@ -672,11 +785,17 @@ const updateStatus = async (req, res) => {
 
 const updateData = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(
+      req.params.id,
+      10,
+    );
 
-    const existing = await prisma.pengolahanPemasaran.findUnique({
-      where: { id: parseInt(id, 10) },
-    });
+    const existing =
+      await prisma.pengolahanPemasaranRekap.findUnique({
+        where: {
+          id,
+        },
+      });
 
     if (!existing) {
       return res.status(404).json({
@@ -686,44 +805,91 @@ const updateData = async (req, res) => {
     }
 
     if (
-      ['APPROVED', 'VERIFIED'].includes(existing.status) &&
-      req.user &&
-      req.user.role === 'admin_cabang'
+      req.user?.role ===
+        'admin_cabang' &&
+      [
+        'APPROVED',
+        'VERIFIED',
+      ].includes(existing.status)
     ) {
       return res.status(403).json({
         success: false,
-        message: 'Admin Cabang tidak dapat mengubah data yang sudah divalidasi',
+
+        message:
+          'Admin Cabang tidak dapat mengubah data yang sudah divalidasi',
       });
     }
 
-    let newStatus = existing.status;
+    const payload = buildPayload(
+      req.body,
+    );
 
-    if (
-      req.user &&
-      req.user.role === 'admin_cabang' &&
-      existing.status === 'REJECTED'
-    ) {
-      newStatus = 'PENDING';
+    const validationError =
+      validatePayload(payload);
+
+    if (validationError) {
+      return res.status(400).json({
+        success: false,
+        message: validationError,
+      });
     }
 
-    const data = await prisma.pengolahanPemasaran.update({
-      where: { id: parseInt(id, 10) },
-      data: {
-        status: newStatus,
-        alasan_penolakan:
-          newStatus === 'PENDING' ? null : existing.alasan_penolakan,
-        ...buildPayload(req.body),
-      },
-    });
+    const duplicate =
+      await prisma.pengolahanPemasaranRekap.findFirst({
+        where: buildDuplicateWhere(
+          payload,
+          id,
+        ),
+      });
 
-    res.json({
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+
+        message:
+          'Kombinasi data tersebut sudah digunakan oleh data lain.',
+      });
+    }
+
+    const isRejectedCorrection =
+      existing.status === 'REJECTED';
+
+    const data =
+      await prisma.pengolahanPemasaranRekap.update({
+        where: {
+          id,
+        },
+
+        data: {
+          ...payload,
+
+          status:
+            isRejectedCorrection
+              ? 'PENDING'
+              : existing.status,
+
+          alasan_penolakan:
+            isRejectedCorrection
+              ? null
+              : existing.alasan_penolakan,
+        },
+      });
+
+    return res.json({
       success: true,
       data,
-      message: 'Data berhasil diupdate',
+
+      message: isRejectedCorrection
+        ? 'Data berhasil diperbaiki dan dikirim ulang dengan status PENDING'
+        : 'Data berhasil diperbarui',
     });
   } catch (error) {
-    console.error('Error updating pengolahan pemasaran data:', error);
-    res.status(500).json({
+    console.error(
+      'Error updating pengolahan pemasaran data:',
+      error,
+    );
+
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message,
@@ -733,120 +899,213 @@ const updateData = async (req, res) => {
 
 const deleteData = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(
+      req.params.id,
+      10,
+    );
 
-    const existing = await prisma.pengolahanPemasaran.findUnique({
-      where: { id: parseInt(id) },
-    });
+    const existing =
+      await prisma.pengolahanPemasaranRekap.findUnique({
+        where: {
+          id,
+        },
+      });
 
     if (!existing) {
-      return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-    }
-
-    if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user && req.user.role === 'admin_cabang') {
-      return res.status(403).json({
+      return res.status(404).json({
         success: false,
-        message: 'Admin Cabang tidak dapat menghapus data yang sudah divalidasi atau diverifikasi',
+        message: 'Data tidak ditemukan',
       });
     }
 
-    await prisma.pengolahanPemasaran.delete({
-      where: { id: parseInt(id) },
+    if (
+      req.user?.role ===
+        'admin_cabang' &&
+      [
+        'APPROVED',
+        'VERIFIED',
+      ].includes(existing.status)
+    ) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          'Admin Cabang tidak dapat menghapus data yang sudah divalidasi atau diverifikasi',
+      });
+    }
+
+    await prisma.pengolahanPemasaranRekap.delete({
+      where: {
+        id,
+      },
     });
 
-    res.json({ success: true, message: 'Data berhasil dihapus' });
+    return res.json({
+      success: true,
+      message: 'Data berhasil dihapus',
+    });
   } catch (error) {
-    console.error('Error deleting pengolahan pemasaran data:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    console.error(
+      'Error deleting pengolahan pemasaran data:',
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message,
+    });
   }
 };
 
-
-const batchStatus = async (req, res) => {
+const batchStatus = async (
+  req,
+  res,
+) => {
   try {
-    const { ids, status, alasan_penolakan } = req.body;
+    const {
+      ids,
+      status,
+      alasan_penolakan,
+    } = req.body;
 
-    if (!req.user || req.user.role !== 'admin_pusat') {
+    if (
+      !req.user ||
+      req.user.role !== 'admin_pusat'
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Hanya Admin Pusat yang dapat memvalidasi atau menolak data',
+
+        message:
+          'Hanya Admin Pusat yang dapat memvalidasi atau menolak data',
       });
     }
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+    if (
+      !Array.isArray(ids) ||
+      ids.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Tidak ada data yang dipilih',
+
+        message:
+          'Tidak ada data yang dipilih',
       });
     }
 
-    const allowedStatuses = ['APPROVED', 'VERIFIED', 'REJECTED'];
-
-    if (!allowedStatuses.includes(status)) {
+    if (
+      ![
+        'APPROVED',
+        'VERIFIED',
+        'REJECTED',
+      ].includes(status)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Status tidak valid',
       });
     }
 
-    if (status === 'REJECTED' && !String(alasan_penolakan ?? '').trim()) {
+    if (
+      status === 'REJECTED' &&
+      !normalizeText(
+        alasan_penolakan,
+      )
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Alasan penolakan wajib diisi',
+
+        message:
+          'Alasan penolakan wajib diisi',
       });
     }
 
     const parsedIds = ids
-      .map(id => parseInt(id, 10))
-      .filter(id => Number.isInteger(id));
+      .map(id =>
+        parseInt(id, 10),
+      )
+      .filter(Number.isInteger);
 
-    let whereStatus = {};
+    if (parsedIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          'ID data tidak valid',
+      });
+    }
+
+    let statusFilter;
 
     if (status === 'APPROVED') {
-      whereStatus = { status: 'PENDING' };
+      statusFilter = 'PENDING';
     }
 
     if (status === 'VERIFIED') {
-      whereStatus = { status: 'APPROVED' };
+      statusFilter = 'APPROVED';
     }
 
-    if (status === 'REJECTED') {
-      whereStatus = {
-        status: {
-          in: ['PENDING', 'APPROVED', 'VERIFIED'],
+    const where = {
+      id: {
+        in: parsedIds,
+      },
+
+      ...(status === 'REJECTED'
+        ? {
+            status: {
+              in: [
+                'PENDING',
+                'APPROVED',
+                'VERIFIED',
+              ],
+            },
+          }
+        : {
+            status: statusFilter,
+          }),
+    };
+
+    const result =
+      await prisma.pengolahanPemasaranRekap.updateMany({
+        where,
+
+        data: {
+          status,
+
+          alasan_penolakan:
+            status === 'REJECTED'
+              ? normalizeText(
+                  alasan_penolakan,
+                )
+              : null,
         },
-      };
-    }
-
-    const result = await prisma.pengolahanPemasaran.updateMany({
-      where: {
-        id: { in: parsedIds },
-        ...whereStatus,
-      },
-      data: {
-        status,
-        alasan_penolakan:
-          status === 'REJECTED' ? String(alasan_penolakan).trim() : null,
-      },
-    });
+      });
 
     if (result.count === 0) {
       return res.status(409).json({
         success: false,
+
         message:
-          'Tidak ada data yang diperbarui. Pastikan status data sesuai dengan tahap validasi.',
+          'Tidak ada data yang diperbarui. Pastikan status data sesuai tahap validasi.',
+
         count: 0,
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
+
       message: `${result.count} data berhasil diproses`,
+
       count: result.count,
     });
   } catch (error) {
-    console.error('Error batch status pengolahan pemasaran:', error);
-    res.status(500).json({
+    console.error(
+      'Error batch status pengolahan pemasaran:',
+      error,
+    );
+
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message,
@@ -854,156 +1113,79 @@ const batchStatus = async (req, res) => {
   }
 };
 
-const batchDelete = async (req, res) => {
+const batchDelete = async (
+  req,
+  res,
+) => {
   try {
     const { ids } = req.body;
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+    if (
+      !Array.isArray(ids) ||
+      ids.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Tidak ada data yang dipilih',
+
+        message:
+          'Tidak ada data yang dipilih',
       });
     }
 
     const parsedIds = ids
-      .map(id => parseInt(id, 10))
-      .filter(id => Number.isInteger(id));
+      .map(id =>
+        parseInt(id, 10),
+      )
+      .filter(Number.isInteger);
+
+    if (parsedIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID data tidak valid',
+      });
+    }
 
     const where = {
-      id: { in: parsedIds },
+      id: {
+        in: parsedIds,
+      },
     };
 
-    if (req.user?.role === 'admin_cabang') {
+    if (
+      req.user?.role ===
+      'admin_cabang'
+    ) {
       where.status = {
-        in: ['PENDING', 'REJECTED'],
+        in: [
+          'PENDING',
+          'REJECTED',
+        ],
       };
     }
 
-    const result = await prisma.pengolahanPemasaran.deleteMany({ where });
+    const result =
+      await prisma.pengolahanPemasaranRekap.deleteMany({
+        where,
+      });
 
-    res.json({
+    return res.json({
       success: true,
+
       message: `${result.count} data berhasil dihapus`,
+
       count: result.count,
     });
   } catch (error) {
-    console.error('Error batch delete pengolahan pemasaran:', error);
-    res.status(500).json({
+    console.error(
+      'Error batch delete pengolahan pemasaran:',
+      error,
+    );
+
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message,
     });
-  }
-};
-
-ExcelJS = require('exceljs'); // Pastikan sudah dipasang via: npm i exceljs
-
-const exportExcel = async (req, res) => {
-  try {
-    const { tahun, kabupaten_kota, jenis_kegiatan, skala_usaha } = req.query;
-    const where = { status: 'VERIFIED' };
-
-    if (tahun) where.tahun = toInt(tahun);
-    if (kabupaten_kota) where.kabupaten_kota = kabupaten_kota;
-    if (jenis_kegiatan) where.jenis_kegiatan = jenis_kegiatan;
-    if (skala_usaha) where.skala_usaha = skala_usaha;
-
-    // Ambil data yang sudah terverifikasi dari Prisma
-    const data = await prisma.pengolahanPemasaran.findMany({
-      where,
-      orderBy: { created_at: 'desc' },
-    });
-
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Dinas Kelautan dan Perikanan';
-    workbook.created = new Date();
-
-    const worksheet = workbook.addWorksheet('Pengolahan & Pemasaran');
-
-    // Header Kolom
-    worksheet.columns = [
-      { header: 'No', key: 'no', width: 5 },
-      { header: 'Tahun', key: 'tahun', width: 8 },
-      { header: 'Nama UPI', key: 'nama_upi', width: 25 },
-      { header: 'Nama Pemilik', key: 'nama_pemilik', width: 20 },
-      { header: 'Kabupaten/Kota', key: 'kabupaten_kota', width: 20 },
-      { header: 'Kecamatan', key: 'kecamatan', width: 15 },
-      { header: 'Desa', key: 'desa', width: 15 },
-      { header: 'Jenis Kegiatan', key: 'jenis_kegiatan', width: 15 },
-      { header: 'Detail Kegiatan', key: 'detail_kegiatan', width: 25 },
-      { header: 'Skala Usaha', key: 'skala_usaha', width: 15 },
-      { header: 'Jenis Produk', key: 'jenis_produk', width: 20 },
-      { header: 'Hasil Produksi (Kg/Thn)', key: 'hasil_produksi_per_tahun_kg', width: 22 },
-      { header: 'Nilai Produksi (Rp/Thn)', key: 'nilai_hasil_produksi_per_tahun_rp', width: 22 },
-      { header: 'Total Pemasaran (Kg/Thn)', key: 'total_pemasaran_per_tahun_kg', width: 22 },
-      { header: 'Total Tenaga Kerja', key: 'total_seluruh_tenaga_kerja', width: 18 },
-    ];
-
-    // Style Header (Baris Pertama)
-    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: '1F4E78' }, // Biru Navy
-    };
-    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
-    // Isi Data Baris demi Baris
-    data.forEach((item, index) => {
-      worksheet.addRow({
-        no: index + 1,
-        tahun: item.tahun || '-',
-        nama_upi: item.nama_upi || '-',
-        nama_pemilik: item.nama_pemilik || '-',
-        kabupaten_kota: item.kabupaten_kota || '-',
-        kecamatan: item.kecamatan || '-',
-        desa: item.desa || '-',
-        jenis_kegiatan: item.jenis_kegiatan || '-',
-        detail_kegiatan:
-          item.jenis_kegiatan === 'Pengolahan'
-            ? item.jenis_kegiatan_pengolahan
-            : item.jenis_kegiatan_pemasaran || '-',
-        skala_usaha: item.skala_usaha || '-',
-        jenis_produk: item.jenis_produk || '-',
-        hasil_produksi_per_tahun_kg: item.hasil_produksi_per_tahun_kg || 0,
-        nilai_hasil_produksi_per_tahun_rp: item.nilai_hasil_produksi_per_tahun_rp || 0,
-        total_pemasaran_per_tahun_kg: item.total_pemasaran_per_tahun_kg || 0,
-        total_seluruh_tenaga_kerja: item.total_seluruh_tenaga_kerja || 0,
-      });
-    });
-
-    // Formatting Angka & Border untuk Semua Sel Data
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber > 1) {
-        row.getCell('hasil_produksi_per_tahun_kg').numFmt = '#,##0.00';
-        row.getCell('nilai_hasil_produksi_per_tahun_rp').numFmt = 'Rp#,##0';
-        row.getCell('total_pemasaran_per_tahun_kg').numFmt = '#,##0.00';
-        row.getCell('total_seluruh_tenaga_kerja').numFmt = '#,##0';
-      }
-
-      row.eachCell(cell => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-      });
-    });
-
-    // Header Response untuk Download
-    const fileName = `Data_Pengolahan_Pemasaran_${tahun || 'Semua_Tahun'}.xlsx`;
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (error) {
-    console.error('Error exporting excel:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 

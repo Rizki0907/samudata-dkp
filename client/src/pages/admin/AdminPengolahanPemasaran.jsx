@@ -7,7 +7,7 @@ import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm'
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
-import * as XLSX from 'xlsx'; // npm install xlsx (jika belum ada di package.json)
+import * as XLSX from 'xlsx-js-style';
 
 const normalizeRegionKey = value => {
   let text = String(value ?? '')
@@ -111,15 +111,15 @@ const JENIS_PENGOLAHAN_OPTIONS = [
   'Pemindangan',
   'Penanganan Produk Segar',
   'Pengalengan',
-  'Pengasapan/Pemanggangan',
-  'Pereduksian/Ekstraksi',
-  'Penggaraman/Pengeringan',
+  'Pengasapan/ Pemanggangan',
+  'Pereduksian/ Ekstraksi',
+  'Penggaraman/ Pengeringan',
   'Pengolahan Lainnya',
 ];
 
 const JENIS_PEMASARAN_OPTIONS = [
   'Pengecer',
-  'Pengumpul/Pedagang Besar/Distributor',
+  'Pengumpul/ Pedagang Besar/ Distributor',
 ];
 
 const PERIZINAN_OPTIONS = [
@@ -774,11 +774,20 @@ const getRowTotalTenagaKerja = row => {
 const getJenisDetail = row => row?.jenis_kegiatan || '';
 
 // ============================================================================
-// EXPORT REKAP STATISTIK (format pivot ala file "HASIL_ANALISIS_STATISTIK")
-// Setiap sheet: baris = Kabupaten/Kota (urutan sesuai KABUPATEN_KOTA_OPTIONS,
-// diberi nomor urut 01, 02, dst.), kolom = kategori, nilai = SUM dari data
-// yang lolos filter aktif, ditutup dengan kolom "Jumlah Total".
+// NORMALISASI & EXPORT EXCEL
 // ============================================================================
+const normalizeKategori = value =>
+  String(value ?? '').trim().toLowerCase() === 'pemasaran'
+    ? 'Pemasaran'
+    : 'Pengolahan';
+
+const normalizeCategoryKey = value =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ');
+
 const SERTIFIKAT_PRODUK_FIELDS_EXPORT = [
   ['HACCP', 'sertifikat_haccp'],
   ['SNI', 'sertifikat_sni'],
@@ -804,77 +813,366 @@ const IZIN_USAHA_FIELDS_EXPORT = [
 
 const SERTIFIKAT_LB_FIELDS_EXPORT = [
   ['SHM', 'shm_count'],
-  ['Non SHM', 'non_shm_count'],
+  ['Non-SHM', 'non_shm_count'],
 ];
 
-const KEGIATAN_CATEGORIES_EXPORT = [...JENIS_PENGOLAHAN_OPTIONS, ...JENIS_PEMASARAN_OPTIONS];
+const SKALA_EXPORT = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
+const KEGIATAN_EXPORT = [
+  ...JENIS_PENGOLAHAN_OPTIONS,
+  ...JENIS_PEMASARAN_OPTIONS,
+];
 
-// Sheet pivot generik: baris = Kabupaten/Kota, kolom = kategori (jenis_kegiatan),
-// nilai = SUM(valueField) untuk baris yang jenis_kegiatan-nya cocok kategori tsb.
-const buildKegiatanPivotSheet = (rows, valueField, categories) => {
-  const header = ['No', 'Kabupaten/Kota', ...categories, 'Jumlah Total'];
-  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
-    const values = categories.map(category =>
-      rows
-        .filter(row => row.kabupaten_kota === kab && row.jenis_kegiatan === category)
-        .reduce((sum, row) => sum + toNumber(row[valueField]), 0),
-    );
-    const total = values.reduce((sum, value) => sum + value, 0);
-    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
-  });
-  return [header, ...body];
+const sumField = (rows, field) =>
+  rows.reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+
+const sumByKegiatan = (rows, detail, field) => {
+  const target = normalizeCategoryKey(detail);
+  return rows
+    .filter(row => normalizeCategoryKey(row.jenis_kegiatan) === target)
+    .reduce((sum, row) => sum + toNumber(row?.[field]), 0);
 };
 
-// Sheet pivot kategori tetap (sertifikat/izin), nilainya SUM dari field masing-masing
-// kategori untuk seluruh baris di kabupaten tsb (tidak bergantung jenis_kegiatan).
-const buildFixedCategoryPivotSheet = (rows, fields) => {
-  const header = ['No', 'Kabupaten/Kota', ...fields.map(([label]) => label), 'Jumlah Total'];
-  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
-    const kabRows = rows.filter(row => row.kabupaten_kota === kab);
-    const values = fields.map(([, key]) => kabRows.reduce((sum, row) => sum + toNumber(row[key]), 0));
-    const total = values.reduce((sum, value) => sum + value, 0);
-    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
-  });
-  return [header, ...body];
+const makeBorder = () => ({
+  top: { style: 'thin', color: { rgb: '64748B' } },
+  bottom: { style: 'thin', color: { rgb: '64748B' } },
+  left: { style: 'thin', color: { rgb: '64748B' } },
+  right: { style: 'thin', color: { rgb: '64748B' } },
+});
+
+const TITLE_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
 };
 
-const buildSkalaUsahaPivotSheet = (rows, valueField) => {
-  const categories = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
-  const header = ['No', 'Kabupaten/Kota', ...categories, 'Jumlah Total'];
-  const body = KABUPATEN_KOTA_OPTIONS.map((kab, idx) => {
-    const values = categories.map(skala =>
-      rows
-        .filter(row => row.kabupaten_kota === kab && row.skala_usaha === skala)
-        .reduce((sum, row) => sum + toNumber(row[valueField]), 0),
-    );
-    const total = values.reduce((sum, value) => sum + value, 0);
-    return [String(idx + 1).padStart(2, '0'), kab, ...values, total];
-  });
-  return [header, ...body];
+const TABLE_TITLE_STYLE = {
+  font: { bold: true, color: { rgb: '0F172A' }, sz: 12 },
+  fill: { patternType: 'solid', fgColor: { rgb: 'CCFBF1' } },
+  alignment: { horizontal: 'left', vertical: 'center' },
+  border: makeBorder(),
 };
 
-const exportRekapStatistikExcel = rows => {
-  const workbook = XLSX.utils.book_new();
+const GROUP_HEADER_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
+  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
 
-  const addSheet = (name, aoa) => {
-    const sheet = XLSX.utils.aoa_to_sheet(aoa);
-    XLSX.utils.book_append_sheet(workbook, sheet, name);
+const SUB_HEADER_STYLE = {
+  font: { bold: true, color: { rgb: '0F172A' }, sz: 9 },
+  fill: { patternType: 'solid', fgColor: { rgb: '99F6E4' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const DATA_STYLE = {
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const TOTAL_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' } },
+  fill: { patternType: 'solid', fgColor: { rgb: '134E4A' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const styleRange = (sheet, startRow, endRow, startCol, endCol, style) => {
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: col });
+      if (!sheet[address]) sheet[address] = { t: 's', v: '' };
+      sheet[address].s = style;
+    }
+  }
+};
+
+const formatNumericRange = (sheet, startRow, endRow, startCol, endCol, format) => {
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: col });
+      if (sheet[address]) sheet[address].z = format;
+    }
+  }
+};
+
+const buildDetailExportData = rows =>
+  rows.map((row, index) => ({
+    No: index + 1,
+    Status: row.status ?? '-',
+    Tahun: row.tahun ?? '-',
+    'Kabupaten/Kota': row.kabupaten_kota ?? '-',
+    'Kategori Kegiatan': normalizeKategori(row.kategori_kegiatan),
+    'Jenis Kegiatan': row.jenis_kegiatan ?? '-',
+    'Skala Usaha': row.skala_usaha ?? '-',
+    'Jumlah Unit Usaha': toNumber(row.jumlah_unit_usaha),
+    'Hasil Produksi (Kg)': toNumber(row.hasil_kg),
+    'Nilai Produksi (Rp)': toNumber(row.hasil_rp),
+    'Modal Investasi (Rp)': toNumber(row.modal_rp),
+    HACCP: toNumber(row.sertifikat_haccp),
+    SNI: toNumber(row.sertifikat_sni),
+    HALAL: toNumber(row.sertifikat_halal),
+    SKP: toNumber(row.sertifikat_skp),
+    PIRT: toNumber(row.sertifikat_pirt),
+    MD: toNumber(row.sertifikat_md),
+    'Sertifikat Lainnya': toNumber(row.sertifikat_lainnya),
+    NIB: toNumber(row.izin_nib),
+    NPWP: toNumber(row.izin_npwp),
+    KUSUKA: toNumber(row.izin_kusuka),
+    MENKUMHAM: toNumber(row.izin_menkumham),
+    'Akta Pendirian': toNumber(row.izin_akta_pendirian),
+    IMB: toNumber(row.izin_imb),
+    'Lokasi/Domisili': toNumber(row.izin_lokasi_domisili),
+    'SIUP Perikanan': toNumber(row.izin_siup_perikanan),
+    'SIUP Perdagangan': toNumber(row.izin_siup_perdagangan),
+    'Izin Lainnya': toNumber(row.izin_lainnya),
+    SHM: toNumber(row.shm_count),
+    'Non-SHM': toNumber(row.non_shm_count),
+  }));
+
+const exportRekapStatistikExcel = (rows, year, regions) => {
+  const aoa = [];
+  const merges = [];
+  const tableMeta = [];
+  const maxColumn = 41;
+
+  const pushMergedTitle = (title, subtitle = null) => {
+    const titleRow = aoa.length;
+    aoa.push([title]);
+    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: maxColumn } });
+
+    if (subtitle) {
+      const subtitleRow = aoa.length;
+      aoa.push([subtitle]);
+      merges.push({ s: { r: subtitleRow, c: 0 }, e: { r: subtitleRow, c: maxColumn } });
+    }
   };
 
-  addSheet(
-    'Unit Usaha',
-    buildKegiatanPivotSheet(rows, 'jumlah_unit_usaha', KEGIATAN_CATEGORIES_EXPORT),
+  pushMergedTitle(
+    'REKAP STATISTIK PENGOLAHAN DAN PEMASARAN',
+    `PROVINSI JAWA TIMUR TAHUN ${year}`,
   );
-  addSheet('Hasil (Kg)', buildKegiatanPivotSheet(rows, 'hasil_kg', KEGIATAN_CATEGORIES_EXPORT));
-  addSheet('Hasil (Rp)', buildKegiatanPivotSheet(rows, 'hasil_rp', KEGIATAN_CATEGORIES_EXPORT));
-  addSheet('Modal (Rp)', buildKegiatanPivotSheet(rows, 'modal_rp', KEGIATAN_CATEGORIES_EXPORT));
-  addSheet('Unit Usaha - Skala', buildSkalaUsahaPivotSheet(rows, 'jumlah_unit_usaha'));
-  addSheet('Sertifikat Produk', buildFixedCategoryPivotSheet(rows, SERTIFIKAT_PRODUK_FIELDS_EXPORT));
-  addSheet('Ijin Usaha', buildFixedCategoryPivotSheet(rows, IZIN_USAHA_FIELDS_EXPORT));
-  addSheet('Sertifikat LB', buildFixedCategoryPivotSheet(rows, SERTIFIKAT_LB_FIELDS_EXPORT));
+  aoa.push([]);
 
-  const todayLabel = new Date().toISOString().split('T')[0];
-  XLSX.writeFile(workbook, `Rekap_Statistik_Pengolahan_Pemasaran_${todayLabel}.xlsx`);
+  const tableOneTitleRow = aoa.length;
+  aoa.push(['Tabel 1. Rekap Unit Usaha, Skala Usaha, Sertifikat, dan Perizinan']);
+  merges.push({ s: { r: tableOneTitleRow, c: 0 }, e: { r: tableOneTitleRow, c: maxColumn } });
+
+  const tableOneHeaderStart = aoa.length;
+  const groupHeader = Array(maxColumn + 1).fill('');
+  groupHeader[0] = 'No';
+  groupHeader[1] = 'Kabupaten/Kota';
+  groupHeader[2] = 'Pengolahan';
+  groupHeader[12] = 'Pemasaran';
+  groupHeader[14] = 'Jumlah Unit Usaha';
+  groupHeader[15] = 'Skala Usaha';
+  groupHeader[19] = 'Jumlah Skala';
+  groupHeader[20] = 'Sertifikat Produk';
+  groupHeader[27] = 'Total Sertifikat';
+  groupHeader[28] = 'Izin Usaha';
+  groupHeader[38] = 'Total Izin';
+  groupHeader[39] = 'Sertifikat Lahan/Bangunan';
+  groupHeader[41] = 'Total LB';
+  aoa.push(groupHeader);
+  aoa.push([
+    'No',
+    'Kabupaten/Kota',
+    ...JENIS_PENGOLAHAN_OPTIONS,
+    ...JENIS_PEMASARAN_OPTIONS,
+    'Jumlah Unit Usaha',
+    ...SKALA_EXPORT,
+    'Jumlah Skala',
+    ...SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([label]) => label),
+    'Total Sertifikat',
+    ...IZIN_USAHA_FIELDS_EXPORT.map(([label]) => label),
+    'Total Izin',
+    ...SERTIFIKAT_LB_FIELDS_EXPORT.map(([label]) => label),
+    'Total LB',
+  ]);
+
+  merges.push(
+    { s: { r: tableOneHeaderStart, c: 0 }, e: { r: tableOneHeaderStart + 1, c: 0 } },
+    { s: { r: tableOneHeaderStart, c: 1 }, e: { r: tableOneHeaderStart + 1, c: 1 } },
+    { s: { r: tableOneHeaderStart, c: 2 }, e: { r: tableOneHeaderStart, c: 11 } },
+    { s: { r: tableOneHeaderStart, c: 12 }, e: { r: tableOneHeaderStart, c: 13 } },
+    { s: { r: tableOneHeaderStart, c: 14 }, e: { r: tableOneHeaderStart + 1, c: 14 } },
+    { s: { r: tableOneHeaderStart, c: 15 }, e: { r: tableOneHeaderStart, c: 18 } },
+    { s: { r: tableOneHeaderStart, c: 19 }, e: { r: tableOneHeaderStart + 1, c: 19 } },
+    { s: { r: tableOneHeaderStart, c: 20 }, e: { r: tableOneHeaderStart, c: 26 } },
+    { s: { r: tableOneHeaderStart, c: 27 }, e: { r: tableOneHeaderStart + 1, c: 27 } },
+    { s: { r: tableOneHeaderStart, c: 28 }, e: { r: tableOneHeaderStart, c: 37 } },
+    { s: { r: tableOneHeaderStart, c: 38 }, e: { r: tableOneHeaderStart + 1, c: 38 } },
+    { s: { r: tableOneHeaderStart, c: 39 }, e: { r: tableOneHeaderStart, c: 40 } },
+    { s: { r: tableOneHeaderStart, c: 41 }, e: { r: tableOneHeaderStart + 1, c: 41 } },
+  );
+
+  const tableOneBodyStart = aoa.length;
+  regions.forEach((region, index) => {
+    const regionRows = rows.filter(row => row.kabupaten_kota === region);
+    const activityValues = KEGIATAN_EXPORT.map(detail =>
+      sumByKegiatan(regionRows, detail, 'jumlah_unit_usaha'),
+    );
+    const scaleValues = SKALA_EXPORT.map(scale =>
+      sumField(regionRows.filter(row => row.skala_usaha === scale), 'jumlah_unit_usaha'),
+    );
+    const certificateValues = SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+    const permitValues = IZIN_USAHA_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+    const landValues = SERTIFIKAT_LB_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+
+    aoa.push([
+      String(index + 1).padStart(2, '0'),
+      region,
+      ...activityValues,
+      activityValues.reduce((sum, value) => sum + value, 0),
+      ...scaleValues,
+      scaleValues.reduce((sum, value) => sum + value, 0),
+      ...certificateValues,
+      certificateValues.reduce((sum, value) => sum + value, 0),
+      ...permitValues,
+      permitValues.reduce((sum, value) => sum + value, 0),
+      ...landValues,
+      landValues.reduce((sum, value) => sum + value, 0),
+    ]);
+  });
+
+  const tableOneTotalRow = aoa.length;
+  const tableOneTotals = Array(maxColumn + 1).fill(0);
+  tableOneTotals[0] = '';
+  tableOneTotals[1] = regions.length === KABUPATEN_KOTA_OPTIONS.length
+    ? 'JUMLAH JAWA TIMUR'
+    : 'JUMLAH WILAYAH TERPILIH';
+  for (let col = 2; col <= maxColumn; col += 1) {
+    tableOneTotals[col] = aoa
+      .slice(tableOneBodyStart, tableOneTotalRow)
+      .reduce((sum, row) => sum + toNumber(row[col]), 0);
+  }
+  aoa.push(tableOneTotals);
+  tableMeta.push({
+    titleRow: tableOneTitleRow,
+    headerStart: tableOneHeaderStart,
+    headerEnd: tableOneHeaderStart + 1,
+    bodyStart: tableOneBodyStart,
+    bodyEnd: tableOneTotalRow - 1,
+    totalRow: tableOneTotalRow,
+    startCol: 0,
+    endCol: maxColumn,
+    numberFormat: '#,##0',
+  });
+
+  const appendActivityTable = (title, field, numberFormat) => {
+    aoa.push([], []);
+    const titleRow = aoa.length;
+    aoa.push([title]);
+    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 14 } });
+
+    const headerStart = aoa.length;
+    const group = Array(15).fill('');
+    group[0] = 'No';
+    group[1] = 'Kabupaten/Kota';
+    group[2] = 'Pengolahan';
+    group[12] = 'Pemasaran';
+    group[14] = 'Jumlah Total';
+    aoa.push(group);
+    aoa.push([
+      'No',
+      'Kabupaten/Kota',
+      ...JENIS_PENGOLAHAN_OPTIONS,
+      ...JENIS_PEMASARAN_OPTIONS,
+      'Jumlah Total',
+    ]);
+
+    merges.push(
+      { s: { r: headerStart, c: 0 }, e: { r: headerStart + 1, c: 0 } },
+      { s: { r: headerStart, c: 1 }, e: { r: headerStart + 1, c: 1 } },
+      { s: { r: headerStart, c: 2 }, e: { r: headerStart, c: 11 } },
+      { s: { r: headerStart, c: 12 }, e: { r: headerStart, c: 13 } },
+      { s: { r: headerStart, c: 14 }, e: { r: headerStart + 1, c: 14 } },
+    );
+
+    const bodyStart = aoa.length;
+    regions.forEach((region, index) => {
+      const regionRows = rows.filter(row => row.kabupaten_kota === region);
+      const values = KEGIATAN_EXPORT.map(detail => sumByKegiatan(regionRows, detail, field));
+      aoa.push([
+        String(index + 1).padStart(2, '0'),
+        region,
+        ...values,
+        values.reduce((sum, value) => sum + value, 0),
+      ]);
+    });
+
+    const totalRow = aoa.length;
+    const totals = Array(15).fill(0);
+    totals[0] = '';
+    totals[1] = regions.length === KABUPATEN_KOTA_OPTIONS.length
+      ? 'JUMLAH JAWA TIMUR'
+      : 'JUMLAH WILAYAH TERPILIH';
+    for (let col = 2; col <= 14; col += 1) {
+      totals[col] = aoa
+        .slice(bodyStart, totalRow)
+        .reduce((sum, row) => sum + toNumber(row[col]), 0);
+    }
+    aoa.push(totals);
+
+    tableMeta.push({
+      titleRow,
+      headerStart,
+      headerEnd: headerStart + 1,
+      bodyStart,
+      bodyEnd: totalRow - 1,
+      totalRow,
+      startCol: 0,
+      endCol: 14,
+      numberFormat,
+    });
+  };
+
+  appendActivityTable('Tabel 2. Hasil Produksi / Penjualan (Kg)', 'hasil_kg', '#,##0');
+  appendActivityTable('Tabel 3. Nilai Produksi / Penjualan (Rp)', 'hasil_rp', 'Rp #,##0');
+  appendActivityTable('Tabel 4. Modal Investasi (Rp)', 'modal_rp', 'Rp #,##0');
+
+  const sheet = XLSX.utils.aoa_to_sheet(aoa);
+  sheet['!merges'] = merges;
+  sheet['!cols'] = Array(maxColumn + 1)
+    .fill(null)
+    .map((_, index) => ({ wch: index === 0 ? 6 : index === 1 ? 25 : 14 }));
+  sheet['!rows'] = aoa.map((_, index) => ({ hpt: index < 2 ? 24 : 34 }));
+
+  styleRange(sheet, 0, 1, 0, maxColumn, TITLE_STYLE);
+
+  tableMeta.forEach(meta => {
+    styleRange(sheet, meta.titleRow, meta.titleRow, meta.startCol, meta.endCol, TABLE_TITLE_STYLE);
+    styleRange(sheet, meta.headerStart, meta.headerStart, meta.startCol, meta.endCol, GROUP_HEADER_STYLE);
+    styleRange(sheet, meta.headerEnd, meta.headerEnd, meta.startCol, meta.endCol, SUB_HEADER_STYLE);
+    if (meta.bodyEnd >= meta.bodyStart) {
+      styleRange(sheet, meta.bodyStart, meta.bodyEnd, meta.startCol, meta.endCol, DATA_STYLE);
+      formatNumericRange(
+        sheet,
+        meta.bodyStart,
+        meta.bodyEnd,
+        2,
+        meta.endCol,
+        meta.numberFormat,
+      );
+    }
+    styleRange(sheet, meta.totalRow, meta.totalRow, meta.startCol, meta.endCol, TOTAL_STYLE);
+    formatNumericRange(sheet, meta.totalRow, meta.totalRow, 2, meta.endCol, meta.numberFormat);
+  });
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Rekap Statistik');
+  XLSX.writeFile(
+    workbook,
+    `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
+  );
 };
 
 export default function AdminPengolahanPemasaran() {
@@ -982,6 +1280,9 @@ export default function AdminPengolahanPemasaran() {
       console.error(
         'Error saving pengolahan & pemasaran:',
         error.response?.data || error.message,
+      );
+      window.alert(
+        error.response?.data?.message || 'Gagal menyimpan data pengolahan dan pemasaran.',
       );
     } finally {
       setSubmitLoading(false);
@@ -1364,12 +1665,37 @@ export default function AdminPengolahanPemasaran() {
       data.filter(item => {
         if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
         if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(item.kategori_kegiatan)) return false;
+        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))) return false;
         if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
         return true;
       }),
     [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
   );
+
+  const handleExportRekap = () => {
+    if (filterTahun.length !== 1) {
+      window.alert('Pilih tepat satu tahun sebelum mengekspor rekap statistik.');
+      return;
+    }
+
+    const selectedYear = String(filterTahun[0]);
+    const selectedRegions = filterKabupaten.length
+      ? KABUPATEN_KOTA_OPTIONS.filter(region => filterKabupaten.includes(region))
+      : KABUPATEN_KOTA_OPTIONS;
+
+    const reportRows = data.filter(row =>
+      row.status === 'VERIFIED' &&
+      String(row.tahun) === selectedYear &&
+      selectedRegions.includes(row.kabupaten_kota),
+    );
+
+    if (!reportRows.length) {
+      window.alert('Tidak ada data VERIFIED pada tahun dan wilayah yang dipilih.');
+      return;
+    }
+
+    exportRekapStatistikExcel(reportRows, selectedYear, selectedRegions);
+  };
 
   const lastUpdated = useMemo(() => {
         if (!filteredData || filteredData.length === 0) return null;
@@ -1398,63 +1724,33 @@ export default function AdminPengolahanPemasaran() {
     const rows = verifiedData;
 
     const total_volume = rows.reduce(
-      (sum, row) => sum + toNumber(row.hasil_produksi_per_tahun_kg),
+      (sum, row) => sum + toNumber(row.hasil_kg),
       0,
     );
-
     const total_nilai = rows.reduce(
-      (sum, row) => sum + toNumber(row.nilai_hasil_produksi_per_tahun_rp),
+      (sum, row) => sum + toNumber(row.hasil_rp),
+      0,
+    );
+    const total_upi = rows.reduce(
+      (sum, row) => sum + toNumber(row.jumlah_unit_usaha),
       0,
     );
 
-    // UPI dihitung unik berdasarkan id_upi/upi_id.
-    // Jika ID UPI belum tersedia, fallback memakai nama UPI + kabupaten/kota.
-    const upiMap = new Map();
-
+    const kegiatanMap = new Map();
     rows.forEach(row => {
-      const key = getUpiKey(row);
-      if (!key || upiMap.has(key)) return;
-
-      upiMap.set(key, {
-        key,
-        jenis_kegiatan: row.jenis_kegiatan || 'Lainnya',
-      });
-    });
-
-    const total_upi = upiMap.size;
-
-    // Agregasi jenis produk tetap digunakan untuk KPI Top Produk.
-    const produkMap = new Map();
-
-    rows.forEach(row => {
-      const name = String(row.jenis_produk || 'Tidak diketahui').trim();
-
-      if (!produkMap.has(name)) {
-        produkMap.set(name, {
-          name,
-          produksi: 0,
-          nilai: 0,
-          upiKeys: new Set(),
-        });
+      const name = String(row.jenis_kegiatan || 'Tidak diketahui').trim();
+      if (!kegiatanMap.has(name)) {
+        kegiatanMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
       }
-
-      const current = produkMap.get(name);
-      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
-      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
-
-      const upiKey = getUpiKey(row);
-      if (upiKey) current.upiKeys.add(upiKey);
+      const current = kegiatanMap.get(name);
+      current.produksi += toNumber(row.hasil_kg);
+      current.nilai += toNumber(row.hasil_rp);
+      current.upi += toNumber(row.jumlah_unit_usaha);
     });
 
-    const produkData = [...produkMap.values()]
-      .map(item => ({
-        name: item.name,
-        produksi: item.produksi,
-        nilai: item.nilai,
-        upi: item.upiKeys.size,
-      }))
-      .sort((a, b) => b.produksi - a.produksi);
-
+    const produkData = [...kegiatanMap.values()].sort(
+      (a, b) => b.produksi - a.produksi,
+    );
     const topProduk = produkData[0] || {
       name: '-',
       produksi: 0,
@@ -1462,130 +1758,60 @@ export default function AdminPengolahanPemasaran() {
       upi: 0,
     };
 
-    // Agregasi kabupaten/kota untuk peta dan Top 10.
     const kabupatenMap = new Map();
-
     KABUPATEN_KOTA_OPTIONS.forEach(name => {
-      kabupatenMap.set(name, {
-        name,
-        produksi: 0,
-        nilai: 0,
-        upiKeys: new Set(),
-      });
+      kabupatenMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
     });
 
     rows.forEach(row => {
       const name = row.kabupaten_kota;
       if (!name) return;
-
       if (!kabupatenMap.has(name)) {
-        kabupatenMap.set(name, {
-          name,
-          produksi: 0,
-          nilai: 0,
-          upiKeys: new Set(),
-        });
+        kabupatenMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
       }
-
       const current = kabupatenMap.get(name);
-      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
-      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
-
-      const upiKey = getUpiKey(row);
-      if (upiKey) current.upiKeys.add(upiKey);
+      current.produksi += toNumber(row.hasil_kg);
+      current.nilai += toNumber(row.hasil_rp);
+      current.upi += toNumber(row.jumlah_unit_usaha);
     });
 
-    const produksiPerKabupaten = [...kabupatenMap.values()].map(item => ({
-      name: item.name,
-      produksi: item.produksi,
-      nilai: item.nilai,
-      upi: item.upiKeys.size,
-    }));
-
-    // Jumlah UPI unik pada setiap jenis detail kegiatan.
+    const produksiPerKabupaten = [...kabupatenMap.values()];
     const detailKegiatanMaps = {
       Pengolahan: new Map(),
       Pemasaran: new Map(),
     };
-    
-    rows.forEach((row, rowIndex) => {
-      const kelompok = row.jenis_kegiatan;
-      
-      if (
-        kelompok !== 'Pengolahan' &&
-        kelompok !== 'Pemasaran'
-      ) {
-        return;
-      }
-      
-      const detail =
-        kelompok === 'Pengolahan'
-          ? row.jenis_kegiatan_pengolahan
-          : row.jenis_kegiatan_pemasaran;
 
-      const detailName = String(detail ?? '').trim();
-
-      if (!detailName) return;
-
-      if (!detailKegiatanMaps[kelompok].has(detailName)) {
-        detailKegiatanMaps[kelompok].set(
-          detailName,
-          new Set(),
-        );
-      }
-
-      const upiKey =
-        getUpiKey(row) ||
-        String(row.id ?? `row-${rowIndex}`);
-
-      detailKegiatanMaps[kelompok]
-        .get(detailName)
-        .add(upiKey);
+    rows.forEach(row => {
+      const kelompok = normalizeKategori(row.kategori_kegiatan);
+      const detail = String(row.jenis_kegiatan ?? '').trim();
+      if (!detail) return;
+      const targetMap = detailKegiatanMaps[kelompok];
+      targetMap.set(
+        detail,
+        (targetMap.get(detail) || 0) + toNumber(row.jumlah_unit_usaha),
+      );
     });
 
     const detailKegiatan = {
-      Pengolahan: [
-        ...detailKegiatanMaps.Pengolahan.entries(),
-      ]
-        .map(([name, upiKeys]) => ({
-          name,
-          value: upiKeys.size,
-        }))
+      Pengolahan: [...detailKegiatanMaps.Pengolahan.entries()]
+        .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
-
-      Pemasaran: [
-        ...detailKegiatanMaps.Pemasaran.entries(),
-      ]
-        .map(([name, upiKeys]) => ({
-          name,
-          value: upiKeys.size,
-        }))
+      Pemasaran: [...detailKegiatanMaps.Pemasaran.entries()]
+        .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
     };
 
-    // Donut: jumlah UPI unik Pengolahan vs Pemasaran.
-    const rasioKegiatan = [
-      {
-        name: 'Pengolahan',
-        value: [...upiMap.values()].filter(
-          item => item.jenis_kegiatan === 'Pengolahan',
-        ).length,
-      },
-      {
-        name: 'Pemasaran',
-        value: [...upiMap.values()].filter(
-          item => item.jenis_kegiatan === 'Pemasaran',
-        ).length,
-      },
-    ];
+    const rasioKegiatan = ['Pengolahan', 'Pemasaran'].map(name => ({
+      name,
+      value: rows
+        .filter(row => normalizeKategori(row.kategori_kegiatan) === name)
+        .reduce((sum, row) => sum + toNumber(row.jumlah_unit_usaha), 0),
+    }));
 
-    // Tren tahunan dua garis: Pengolahan vs Pemasaran.
     const yearlyMap = new Map();
-
     rows.forEach(row => {
       const tahun = String(row.tahun ?? '').trim();
       if (!tahun) return;
-
       if (!yearlyMap.has(tahun)) {
         yearlyMap.set(tahun, {
           tahun,
@@ -1597,28 +1823,27 @@ export default function AdminPengolahanPemasaran() {
       }
 
       const current = yearlyMap.get(tahun);
-      const produksi = toNumber(row.hasil_produksi_per_tahun_kg);
-      const nilai = toNumber(row.nilai_hasil_produksi_per_tahun_rp);
+      const kategori = normalizeKategori(row.kategori_kegiatan);
+      const produksi = toNumber(row.hasil_kg);
+      const nilai = toNumber(row.hasil_rp);
 
-      if (row.jenis_kegiatan === 'Pengolahan') {
+      if (kategori === 'Pengolahan') {
         current.pengolahan_produksi += produksi;
         current.pengolahan_nilai += nilai;
-      } else if (row.jenis_kegiatan === 'Pemasaran') {
+      } else {
         current.pemasaran_produksi += produksi;
         current.pemasaran_nilai += nilai;
       }
     });
-
-    const trenTahunan = [...yearlyMap.values()].sort(
-      (a, b) => Number(a.tahun) - Number(b.tahun),
-    );
 
     return {
       produksiPerKabupaten,
       produkData,
       detailKegiatan,
       rasioKegiatan,
-      trenTahunan,
+      trenTahunan: [...yearlyMap.values()].sort(
+        (a, b) => Number(a.tahun) - Number(b.tahun),
+      ),
       kpi: {
         total_volume,
         total_nilai,
@@ -2367,7 +2592,7 @@ export default function AdminPengolahanPemasaran() {
         header: 'Kategori',
         accessorKey: 'kategori_kegiatan',
         cell: info => {
-          const value = info.getValue();
+          const value = normalizeKategori(info.getValue());
           const colorClass =
             value === 'Pengolahan'
               ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
@@ -2478,9 +2703,9 @@ export default function AdminPengolahanPemasaran() {
       <div className="mb-4 flex justify-end">
         <button
           type="button"
-          onClick={() => exportRekapStatistikExcel(filteredData)}
+          onClick={handleExportRekap}
           disabled={!filteredData.length}
-          title="Export mengikuti filter yang sedang aktif (Tahun, Kabupaten/Kota, dsb.)"
+          title="Pilih satu tahun. Rekap hanya menghitung data VERIFIED dan wilayah yang dipilih."
           className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Ekspor Rekap Statistik (Excel)
@@ -2497,6 +2722,7 @@ export default function AdminPengolahanPemasaran() {
         onBatchApprove={isAdminPusat ? handleBatchApprove : undefined}
         onBatchReject={isAdminPusat ? handleBatchReject : undefined}
         onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
+        formatExportData={buildDetailExportData}
         exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
       />
     </div>
@@ -2558,7 +2784,7 @@ export default function AdminPengolahanPemasaran() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-muted-foreground">
-              Top Produk
+              Top Jenis Kegiatan
             </p>
             <p
               className="truncate text-xl font-bold text-foreground"

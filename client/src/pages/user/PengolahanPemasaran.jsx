@@ -97,21 +97,12 @@ const toNumber = value => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const getUpiKey = row => {
-  if (row?.id_upi) return String(row.id_upi);
-  if (row?.upi_id) return String(row.upi_id);
+const normalizeKategori = value =>
+  String(value ?? '').trim().toLowerCase() === 'pemasaran'
+    ? 'Pemasaran'
+    : 'Pengolahan';
 
-  const nama = String(row?.nama_upi ?? '').trim().toLowerCase();
-  const kabupaten = String(row?.kabupaten_kota ?? '').trim().toLowerCase();
-
-  if (!nama && !kabupaten) return null;
-  return `${nama}|${kabupaten}`;
-};
-
-const getJenisDetail = row =>
-  row.jenis_kegiatan === 'Pengolahan'
-    ? row.jenis_kegiatan_pengolahan
-    : row.jenis_kegiatan_pemasaran;
+const getJenisDetail = row => row?.jenis_kegiatan || '';
 
 export default function PengolahanPemasaran() {
   const [loading, setLoading] = useState(true);
@@ -233,7 +224,7 @@ export default function PengolahanPemasaran() {
 
         if (
           selectedJenisKegiatan &&
-          item.jenis_kegiatan !== selectedJenisKegiatan
+          normalizeKategori(item.kategori_kegiatan) !== selectedJenisKegiatan
         ) {
           return false;
         }
@@ -277,63 +268,36 @@ export default function PengolahanPemasaran() {
   );
 
   const stats = useMemo(() => {
-    const rows = dashboardData;
+    const rows = filteredData;
 
     const total_volume = rows.reduce(
-      (sum, row) => sum + toNumber(row.hasil_produksi_per_tahun_kg),
+      (sum, row) => sum + toNumber(row.hasil_kg),
       0,
     );
-
     const total_nilai = rows.reduce(
-      (sum, row) => sum + toNumber(row.nilai_hasil_produksi_per_tahun_rp),
+      (sum, row) => sum + toNumber(row.hasil_rp),
+      0,
+    );
+    const total_upi = rows.reduce(
+      (sum, row) => sum + toNumber(row.jumlah_unit_usaha),
       0,
     );
 
-    const upiMap = new Map();
-
+    const kegiatanMap = new Map();
     rows.forEach(row => {
-      const key = getUpiKey(row);
-      if (!key || upiMap.has(key)) return;
-
-      upiMap.set(key, {
-        key,
-        jenis_kegiatan: row.jenis_kegiatan || 'Lainnya',
-      });
-    });
-
-    const total_upi = upiMap.size;
-
-    const produkMap = new Map();
-
-    rows.forEach(row => {
-      const name = String(row.jenis_produk || 'Tidak diketahui').trim();
-
-      if (!produkMap.has(name)) {
-        produkMap.set(name, {
-          name,
-          produksi: 0,
-          nilai: 0,
-          upiKeys: new Set(),
-        });
+      const name = String(row.jenis_kegiatan || 'Tidak diketahui').trim();
+      if (!kegiatanMap.has(name)) {
+        kegiatanMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
       }
-
-      const current = produkMap.get(name);
-      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
-      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
-
-      const upiKey = getUpiKey(row);
-      if (upiKey) current.upiKeys.add(upiKey);
+      const current = kegiatanMap.get(name);
+      current.produksi += toNumber(row.hasil_kg);
+      current.nilai += toNumber(row.hasil_rp);
+      current.upi += toNumber(row.jumlah_unit_usaha);
     });
 
-    const produkData = [...produkMap.values()]
-      .map(item => ({
-        name: item.name,
-        produksi: item.produksi,
-        nilai: item.nilai,
-        upi: item.upiKeys.size,
-      }))
-      .sort((a, b) => b.produksi - a.produksi);
-
+    const produkData = [...kegiatanMap.values()].sort(
+      (a, b) => b.produksi - a.produksi,
+    );
     const topProduk = produkData[0] || {
       name: '-',
       produksi: 0,
@@ -342,122 +306,64 @@ export default function PengolahanPemasaran() {
     };
 
     const kabupatenMap = new Map();
-
     rows.forEach(row => {
       const name = row.kabupaten_kota;
       if (!name) return;
-
       if (!kabupatenMap.has(name)) {
-        kabupatenMap.set(name, {
-          name,
-          produksi: 0,
-          nilai: 0,
-          upiKeys: new Set(),
-        });
+        kabupatenMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
       }
-
       const current = kabupatenMap.get(name);
-      current.produksi += toNumber(row.hasil_produksi_per_tahun_kg);
-      current.nilai += toNumber(row.nilai_hasil_produksi_per_tahun_rp);
-
-      const upiKey = getUpiKey(row);
-      if (upiKey) current.upiKeys.add(upiKey);
+      current.produksi += toNumber(row.hasil_kg);
+      current.nilai += toNumber(row.hasil_rp);
+      current.upi += toNumber(row.jumlah_unit_usaha);
     });
 
-    const produksiPerKabupaten = [...kabupatenMap.values()].map(item => ({
-      name: item.name,
-      produksi: item.produksi,
-      nilai: item.nilai,
-      upi: item.upiKeys.size,
-    }));
-
-    // Jumlah UPI unik pada setiap jenis detail kegiatan.
-    const detailKegiatanMaps = {
+    const produksiPerKabupaten = [...kabupatenMap.values()];
+    const detailMaps = {
       Pengolahan: new Map(),
       Pemasaran: new Map(),
     };
-    
-    rows.forEach((row, rowIndex) => {
-      const kelompok = row.jenis_kegiatan;
-      
-      if (
-        kelompok !== 'Pengolahan' &&
-        kelompok !== 'Pemasaran'
-      ) {
-        return;
-      }
-      
-      const detail =
-        kelompok === 'Pengolahan'
-          ? row.jenis_kegiatan_pengolahan
-          : row.jenis_kegiatan_pemasaran;
 
-      const detailName = String(detail ?? '').trim();
-
-      if (!detailName) return;
-
-      if (!detailKegiatanMaps[kelompok].has(detailName)) {
-        detailKegiatanMaps[kelompok].set(
-          detailName,
-          new Set(),
-        );
-      }
-
-      const upiKey =
-        getUpiKey(row) ||
-        String(row.id ?? `row-${rowIndex}`);
-
-      detailKegiatanMaps[kelompok]
-        .get(detailName)
-        .add(upiKey);
+    rows.forEach(row => {
+      const kategori = normalizeKategori(row.kategori_kegiatan);
+      const detail = String(row.jenis_kegiatan ?? '').trim();
+      if (!detail) return;
+      const target = detailMaps[kategori];
+      target.set(detail, (target.get(detail) || 0) + toNumber(row.jumlah_unit_usaha));
     });
 
     const detailKegiatan = {
-      Pengolahan: [
-        ...detailKegiatanMaps.Pengolahan.entries(),
-      ]
-        .map(([name, upiKeys]) => ({
-          name,
-          value: upiKeys.size,
-        }))
+      Pengolahan: [...detailMaps.Pengolahan.entries()]
+        .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
-
-      Pemasaran: [
-        ...detailKegiatanMaps.Pemasaran.entries(),
-      ]
-        .map(([name, upiKeys]) => ({
-          name,
-          value: upiKeys.size,
-        }))
+      Pemasaran: [...detailMaps.Pemasaran.entries()]
+        .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value),
     };
 
-    const rasioKegiatan = [
-      {
-        name: 'Pengolahan',
-        value: [...upiMap.values()].filter(
-          item => item.jenis_kegiatan === 'Pengolahan',
-        ).length,
-      },
-      {
-        name: 'Pemasaran',
-        value: [...upiMap.values()].filter(
-          item => item.jenis_kegiatan === 'Pemasaran',
-        ).length,
-      },
-    ];
+    const rasioKegiatan = ['Pengolahan', 'Pemasaran'].map(name => ({
+      name,
+      value: rows
+        .filter(row => normalizeKategori(row.kategori_kegiatan) === name)
+        .reduce((sum, row) => sum + toNumber(row.jumlah_unit_usaha), 0),
+    }));
 
-    // Tren tetap memakai seluruh tahun agar pola antartahun terlihat,
-    // tetapi tetap mengikuti pilihan jenis kegiatan global.
+    const trendRows = data.filter(row => {
+      if (
+        selectedJenisKegiatan &&
+        normalizeKategori(row.kategori_kegiatan) !== selectedJenisKegiatan
+      ) {
+        return false;
+      }
+      if (filterKabupaten && row.kabupaten_kota !== filterKabupaten) return false;
+      if (filterSkalaUsaha && row.skala_usaha !== filterSkalaUsaha) return false;
+      return true;
+    });
+
     const yearlyMap = new Map();
-    const trendRows = selectedJenisKegiatan
-      ? data.filter(item => item.jenis_kegiatan === selectedJenisKegiatan)
-      : data;
-
     trendRows.forEach(row => {
       const tahun = String(row.tahun ?? '').trim();
       if (!tahun) return;
-
       if (!yearlyMap.has(tahun)) {
         yearlyMap.set(tahun, {
           tahun,
@@ -469,28 +375,27 @@ export default function PengolahanPemasaran() {
       }
 
       const current = yearlyMap.get(tahun);
-      const produksi = toNumber(row.hasil_produksi_per_tahun_kg);
-      const nilai = toNumber(row.nilai_hasil_produksi_per_tahun_rp);
+      const kategori = normalizeKategori(row.kategori_kegiatan);
+      const produksi = toNumber(row.hasil_kg);
+      const nilai = toNumber(row.hasil_rp);
 
-      if (row.jenis_kegiatan === 'Pengolahan') {
+      if (kategori === 'Pengolahan') {
         current.pengolahan_produksi += produksi;
         current.pengolahan_nilai += nilai;
-      } else if (row.jenis_kegiatan === 'Pemasaran') {
+      } else {
         current.pemasaran_produksi += produksi;
         current.pemasaran_nilai += nilai;
       }
     });
-
-    const trenTahunan = [...yearlyMap.values()].sort(
-      (a, b) => Number(a.tahun) - Number(b.tahun),
-    );
 
     return {
       produksiPerKabupaten,
       produkData,
       detailKegiatan,
       rasioKegiatan,
-      trenTahunan,
+      trenTahunan: [...yearlyMap.values()].sort(
+        (a, b) => Number(a.tahun) - Number(b.tahun),
+      ),
       kpi: {
         total_volume,
         total_nilai,
@@ -498,7 +403,7 @@ export default function PengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [dashboardData, data, selectedJenisKegiatan]);
+  }, [data, filteredData, filterKabupaten, filterSkalaUsaha, selectedJenisKegiatan]);
 
   const activeDetailKegiatan =
     selectedJenisKegiatan || detailKegiatanFilter;
@@ -513,57 +418,52 @@ export default function PengolahanPemasaran() {
         header: 'Kabupaten/Kota',
         accessorKey: 'kabupaten_kota',
         cell: info => (
-          <p className="font-medium text-foreground">
-            {info.getValue()}
-          </p>
+          <p className="font-medium text-foreground">{info.getValue()}</p>
         ),
       },
-      // { header: 'Nama UPI', accessorKey: 'nama_upi' },
-      // { header: 'Nama Pemilik', accessorKey: 'nama_pemilik' },
       {
-        header: 'Jenis Kegiatan',
-        accessorKey: 'jenis_kegiatan',
+        header: 'Kategori Kegiatan',
+        accessorKey: 'kategori_kegiatan',
         cell: info => {
-          const value = info.getValue();
+          const value = normalizeKategori(info.getValue());
           const colorClass =
             value === 'Pengolahan'
               ? 'border-blue-500/20 bg-blue-500/10 text-blue-600'
-              : value === 'Pemasaran'
-                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600'
-                : 'border-border bg-muted text-muted-foreground';
+              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
 
           return (
             <span
               className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
             >
-              {value || '-'}
+              {value}
             </span>
           );
         },
       },
       {
-        header: 'Jenis Detail',
-        id: 'jenis_detail',
-        cell: info => getJenisDetail(info.row.original) || '-',
+        header: 'Jenis Kegiatan',
+        accessorKey: 'jenis_kegiatan',
       },
       { header: 'Skala Usaha', accessorKey: 'skala_usaha' },
-      { header: 'Jenis Produk', accessorKey: 'jenis_produk' },
       {
-        header: 'Hasil Produksi/Tahun (Kg)',
-        accessorKey: 'hasil_produksi_per_tahun_kg',
-        cell: info =>
-          toNumber(info.getValue()).toLocaleString('id-ID'),
+        header: 'Jumlah Unit Usaha',
+        accessorKey: 'jumlah_unit_usaha',
+        cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
       },
       {
-        header: 'Nilai Hasil/Tahun (Rp)',
-        accessorKey: 'nilai_hasil_produksi_per_tahun_rp',
+        header: 'Hasil Produksi (Kg)',
+        accessorKey: 'hasil_kg',
+        cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
+      },
+      {
+        header: 'Nilai Produksi (Rp)',
+        accessorKey: 'hasil_rp',
         cell: info => formatRupiah(info.getValue()),
       },
       {
-        header: 'Total Tenaga Kerja',
-        accessorKey: 'total_seluruh_tenaga_kerja',
-        cell: info =>
-          toNumber(info.getValue()).toLocaleString('id-ID'),
+        header: 'Modal Investasi (Rp)',
+        accessorKey: 'modal_rp',
+        cell: info => formatRupiah(info.getValue()),
       },
     ],
     [],
@@ -1319,7 +1219,7 @@ export default function PengolahanPemasaran() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Top Produk
+                  Top Jenis Kegiatan
                 </p>
                 <p
                   className="truncate text-xl font-bold text-foreground"
@@ -1674,20 +1574,17 @@ export default function PengolahanPemasaran() {
                 new Date().toISOString().split('T')[0]
               }`}
               formatExportData={exportData =>
-                exportData.map(row => ({
+                exportData.map((row, index) => ({
+                  No: index + 1,
                   Tahun: row.tahun,
                   'Kabupaten/Kota': row.kabupaten_kota,
-                  // 'Nama UPI': row.nama_upi,
+                  'Kategori Kegiatan': normalizeKategori(row.kategori_kegiatan),
                   'Jenis Kegiatan': row.jenis_kegiatan,
-                  'Jenis Detail': getJenisDetail(row),
                   'Skala Usaha': row.skala_usaha,
-                  'Jenis Produk': row.jenis_produk,
-                  'Hasil Produksi/Tahun (Kg)':
-                    row.hasil_produksi_per_tahun_kg,
-                  'Nilai Hasil/Tahun (Rp)':
-                    row.nilai_hasil_produksi_per_tahun_rp,
-                  // 'Total Tenaga Kerja':
-                  //   row.total_seluruh_tenaga_kerja,
+                  'Jumlah Unit Usaha': toNumber(row.jumlah_unit_usaha),
+                  'Hasil Produksi (Kg)': toNumber(row.hasil_kg),
+                  'Nilai Produksi (Rp)': toNumber(row.hasil_rp),
+                  'Modal Investasi (Rp)': toNumber(row.modal_rp),
                 }))
               }
             />
