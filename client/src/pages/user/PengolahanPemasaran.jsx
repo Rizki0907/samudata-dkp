@@ -70,6 +70,49 @@ const getGeoRegionName = databaseName => {
 // Registrasi peta Jawa Timur
 echarts.registerMap('jawa_timur', geoJsonData);
 
+// Daftar tetap 38 kabupaten/kota di Jawa Timur untuk filter.
+const KABUPATEN_KOTA_OPTIONS = [
+  'SEMUA',
+  'KAB. BANGKALAN',
+  'KAB. BANYUWANGI',
+  'KAB. BLITAR',
+  'KAB. BOJONEGORO',
+  'KAB. BONDOWOSO',
+  'KAB. GRESIK',
+  'KAB. JEMBER',
+  'KAB. JOMBANG',
+  'KAB. KEDIRI',
+  'KAB. LAMONGAN',
+  'KAB. LUMAJANG',
+  'KAB. MADIUN',
+  'KAB. MAGETAN',
+  'KAB. MALANG',
+  'KAB. MOJOKERTO',
+  'KAB. NGANJUK',
+  'KAB. NGAWI',
+  'KAB. PACITAN',
+  'KAB. PAMEKASAN',
+  'KAB. PASURUAN',
+  'KAB. PONOROGO',
+  'KAB. PROBOLINGGO',
+  'KAB. SAMPANG',
+  'KAB. SIDOARJO',
+  'KAB. SITUBONDO',
+  'KAB. SUMENEP',
+  'KAB. TRENGGALEK',
+  'KAB. TUBAN',
+  'KAB. TULUNGAGUNG',
+  'KOTA BATU',
+  'KOTA BLITAR',
+  'KOTA KEDIRI',
+  'KOTA MADIUN',
+  'KOTA MALANG',
+  'KOTA MOJOKERTO',
+  'KOTA PASURUAN',
+  'KOTA PROBOLINGGO',
+  'KOTA SURABAYA',
+];
+
 const formatRupiah = value =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -113,7 +156,6 @@ export default function PengolahanPemasaran() {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState('');
   const [filterKabupaten, setFilterKabupaten] = useState('');
-  const [filterSkalaUsaha, setFilterSkalaUsaha] = useState('');
 
   // Pilihan metrik visualisasi
   const [barFilter, setBarFilter] = useState('produksi');
@@ -192,7 +234,7 @@ export default function PengolahanPemasaran() {
       }
     } catch (error) {
       console.error(
-        'Error fetching pengolahan & pemasaran:',
+        'Error fetching pengolahan dan pemasaran:',
         error.response?.data || error,
       );
         setData([]);
@@ -234,13 +276,6 @@ export default function PengolahanPemasaran() {
     [data, selectedJenisKegiatan, selectedYear],
   );
 
-  const kabupatenOptions = useMemo(
-    () =>
-      [...new Set(dashboardData.map(item => item.kabupaten_kota).filter(Boolean))]
-        .sort(),
-    [dashboardData],
-  );
-
   const filteredData = useMemo(
     () =>
       dashboardData.filter(item => {
@@ -251,19 +286,11 @@ export default function PengolahanPemasaran() {
           return false;
         }
 
-        if (
-          filterSkalaUsaha &&
-          item.skala_usaha !== filterSkalaUsaha
-        ) {
-          return false;
-        }
-
         return true;
       }),
     [
       dashboardData,
       filterKabupaten,
-      filterSkalaUsaha,
     ],
   );
 
@@ -356,7 +383,6 @@ export default function PengolahanPemasaran() {
         return false;
       }
       if (filterKabupaten && row.kabupaten_kota !== filterKabupaten) return false;
-      if (filterSkalaUsaha && row.skala_usaha !== filterSkalaUsaha) return false;
       return true;
     });
 
@@ -403,7 +429,7 @@ export default function PengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [data, filteredData, filterKabupaten, filterSkalaUsaha, selectedJenisKegiatan]);
+  }, [data, filteredData, filterKabupaten, selectedJenisKegiatan]);
 
   const activeDetailKegiatan =
     selectedJenisKegiatan || detailKegiatanFilter;
@@ -430,7 +456,7 @@ export default function PengolahanPemasaran() {
             value === 'Pengolahan'
               ? 'border-blue-500/20 bg-blue-500/10 text-blue-600'
               : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-
+          
           return (
             <span
               className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
@@ -1098,7 +1124,7 @@ export default function PengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">
-            Statistik Pengolahan & Pemasaran
+            Statistik Pengolahan dan Pemasaran
           </h1>
         </div>
 
@@ -1127,13 +1153,29 @@ export default function PengolahanPemasaran() {
         </div>
       </div>
 
-        <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
+        {/* Filter utama: Tahun, Jenis Kegiatan, Kabupaten/Kota - sejajar 3 kolom */}
+        <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-3">
+          <select
+            value={selectedYear}
+            onChange={event => {
+              setSelectedYear(event.target.value);
+              setSelectedMapRegion(null);
+            }}
+            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-40"
+          >
+            <option value="">Semua Tahun</option>
+            {tahunOptions.map(year => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+
           <select
             value={selectedJenisKegiatan}
             onChange={event => {
               setSelectedJenisKegiatan(event.target.value);
               setSelectedMapRegion(null);
-              setFilterKabupaten('');
             }}
             className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
           >
@@ -1143,18 +1185,17 @@ export default function PengolahanPemasaran() {
           </select>
 
           <select
-            value={selectedYear}
+            value={filterKabupaten}
             onChange={event => {
-              setSelectedYear(event.target.value);
+              setFilterKabupaten(event.target.value);
               setSelectedMapRegion(null);
-              setFilterKabupaten('');
             }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-40"
+            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
           >
-            <option value="">Semua Tahun</option>
-            {tahunOptions.map(year => (
-              <option key={year} value={year}>
-                {year}
+            <option value="">Semua Kabupaten/Kota</option>
+            {KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA').map(kab => (
+              <option key={kab} value={kab}>
+                {kab}
               </option>
             ))}
           </select>
@@ -1530,7 +1571,7 @@ export default function PengolahanPemasaran() {
               <div className="mb-1 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">
-                  Rincian Data Pengolahan & Pemasaran
+                  Rincian Data Pengolahan dan Pemasaran
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -1538,32 +1579,51 @@ export default function PengolahanPemasaran() {
               </p>
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Filter tabel: Tahun, Jenis Kegiatan, Kabupaten/Kota (mengikuti filter utama) */}
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               <select
-                value={filterKabupaten}
-                onChange={event => setFilterKabupaten(event.target.value)}
+                value={selectedYear}
+                onChange={event => {
+                  setSelectedYear(event.target.value);
+                  setSelectedMapRegion(null);
+                }}
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
-                <option value="">Semua Kab/Kota</option>
-                {kabupatenOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option}
+                <option value="">Semua Tahun</option>
+                {tahunOptions.map(year => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
                 ))}
               </select>
 
               <select
-                value={filterSkalaUsaha}
-                onChange={event =>
-                  setFilterSkalaUsaha(event.target.value)
-                }
+                value={selectedJenisKegiatan}
+                onChange={event => {
+                  setSelectedJenisKegiatan(event.target.value);
+                  setSelectedMapRegion(null);
+                }}
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
-                <option value="">Semua Skala Usaha</option>
-                <option value="Mikro">Mikro</option>
-                <option value="Kecil">Kecil</option>
-                <option value="Menengah">Menengah</option>
-                <option value="Besar">Besar</option>
+                <option value="">Semua Jenis Kegiatan</option>
+                <option value="Pengolahan">Pengolahan</option>
+                <option value="Pemasaran">Pemasaran</option>
+              </select>
+
+              <select
+                value={filterKabupaten}
+                onChange={event => {
+                  setFilterKabupaten(event.target.value);
+                  setSelectedMapRegion(null);
+                }}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                <option value="">Semua Kabupaten/Kota</option>
+                {KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA').map(kab => (
+                  <option key={kab} value={kab}>
+                    {kab}
+                  </option>
+                ))}
               </select>
             </div>
 

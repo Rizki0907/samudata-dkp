@@ -130,7 +130,7 @@ export default function Overview() {
             <div className="p-3 bg-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
               <Package className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Pengolahan & Pemasaran</h2>
+            <h2 className="text-2xl font-bold text-foreground">Pengolahan dan Pemasaran</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
