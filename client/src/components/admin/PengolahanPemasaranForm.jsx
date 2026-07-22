@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 
 // ============================================================================
 // MASTER DATA & OPTIONS
@@ -91,21 +91,101 @@ const LABEL_CLASS = 'mb-1 block text-xs font-normal uppercase tracking-wide text
 // HELPERS
 // ============================================================================
 
-// Format angka dengan pemisah ribuan ala Indonesia saat diketik (mis. 15000 -> "15.000")
-const formatThousand = (val) => {
-  if (val === '' || val === null || val === undefined) return '';
-  const digitsOnly = String(val).replace(/\D/g, '');
-  return digitsOnly ? Number(digitsOnly).toLocaleString('id-ID') : '0';
+// Input angka memakai format Indonesia:
+// - titik sebagai pemisah ribuan: 1000 -> "1.000"
+// - koma sebagai pemisah desimal: 1000,65 -> "1.000,65"
+// - maksimal dua angka di belakang koma.
+const MAX_DECIMAL_DIGITS = 2;
+const DECIMAL_AMOUNT_FIELDS = new Set(['modal_rp', 'hasil_kg', 'hasil_rp']);
+
+const getDecimalDigits = (key) =>
+  DECIMAL_AMOUNT_FIELDS.has(key) ? MAX_DECIMAL_DIGITS : 0;
+
+const roundToDigits = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
+  const factor = 10 ** decimalDigits;
+  return Math.round((Number(value) + Number.EPSILON) * factor) / factor;
 };
 
-// Ubah string berformat ribuan ("15.000") kembali jadi angka murni untuk dikirim ke API.
-// PENTING: fungsi inilah yang dipakai untuk payload backend, BUKAN formatValueForExport.
-const toRawNumber = (val) => {
-  if (val === '' || val === null || val === undefined) return 0;
-  const cleanVal = String(val).replace(/\./g, '').trim();
-  const parsed = Number(cleanVal);
+const formatIndonesianInput = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
+  if (value === '' || value === null || value === undefined) return '';
+
+  let raw = String(value)
+    .trim()
+    .replace(/\s/g, '')
+    .replace(/[^0-9.,]/g, '');
+
+  if (!raw) return '';
+
+  const hasDecimalSeparator = decimalDigits > 0 && raw.includes(',');
+  const [rawInteger = '', ...rawDecimalParts] = raw.split(',');
+  const integerDigits = rawInteger.replace(/\./g, '').replace(/\D/g, '');
+  const cleanInteger = integerDigits.replace(/^0+(?=\d)/, '') || '0';
+  const groupedInteger = cleanInteger.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  if (!hasDecimalSeparator) return groupedInteger;
+
+  const decimalDigitsOnly = rawDecimalParts
+    .join('')
+    .replace(/\D/g, '')
+    .slice(0, decimalDigits);
+
+  return `${groupedInteger},${decimalDigitsOnly}`;
+};
+
+const formatInitialNumber = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
+  if (value === '' || value === null || value === undefined) return '';
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toLocaleString('id-ID', {
+      useGrouping: true,
+      maximumFractionDigits: decimalDigits,
+    });
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  // Nilai yang sudah berbentuk 1.000 atau 1.000.000 dianggap memakai
+  // pemisah ribuan Indonesia, bukan titik desimal dari API.
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
+    return formatIndonesianInput(raw, decimalDigits);
+  }
+
+  // Nilai dari API umumnya memakai titik sebagai desimal, misalnya 1000.65.
+  // Nilai yang sudah memakai koma dianggap sudah berformat Indonesia.
+  if (!raw.includes(',') && /^-?\d+(?:\.\d+)?$/.test(raw)) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      return parsed.toLocaleString('id-ID', {
+        useGrouping: true,
+        maximumFractionDigits: decimalDigits,
+      });
+    }
+  }
+
+  return formatIndonesianInput(raw, decimalDigits);
+};
+
+// Ubah "1.000,65" menjadi 1000.65 untuk payload API.
+const toRawNumber = (value) => {
+  if (value === '' || value === null || value === undefined) return 0;
+
+  const normalized = String(value)
+    .trim()
+    .replace(/\s/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .replace(/[^0-9.-]/g, '');
+
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const formatSteppedNumber = (value, decimalDigits = MAX_DECIMAL_DIGITS) =>
+  Math.max(0, roundToDigits(value, decimalDigits)).toLocaleString('id-ID', {
+    useGrouping: true,
+    maximumFractionDigits: decimalDigits,
+  });
 
 
 const normalizeKategori = (value) =>
@@ -146,44 +226,128 @@ const createFormData = (initialData) => {
     kategori_kegiatan: kategori,
     jenis_kegiatan: findCanonicalOption(initialData.jenis_kegiatan, jenisOptions),
     skala_usaha: initialData.skala_usaha ?? 'Mikro',
-    jumlah_unit_usaha: formatThousand(initialData.jumlah_unit_usaha ?? 0),
-    modal_rp: formatThousand(initialData.modal_rp ?? 0),
-    hasil_kg: formatThousand(initialData.hasil_kg ?? 0),
-    hasil_rp: formatThousand(initialData.hasil_rp ?? 0),
+    jumlah_unit_usaha: formatInitialNumber(initialData.jumlah_unit_usaha ?? 0, 0),
+    modal_rp: formatInitialNumber(initialData.modal_rp ?? 0, 2),
+    hasil_kg: formatInitialNumber(initialData.hasil_kg ?? 0, 2),
+    hasil_rp: formatInitialNumber(initialData.hasil_rp ?? 0, 2),
     sertifikat_produk: {
-      haccp: formatThousand(initialData.sertifikat_haccp ?? 0),
-      sni: formatThousand(initialData.sertifikat_sni ?? 0),
-      halal: formatThousand(initialData.sertifikat_halal ?? 0),
-      skp: formatThousand(initialData.sertifikat_skp ?? 0),
-      pirt: formatThousand(initialData.sertifikat_pirt ?? 0),
-      md: formatThousand(initialData.sertifikat_md ?? 0),
-      lainnya: formatThousand(initialData.sertifikat_lainnya ?? 0),
+      haccp: formatInitialNumber(initialData.sertifikat_haccp ?? 0, 0),
+      sni: formatInitialNumber(initialData.sertifikat_sni ?? 0, 0),
+      halal: formatInitialNumber(initialData.sertifikat_halal ?? 0, 0),
+      skp: formatInitialNumber(initialData.sertifikat_skp ?? 0, 0),
+      pirt: formatInitialNumber(initialData.sertifikat_pirt ?? 0, 0),
+      md: formatInitialNumber(initialData.sertifikat_md ?? 0, 0),
+      lainnya: formatInitialNumber(initialData.sertifikat_lainnya ?? 0, 0),
     },
     izin_usaha: {
-      nib: formatThousand(initialData.izin_nib ?? 0),
-      npwp: formatThousand(initialData.izin_npwp ?? 0),
-      kusuka: formatThousand(initialData.izin_kusuka ?? 0),
-      menkumham: formatThousand(initialData.izin_menkumham ?? 0),
-      akta_pendirian: formatThousand(initialData.izin_akta_pendirian ?? 0),
-      lokasi_domisili: formatThousand(initialData.izin_lokasi_domisili ?? 0),
-      imb: formatThousand(initialData.izin_imb ?? 0),
-      siup_perikanan: formatThousand(initialData.izin_siup_perikanan ?? 0),
-      siup_perdagangan: formatThousand(initialData.izin_siup_perdagangan ?? 0),
-      lainnya: formatThousand(initialData.izin_lainnya ?? 0),
+      nib: formatInitialNumber(initialData.izin_nib ?? 0, 0),
+      npwp: formatInitialNumber(initialData.izin_npwp ?? 0, 0),
+      kusuka: formatInitialNumber(initialData.izin_kusuka ?? 0, 0),
+      menkumham: formatInitialNumber(initialData.izin_menkumham ?? 0, 0),
+      akta_pendirian: formatInitialNumber(initialData.izin_akta_pendirian ?? 0, 0),
+      lokasi_domisili: formatInitialNumber(initialData.izin_lokasi_domisili ?? 0, 0),
+      imb: formatInitialNumber(initialData.izin_imb ?? 0, 0),
+      siup_perikanan: formatInitialNumber(initialData.izin_siup_perikanan ?? 0, 0),
+      siup_perdagangan: formatInitialNumber(initialData.izin_siup_perdagangan ?? 0, 0),
+      lainnya: formatInitialNumber(initialData.izin_lainnya ?? 0, 0),
     },
-    shm_count: formatThousand(initialData.shm_count ?? 0),
-    non_shm_count: formatThousand(initialData.non_shm_count ?? 0),
+    shm_count: formatInitialNumber(initialData.shm_count ?? 0, 0),
+    non_shm_count: formatInitialNumber(initialData.non_shm_count ?? 0, 0),
   };
 };
 
 // Format nilai HANYA untuk tampilan/export rekap (mis. generate file Excel): 0/kosong -> "-".
 // JANGAN pakai fungsi ini untuk payload yang dikirim ke API, karena kolom di database
 // bertipe Int/Float dan akan ditolak Prisma kalau menerima string seperti "-" atau "15.000".
-const formatValueForDisplay = (val) => {
-  if (val === '' || val === null || val === undefined) return '-';
-  const cleanVal = String(val).replace(/\./g, '').trim();
-  if (cleanVal === '0' || cleanVal === '') return '-';
-  return Number(cleanVal).toLocaleString('id-ID');
+const formatValueForDisplay = (value) => {
+  if (value === '' || value === null || value === undefined) return '-';
+  const parsed = toRawNumber(value);
+  if (parsed === 0) return '-';
+  return parsed.toLocaleString('id-ID', {
+    useGrouping: true,
+    maximumFractionDigits: MAX_DECIMAL_DIGITS,
+  });
+};
+
+const FORM_NAV_SELECTOR = '[data-form-nav="true"]:not(:disabled)';
+
+const isElementVisible = (element) => {
+  if (!(element instanceof HTMLElement)) return false;
+
+  const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+
+  return (
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+};
+
+const getElementCenter = (element) => {
+  const rect = element.getBoundingClientRect();
+
+  return {
+    element,
+    rect,
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+};
+
+const findDirectionalTarget = (formElement, currentElement, direction) => {
+  if (!formElement || !currentElement) return null;
+
+  const current = getElementCenter(currentElement);
+  const candidates = Array.from(formElement.querySelectorAll(FORM_NAV_SELECTOR))
+    .filter((element) => element !== currentElement && isElementVisible(element))
+    .map(getElementCenter);
+
+  const horizontalDirection = direction === 'left' || direction === 'right';
+  const sign = direction === 'left' || direction === 'up' ? -1 : 1;
+
+  const directionalCandidates = candidates.filter((candidate) => {
+    const primaryDelta = horizontalDirection
+      ? candidate.x - current.x
+      : candidate.y - current.y;
+
+    return primaryDelta * sign > 4;
+  });
+
+  if (!directionalCandidates.length) return null;
+
+  const sameLineTolerance = horizontalDirection
+    ? Math.max(current.rect.height * 1.5, 48)
+    : Math.max(current.rect.width * 0.6, 110);
+
+  const sameLineCandidates = directionalCandidates.filter((candidate) => {
+    const secondaryDelta = horizontalDirection
+      ? Math.abs(candidate.y - current.y)
+      : Math.abs(candidate.x - current.x);
+
+    return secondaryDelta <= sameLineTolerance;
+  });
+
+  const pool = sameLineCandidates.length
+    ? sameLineCandidates
+    : directionalCandidates;
+
+  return pool
+    .map((candidate) => {
+      const primaryDistance = horizontalDirection
+        ? Math.abs(candidate.x - current.x)
+        : Math.abs(candidate.y - current.y);
+      const secondaryDistance = horizontalDirection
+        ? Math.abs(candidate.y - current.y)
+        : Math.abs(candidate.x - current.x);
+
+      return {
+        ...candidate,
+        score: primaryDistance + secondaryDistance * 3,
+      };
+    })
+    .sort((a, b) => a.score - b.score)[0]?.element ?? null;
 };
 
 // ============================================================================
@@ -219,6 +383,7 @@ function SelectField({ label, value, onChange, options, placeholder = '-- Pilih 
           disabled={disabled}
           value={value}
           onChange={onChange}
+          data-form-nav="true"
           className={`${INPUT_CLASS} appearance-none pr-10`}
         >
           {placeholder ? <option value="">{placeholder}</option> : null}
@@ -279,6 +444,7 @@ function SearchableSingleSelect({
         type="button"
         onClick={() => setIsOpen((previous) => !previous)}
         aria-expanded={isOpen}
+        data-form-nav="true"
         className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
       >
         <span className={value ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
@@ -353,38 +519,120 @@ function SearchableSingleSelect({
   );
 }
 
-function NumberField({ label, value, onChange, required = true }) {
+function NumericInputWithStepper({
+  value,
+  onChange,
+  onStep,
+  required = true,
+  ariaLabel,
+  decimalDigits = MAX_DECIMAL_DIGITS,
+}) {
+  const keepInputFocused = (event) => {
+    event.preventDefault();
+  };
+
+  const stepLabel = decimalDigits > 0 ? '0,01' : '1';
+
+  return (
+    <div className="group relative">
+      <input
+        type="text"
+        required={required}
+        inputMode={decimalDigits > 0 ? 'decimal' : 'numeric'}
+        value={value}
+        onChange={onChange}
+        data-form-nav="true"
+        aria-label={ariaLabel}
+        className={`${INPUT_CLASS} pr-12`}
+      />
+
+      {/* Spinner menyerupai input number native: tersembunyi saat normal,
+          lalu muncul ketika kotak di-hover atau sedang fokus/disentuh.
+          Input tetap bertipe text agar format Indonesia 1.000,65 tetap bisa digunakan. */}
+      <div className="pointer-events-none absolute right-3 top-1/2 flex h-[26px] w-[18px] -translate-y-1/2 flex-col overflow-hidden rounded-[2px] border border-slate-300 bg-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={`Naikkan ${ariaLabel || 'nilai'} sebesar ${stepLabel}`}
+          title={`Tambah ${stepLabel}`}
+          onMouseDown={keepInputFocused}
+          onClick={() => onStep(1)}
+          className="flex min-h-0 flex-1 items-center justify-center bg-white transition-colors hover:bg-slate-100 active:bg-slate-200"
+        >
+          <span
+            aria-hidden="true"
+            className="h-0 w-0 border-x-[3px] border-b-[5px] border-x-transparent border-b-slate-600"
+          />
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={`Turunkan ${ariaLabel || 'nilai'} sebesar ${stepLabel}`}
+          title={`Kurangi ${stepLabel}`}
+          onMouseDown={keepInputFocused}
+          onClick={() => onStep(-1)}
+          className="flex min-h-0 flex-1 items-center justify-center border-t border-slate-300 bg-white transition-colors hover:bg-slate-100 active:bg-slate-200"
+        >
+          <span
+            aria-hidden="true"
+            className="h-0 w-0 border-x-[3px] border-t-[5px] border-x-transparent border-t-slate-600"
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  onStep,
+  required = true,
+  decimalDigits = MAX_DECIMAL_DIGITS,
+}) {
   return (
     <div>
       <label className={LABEL_CLASS}>
         {label} {required ? <span className="text-rose-500">*</span> : null}
       </label>
-      <input
-        type="text"
-        required={required}
-        inputMode="numeric"
+      <NumericInputWithStepper
         value={value}
         onChange={onChange}
-        className={INPUT_CLASS}
+        onStep={onStep}
+        required={required}
+        ariaLabel={label}
+        decimalDigits={decimalDigits}
       />
     </div>
   );
 }
 
 // Grid input angka untuk daftar kategori (Sertifikat Produk / Izin Usaha)
-function NestedAmountGrid({ category, list, values, onChangeItem }) {
+function NestedAmountGrid({
+  category,
+  list,
+  values,
+  onChangeItem,
+  onStepItem,
+}) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {list.map((item) => (
         <div key={item.key}>
-          <label className="mb-1 block text-xs font-normal text-white">{item.label} <span className="text-rose-500">*</span></label>
-          <input
-            type="text"
-            required
-            inputMode="numeric"
+          <label className="mb-1 block text-xs font-normal text-white">
+            {item.label} <span className="text-rose-500">*</span>
+          </label>
+          <NumericInputWithStepper
             value={values[item.key] ?? '0'}
-            onChange={(e) => onChangeItem(category, item.key, e.target.value)}
-            className={INPUT_CLASS}
+            onChange={(event) =>
+              onChangeItem(category, item.key, event.target.value)
+            }
+            onStep={(direction) =>
+              onStepItem(category, item.key, direction)
+            }
+            ariaLabel={item.label}
+            decimalDigits={0}
           />
         </div>
       ))}
@@ -396,6 +644,7 @@ function NestedAmountGrid({ category, list, values, onChangeItem }) {
 // MAIN COMPONENT (DIRECT REKAP MODE ONLY)
 // ============================================================================
 export default function PengolahanPemasaranForm({ initialData, onSubmit, onCancel, isLoading }) {
+  const formRef = useRef(null);
   const [formData, setFormData] = useState(() => createFormData(initialData));
 
   useEffect(() => {
@@ -412,7 +661,24 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
   };
 
   const setAmountField = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: formatThousand(value) }));
+    const decimalDigits = getDecimalDigits(key);
+    setFormData((prev) => ({
+      ...prev,
+      [key]: formatIndonesianInput(value, decimalDigits),
+    }));
+  };
+
+  const stepAmountField = (key, direction) => {
+    const decimalDigits = getDecimalDigits(key);
+    const step = decimalDigits > 0 ? 0.01 : 1;
+
+    setFormData((prev) => ({
+      ...prev,
+      [key]: formatSteppedNumber(
+        toRawNumber(prev[key]) + direction * step,
+        decimalDigits,
+      ),
+    }));
   };
 
   const handleKategoriChange = (kategori) => {
@@ -428,9 +694,61 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       ...prev,
       [category]: {
         ...prev[category],
-        [key]: formatThousand(value),
+        [key]: formatIndonesianInput(value, 0),
       },
     }));
+  };
+
+  const stepNestedAmount = (category, key, direction) => {
+    setFormData((prev) => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [key]: formatSteppedNumber(
+          toRawNumber(prev[category]?.[key]) + direction,
+          0,
+        ),
+      },
+    }));
+  };
+
+  const handleArrowNavigation = (event) => {
+    const directionByKey = {
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+    };
+    const direction = directionByKey[event.key];
+
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
+
+    if (!currentElement || !formRef.current?.contains(currentElement)) return;
+
+    const targetElement = findDirectionalTarget(
+      formRef.current,
+      currentElement,
+      direction,
+    );
+
+    if (!targetElement) return;
+
+    event.preventDefault();
+    targetElement.focus({ preventScroll: true });
+    targetElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    });
+
+    if (
+      targetElement instanceof HTMLInputElement &&
+      targetElement.type === 'text'
+    ) {
+      requestAnimationFrame(() => targetElement.select());
+    }
   };
 
   const handleSubmit = (e) => {
@@ -465,11 +783,16 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-5xl space-y-6 p-4">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      onKeyDown={handleArrowNavigation}
+      className="mx-auto max-w-5xl space-y-6 p-4"
+    >
       {/* Bagian 1 */}
       <SectionCard
         number="1"
-        title="Tahun & Wilayah Kabupaten / Kota"
+        title="Tahun dan Wilayah"
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <SelectField
@@ -492,7 +815,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       {/* Bagian 2 */}
       <SectionCard
         number="2"
-        title="Klasifikasi Jenis Usaha & Skala Usaha"
+        title="Klasifikasi Jenis Usaha dan Skala Usaha"
       >
         <div className="space-y-4">
           <div>
@@ -539,17 +862,21 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       </SectionCard>
 
       {/* Bagian 3 */}
-      <SectionCard number="3" title="Unit Usaha & Modal Investasi">
+      <SectionCard number="3" title="Unit Usaha dan Modal Investasi">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
             label="Jumlah Unit Usaha (Unit)"
             value={formData.jumlah_unit_usaha}
             onChange={(e) => setAmountField('jumlah_unit_usaha', e.target.value)}
+            onStep={(direction) => stepAmountField('jumlah_unit_usaha', direction)}
+            decimalDigits={0}
           />
           <NumberField
             label="Modal Investasi (Rp)"
             value={formData.modal_rp}
             onChange={(e) => setAmountField('modal_rp', e.target.value)}
+            onStep={(direction) => stepAmountField('modal_rp', direction)}
+            decimalDigits={2}
           />
         </div>
       </SectionCard>
@@ -561,11 +888,15 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             label="Hasil Produksi (Kg)"
             value={formData.hasil_kg}
             onChange={(e) => setAmountField('hasil_kg', e.target.value)}
+            onStep={(direction) => stepAmountField('hasil_kg', direction)}
+            decimalDigits={2}
           />
           <NumberField
             label="Nilai Produksi (Rp)"
             value={formData.hasil_rp}
             onChange={(e) => setAmountField('hasil_rp', e.target.value)}
+            onStep={(direction) => stepAmountField('hasil_rp', direction)}
+            decimalDigits={2}
           />
         </div>
       </SectionCard>
@@ -580,6 +911,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
           list={SERTIFIKAT_PRODUK_LIST}
           values={formData.sertifikat_produk}
           onChangeItem={handleNestedAmountChange}
+          onStepItem={stepNestedAmount}
         />
       </SectionCard>
 
@@ -593,24 +925,29 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
           list={IZIN_USAHA_LIST}
           values={formData.izin_usaha}
           onChangeItem={handleNestedAmountChange}
+          onStepItem={stepNestedAmount}
         />
       </SectionCard>
 
       {/* Bagian 7 */}
       <SectionCard
         number="7"
-        title="Rekapitulasi Sertifikat Lahan & Bangunan"
+        title="Rekapitulasi Sertifikat Lahan dan Bangunan"
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
             label="Sertifikat Hak Milik (SHM)"
             value={formData.shm_count}
             onChange={(e) => setAmountField('shm_count', e.target.value)}
+            onStep={(direction) => stepAmountField('shm_count', direction)}
+            decimalDigits={0}
           />
           <NumberField
             label="Non SHM (Sewa / Girik / HGB / DLL)"
             value={formData.non_shm_count}
             onChange={(e) => setAmountField('non_shm_count', e.target.value)}
+            onStep={(direction) => stepAmountField('non_shm_count', direction)}
+            decimalDigits={0}
           />
         </div>
       </SectionCard>
@@ -622,7 +959,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
           onClick={onCancel}
           className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
         >
-          <X className="h-4 w-4" /> Batal
+          Batal
         </button>
         <button
           type="submit"

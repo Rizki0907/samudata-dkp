@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -478,7 +478,39 @@ const createInitialForm = initialData => {
 function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const containerRef = useRef(null);
   const normalizedValues = Array.isArray(values) ? values : [];
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleOutsideInteraction = event => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+
+    const handleEscape = event => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideInteraction);
+    document.addEventListener('touchstart', handleOutsideInteraction);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideInteraction);
+      document.removeEventListener('touchstart', handleOutsideInteraction);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
   const filteredOptions = options.filter(option =>
     String(option).toLowerCase().includes(search.toLowerCase()),
   );
@@ -499,7 +531,7 @@ function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
         : `${normalizedValues.length} dipilih`;
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
         {label}
       </label>
@@ -2697,21 +2729,9 @@ export default function AdminPengolahanPemasaran() {
         </div>
       </div>
     ) : null;
-
+    
   const dataPreview = (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="mb-4 flex justify-end">
-        <button
-          type="button"
-          onClick={handleExportRekap}
-          disabled={!filteredData.length}
-          title="Pilih satu tahun. Rekap hanya menghitung data VERIFIED dan wilayah yang dipilih."
-          className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Ekspor Rekap Statistik (Excel)
-        </button>
-      </div>
-
       <DataTable
         columns={columns}
         data={filteredData}
@@ -2722,6 +2742,19 @@ export default function AdminPengolahanPemasaran() {
         onBatchApprove={isAdminPusat ? handleBatchApprove : undefined}
         onBatchReject={isAdminPusat ? handleBatchReject : undefined}
         onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
+        selectRowOnClick
+        customExportButton={
+          <button
+            type="button"
+            onClick={handleExportRekap}
+            disabled={!filteredData.length}
+            title="Pilih satu tahun. Rekap hanya menghitung data VERIFIED dan wilayah yang dipilih."
+            className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            Ekspor Rekap Statistik
+          </button>
+        }
         formatExportData={buildDetailExportData}
         exportName={`Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}`}
       />
@@ -3082,10 +3115,10 @@ export default function AdminPengolahanPemasaran() {
 
           <div>
             <h1 className="font-heading text-3xl font-bold text-foreground">
-              Kelola Data Pengolahan & Pemasaran
+              Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Input dan kelola data statistik unit usaha pengolahan serta pemasaran hasil perikanan.
+              Input dan Kelola Data Statistik Unit Usaha Pengolahan serta Pemasaran Produk Kelautan Perikanan.
             </p>
           </div>
         </div>
@@ -3112,10 +3145,10 @@ export default function AdminPengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">
-            Kelola Data Pengolahan & Pemasaran
+            Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Input dan kelola data statistik unit usaha pengolahan serta pemasaran hasil perikanan.
+            Input dan Kelola Data Statistik Unit Usaha Pengolahan serta Pemasaran Produk Kelautan Perikanan.
           </p>
         </div>
 
