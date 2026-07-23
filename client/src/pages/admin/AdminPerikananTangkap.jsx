@@ -47,6 +47,7 @@ export default function AdminPerikananTangkap() {
   const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -1260,8 +1261,11 @@ const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
 
   
   const handleModalExport = () => {
-    // Filter by VERIFIED only
-    let dataToExport = data.filter(d => d.status === 'VERIFIED');
+    // Filter by status if selected, otherwise all
+    let dataToExport = data;
+    if (filterStatus) {
+      dataToExport = dataToExport.filter(d => d.status === filterStatus);
+    }
     
     if (exportModalPerairan) {
       dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
@@ -1422,7 +1426,7 @@ const columns = useMemo(() => [
 
   const komoditasChartOption = useMemo(() => {
     const categories = computedStats.komoditas.map(item => item.komoditas);
-    const values = computedStats.komoditas.map(item => item._sum.volume || 0);
+    const values = computedStats.komoditas.map(item => (item._sum.volume || 0) / 1000);
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -1435,7 +1439,7 @@ const columns = useMemo(() => [
 
   const pelabuhanChartOption = useMemo(() => {
     const categories = computedStats.pelabuhan.map(item => item.pelabuhan);
-    const values = computedStats.pelabuhan.map(item => item._sum.volume || 0);
+    const values = computedStats.pelabuhan.map(item => (item._sum.volume || 0) / 1000);
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -1587,7 +1591,7 @@ const columns = useMemo(() => [
                 
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
                 <select 
@@ -1643,6 +1647,15 @@ const columns = useMemo(() => [
                   </div>
                 </>
               )}
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                  <option value="">Semua Status</option>
+                  <option value="VERIFIED">Verified</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1715,7 +1728,7 @@ const columns = useMemo(() => [
                     headerRow2.push('Volume (Kg)', 'Harga', 'Nilai (Rp)');
                   });
 
-                  const dataRows = exportData.filter(row => row.status === 'VERIFIED').map(row => {
+                  const dataRows = exportData.map(row => {
                     let totalVol = 0;
                     let totalNilai = 0;
                     const komMap = {};
@@ -1882,7 +1895,7 @@ const columns = useMemo(() => [
                   <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
-                    <p className="text-2xl font-bold text-foreground">{computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Kg</span></p>
+                    <p className="text-2xl font-bold text-foreground">{(computedStats.kpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
                   </div>
                 </div>
 
@@ -1981,7 +1994,7 @@ const columns = useMemo(() => [
                           <div>
                             <h4 className="text-lg font-bold text-foreground">{item.komoditas}</h4>
                             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Produksi</p>
-                            <p className="text-xl font-black text-amber-500 mt-1">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(item.total)} <span className="text-sm font-normal">Ton</span></p>
+                            <p className="text-xl font-black text-amber-500 mt-1">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
                           </div>
                           <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                             <Fish className="w-5 h-5" />
@@ -1996,7 +2009,7 @@ const columns = useMemo(() => [
                               <div key={i} className="relative">
                                 <div className="flex justify-between text-sm mb-1">
                                   <span className="font-medium truncate max-w-[60%]">{w.wilayah}</span>
-                                  <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(w.volume)} Ton</span>
+                                  <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w.volume / 1000)} Ton</span>
                                 </div>
                                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${percent}%` }}></div>

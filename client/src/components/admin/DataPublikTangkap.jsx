@@ -491,7 +491,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                         value={editForm.volume}
                         onChange={(e) => {
                           const newVol = e.target.value;
-                          setEditForm({ ...editForm, volume: newVol, nilai: newVol * editForm.hargaRataRata });
+                          const roundedHarga = Math.round(editForm.hargaRataRata / 500) * 500;
+                          setEditForm({ ...editForm, volume: newVol, nilai: newVol * roundedHarga });
                         }}
                         className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
@@ -502,8 +503,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
                       <input 
                         type="number" 
                         value={editForm.nilai}
-                        disabled
-                        className="w-32 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-sm cursor-not-allowed opacity-80"
+                        onChange={(e) => setEditForm({ ...editForm, nilai: e.target.value })}
+                        className="w-32 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     ) : formatRupiah(Number(item.nilai) || 0)}
                   </td>

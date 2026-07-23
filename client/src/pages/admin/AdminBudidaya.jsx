@@ -633,7 +633,7 @@ export default function AdminBudidaya() {
       accessorKey: 'status',
       cell: info => {
         const row = info.row.original;
-        
+
         const contextFields = [
           { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
           { label: 'Komoditas', value: row.komoditas },
@@ -642,10 +642,10 @@ export default function AdminBudidaya() {
         ];
 
         return (
-          <StatusBadge 
-            row={row} 
-            onEdit={() => setEditingData(row)} 
-            contextFields={contextFields} 
+          <StatusBadge
+            row={row}
+            onEdit={() => setEditingData(row)}
+            contextFields={contextFields}
           />
         );
       }
@@ -691,14 +691,14 @@ export default function AdminBudidaya() {
             <h2 className="text-2xl font-bold text-foreground mb-2">Pilih Jenis Data Budidaya</h2>
             <p className="text-muted-foreground">Silakan pilih jenis laporan data budidaya yang ingin Anda kelola.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <button 
+            <button
               onClick={() => {
                 setIsSelectTypeModalOpen(false);
                 setEditingData(null);
                 setIsFormOpen(true);
-              }} 
+              }}
               className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/5 transition-all group"
             >
               <div className="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -710,12 +710,12 @@ export default function AdminBudidaya() {
               </div>
             </button>
 
-            <button 
+            <button
               onClick={() => {
                 setIsSelectTypeModalOpen(false);
                 setEditingData(null);
                 setIsTahunanFormOpen(true);
-              }} 
+              }}
               className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/5 transition-all group"
             >
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -895,14 +895,14 @@ export default function AdminBudidaya() {
                           { label: 'Tahun', value: row.tahun }
                         ];
                         return (
-                          <StatusBadge 
-                            row={row} 
+                          <StatusBadge
+                            row={row}
                             onEdit={() => {
                               setEditingData(row);
                               setIsTahunanFormOpen(true);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }} 
-                            contextFields={contextFields} 
+                            }}
+                            contextFields={contextFields}
                           />
                         );
                       }
@@ -1149,20 +1149,20 @@ export default function AdminBudidaya() {
                 </button>
                 <h2 className="text-xl font-bold mb-4">Ekspor Data Budidaya</h2>
                 <div className="space-y-4">
-                                    {activeTab !== 'tahunan' && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
-                        <input type="radio" name="exportType" value="wadah" checked={exportType === 'wadah'} onChange={() => setExportType('wadah')} className="hidden" />
-                        Berdasarkan Wadah
-                      </label>
-                      <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'komoditas' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
-                        <input type="radio" name="exportType" value="komoditas" checked={exportType === 'komoditas'} onChange={() => setExportType('komoditas')} className="hidden" />
-                        Berdasarkan Komoditas
-                      </label>
+                  {activeTab !== 'tahunan' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2">Tipe Laporan</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'wadah' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                          <input type="radio" name="exportType" value="wadah" checked={exportType === 'wadah'} onChange={() => setExportType('wadah')} className="hidden" />
+                          Berdasarkan Wadah
+                        </label>
+                        <label className={`cursor-pointer px-4 py-3 border rounded-xl flex items-center gap-2 ${exportType === 'komoditas' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted'}`}>
+                          <input type="radio" name="exportType" value="komoditas" checked={exportType === 'komoditas'} onChange={() => setExportType('komoditas')} className="hidden" />
+                          Berdasarkan Komoditas
+                        </label>
+                      </div>
                     </div>
-                  </div>
                   )}
                   <div>
                     <label className="block text-sm font-medium mb-2">Tahun Laporan</label>

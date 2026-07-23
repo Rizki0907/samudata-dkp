@@ -334,7 +334,7 @@ export default function PerikananTangkap() {
 
   const komoditasChartOption = useMemo(() => {
     const categories = localKomoditas.map(item => item.komoditas);
-    const values = localKomoditas.map(item => item.volume);
+    const values = localKomoditas.map(item => item.volume / 1000);
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -550,7 +550,7 @@ export default function PerikananTangkap() {
           <div className="absolute -right-4 -bottom-4 bg-primary/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
           <div className="flex items-center gap-3 mb-2"><Database className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Volume</p></div>
           <p className="text-3xl font-bold text-foreground">
-            {localKpi.total_volume > 1000000 ? (localKpi.total_volume / 1000000).toFixed(1) + 'M' : localKpi.total_volume.toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Kg</span>
+            {(localKpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm text-muted-foreground font-normal">Ton</span>
           </p>
         </div>
         <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
@@ -652,7 +652,7 @@ export default function PerikananTangkap() {
                 <div>
                   <h4 className="text-lg font-bold text-foreground">{item.komoditas}</h4>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Produksi</p>
-                  <p className="text-xl font-black text-amber-500 mt-1">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(item.total)} <span className="text-sm font-normal">Ton</span></p>
+                  <p className="text-xl font-black text-amber-500 mt-1">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                   <Fish className="w-5 h-5" />
@@ -667,7 +667,7 @@ export default function PerikananTangkap() {
                     <div key={i} className="relative">
                       <div className="flex justify-between text-sm mb-1">
                         <span className="font-medium truncate max-w-[60%]">{w.wilayah}</span>
-                        <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(w.volume)} Ton</span>
+                        <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w.volume / 1000)} Ton</span>
                       </div>
                       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-amber-500 rounded-full" style={{ width: `${percent}%` }}></div>
