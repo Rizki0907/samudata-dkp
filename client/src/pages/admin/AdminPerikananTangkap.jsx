@@ -276,10 +276,11 @@ export default function AdminPerikananTangkap() {
       const matchCabang = !filterCabang || (item.sumber_data || 'PELABUHAN') === filterCabang;
       const matchWilayah = !filterWilayah || (item.pelabuhan || item.kabupaten_kota || '') === filterWilayah;
       const matchKomoditas = !filterKomoditas || (item.tangkapan && item.tangkapan.some(t => t.komoditas === filterKomoditas));
+      const matchStatus = !filterStatus || item.status === filterStatus;
       
-      return matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas;
+      return matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas && matchStatus;
     });
-    }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas]);
+    }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas, filterStatus]);
 
   const verifiedFilteredData = useMemo(() => {
     return filteredData.filter(item => item.status === 'VERIFIED');
@@ -1514,20 +1515,22 @@ const columns = useMemo(() => [
         
         {!isFormOpen && (
           <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-                setExportModalPerairan('');
-                setExportModalJenis('');
-                setExportModalTahun('');
-                setExportModalBulan('');
-                setExportModalWilayah('');
-                setIsExportModalOpen(true);
-              }}
-            className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
-          >
-            <FileText className="w-5 h-5" />
-            Ekspor Laporan
-          </button>
+            {(user?.role === 'admin_pusat' || user?.role === 'admin_bidang') && (
+              <button
+                onClick={() => {
+                    setExportModalPerairan('');
+                    setExportModalJenis('');
+                    setExportModalTahun('');
+                    setExportModalBulan('');
+                    setExportModalWilayah('');
+                    setIsExportModalOpen(true);
+                  }}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+              >
+                <FileText className="w-5 h-5" />
+                Ekspor Laporan
+              </button>
+            )}
           <button
             onClick={() => {
               setEditingData(null);
@@ -1674,6 +1677,10 @@ const columns = useMemo(() => [
                 columns={columns}
                 data={filteredData}
                 onEdit={handleEdit}
+                canEditRow={(row) => {
+                  if (user?.role === 'admin_pusat' || user?.role === 'admin_bidang') return true;
+                  return row.status === 'REJECTED';
+                }}
                 searchable={true}
                 exportable={user?.role === 'admin_pusat' || user?.role === 'admin_bidang'}
                 onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
