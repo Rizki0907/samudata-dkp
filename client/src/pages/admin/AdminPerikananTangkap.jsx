@@ -1675,7 +1675,7 @@ const columns = useMemo(() => [
                 data={filteredData}
                 onEdit={handleEdit}
                 searchable={true}
-                exportable={true}
+                exportable={user?.role === 'admin_pusat' || user?.role === 'admin_bidang'}
                 onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
                 onApprove={handleApprove}
                 onReject={handleReject}

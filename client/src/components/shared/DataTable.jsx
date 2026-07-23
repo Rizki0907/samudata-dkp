@@ -354,7 +354,7 @@ export function DataTable({
                               </button>
                             )}
 
-                            {onEdit && (['admin_pusat', 'admin_cabang'].includes(user?.role) || !lockedStatuses.includes(row.original.status)) && selectedIds.length <= 1 && (
+                            {onEdit && (canEditRow ? canEditRow(row.original) : (['admin_pusat', 'admin_bidang'].includes(user?.role) || !lockedStatuses.includes(row.original.status))) && selectedIds.length <= 1 && (
                               <button
                                 onClick={() => onEdit(row.original)}
                                 title="Edit Data"
