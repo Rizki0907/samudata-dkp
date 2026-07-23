@@ -41,6 +41,7 @@ export function DataTable({
   approvableStatuses = ['PENDING', 'APPROVED'],
   rejectableStatuses = ['PENDING', 'APPROVED', 'VERIFIED'],
   lockedStatuses = ['APPROVED', 'VERIFIED'],
+  selectRowOnClick = false,
 }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
@@ -64,6 +65,16 @@ export function DataTable({
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
   };
+
+  // Klik pada elemen interaktif tidak boleh ikut mencentang/membatalkan baris.
+  // Ini mencegah checkbox dan tombol aksi bekerja dua kali.
+  const shouldIgnoreRowClick = (target) =>
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'button, a, input, select, textarea, [role="button"], [data-stop-row-select="true"]'
+      )
+    );
 
   const handleBatchDelete = async () => {
     if (onBatchDelete) await onBatchDelete(selectedIds);
@@ -274,10 +285,35 @@ export function DataTable({
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <React.Fragment key={row.id}>
-                    <tr className="hover:bg-muted/30 transition-colors">
+                    <tr
+                      onClick={(event) => {
+                        if (
+                          !selectRowOnClick ||
+                          !hasBatchActions ||
+                          shouldIgnoreRowClick(event.target)
+                        ) {
+                          return;
+                        }
+
+                        toggleSelectRow(row.original.id);
+                      }}
+                      aria-selected={selectedIds.includes(row.original.id)}
+                      className={cn(
+                        'transition-colors',
+                        selectRowOnClick && hasBatchActions && 'cursor-pointer',
+                        selectedIds.includes(row.original.id)
+                          ? 'bg-primary/10 hover:bg-primary/15'
+                          : 'hover:bg-muted/30'
+                      )}
+                    >
                       {hasBatchActions && (
                         <td className="px-4 py-4 w-10 whitespace-nowrap">
-                          <input type="checkbox" checked={selectedIds.includes(row.original.id)} onChange={() => toggleSelectRow(row.original.id)} />
+                          <input
+                            type="checkbox"
+                            aria-label={`Pilih data ${row.original.kabupaten_kota || row.original.id}`}
+                            checked={selectedIds.includes(row.original.id)}
+                            onChange={() => toggleSelectRow(row.original.id)}
+                          />
                         </td>
                       )}
                       {renderSubComponent && (
