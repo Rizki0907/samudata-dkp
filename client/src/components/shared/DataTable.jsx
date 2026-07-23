@@ -42,6 +42,7 @@ export function DataTable({
   rejectableStatuses = ['PENDING', 'APPROVED', 'VERIFIED'],
   lockedStatuses = ['APPROVED', 'VERIFIED'],
   selectRowOnClick = false,
+  canEditRow,
 }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
