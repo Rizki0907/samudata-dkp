@@ -804,7 +804,7 @@ const getRowTotalTenagaKerja = row => {
 // Skema baru: row.jenis_kegiatan sudah berisi sub-jenis kegiatan langsung
 // (mis. "Fermentasi", "Pengecer"), sedangkan kategorinya ada di row.kategori_kegiatan.
 const getJenisDetail = row => row?.jenis_kegiatan || '';
-
+const STATUS_OPTIONS = ['PENDING', 'APPROVED', 'VERIFIED', 'REJECTED'];
 // ============================================================================
 // NORMALISASI & EXPORT EXCEL
 // ============================================================================
@@ -1693,18 +1693,20 @@ export default function AdminPengolahanPemasaran() {
   );
 
   const filteredData = useMemo(
-    () =>
-      data.filter(item => {
-        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
-        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))) return false;
-        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
-        if (filterStatus.length && !filterStatus.includes(item.status)) return false;
-        if (item.status !== 'VERIFIED') return false;
-        return true;
-      }),
-    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
-  );
+  () =>
+    data.filter(item => {
+      if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+      if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+      if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))) return false;
+      if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
+      
+      // Menggunakan filterStatus multi-select (jika diisi), jika kosong tampilkan SEMUA status
+      if (filterStatus.length && !filterStatus.includes(item.status)) return false;
+      
+      return true;
+    }),
+  [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
+);
 
   const handleExportRekap = () => {
     if (filterTahun.length !== 1) {

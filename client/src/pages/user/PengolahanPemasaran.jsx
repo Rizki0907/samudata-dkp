@@ -590,15 +590,11 @@ export default function PengolahanPemasaran() {
           ? response.data.data
           : [];
 
-        // Perlindungan tambahan di frontend:
-        // data selain VERIFIED tidak akan dihitung atau ditampilkan.
-        setData(
-          responseData.filter(item => item.status === 'VERIFIED'),
-        );
+        // Tampilkan seluruh data agar semua status dapat ditampilkan.
+        setData(responseData);
 
-        const verifiedData = responseData.filter(item => item.status === 'VERIFIED');
-        if (verifiedData.length > 0) {
-          const latest = verifiedData.reduce((a, b) =>
+        if (responseData.length > 0) {
+          const latest = responseData.reduce((a, b) =>
             new Date(a.updated_at) > new Date(b.updated_at) ? a : b
           );
           const updatedAt = new Date(latest.updated_at);
@@ -682,8 +678,7 @@ export default function PengolahanPemasaran() {
   );
 
   // Ekspor rekap statistik (multi-tabel) mengikuti tahun & kabupaten/kota
-  // yang sedang dipilih pada filter utama. Data yang dipakai selalu status
-  // VERIFIED karena `data` sudah difilter demikian sejak fetch.
+  // yang sedang dipilih pada filter utama. Data mencakup seluruh status.
   const handleExportRekap = () => {
     if (!selectedYear) {
       window.alert('Pilih tahun terlebih dahulu sebelum mengekspor rekap statistik.');
