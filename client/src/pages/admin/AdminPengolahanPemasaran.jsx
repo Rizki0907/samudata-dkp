@@ -1221,7 +1221,7 @@ export default function AdminPengolahanPemasaran() {
   const [filterKabupaten, setFilterKabupaten] = useState([]);
   const [filterJenisKegiatan, setFilterJenisKegiatan] = useState([]);
   const [filterSkalaUsaha, setFilterSkalaUsaha] = useState([]);
-
+  const [filterStatus, setFilterStatus] = useState([]);
   // Tab aktif: 'table' (Tabel Data) atau 'visualisasi' (Visualisasi Statistik)
   const [activeTab, setActiveTab] = useState('table');
 
@@ -1699,9 +1699,11 @@ export default function AdminPengolahanPemasaran() {
         if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
         if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))) return false;
         if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
+        if (filterStatus.length && !filterStatus.includes(item.status)) return false;
+        if (item.status !== 'VERIFIED') return false;
         return true;
       }),
-    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
+    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
   );
 
   const handleExportRekap = () => {
@@ -3219,7 +3221,15 @@ export default function AdminPengolahanPemasaran() {
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <FilterMultiSelect
+                  label="Status"
+                  values={filterStatus}
+                  options={['VERIFIED', 'PENDING', 'REJECTED', 'APPROVED']}
+                  onChange={setFilterStatus}
+                  placeholder="Semua Status"
+                />
+
                 <FilterMultiSelect
                   label="Tahun"
                   values={filterTahun}
@@ -3251,6 +3261,7 @@ export default function AdminPengolahanPemasaran() {
                   onChange={setFilterSkalaUsaha}
                   placeholder="Semua Skala Usaha"
                 />
+     
               </div>
             </div>
           </div>

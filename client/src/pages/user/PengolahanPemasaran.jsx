@@ -11,10 +11,12 @@ import {
   TrendingUp,
   Users,
   Clock,
+  Download,
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
+import * as XLSX from 'xlsx-js-style';
 
 const normalizeRegionKey = value => {
   let text = String(value ?? '')
@@ -113,6 +115,9 @@ const KABUPATEN_KOTA_OPTIONS = [
   'KOTA SURABAYA',
 ];
 
+// Daftar wilayah untuk kebutuhan rekap statistik (tanpa opsi "SEMUA")
+const REKAP_REGION_LIST = KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA');
+
 const formatRupiah = value =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -146,6 +151,388 @@ const normalizeKategori = value =>
     : 'Pengolahan';
 
 const getJenisDetail = row => row?.jenis_kegiatan || '';
+
+// ============================================================================
+// EXPORT REKAP STATISTIK (Excel multi-tabel) — disamakan dengan versi Admin
+// ============================================================================
+const JENIS_PENGOLAHAN_OPTIONS = [
+  'Fermentasi',
+  'Pelumatan Daging Ikan',
+  'Pembekuan',
+  'Pemindangan',
+  'Penanganan Produk Segar',
+  'Pengalengan',
+  'Pengasapan/ Pemanggangan',
+  'Pereduksian/ Ekstraksi',
+  'Penggaraman/ Pengeringan',
+  'Pengolahan Lainnya',
+];
+
+const JENIS_PEMASARAN_OPTIONS = [
+  'Pengecer',
+  'Pengumpul/ Pedagang Besar/ Distributor',
+];
+
+const normalizeCategoryKey = value =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ');
+
+const SERTIFIKAT_PRODUK_FIELDS_EXPORT = [
+  ['HACCP', 'sertifikat_haccp'],
+  ['SNI', 'sertifikat_sni'],
+  ['HALAL', 'sertifikat_halal'],
+  ['SKP', 'sertifikat_skp'],
+  ['PIRT', 'sertifikat_pirt'],
+  ['MD', 'sertifikat_md'],
+  ['Lain-lain', 'sertifikat_lainnya'],
+];
+
+const IZIN_USAHA_FIELDS_EXPORT = [
+  ['NIB', 'izin_nib'],
+  ['NPWP', 'izin_npwp'],
+  ['KUSUKA', 'izin_kusuka'],
+  ['Pengesahan MENKUMHAM', 'izin_menkumham'],
+  ['Akta Pendirian Usaha', 'izin_akta_pendirian'],
+  ['Lokasi/Domisili', 'izin_lokasi_domisili'],
+  ['IMB', 'izin_imb'],
+  ['SIUP Perikanan', 'izin_siup_perikanan'],
+  ['SIUP Perdagangan', 'izin_siup_perdagangan'],
+  ['Lain-lain', 'izin_lainnya'],
+];
+
+const SERTIFIKAT_LB_FIELDS_EXPORT = [
+  ['SHM', 'shm_count'],
+  ['Non-SHM', 'non_shm_count'],
+];
+
+const SKALA_EXPORT = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
+const KEGIATAN_EXPORT = [
+  ...JENIS_PENGOLAHAN_OPTIONS,
+  ...JENIS_PEMASARAN_OPTIONS,
+];
+
+const sumField = (rows, field) =>
+  rows.reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+
+const sumByKegiatan = (rows, detail, field) => {
+  const target = normalizeCategoryKey(detail);
+  return rows
+    .filter(row => normalizeCategoryKey(row.jenis_kegiatan) === target)
+    .reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+};
+
+const makeBorder = () => ({
+  top: { style: 'thin', color: { rgb: '64748B' } },
+  bottom: { style: 'thin', color: { rgb: '64748B' } },
+  left: { style: 'thin', color: { rgb: '64748B' } },
+  right: { style: 'thin', color: { rgb: '64748B' } },
+});
+
+const TITLE_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const TABLE_TITLE_STYLE = {
+  font: { bold: true, color: { rgb: '0F172A' }, sz: 12 },
+  fill: { patternType: 'solid', fgColor: { rgb: 'CCFBF1' } },
+  alignment: { horizontal: 'left', vertical: 'center' },
+  border: makeBorder(),
+};
+
+const GROUP_HEADER_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
+  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const SUB_HEADER_STYLE = {
+  font: { bold: true, color: { rgb: '0F172A' }, sz: 9 },
+  fill: { patternType: 'solid', fgColor: { rgb: '99F6E4' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const DATA_STYLE = {
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const TOTAL_STYLE = {
+  font: { bold: true, color: { rgb: 'FFFFFF' } },
+  fill: { patternType: 'solid', fgColor: { rgb: '134E4A' } },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: makeBorder(),
+};
+
+const styleRange = (sheet, startRow, endRow, startCol, endCol, style) => {
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: col });
+      if (!sheet[address]) sheet[address] = { t: 's', v: '' };
+      sheet[address].s = style;
+    }
+  }
+};
+
+const formatNumericRange = (sheet, startRow, endRow, startCol, endCol, format) => {
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let col = startCol; col <= endCol; col += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: col });
+      if (sheet[address]) sheet[address].z = format;
+    }
+  }
+};
+
+const exportRekapStatistikExcel = (rows, year, regions) => {
+  const aoa = [];
+  const merges = [];
+  const tableMeta = [];
+  const maxColumn = 41;
+
+  const pushMergedTitle = (title, subtitle = null) => {
+    const titleRow = aoa.length;
+    aoa.push([title]);
+    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: maxColumn } });
+
+    if (subtitle) {
+      const subtitleRow = aoa.length;
+      aoa.push([subtitle]);
+      merges.push({ s: { r: subtitleRow, c: 0 }, e: { r: subtitleRow, c: maxColumn } });
+    }
+  };
+
+  pushMergedTitle(
+    'REKAP STATISTIK PENGOLAHAN DAN PEMASARAN',
+    `PROVINSI JAWA TIMUR TAHUN ${year}`,
+  );
+  aoa.push([]);
+
+  const tableOneTitleRow = aoa.length;
+  aoa.push(['Tabel 1. Rekap Unit Usaha, Skala Usaha, Sertifikat, dan Perizinan']);
+  merges.push({ s: { r: tableOneTitleRow, c: 0 }, e: { r: tableOneTitleRow, c: maxColumn } });
+
+  const tableOneHeaderStart = aoa.length;
+  const groupHeader = Array(maxColumn + 1).fill('');
+  groupHeader[0] = 'No';
+  groupHeader[1] = 'Kabupaten/Kota';
+  groupHeader[2] = 'Pengolahan';
+  groupHeader[12] = 'Pemasaran';
+  groupHeader[14] = 'Jumlah Unit Usaha';
+  groupHeader[15] = 'Skala Usaha';
+  groupHeader[19] = 'Jumlah Skala';
+  groupHeader[20] = 'Sertifikat Produk';
+  groupHeader[27] = 'Total Sertifikat';
+  groupHeader[28] = 'Izin Usaha';
+  groupHeader[38] = 'Total Izin';
+  groupHeader[39] = 'Sertifikat Lahan/Bangunan';
+  groupHeader[41] = 'Total LB';
+  aoa.push(groupHeader);
+  aoa.push([
+    'No',
+    'Kabupaten/Kota',
+    ...JENIS_PENGOLAHAN_OPTIONS,
+    ...JENIS_PEMASARAN_OPTIONS,
+    'Jumlah Unit Usaha',
+    ...SKALA_EXPORT,
+    'Jumlah Skala',
+    ...SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([label]) => label),
+    'Total Sertifikat',
+    ...IZIN_USAHA_FIELDS_EXPORT.map(([label]) => label),
+    'Total Izin',
+    ...SERTIFIKAT_LB_FIELDS_EXPORT.map(([label]) => label),
+    'Total LB',
+  ]);
+
+  merges.push(
+    { s: { r: tableOneHeaderStart, c: 0 }, e: { r: tableOneHeaderStart + 1, c: 0 } },
+    { s: { r: tableOneHeaderStart, c: 1 }, e: { r: tableOneHeaderStart + 1, c: 1 } },
+    { s: { r: tableOneHeaderStart, c: 2 }, e: { r: tableOneHeaderStart, c: 11 } },
+    { s: { r: tableOneHeaderStart, c: 12 }, e: { r: tableOneHeaderStart, c: 13 } },
+    { s: { r: tableOneHeaderStart, c: 14 }, e: { r: tableOneHeaderStart + 1, c: 14 } },
+    { s: { r: tableOneHeaderStart, c: 15 }, e: { r: tableOneHeaderStart, c: 18 } },
+    { s: { r: tableOneHeaderStart, c: 19 }, e: { r: tableOneHeaderStart + 1, c: 19 } },
+    { s: { r: tableOneHeaderStart, c: 20 }, e: { r: tableOneHeaderStart, c: 26 } },
+    { s: { r: tableOneHeaderStart, c: 27 }, e: { r: tableOneHeaderStart + 1, c: 27 } },
+    { s: { r: tableOneHeaderStart, c: 28 }, e: { r: tableOneHeaderStart, c: 37 } },
+    { s: { r: tableOneHeaderStart, c: 38 }, e: { r: tableOneHeaderStart + 1, c: 38 } },
+    { s: { r: tableOneHeaderStart, c: 39 }, e: { r: tableOneHeaderStart, c: 40 } },
+    { s: { r: tableOneHeaderStart, c: 41 }, e: { r: tableOneHeaderStart + 1, c: 41 } },
+  );
+
+  const tableOneBodyStart = aoa.length;
+  regions.forEach((region, index) => {
+    const regionRows = rows.filter(row => row.kabupaten_kota === region);
+    const activityValues = KEGIATAN_EXPORT.map(detail =>
+      sumByKegiatan(regionRows, detail, 'jumlah_unit_usaha'),
+    );
+    const scaleValues = SKALA_EXPORT.map(scale =>
+      sumField(regionRows.filter(row => row.skala_usaha === scale), 'jumlah_unit_usaha'),
+    );
+    const certificateValues = SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+    const permitValues = IZIN_USAHA_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+    const landValues = SERTIFIKAT_LB_FIELDS_EXPORT.map(([, field]) =>
+      sumField(regionRows, field),
+    );
+
+    aoa.push([
+      String(index + 1).padStart(2, '0'),
+      region,
+      ...activityValues,
+      activityValues.reduce((sum, value) => sum + value, 0),
+      ...scaleValues,
+      scaleValues.reduce((sum, value) => sum + value, 0),
+      ...certificateValues,
+      certificateValues.reduce((sum, value) => sum + value, 0),
+      ...permitValues,
+      permitValues.reduce((sum, value) => sum + value, 0),
+      ...landValues,
+      landValues.reduce((sum, value) => sum + value, 0),
+    ]);
+  });
+
+  const tableOneTotalRow = aoa.length;
+  const tableOneTotals = Array(maxColumn + 1).fill(0);
+  tableOneTotals[0] = '';
+  tableOneTotals[1] = regions.length === REKAP_REGION_LIST.length
+    ? 'JUMLAH JAWA TIMUR'
+    : 'JUMLAH WILAYAH TERPILIH';
+  for (let col = 2; col <= maxColumn; col += 1) {
+    tableOneTotals[col] = aoa
+      .slice(tableOneBodyStart, tableOneTotalRow)
+      .reduce((sum, row) => sum + toNumber(row[col]), 0);
+  }
+  aoa.push(tableOneTotals);
+  tableMeta.push({
+    titleRow: tableOneTitleRow,
+    headerStart: tableOneHeaderStart,
+    headerEnd: tableOneHeaderStart + 1,
+    bodyStart: tableOneBodyStart,
+    bodyEnd: tableOneTotalRow - 1,
+    totalRow: tableOneTotalRow,
+    startCol: 0,
+    endCol: maxColumn,
+    numberFormat: '#,##0',
+  });
+
+  const appendActivityTable = (title, field, numberFormat) => {
+    aoa.push([], []);
+    const titleRow = aoa.length;
+    aoa.push([title]);
+    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 14 } });
+
+    const headerStart = aoa.length;
+    const group = Array(15).fill('');
+    group[0] = 'No';
+    group[1] = 'Kabupaten/Kota';
+    group[2] = 'Pengolahan';
+    group[12] = 'Pemasaran';
+    group[14] = 'Jumlah Total';
+    aoa.push(group);
+    aoa.push([
+      'No',
+      'Kabupaten/Kota',
+      ...JENIS_PENGOLAHAN_OPTIONS,
+      ...JENIS_PEMASARAN_OPTIONS,
+      'Jumlah Total',
+    ]);
+
+    merges.push(
+      { s: { r: headerStart, c: 0 }, e: { r: headerStart + 1, c: 0 } },
+      { s: { r: headerStart, c: 1 }, e: { r: headerStart + 1, c: 1 } },
+      { s: { r: headerStart, c: 2 }, e: { r: headerStart, c: 11 } },
+      { s: { r: headerStart, c: 12 }, e: { r: headerStart, c: 13 } },
+      { s: { r: headerStart, c: 14 }, e: { r: headerStart + 1, c: 14 } },
+    );
+
+    const bodyStart = aoa.length;
+    regions.forEach((region, index) => {
+      const regionRows = rows.filter(row => row.kabupaten_kota === region);
+      const values = KEGIATAN_EXPORT.map(detail => sumByKegiatan(regionRows, detail, field));
+      aoa.push([
+        String(index + 1).padStart(2, '0'),
+        region,
+        ...values,
+        values.reduce((sum, value) => sum + value, 0),
+      ]);
+    });
+
+    const totalRow = aoa.length;
+    const totals = Array(15).fill(0);
+    totals[0] = '';
+    totals[1] = regions.length === REKAP_REGION_LIST.length
+      ? 'JUMLAH JAWA TIMUR'
+      : 'JUMLAH WILAYAH TERPILIH';
+    for (let col = 2; col <= 14; col += 1) {
+      totals[col] = aoa
+        .slice(bodyStart, totalRow)
+        .reduce((sum, row) => sum + toNumber(row[col]), 0);
+    }
+    aoa.push(totals);
+
+    tableMeta.push({
+      titleRow,
+      headerStart,
+      headerEnd: headerStart + 1,
+      bodyStart,
+      bodyEnd: totalRow - 1,
+      totalRow,
+      startCol: 0,
+      endCol: 14,
+      numberFormat,
+    });
+  };
+
+  appendActivityTable('Tabel 2. Hasil Produksi / Penjualan (Kg)', 'hasil_kg', '#,##0');
+  appendActivityTable('Tabel 3. Nilai Produksi / Penjualan (Rp)', 'hasil_rp', 'Rp #,##0');
+  appendActivityTable('Tabel 4. Modal Investasi (Rp)', 'modal_rp', 'Rp #,##0');
+
+  const sheet = XLSX.utils.aoa_to_sheet(aoa);
+  sheet['!merges'] = merges;
+  sheet['!cols'] = Array(maxColumn + 1)
+    .fill(null)
+    .map((_, index) => ({ wch: index === 0 ? 6 : index === 1 ? 25 : 14 }));
+  sheet['!rows'] = aoa.map((_, index) => ({ hpt: index < 2 ? 24 : 34 }));
+
+  styleRange(sheet, 0, 1, 0, maxColumn, TITLE_STYLE);
+
+  tableMeta.forEach(meta => {
+    styleRange(sheet, meta.titleRow, meta.titleRow, meta.startCol, meta.endCol, TABLE_TITLE_STYLE);
+    styleRange(sheet, meta.headerStart, meta.headerStart, meta.startCol, meta.endCol, GROUP_HEADER_STYLE);
+    styleRange(sheet, meta.headerEnd, meta.headerEnd, meta.startCol, meta.endCol, SUB_HEADER_STYLE);
+    if (meta.bodyEnd >= meta.bodyStart) {
+      styleRange(sheet, meta.bodyStart, meta.bodyEnd, meta.startCol, meta.endCol, DATA_STYLE);
+      formatNumericRange(
+        sheet,
+        meta.bodyStart,
+        meta.bodyEnd,
+        2,
+        meta.endCol,
+        meta.numberFormat,
+      );
+    }
+    styleRange(sheet, meta.totalRow, meta.totalRow, meta.startCol, meta.endCol, TOTAL_STYLE);
+    formatNumericRange(sheet, meta.totalRow, meta.totalRow, 2, meta.endCol, meta.numberFormat);
+  });
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Rekap Statistik');
+  XLSX.writeFile(
+    workbook,
+    `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
+  );
+};
+// ==== Akhir Export Rekap Statistik ====
 
 export default function PengolahanPemasaran() {
   const [loading, setLoading] = useState(true);
@@ -293,6 +680,32 @@ export default function PengolahanPemasaran() {
       filterKabupaten,
     ],
   );
+
+  // Ekspor rekap statistik (multi-tabel) mengikuti tahun & kabupaten/kota
+  // yang sedang dipilih pada filter utama. Data yang dipakai selalu status
+  // VERIFIED karena `data` sudah difilter demikian sejak fetch.
+  const handleExportRekap = () => {
+    if (!selectedYear) {
+      window.alert('Pilih tahun terlebih dahulu sebelum mengekspor rekap statistik.');
+      return;
+    }
+
+    const selectedRegions = filterKabupaten
+      ? [filterKabupaten]
+      : REKAP_REGION_LIST;
+
+    const reportRows = data.filter(row =>
+      String(row.tahun) === selectedYear &&
+      selectedRegions.includes(row.kabupaten_kota),
+    );
+
+    if (!reportRows.length) {
+      window.alert('Tidak ada data VERIFIED pada tahun dan wilayah yang dipilih.');
+      return;
+    }
+
+    exportRekapStatistikExcel(reportRows, selectedYear, selectedRegions);
+  };
 
   const stats = useMemo(() => {
     const rows = filteredData;
@@ -1574,9 +1987,6 @@ export default function PengolahanPemasaran() {
                   Rincian Data Pengolahan dan Pemasaran
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Tabel dapat dicari, diurutkan, dan diekspor ke Excel.
-              </p>
             </div>
 
             {/* Filter tabel: Tahun, Jenis Kegiatan, Kabupaten/Kota (mengikuti filter utama) */}
@@ -1646,6 +2056,18 @@ export default function PengolahanPemasaran() {
                   'Nilai Produksi (Rp)': toNumber(row.hasil_rp),
                   'Modal Investasi (Rp)': toNumber(row.modal_rp),
                 }))
+              }
+              customExportButton={
+                <button
+                  type="button"
+                  onClick={handleExportRekap}
+                  disabled={!filteredData.length}
+                  title="Pilih satu tahun untuk mengekspor rekap statistik."
+                  className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Ekspor Rekap Statistik
+                </button>
               }
             />
           </div>
