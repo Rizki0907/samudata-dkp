@@ -892,7 +892,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             decimalDigits={2}
           />
           <NumberField
-            label="Nilai Produksi (Rp)"
+            label="Hasil Produksi (Rp)"
             value={formData.hasil_rp}
             onChange={(e) => setAmountField('hasil_rp', e.target.value)}
             onStep={(direction) => stepAmountField('hasil_rp', direction)}

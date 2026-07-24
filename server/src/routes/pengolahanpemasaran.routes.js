@@ -5,11 +5,15 @@ const { verifyToken } = require('../middleware/authMiddleware');
 
 // Public routes
 router.get('/stats', pengolahanPemasaranController.getStats);
-router.get('/dashboard-stats', pengolahanPemasaranController.getDashboardStats); // untuk Dashboard Pengolahan & Pemasaran
+router.get('/dashboard-stats', pengolahanPemasaranController.getDashboardStats);
+router.post('/export-data', pengolahanPemasaranController.exportDataPublic);
+router.post('/export-rekap', pengolahanPemasaranController.exportRekapPublic);
 router.get('/', pengolahanPemasaranController.getAllData);
 
 // Protected routes
 router.get('/admin', verifyToken, pengolahanPemasaranController.getAdminData);
+router.post('/admin/export-data', verifyToken, pengolahanPemasaranController.exportDataAdmin);
+router.post('/admin/export-rekap', verifyToken, pengolahanPemasaranController.exportRekapAdmin);
 router.post('/', verifyToken, pengolahanPemasaranController.createData);
 router.post('/batch-status', verifyToken, pengolahanPemasaranController.batchStatus);
 router.post('/batch-delete', verifyToken, pengolahanPemasaranController.batchDelete);

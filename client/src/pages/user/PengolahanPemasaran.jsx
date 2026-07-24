@@ -16,7 +16,6 @@ import {
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
-import * as XLSX from 'xlsx-js-style';
 
 const normalizeRegionKey = value => {
   let text = String(value ?? '')
@@ -72,51 +71,64 @@ const getGeoRegionName = databaseName => {
 // Registrasi peta Jawa Timur
 echarts.registerMap('jawa_timur', geoJsonData);
 
-// Daftar tetap 38 kabupaten/kota di Jawa Timur untuk filter.
 const KABUPATEN_KOTA_OPTIONS = [
-  'SEMUA',
-  'KAB. BANGKALAN',
-  'KAB. BANYUWANGI',
+  'KAB. PACITAN',
+  'KAB. PONOROGO',
+  'KAB. TRENGGALEK',
+  'KAB. TULUNGAGUNG',
   'KAB. BLITAR',
-  'KAB. BOJONEGORO',
-  'KAB. BONDOWOSO',
-  'KAB. GRESIK',
-  'KAB. JEMBER',
-  'KAB. JOMBANG',
   'KAB. KEDIRI',
-  'KAB. LAMONGAN',
+  'KAB. MALANG',
   'KAB. LUMAJANG',
+  'KAB. JEMBER',
+  'KAB. BANYUWANGI',
+  'KAB. BONDOWOSO',
+  'KAB. SITUBONDO',
+  'KAB. PROBOLINGGO',
+  'KAB. PASURUAN',
+  'KAB. SIDOARJO',
+  'KAB. MOJOKERTO',
+  'KAB. JOMBANG',
+  'KAB. NGANJUK',
   'KAB. MADIUN',
   'KAB. MAGETAN',
-  'KAB. MALANG',
-  'KAB. MOJOKERTO',
-  'KAB. NGANJUK',
   'KAB. NGAWI',
-  'KAB. PACITAN',
-  'KAB. PAMEKASAN',
-  'KAB. PASURUAN',
-  'KAB. PONOROGO',
-  'KAB. PROBOLINGGO',
-  'KAB. SAMPANG',
-  'KAB. SIDOARJO',
-  'KAB. SITUBONDO',
-  'KAB. SUMENEP',
-  'KAB. TRENGGALEK',
+  'KAB. BOJONEGORO',
   'KAB. TUBAN',
-  'KAB. TULUNGAGUNG',
-  'KOTA BATU',
-  'KOTA BLITAR',
+  'KAB. LAMONGAN',
+  'KAB. GRESIK',
+  'KAB. BANGKALAN',
+  'KAB. SAMPANG',
+  'KAB. PAMEKASAN',
+  'KAB. SUMENEP',
   'KOTA KEDIRI',
-  'KOTA MADIUN',
+  'KOTA BLITAR',
   'KOTA MALANG',
-  'KOTA MOJOKERTO',
-  'KOTA PASURUAN',
   'KOTA PROBOLINGGO',
+  'KOTA PASURUAN',
+  'KOTA MOJOKERTO',
+  'KOTA MADIUN',
   'KOTA SURABAYA',
+  'KOTA BATU',
 ];
 
-// Daftar wilayah untuk kebutuhan rekap statistik (tanpa opsi "SEMUA")
-const REKAP_REGION_LIST = KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA');
+const JENIS_PENGOLAHAN_OPTIONS = [
+  'Fermentasi',
+  'Pelumatan Daging Ikan',
+  'Pembekuan',
+  'Pemindangan',
+  'Penanganan Produk Segar',
+  'Pengalengan',
+  'Pengasapan/ Pemanggangan',
+  'Pereduksian/ Ekstraksi',
+  'Penggaraman/ Pengeringan',
+  'Pengolahan Lainnya',
+];
+
+const JENIS_PEMASARAN_OPTIONS = [
+  'Pengecer',
+  'Pengumpul/ Pedagang Besar/ Distributor',
+];
 
 const formatRupiah = value =>
   new Intl.NumberFormat('id-ID', {
@@ -150,389 +162,73 @@ const normalizeKategori = value =>
     ? 'Pemasaran'
     : 'Pengolahan';
 
-const getJenisDetail = row => row?.jenis_kegiatan || '';
+const downloadExcelFromApi = async (
+  endpoint,
+  payload,
+  fileName,
+) => {
+  try {
+    const response = await api.post(
+      endpoint,
+      payload,
+      {
+        responseType: 'blob',
+      },
+    );
 
-// ============================================================================
-// EXPORT REKAP STATISTIK (Excel multi-tabel) — disamakan dengan versi Admin
-// ============================================================================
-const JENIS_PENGOLAHAN_OPTIONS = [
-  'Fermentasi',
-  'Pelumatan Daging Ikan',
-  'Pembekuan',
-  'Pemindangan',
-  'Penanganan Produk Segar',
-  'Pengalengan',
-  'Pengasapan/ Pemanggangan',
-  'Pereduksian/ Ekstraksi',
-  'Penggaraman/ Pengeringan',
-  'Pengolahan Lainnya',
-];
+    const blob = new Blob(
+      [response.data],
+      {
+        type:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    );
 
-const JENIS_PEMASARAN_OPTIONS = [
-  'Pengecer',
-  'Pengumpul/ Pedagang Besar/ Distributor',
-];
+    const downloadUrl =
+      window.URL.createObjectURL(blob);
 
-const normalizeCategoryKey = value =>
-  String(value ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s*\/\s*/g, '/')
-    .replace(/\s+/g, ' ');
+    const anchor =
+      document.createElement('a');
 
-const SERTIFIKAT_PRODUK_FIELDS_EXPORT = [
-  ['HACCP', 'sertifikat_haccp'],
-  ['SNI', 'sertifikat_sni'],
-  ['HALAL', 'sertifikat_halal'],
-  ['SKP', 'sertifikat_skp'],
-  ['PIRT', 'sertifikat_pirt'],
-  ['MD', 'sertifikat_md'],
-  ['Lain-lain', 'sertifikat_lainnya'],
-];
+    anchor.href = downloadUrl;
+    anchor.download = fileName;
 
-const IZIN_USAHA_FIELDS_EXPORT = [
-  ['NIB', 'izin_nib'],
-  ['NPWP', 'izin_npwp'],
-  ['KUSUKA', 'izin_kusuka'],
-  ['Pengesahan MENKUMHAM', 'izin_menkumham'],
-  ['Akta Pendirian Usaha', 'izin_akta_pendirian'],
-  ['Lokasi/Domisili', 'izin_lokasi_domisili'],
-  ['IMB', 'izin_imb'],
-  ['SIUP Perikanan', 'izin_siup_perikanan'],
-  ['SIUP Perdagangan', 'izin_siup_perdagangan'],
-  ['Lain-lain', 'izin_lainnya'],
-];
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
 
-const SERTIFIKAT_LB_FIELDS_EXPORT = [
-  ['SHM', 'shm_count'],
-  ['Non-SHM', 'non_shm_count'],
-];
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error(
+      'Gagal mengunduh file Excel:',
+      error,
+    );
 
-const SKALA_EXPORT = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
-const KEGIATAN_EXPORT = [
-  ...JENIS_PENGOLAHAN_OPTIONS,
-  ...JENIS_PEMASARAN_OPTIONS,
-];
+    let message =
+      'Gagal mengunduh file Excel.';
 
-const sumField = (rows, field) =>
-  rows.reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+    const responseData =
+      error?.response?.data;
 
-const sumByKegiatan = (rows, detail, field) => {
-  const target = normalizeCategoryKey(detail);
-  return rows
-    .filter(row => normalizeCategoryKey(row.jenis_kegiatan) === target)
-    .reduce((sum, row) => sum + toNumber(row?.[field]), 0);
-};
+    if (responseData instanceof Blob) {
+      try {
+        const errorText =
+          await responseData.text();
+        const errorJson =
+          JSON.parse(errorText);
 
-const makeBorder = () => ({
-  top: { style: 'thin', color: { rgb: '64748B' } },
-  bottom: { style: 'thin', color: { rgb: '64748B' } },
-  left: { style: 'thin', color: { rgb: '64748B' } },
-  right: { style: 'thin', color: { rgb: '64748B' } },
-});
-
-const TITLE_STYLE = {
-  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
-  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
-  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  border: makeBorder(),
-};
-
-const TABLE_TITLE_STYLE = {
-  font: { bold: true, color: { rgb: '0F172A' }, sz: 12 },
-  fill: { patternType: 'solid', fgColor: { rgb: 'CCFBF1' } },
-  alignment: { horizontal: 'left', vertical: 'center' },
-  border: makeBorder(),
-};
-
-const GROUP_HEADER_STYLE = {
-  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
-  fill: { patternType: 'solid', fgColor: { rgb: '0F766E' } },
-  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  border: makeBorder(),
-};
-
-const SUB_HEADER_STYLE = {
-  font: { bold: true, color: { rgb: '0F172A' }, sz: 9 },
-  fill: { patternType: 'solid', fgColor: { rgb: '99F6E4' } },
-  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  border: makeBorder(),
-};
-
-const DATA_STYLE = {
-  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  border: makeBorder(),
-};
-
-const TOTAL_STYLE = {
-  font: { bold: true, color: { rgb: 'FFFFFF' } },
-  fill: { patternType: 'solid', fgColor: { rgb: '134E4A' } },
-  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-  border: makeBorder(),
-};
-
-const styleRange = (sheet, startRow, endRow, startCol, endCol, style) => {
-  for (let row = startRow; row <= endRow; row += 1) {
-    for (let col = startCol; col <= endCol; col += 1) {
-      const address = XLSX.utils.encode_cell({ r: row, c: col });
-      if (!sheet[address]) sheet[address] = { t: 's', v: '' };
-      sheet[address].s = style;
+        message =
+          errorJson.message || message;
+      } catch {
+        // Gunakan pesan default bila response error bukan JSON.
+      }
+    } else if (responseData?.message) {
+      message = responseData.message;
     }
+
+    window.alert(message);
   }
 };
-
-const formatNumericRange = (sheet, startRow, endRow, startCol, endCol, format) => {
-  for (let row = startRow; row <= endRow; row += 1) {
-    for (let col = startCol; col <= endCol; col += 1) {
-      const address = XLSX.utils.encode_cell({ r: row, c: col });
-      if (sheet[address]) sheet[address].z = format;
-    }
-  }
-};
-
-const exportRekapStatistikExcel = (rows, year, regions) => {
-  const aoa = [];
-  const merges = [];
-  const tableMeta = [];
-  const maxColumn = 41;
-
-  const pushMergedTitle = (title, subtitle = null) => {
-    const titleRow = aoa.length;
-    aoa.push([title]);
-    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: maxColumn } });
-
-    if (subtitle) {
-      const subtitleRow = aoa.length;
-      aoa.push([subtitle]);
-      merges.push({ s: { r: subtitleRow, c: 0 }, e: { r: subtitleRow, c: maxColumn } });
-    }
-  };
-
-  pushMergedTitle(
-    'REKAP STATISTIK PENGOLAHAN DAN PEMASARAN',
-    `PROVINSI JAWA TIMUR TAHUN ${year}`,
-  );
-  aoa.push([]);
-
-  const tableOneTitleRow = aoa.length;
-  aoa.push(['Tabel 1. Rekap Unit Usaha, Skala Usaha, Sertifikat, dan Perizinan']);
-  merges.push({ s: { r: tableOneTitleRow, c: 0 }, e: { r: tableOneTitleRow, c: maxColumn } });
-
-  const tableOneHeaderStart = aoa.length;
-  const groupHeader = Array(maxColumn + 1).fill('');
-  groupHeader[0] = 'No';
-  groupHeader[1] = 'Kabupaten/Kota';
-  groupHeader[2] = 'Pengolahan';
-  groupHeader[12] = 'Pemasaran';
-  groupHeader[14] = 'Jumlah Unit Usaha';
-  groupHeader[15] = 'Skala Usaha';
-  groupHeader[19] = 'Jumlah Skala';
-  groupHeader[20] = 'Sertifikat Produk';
-  groupHeader[27] = 'Total Sertifikat';
-  groupHeader[28] = 'Izin Usaha';
-  groupHeader[38] = 'Total Izin';
-  groupHeader[39] = 'Sertifikat Lahan/Bangunan';
-  groupHeader[41] = 'Total LB';
-  aoa.push(groupHeader);
-  aoa.push([
-    'No',
-    'Kabupaten/Kota',
-    ...JENIS_PENGOLAHAN_OPTIONS,
-    ...JENIS_PEMASARAN_OPTIONS,
-    'Jumlah Unit Usaha',
-    ...SKALA_EXPORT,
-    'Jumlah Skala',
-    ...SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([label]) => label),
-    'Total Sertifikat',
-    ...IZIN_USAHA_FIELDS_EXPORT.map(([label]) => label),
-    'Total Izin',
-    ...SERTIFIKAT_LB_FIELDS_EXPORT.map(([label]) => label),
-    'Total LB',
-  ]);
-
-  merges.push(
-    { s: { r: tableOneHeaderStart, c: 0 }, e: { r: tableOneHeaderStart + 1, c: 0 } },
-    { s: { r: tableOneHeaderStart, c: 1 }, e: { r: tableOneHeaderStart + 1, c: 1 } },
-    { s: { r: tableOneHeaderStart, c: 2 }, e: { r: tableOneHeaderStart, c: 11 } },
-    { s: { r: tableOneHeaderStart, c: 12 }, e: { r: tableOneHeaderStart, c: 13 } },
-    { s: { r: tableOneHeaderStart, c: 14 }, e: { r: tableOneHeaderStart + 1, c: 14 } },
-    { s: { r: tableOneHeaderStart, c: 15 }, e: { r: tableOneHeaderStart, c: 18 } },
-    { s: { r: tableOneHeaderStart, c: 19 }, e: { r: tableOneHeaderStart + 1, c: 19 } },
-    { s: { r: tableOneHeaderStart, c: 20 }, e: { r: tableOneHeaderStart, c: 26 } },
-    { s: { r: tableOneHeaderStart, c: 27 }, e: { r: tableOneHeaderStart + 1, c: 27 } },
-    { s: { r: tableOneHeaderStart, c: 28 }, e: { r: tableOneHeaderStart, c: 37 } },
-    { s: { r: tableOneHeaderStart, c: 38 }, e: { r: tableOneHeaderStart + 1, c: 38 } },
-    { s: { r: tableOneHeaderStart, c: 39 }, e: { r: tableOneHeaderStart, c: 40 } },
-    { s: { r: tableOneHeaderStart, c: 41 }, e: { r: tableOneHeaderStart + 1, c: 41 } },
-  );
-
-  const tableOneBodyStart = aoa.length;
-  regions.forEach((region, index) => {
-    const regionRows = rows.filter(row => row.kabupaten_kota === region);
-    const activityValues = KEGIATAN_EXPORT.map(detail =>
-      sumByKegiatan(regionRows, detail, 'jumlah_unit_usaha'),
-    );
-    const scaleValues = SKALA_EXPORT.map(scale =>
-      sumField(regionRows.filter(row => row.skala_usaha === scale), 'jumlah_unit_usaha'),
-    );
-    const certificateValues = SERTIFIKAT_PRODUK_FIELDS_EXPORT.map(([, field]) =>
-      sumField(regionRows, field),
-    );
-    const permitValues = IZIN_USAHA_FIELDS_EXPORT.map(([, field]) =>
-      sumField(regionRows, field),
-    );
-    const landValues = SERTIFIKAT_LB_FIELDS_EXPORT.map(([, field]) =>
-      sumField(regionRows, field),
-    );
-
-    aoa.push([
-      String(index + 1).padStart(2, '0'),
-      region,
-      ...activityValues,
-      activityValues.reduce((sum, value) => sum + value, 0),
-      ...scaleValues,
-      scaleValues.reduce((sum, value) => sum + value, 0),
-      ...certificateValues,
-      certificateValues.reduce((sum, value) => sum + value, 0),
-      ...permitValues,
-      permitValues.reduce((sum, value) => sum + value, 0),
-      ...landValues,
-      landValues.reduce((sum, value) => sum + value, 0),
-    ]);
-  });
-
-  const tableOneTotalRow = aoa.length;
-  const tableOneTotals = Array(maxColumn + 1).fill(0);
-  tableOneTotals[0] = '';
-  tableOneTotals[1] = regions.length === REKAP_REGION_LIST.length
-    ? 'JUMLAH JAWA TIMUR'
-    : 'JUMLAH WILAYAH TERPILIH';
-  for (let col = 2; col <= maxColumn; col += 1) {
-    tableOneTotals[col] = aoa
-      .slice(tableOneBodyStart, tableOneTotalRow)
-      .reduce((sum, row) => sum + toNumber(row[col]), 0);
-  }
-  aoa.push(tableOneTotals);
-  tableMeta.push({
-    titleRow: tableOneTitleRow,
-    headerStart: tableOneHeaderStart,
-    headerEnd: tableOneHeaderStart + 1,
-    bodyStart: tableOneBodyStart,
-    bodyEnd: tableOneTotalRow - 1,
-    totalRow: tableOneTotalRow,
-    startCol: 0,
-    endCol: maxColumn,
-    numberFormat: '#,##0',
-  });
-
-  const appendActivityTable = (title, field, numberFormat) => {
-    aoa.push([], []);
-    const titleRow = aoa.length;
-    aoa.push([title]);
-    merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 14 } });
-
-    const headerStart = aoa.length;
-    const group = Array(15).fill('');
-    group[0] = 'No';
-    group[1] = 'Kabupaten/Kota';
-    group[2] = 'Pengolahan';
-    group[12] = 'Pemasaran';
-    group[14] = 'Jumlah Total';
-    aoa.push(group);
-    aoa.push([
-      'No',
-      'Kabupaten/Kota',
-      ...JENIS_PENGOLAHAN_OPTIONS,
-      ...JENIS_PEMASARAN_OPTIONS,
-      'Jumlah Total',
-    ]);
-
-    merges.push(
-      { s: { r: headerStart, c: 0 }, e: { r: headerStart + 1, c: 0 } },
-      { s: { r: headerStart, c: 1 }, e: { r: headerStart + 1, c: 1 } },
-      { s: { r: headerStart, c: 2 }, e: { r: headerStart, c: 11 } },
-      { s: { r: headerStart, c: 12 }, e: { r: headerStart, c: 13 } },
-      { s: { r: headerStart, c: 14 }, e: { r: headerStart + 1, c: 14 } },
-    );
-
-    const bodyStart = aoa.length;
-    regions.forEach((region, index) => {
-      const regionRows = rows.filter(row => row.kabupaten_kota === region);
-      const values = KEGIATAN_EXPORT.map(detail => sumByKegiatan(regionRows, detail, field));
-      aoa.push([
-        String(index + 1).padStart(2, '0'),
-        region,
-        ...values,
-        values.reduce((sum, value) => sum + value, 0),
-      ]);
-    });
-
-    const totalRow = aoa.length;
-    const totals = Array(15).fill(0);
-    totals[0] = '';
-    totals[1] = regions.length === REKAP_REGION_LIST.length
-      ? 'JUMLAH JAWA TIMUR'
-      : 'JUMLAH WILAYAH TERPILIH';
-    for (let col = 2; col <= 14; col += 1) {
-      totals[col] = aoa
-        .slice(bodyStart, totalRow)
-        .reduce((sum, row) => sum + toNumber(row[col]), 0);
-    }
-    aoa.push(totals);
-
-    tableMeta.push({
-      titleRow,
-      headerStart,
-      headerEnd: headerStart + 1,
-      bodyStart,
-      bodyEnd: totalRow - 1,
-      totalRow,
-      startCol: 0,
-      endCol: 14,
-      numberFormat,
-    });
-  };
-
-  appendActivityTable('Tabel 2. Hasil Produksi / Penjualan (Kg)', 'hasil_kg', '#,##0');
-  appendActivityTable('Tabel 3. Nilai Produksi / Penjualan (Rp)', 'hasil_rp', 'Rp #,##0');
-  appendActivityTable('Tabel 4. Modal Investasi (Rp)', 'modal_rp', 'Rp #,##0');
-
-  const sheet = XLSX.utils.aoa_to_sheet(aoa);
-  sheet['!merges'] = merges;
-  sheet['!cols'] = Array(maxColumn + 1)
-    .fill(null)
-    .map((_, index) => ({ wch: index === 0 ? 6 : index === 1 ? 25 : 14 }));
-  sheet['!rows'] = aoa.map((_, index) => ({ hpt: index < 2 ? 24 : 34 }));
-
-  styleRange(sheet, 0, 1, 0, maxColumn, TITLE_STYLE);
-
-  tableMeta.forEach(meta => {
-    styleRange(sheet, meta.titleRow, meta.titleRow, meta.startCol, meta.endCol, TABLE_TITLE_STYLE);
-    styleRange(sheet, meta.headerStart, meta.headerStart, meta.startCol, meta.endCol, GROUP_HEADER_STYLE);
-    styleRange(sheet, meta.headerEnd, meta.headerEnd, meta.startCol, meta.endCol, SUB_HEADER_STYLE);
-    if (meta.bodyEnd >= meta.bodyStart) {
-      styleRange(sheet, meta.bodyStart, meta.bodyEnd, meta.startCol, meta.endCol, DATA_STYLE);
-      formatNumericRange(
-        sheet,
-        meta.bodyStart,
-        meta.bodyEnd,
-        2,
-        meta.endCol,
-        meta.numberFormat,
-      );
-    }
-    styleRange(sheet, meta.totalRow, meta.totalRow, meta.startCol, meta.endCol, TOTAL_STYLE);
-    formatNumericRange(sheet, meta.totalRow, meta.totalRow, 2, meta.endCol, meta.numberFormat);
-  });
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, 'Rekap Statistik');
-  XLSX.writeFile(
-    workbook,
-    `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
-  );
-};
-// ==== Akhir Export Rekap Statistik ====
 
 export default function PengolahanPemasaran() {
   const [loading, setLoading] = useState(true);
@@ -543,6 +239,7 @@ export default function PengolahanPemasaran() {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState('');
   const [filterKabupaten, setFilterKabupaten] = useState('');
+  const [filterSkalaUsaha, setFilterSkalaUsaha] = useState('');
 
   // Pilihan metrik visualisasi
   const [barFilter, setBarFilter] = useState('produksi');
@@ -590,11 +287,15 @@ export default function PengolahanPemasaran() {
           ? response.data.data
           : [];
 
-        // Tampilkan seluruh data agar semua status dapat ditampilkan.
-        setData(responseData);
+        // Perlindungan tambahan di frontend:
+        // data selain VERIFIED tidak akan dihitung atau ditampilkan.
+        setData(
+          responseData.filter(item => item.status === 'VERIFIED'),
+        );
 
-        if (responseData.length > 0) {
-          const latest = responseData.reduce((a, b) =>
+        const verifiedData = responseData.filter(item => item.status === 'VERIFIED');
+        if (verifiedData.length > 0) {
+          const latest = verifiedData.reduce((a, b) =>
             new Date(a.updated_at) > new Date(b.updated_at) ? a : b
           );
           const updatedAt = new Date(latest.updated_at);
@@ -617,7 +318,7 @@ export default function PengolahanPemasaran() {
       }
     } catch (error) {
       console.error(
-        'Error fetching pengolahan dan pemasaran:',
+        'Error fetching pengolahan & pemasaran:',
         error.response?.data || error,
       );
         setData([]);
@@ -659,6 +360,13 @@ export default function PengolahanPemasaran() {
     [data, selectedJenisKegiatan, selectedYear],
   );
 
+  const kabupatenOptions = useMemo(
+    () =>
+      [...new Set(dashboardData.map(item => item.kabupaten_kota).filter(Boolean))]
+        .sort(),
+    [dashboardData],
+  );
+
   const filteredData = useMemo(
     () =>
       dashboardData.filter(item => {
@@ -669,37 +377,83 @@ export default function PengolahanPemasaran() {
           return false;
         }
 
+        if (
+          filterSkalaUsaha &&
+          item.skala_usaha !== filterSkalaUsaha
+        ) {
+          return false;
+        }
+
         return true;
       }),
     [
       dashboardData,
       filterKabupaten,
+      filterSkalaUsaha,
     ],
   );
 
-  // Ekspor rekap statistik (multi-tabel) mengikuti tahun & kabupaten/kota
-  // yang sedang dipilih pada filter utama. Data mencakup seluruh status.
-  const handleExportRekap = () => {
-    if (!selectedYear) {
-      window.alert('Pilih tahun terlebih dahulu sebelum mengekspor rekap statistik.');
+  const handleExportData = async rows => {
+    const exportRows = Array.isArray(rows) ? rows : [];
+
+    if (!exportRows.length) {
+      window.alert('Tidak ada data yang dapat diekspor.');
       return;
     }
 
-    const selectedRegions = filterKabupaten
-      ? [filterKabupaten]
-      : REKAP_REGION_LIST;
+    await downloadExcelFromApi(
+      '/pengolahan-pemasaran/export-data',
+      {
+        ids: exportRows
+          .map(row => row.id)
+          .filter(Boolean),
+      },
+      `Pengolahan_Pemasaran_${
+        new Date().toISOString().split('T')[0]
+      }.xlsx`,
+    );
+  };
 
-    const reportRows = data.filter(row =>
-      String(row.tahun) === selectedYear &&
-      selectedRegions.includes(row.kabupaten_kota),
+  const handleExportRekap = async () => {
+    if (!selectedYear) {
+      window.alert(
+        'Pilih satu tahun sebelum mengekspor rekap statistik.',
+      );
+      return;
+    }
+
+    const selectedRegions =
+      filterKabupaten
+        ? [filterKabupaten]
+        : KABUPATEN_KOTA_OPTIONS;
+
+    const reportRows = data.filter(
+      row =>
+        String(row.tahun) ===
+          String(selectedYear) &&
+        selectedRegions.includes(
+          row.kabupaten_kota,
+        ),
     );
 
     if (!reportRows.length) {
-      window.alert('Tidak ada data VERIFIED pada tahun dan wilayah yang dipilih.');
+      window.alert(
+        'Tidak ada data pada tahun dan wilayah yang dipilih.',
+      );
       return;
     }
 
-    exportRekapStatistikExcel(reportRows, selectedYear, selectedRegions);
+    await downloadExcelFromApi(
+      '/pengolahan-pemasaran/export-rekap',
+      {
+        tahun: String(selectedYear),
+        regions: selectedRegions,
+        ids: reportRows
+          .map(row => row.id)
+          .filter(Boolean),
+      },
+      `Rekap_Statistik_Pengolahan_Pemasaran_${selectedYear}.xlsx`,
+    );
   };
 
   const stats = useMemo(() => {
@@ -791,6 +545,7 @@ export default function PengolahanPemasaran() {
         return false;
       }
       if (filterKabupaten && row.kabupaten_kota !== filterKabupaten) return false;
+      if (filterSkalaUsaha && row.skala_usaha !== filterSkalaUsaha) return false;
       return true;
     });
 
@@ -837,7 +592,7 @@ export default function PengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [data, filteredData, filterKabupaten, selectedJenisKegiatan]);
+  }, [data, filteredData, filterKabupaten, filterSkalaUsaha, selectedJenisKegiatan]);
 
   const activeDetailKegiatan =
     selectedJenisKegiatan || detailKegiatanFilter;
@@ -864,7 +619,7 @@ export default function PengolahanPemasaran() {
             value === 'Pengolahan'
               ? 'border-blue-500/20 bg-blue-500/10 text-blue-600'
               : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-          
+
           return (
             <span
               className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
@@ -1532,7 +1287,7 @@ export default function PengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">
-            Statistik Pengolahan dan Pemasaran
+            Statistik Pengolahan & Pemasaran
           </h1>
         </div>
 
@@ -1561,13 +1316,27 @@ export default function PengolahanPemasaran() {
         </div>
       </div>
 
-        {/* Filter utama: Tahun, Jenis Kegiatan, Kabupaten/Kota - sejajar 3 kolom */}
         <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-3">
+          <select
+            value={selectedJenisKegiatan}
+            onChange={event => {
+              setSelectedJenisKegiatan(event.target.value);
+              setSelectedMapRegion(null);
+              setFilterKabupaten('');
+            }}
+            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
+          >
+            <option value="">Semua Kategori Kegiatan</option>
+            <option value="Pengolahan">Pengolahan</option>
+            <option value="Pemasaran">Pemasaran</option>
+          </select>
+
           <select
             value={selectedYear}
             onChange={event => {
               setSelectedYear(event.target.value);
               setSelectedMapRegion(null);
+              setFilterKabupaten('');
             }}
             className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-40"
           >
@@ -1580,30 +1349,17 @@ export default function PengolahanPemasaran() {
           </select>
 
           <select
-            value={selectedJenisKegiatan}
-            onChange={event => {
-              setSelectedJenisKegiatan(event.target.value);
-              setSelectedMapRegion(null);
-            }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
-          >
-            <option value="">Semua Jenis Kegiatan</option>
-            <option value="Pengolahan">Pengolahan</option>
-            <option value="Pemasaran">Pemasaran</option>
-          </select>
-
-          <select
             value={filterKabupaten}
             onChange={event => {
               setFilterKabupaten(event.target.value);
               setSelectedMapRegion(null);
             }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
+            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-52"
           >
-            <option value="">Semua Kabupaten/Kota</option>
-            {KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA').map(kab => (
-              <option key={kab} value={kab}>
-                {kab}
+            <option value="">Semua Kab/Kota</option>
+            {kabupatenOptions.map(option => (
+              <option key={option} value={option}>
+                {option}
               </option>
             ))}
           </select>
@@ -1975,22 +1731,20 @@ export default function PengolahanPemasaran() {
 
           {/* Tabel rincian */}
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-4">
-              <div className="mb-1 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">
-                  Rincian Data Pengolahan dan Pemasaran
-                </h3>
-              </div>
+            <div className="mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-slate-500" />
+              <h3 className="text-lg font-semibold text-foreground">
+                Rincian Data Pengolahan & Pemasaran
+              </h3>
             </div>
 
-            {/* Filter tabel: Tahun, Jenis Kegiatan, Kabupaten/Kota (mengikuti filter utama) */}
-            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <select
                 value={selectedYear}
                 onChange={event => {
                   setSelectedYear(event.target.value);
                   setSelectedMapRegion(null);
+                  setFilterKabupaten('');
                 }}
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
@@ -2003,19 +1757,6 @@ export default function PengolahanPemasaran() {
               </select>
 
               <select
-                value={selectedJenisKegiatan}
-                onChange={event => {
-                  setSelectedJenisKegiatan(event.target.value);
-                  setSelectedMapRegion(null);
-                }}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
-              >
-                <option value="">Semua Jenis Kegiatan</option>
-                <option value="Pengolahan">Pengolahan</option>
-                <option value="Pemasaran">Pemasaran</option>
-              </select>
-
-              <select
                 value={filterKabupaten}
                 onChange={event => {
                   setFilterKabupaten(event.target.value);
@@ -2023,47 +1764,62 @@ export default function PengolahanPemasaran() {
                 }}
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
-                <option value="">Semua Kabupaten/Kota</option>
-                {KABUPATEN_KOTA_OPTIONS.filter(kab => kab !== 'SEMUA').map(kab => (
-                  <option key={kab} value={kab}>
-                    {kab}
+                <option value="">Semua Kab/Kota</option>
+                {kabupatenOptions.map(option => (
+                  <option key={option} value={option}>
+                    {option}
                   </option>
                 ))}
+              </select>
+
+              <select
+                value={selectedJenisKegiatan}
+                onChange={event => {
+                  setSelectedJenisKegiatan(event.target.value);
+                  setSelectedMapRegion(null);
+                  setFilterKabupaten('');
+                }}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                <option value="">Semua Kategori</option>
+                <option value="Pengolahan">Pengolahan</option>
+                <option value="Pemasaran">Pemasaran</option>
+              </select>
+
+              <select
+                value={filterSkalaUsaha}
+                onChange={event =>
+                  setFilterSkalaUsaha(event.target.value)
+                }
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                <option value="">Semua Skala Usaha</option>
+                <option value="Mikro">Mikro</option>
+                <option value="Kecil">Kecil</option>
+                <option value="Menengah">Menengah</option>
+                <option value="Besar">Besar</option>
               </select>
             </div>
 
             <DataTable
               columns={columns}
               data={filteredData}
-              exportName={`Pengolahan_Pemasaran_${
-                new Date().toISOString().split('T')[0]
-              }`}
-              formatExportData={exportData =>
-                exportData.map((row, index) => ({
-                  No: index + 1,
-                  Tahun: row.tahun,
-                  'Kabupaten/Kota': row.kabupaten_kota,
-                  'Kategori Kegiatan': normalizeKategori(row.kategori_kegiatan),
-                  'Jenis Kegiatan': row.jenis_kegiatan,
-                  'Skala Usaha': row.skala_usaha,
-                  'Jumlah Unit Usaha': toNumber(row.jumlah_unit_usaha),
-                  'Hasil Produksi (Kg)': toNumber(row.hasil_kg),
-                  'Nilai Produksi (Rp)': toNumber(row.hasil_rp),
-                  'Modal Investasi (Rp)': toNumber(row.modal_rp),
-                }))
-              }
+              onCustomExport={handleExportData}
               customExportButton={
                 <button
                   type="button"
                   onClick={handleExportRekap}
                   disabled={!filteredData.length}
-                  title="Pilih satu tahun untuk mengekspor rekap statistik."
+                  title="Pilih satu tahun. Rekap mengikuti wilayah yang dipilih."
                   className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
                   Ekspor Rekap Statistik
                 </button>
               }
+              exportName={`Pengolahan_Pemasaran_${
+                new Date().toISOString().split('T')[0]
+              }`}
             />
           </div>
         </div>
