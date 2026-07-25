@@ -390,6 +390,194 @@ const createData = async (req, res) => {
   }
 };
 
+const createBatchData = async (req, res) => {
+  try {
+    const year = toInt(req.body?.tahun);
+    const region = normalizeKabupaten(
+      req.body?.kabupaten_kota,
+    );
+    const details = Array.isArray(req.body?.details)
+      ? req.body.details
+      : [];
+
+    if (!year) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tahun wajib diisi',
+      });
+    }
+
+    if (!region) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kabupaten/Kota wajib dipilih',
+      });
+    }
+
+    if (details.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Tambahkan minimal satu rincian sebelum menyimpan.',
+      });
+    }
+
+    if (details.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Maksimal 100 rincian dapat disimpan dalam satu proses.',
+      });
+    }
+
+    const payloads = details.map(detail =>
+      buildPayload({
+        ...detail,
+        tahun: year,
+        kabupaten_kota: region,
+      }),
+    );
+
+    for (
+      let index = 0;
+      index < payloads.length;
+      index += 1
+    ) {
+      const validationError =
+        validatePayload(payloads[index]);
+
+      if (validationError) {
+        return res.status(400).json({
+          success: false,
+          message:
+            `Rincian ke-${index + 1}: ${validationError}`,
+        });
+      }
+    }
+
+    // Cegah kombinasi ganda di dalam daftar sementara.
+    const combinationMap = new Map();
+
+    for (
+      let index = 0;
+      index < payloads.length;
+      index += 1
+    ) {
+      const payload = payloads[index];
+      const key = [
+        payload.tahun,
+        payload.kabupaten_kota,
+        payload.kategori_kegiatan,
+        payload.jenis_kegiatan,
+        payload.skala_usaha,
+      ]
+        .map(value =>
+          String(value ?? '')
+            .trim()
+            .toLowerCase(),
+        )
+        .join('|');
+
+      if (combinationMap.has(key)) {
+        return res.status(409).json({
+          success: false,
+          message:
+            `Rincian ${payload.jenis_kegiatan} dengan skala ${payload.skala_usaha} tercantum lebih dari satu kali.`,
+        });
+      }
+
+      combinationMap.set(key, index);
+    }
+
+    // Cek apakah salah satu kombinasi sudah tersimpan di database.
+    const existingRows =
+      await pengolahanPemasaranDb.findMany({
+        where: {
+          OR: payloads.map(payload =>
+            buildDuplicateWhere(payload),
+          ),
+        },
+        select: {
+          id: true,
+          tahun: true,
+          kabupaten_kota: true,
+          kategori_kegiatan: true,
+          jenis_kegiatan: true,
+          skala_usaha: true,
+        },
+      });
+
+    if (existingRows.length > 0) {
+      const duplicateLabels = existingRows
+        .slice(0, 5)
+        .map(
+          item =>
+            `${item.jenis_kegiatan} (${item.skala_usaha})`,
+        )
+        .join(', ');
+
+      return res.status(409).json({
+        success: false,
+        message:
+          `Sebagian rincian sudah tersedia di database: ${duplicateLabels}.`,
+        duplicates: existingRows,
+      });
+    }
+
+    // Semua create dijalankan dalam satu transaksi.
+    // Jika satu rincian gagal, seluruh penyimpanan dibatalkan.
+    const data = await prisma.$transaction(
+      payloads.map(payload =>
+        pengolahanPemasaranDb.create({
+          data: {
+            ...payload,
+            status: 'PENDING',
+            alasan_penolakan: null,
+          },
+        }),
+      ),
+    );
+
+    return res.status(201).json({
+      success: true,
+      data,
+      count: data.length,
+      message:
+        `${data.length} rincian berhasil disimpan dengan status PENDING`,
+    });
+  } catch (error) {
+    console.error(
+      'Error creating batch pengolahan pemasaran data:',
+      error,
+    );
+
+    if (error?.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message:
+          'Salah satu kombinasi tahun, wilayah, jenis kegiatan, dan skala usaha sudah tersedia.',
+      });
+    }
+
+    if (error?.code === 'P2022') {
+      return res.status(500).json({
+        success: false,
+        message:
+          'Struktur database belum sesuai dengan Prisma Schema.',
+        error: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error?.message ||
+        'Gagal menyimpan data Pengolahan dan Pemasaran secara batch.',
+      error: error?.message,
+    });
+  }
+};
+
 const updateStatus = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
@@ -2614,6 +2802,7 @@ module.exports = {
   getStats,
   getDashboardStats,
   createData,
+  createBatchData,
   updateData,
   deleteData,
   updateStatus,

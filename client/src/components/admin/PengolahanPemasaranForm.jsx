@@ -259,6 +259,60 @@ const createFormData = (initialData) => {
 // Format nilai HANYA untuk tampilan/export rekap (mis. generate file Excel): 0/kosong -> "-".
 // JANGAN pakai fungsi ini untuk payload yang dikirim ke API, karena kolom di database
 // bertipe Int/Float dan akan ditolak Prisma kalau menerima string seperti "-" atau "15.000".
+
+// Bentuk payload yang sama dipakai oleh simpan satu data dan batch entry.
+// Seluruh angka dikirim sebagai Number agar tetap sesuai dengan tipe Prisma.
+const buildApiPayload = (source) => {
+  const payload = {
+    tahun: toRawNumber(source.tahun),
+    kabupaten_kota: source.kabupaten_kota,
+    kategori_kegiatan: source.kategori_kegiatan,
+    jenis_kegiatan: source.jenis_kegiatan,
+    skala_usaha: source.skala_usaha,
+    jumlah_unit_usaha: toRawNumber(source.jumlah_unit_usaha),
+    modal_rp: toRawNumber(source.modal_rp),
+    hasil_kg: toRawNumber(source.hasil_kg),
+    hasil_rp: toRawNumber(source.hasil_rp),
+    shm_count: toRawNumber(source.shm_count),
+    non_shm_count: toRawNumber(source.non_shm_count),
+  };
+
+  Object.keys(source.sertifikat_produk).forEach((key) => {
+    payload[`sertifikat_${key}`] = toRawNumber(
+      source.sertifikat_produk[key],
+    );
+  });
+
+  Object.keys(source.izin_usaha).forEach((key) => {
+    payload[`izin_${key}`] = toRawNumber(
+      source.izin_usaha[key],
+    );
+  });
+
+  return payload;
+};
+
+// Setelah satu rincian masuk ke daftar, Tahun dan Kabupaten/Kota tetap.
+// Kategori dan skala juga dipertahankan agar input berikutnya lebih cepat.
+const createNextDetailForm = (current) => {
+  const next = createEmptyFormData();
+
+  return {
+    ...next,
+    tahun: current.tahun,
+    kabupaten_kota: current.kabupaten_kota,
+    kategori_kegiatan: current.kategori_kegiatan,
+    skala_usaha: current.skala_usaha,
+  };
+};
+
+const getBatchCombinationKey = (item) =>
+  [
+    normalizeKategori(item.kategori_kegiatan),
+    normalizeOptionKey(item.jenis_kegiatan),
+    normalizeOptionKey(item.skala_usaha),
+  ].join('|');
+
 const formatValueForDisplay = (value) => {
   if (value === '' || value === null || value === undefined) return '-';
   const parsed = toRawNumber(value);
@@ -645,10 +699,18 @@ function NestedAmountGrid({
 // ============================================================================
 export default function PengolahanPemasaranForm({ initialData, onSubmit, onCancel, isLoading }) {
   const formRef = useRef(null);
+  const isBatchMode = !initialData;
+
   const [formData, setFormData] = useState(() => createFormData(initialData));
+  const [batchItems, setBatchItems] = useState([]);
+  const [editingBatchIndex, setEditingBatchIndex] = useState(null);
+  const [batchError, setBatchError] = useState('');
 
   useEffect(() => {
     setFormData(createFormData(initialData));
+    setBatchItems([]);
+    setEditingBatchIndex(null);
+    setBatchError('');
   }, [initialData]);
 
   const subJenisOptions = useMemo(
@@ -712,6 +774,144 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
     }));
   };
 
+  const validateCurrentDetail = () => {
+    if (!formData.tahun) return 'Tahun wajib dipilih.';
+    if (!formData.kabupaten_kota) {
+      return 'Kabupaten/Kota wajib dipilih.';
+    }
+    if (!formData.kategori_kegiatan) {
+      return 'Kategori kegiatan wajib dipilih.';
+    }
+    if (!formData.jenis_kegiatan) {
+      return 'Jenis kegiatan wajib dipilih.';
+    }
+    if (!formData.skala_usaha) {
+      return 'Skala usaha wajib dipilih.';
+    }
+
+    return null;
+  };
+
+  const handleAddToBatch = () => {
+    const validationError = validateCurrentDetail();
+
+    if (validationError) {
+      setBatchError(validationError);
+      return;
+    }
+
+    const payload = buildApiPayload(formData);
+    const combinationKey = getBatchCombinationKey(payload);
+
+    const duplicateIndex = batchItems.findIndex(
+      (item, index) =>
+        index !== editingBatchIndex &&
+        getBatchCombinationKey(item) === combinationKey,
+    );
+
+    if (duplicateIndex !== -1) {
+      setBatchError(
+        `${payload.jenis_kegiatan} dengan skala ${payload.skala_usaha} sudah ada dalam daftar. Gunakan tombol Edit pada rincian tersebut.`,
+      );
+      return;
+    }
+
+    setBatchItems((previous) => {
+      if (editingBatchIndex === null) {
+        return [...previous, payload];
+      }
+
+      return previous.map((item, index) =>
+        index === editingBatchIndex ? payload : item,
+      );
+    });
+
+    setFormData((previous) => createNextDetailForm(previous));
+    setEditingBatchIndex(null);
+    setBatchError('');
+  };
+
+  const handleEditBatchItem = (index) => {
+    const item = batchItems[index];
+
+    if (!item) return;
+
+    setFormData((previous) => ({
+      ...createFormData(item),
+      tahun: previous.tahun,
+      kabupaten_kota: previous.kabupaten_kota,
+    }));
+
+    setEditingBatchIndex(index);
+    setBatchError('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleDeleteBatchItem = (index) => {
+    setBatchItems((previous) =>
+      previous.filter((_, itemIndex) => itemIndex !== index),
+    );
+
+    if (editingBatchIndex === index) {
+      setFormData((previous) => createNextDetailForm(previous));
+    }
+
+    setEditingBatchIndex(null);
+    setBatchError('');
+  };
+
+  const handleClearBatch = () => {
+    if (
+      batchItems.length > 0 &&
+      !window.confirm(
+        'Hapus seluruh rincian yang sudah ditambahkan ke daftar?',
+      )
+    ) {
+      return;
+    }
+
+    setBatchItems([]);
+    setEditingBatchIndex(null);
+    setBatchError('');
+    setFormData((previous) => createNextDetailForm(previous));
+  };
+
+  const handleSaveBatch = () => {
+    if (!formData.tahun || !formData.kabupaten_kota) {
+      setBatchError(
+        'Tahun dan Kabupaten/Kota wajib dipilih sebelum menyimpan.',
+      );
+      return;
+    }
+
+    if (batchItems.length === 0) {
+      setBatchError(
+        'Tambahkan minimal satu rincian ke daftar sebelum menyimpan.',
+      );
+      return;
+    }
+
+    const details = batchItems.map((item) => {
+      const {
+        tahun: ignoredYear,
+        kabupaten_kota: ignoredRegion,
+        ...detail
+      } = item;
+
+      return detail;
+    });
+
+    onSubmit({
+      tahun: toRawNumber(formData.tahun),
+      kabupaten_kota: formData.kabupaten_kota,
+      details,
+    });
+  };
+
   const handleArrowNavigation = (event) => {
     const directionByKey = {
       ArrowLeft: 'left',
@@ -751,35 +951,16 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
-    // Payload untuk API: angka murni (Int/Float), sesuai tipe kolom di Prisma.
-    // Kolom nested (sertifikat_produk, izin_usaha) diratakan (flatten) jadi
-    // sertifikat_<key> dan izin_<key> agar cocok dengan model PengolahanPemasaran.
-    const payload = {
-      tahun: toRawNumber(formData.tahun),
-      kabupaten_kota: formData.kabupaten_kota,
-      kategori_kegiatan: formData.kategori_kegiatan,
-      jenis_kegiatan: formData.jenis_kegiatan,
-      skala_usaha: formData.skala_usaha,
-      jumlah_unit_usaha: toRawNumber(formData.jumlah_unit_usaha),
-      modal_rp: toRawNumber(formData.modal_rp),
-      hasil_kg: toRawNumber(formData.hasil_kg),
-      hasil_rp: toRawNumber(formData.hasil_rp),
-      shm_count: toRawNumber(formData.shm_count),
-      non_shm_count: toRawNumber(formData.non_shm_count),
-    };
+    if (isBatchMode) {
+      handleAddToBatch();
+      return;
+    }
 
-    Object.keys(formData.sertifikat_produk).forEach((key) => {
-      payload[`sertifikat_${key}`] = toRawNumber(formData.sertifikat_produk[key]);
-    });
-
-    Object.keys(formData.izin_usaha).forEach((key) => {
-      payload[`izin_${key}`] = toRawNumber(formData.izin_usaha[key]);
-    });
-
-    onSubmit(payload);
+    // Mode edit tetap menyimpan satu data seperti sebelumnya.
+    onSubmit(buildApiPayload(formData));
   };
 
   return (
@@ -952,22 +1133,207 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
         </div>
       </SectionCard>
 
+      {isBatchMode ? (
+        <>
+          <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-foreground">
+                {editingBatchIndex === null
+                  ? 'Tambahkan rincian ke daftar'
+                  : 'Perbarui rincian yang sedang diedit'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tahun dan Kabupaten/Kota akan digunakan untuk seluruh rincian.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddToBatch}
+              disabled={isLoading}
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {editingBatchIndex === null
+                ? '+ Tambahkan ke Daftar'
+                : 'Perbarui Rincian'}
+            </button>
+          </div>
+
+          {batchError ? (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-500">
+              {batchError}
+            </div>
+          ) : null}
+
+          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-border bg-muted/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="font-heading text-base font-semibold text-foreground">
+                  Daftar Rincian Sementara
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {batchItems.length} rincian siap disimpan
+                </p>
+              </div>
+
+              {batchItems.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleClearBatch}
+                  className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  Hapus Semua
+                </button>
+              ) : null}
+            </div>
+
+            <div className="space-y-5 p-4 md:p-5">
+              {batchItems.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                  Belum ada rincian. Isi Bagian 2 sampai 7, lalu tekan
+                  “Tambahkan ke Daftar”.
+                </div>
+              ) : (
+                ['Pengolahan', 'Pemasaran'].map((category) => {
+                  const categoryItems = batchItems
+                    .map((item, index) => ({
+                      item,
+                      index,
+                    }))
+                    .filter(
+                      ({ item }) =>
+                        normalizeKategori(item.kategori_kegiatan) ===
+                        category,
+                    );
+
+                  if (categoryItems.length === 0) return null;
+
+                  return (
+                    <div key={category} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground">
+                          {category}
+                        </h3>
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                          {categoryItems.length} rincian
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-xl border border-border">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                            <tr>
+                              <th className="px-3 py-3">No</th>
+                              <th className="px-3 py-3">Jenis Kegiatan</th>
+                              <th className="px-3 py-3">Skala</th>
+                              <th className="px-3 py-3 text-right">Unit</th>
+                              <th className="px-3 py-3 text-right">Hasil Kg</th>
+                              <th className="px-3 py-3 text-right">Nilai Rp</th>
+                              <th className="px-3 py-3 text-center">Aksi</th>
+                            </tr>
+                          </thead>
+
+                          <tbody className="divide-y divide-border">
+                            {categoryItems.map(({ item, index }, rowIndex) => (
+                              <tr
+                                key={`${getBatchCombinationKey(item)}-${index}`}
+                                className={
+                                  editingBatchIndex === index
+                                    ? 'bg-primary/5'
+                                    : ''
+                                }
+                              >
+                                <td className="whitespace-nowrap px-3 py-3">
+                                  {rowIndex + 1}
+                                </td>
+                                <td className="min-w-56 px-3 py-3 font-medium text-foreground">
+                                  {item.jenis_kegiatan}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3">
+                                  {item.skala_usaha}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 text-right">
+                                  {Number(
+                                    item.jumlah_unit_usaha || 0,
+                                  ).toLocaleString('id-ID')}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 text-right">
+                                  {Number(
+                                    item.hasil_kg || 0,
+                                  ).toLocaleString('id-ID')}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 text-right">
+                                  {Number(
+                                    item.hasil_rp || 0,
+                                  ).toLocaleString('id-ID')}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 text-center">
+                                  <div className="inline-flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleEditBatchItem(index)
+                                      }
+                                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeleteBatchItem(index)
+                                      }
+                                      className="rounded-lg border border-rose-500/30 px-2.5 py-1.5 text-xs font-medium text-rose-500 hover:bg-rose-500/10"
+                                    >
+                                      Hapus
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        </>
+      ) : null}
+
       {/* BUTTON FOOTER */}
-      <div className="flex items-center justify-end gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex flex-col-reverse gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end">
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
         >
           Batal
         </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:opacity-50"
-        >
-          {isLoading ? 'Menyimpan...' : 'Simpan Data'}
-        </button>
+
+        {isBatchMode ? (
+          <button
+            type="button"
+            onClick={handleSaveBatch}
+            disabled={isLoading || batchItems.length === 0}
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoading
+              ? 'Menyimpan Semua...'
+              : `Simpan Semua Data (${batchItems.length})`}
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:opacity-50"
+          >
+            {isLoading ? 'Menyimpan...' : 'Simpan Data'}
+          </button>
+        )}
       </div>
     </form>
   );

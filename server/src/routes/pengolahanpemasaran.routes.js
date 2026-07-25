@@ -14,6 +14,7 @@ router.get('/', pengolahanPemasaranController.getAllData);
 router.get('/admin', verifyToken, pengolahanPemasaranController.getAdminData);
 router.post('/admin/export-data', verifyToken, pengolahanPemasaranController.exportDataAdmin);
 router.post('/admin/export-rekap', verifyToken, pengolahanPemasaranController.exportRekapAdmin);
+router.post('/batch', verifyToken, pengolahanPemasaranController.createBatchData);
 router.post('/', verifyToken, pengolahanPemasaranController.createData);
 router.post('/batch-status', verifyToken, pengolahanPemasaranController.batchStatus);
 router.post('/batch-delete', verifyToken, pengolahanPemasaranController.batchDelete);

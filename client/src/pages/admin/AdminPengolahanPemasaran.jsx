@@ -951,6 +951,8 @@ export default function AdminPengolahanPemasaran() {
 
       if (editingData) {
         await api.put(`/pengolahan-pemasaran/${editingData.id}`, formData);
+      } else if (Array.isArray(formData?.details)) {
+        await api.post('/pengolahan-pemasaran/batch', formData);
       } else {
         await api.post('/pengolahan-pemasaran', formData);
       }
