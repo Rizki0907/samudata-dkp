@@ -4,6 +4,7 @@ import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EksporForm } from '@/components/admin/EksporForm';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -18,10 +19,10 @@ export default function AdminEkspor() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('data');
 
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterNegara, setFilterNegara] = useState('');
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterNegara, setFilterNegara] = useState([]);
   const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
   const [satuanFilter, setSatuanFilter] = useState('KG');
   const [mataUangFilter, setMataUangFilter] = useState('USD');
@@ -31,14 +32,25 @@ export default function AdminEkspor() {
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.nama_komoditas))].filter(Boolean).sort(), [data]);
   const negaraOptions = useMemo(() => [...new Set(data.map(d => d.negara_tujuan))].filter(Boolean).sort(), [data]);
 
+  const matchMultiFilter = (filterArr, val, isCaseInsensitive = false) => {
+    if (!filterArr || (Array.isArray(filterArr) && filterArr.length === 0)) return true;
+    if (!Array.isArray(filterArr)) {
+      return isCaseInsensitive
+        ? String(filterArr).toUpperCase() === String(val || '').toUpperCase()
+        : String(filterArr) === String(val);
+    }
+    return isCaseInsensitive
+      ? filterArr.some(f => String(f).toUpperCase() === String(val || '').toUpperCase())
+      : filterArr.some(f => String(f) === String(val));
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      if (filterBulan && item.bulan !== filterBulan) return false;
-      if (filterTahun && item.tahun !== filterTahun) return false;
-      if (filterKomoditas && item.nama_komoditas !== filterKomoditas) return false;
-      if (filterNegara && item.negara_tujuan !== filterNegara) return false;
+      if (!matchMultiFilter(filterBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTahun, item.tahun)) return false;
+      if (!matchMultiFilter(filterKomoditas, item.nama_komoditas)) return false;
       return true;
-    });
+    }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [data, filterBulan, filterTahun, filterKomoditas, filterNegara]);
 
   const fetchData = async () => {
@@ -244,6 +256,7 @@ export default function AdminEkspor() {
     });
 
     filteredData.forEach(item => {
+      if (item.status === 'REJECTED') return;
       const vol = Number(item.volume) || 0;
       const nilai = mataUangFilter === 'RP' ? (Number(item.nilai_rp) || 0) : (Number(item.nilai_usd) || 0);
       
@@ -553,7 +566,7 @@ export default function AdminEkspor() {
         return (
           <StatusBadge 
             row={row} 
-            onEdit={() => setEditingData(row)} 
+            onEdit={() => handleEdit(row)} 
             contextFields={contextFields} 
           />
         );
@@ -569,12 +582,7 @@ export default function AdminEkspor() {
     },
     {
       header: 'Kategori Komoditas',
-      accessorKey: 'kategori_komoditas',
-      cell: info => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-          {info.getValue()}
-        </span>
-      )
+      accessorKey: 'kategori_komoditas'
     },
     {
       header: 'Nama Komoditas',
@@ -610,7 +618,6 @@ export default function AdminEkspor() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Data Ekspor</h1>
-          <p className="text-muted-foreground mt-1">Input laporan ekspor hasil kelautan dan perikanan.</p>
         </div>
         
         {!isFormOpen && (
@@ -672,35 +679,57 @@ export default function AdminEkspor() {
                 <Filter className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
               </div>
+              {(filterTahun.length > 0 || filterBulan.length > 0 || filterKomoditas.length > 0 || filterNegara.length > 0) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterTahun([]);
+                    setFilterBulan([]);
+                    setFilterKomoditas([]);
+                    setFilterNegara([]);
+                  }}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Reset Semua Filter
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Tahun</option>
-                  {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <SearchableMultiSelect
+                  options={tahunOptions}
+                  value={filterTahun}
+                  onChange={setFilterTahun}
+                  placeholder="Semua Tahun"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Bulan</option>
-                  {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <SearchableMultiSelect
+                  options={bulanOptions}
+                  value={filterBulan}
+                  onChange={setFilterBulan}
+                  placeholder="Semua Bulan"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Komoditas</option>
-                  {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <SearchableMultiSelect
+                  options={komoditasOptions}
+                  value={filterKomoditas}
+                  onChange={setFilterKomoditas}
+                  placeholder="Semua Komoditas"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Negara Tujuan</label>
-                <select value={filterNegara} onChange={(e) => setFilterNegara(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Negara Tujuan</option>
-                  {negaraOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <SearchableMultiSelect
+                  options={negaraOptions}
+                  value={filterNegara}
+                  onChange={setFilterNegara}
+                  placeholder="Semua Negara Tujuan"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Mata Uang (Chart)</label>

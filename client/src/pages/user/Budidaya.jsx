@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, TrendingUp, MapPin, Fish, FileText, Box, LineChart, Download, X } from 'lucide-react';
+import { Loader2, TrendingUp, MapPin, Fish, FileText, Box, LineChart, Download, X, Clock } from 'lucide-react';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
@@ -29,23 +30,20 @@ const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i)
 export default function Budidaya() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('');
-  const [selectedBulan, setSelectedBulan] = useState('');
-  const [stats, setStats] = useState({
-    produksiPerKabupaten: [],
-    trenBulanan: [],
-    top5Wadah: [],
-    komposisiWadah: [],
-    heatmapData: [],
-    kpi: { total_volume: 0, top_komoditas: '-', total_nilai: 0 }
-  });
+  const [lastUpdated, setLastUpdated] = useState('-');
 
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterKabupaten, setFilterKabupaten] = useState('');
-  const [filterWadah, setFilterWadah] = useState('');
-  const [filterTw, setFilterTw] = useState('');
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterTahun, setFilterTahun] = useState('');
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterKabupaten, setFilterKabupaten] = useState([]);
+  const [filterWadah, setFilterWadah] = useState([]);
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterTahun, setFilterTahun] = useState([]);
+
+  const [filterTableKomoditas, setFilterTableKomoditas] = useState([]);
+  const [filterTableKabupaten, setFilterTableKabupaten] = useState([]);
+  const [filterTableWadah, setFilterTableWadah] = useState([]);
+  const [filterTableBulan, setFilterTableBulan] = useState([]);
+  const [filterTableTahun, setFilterTableTahun] = useState([]);
+
   const [barFilter, setBarFilter] = useState('produksi');
   
   // Export Modal State
@@ -57,42 +55,72 @@ export default function Budidaya() {
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
   const kabupatenOptions = useMemo(() => [...new Set(data.map(d => d.kabupaten_kota))].filter(Boolean).sort(), [data]);
   const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
-  const twOptions = useMemo(() => [...new Set(data.map(d => d.triwulan))].filter(Boolean).sort(), [data]);
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set(data.map(d => d.tahun))].filter(Boolean).sort(), [data]);
 
+  const matchMultiFilter = (filterArr, val, isCaseInsensitive = false) => {
+    if (!filterArr || (Array.isArray(filterArr) && filterArr.length === 0)) return true;
+    if (!Array.isArray(filterArr)) {
+      return isCaseInsensitive
+        ? String(filterArr).toUpperCase() === String(val || '').toUpperCase()
+        : String(filterArr) === String(val);
+    }
+    return isCaseInsensitive
+      ? filterArr.some(f => String(f).toUpperCase() === String(val || '').toUpperCase())
+      : filterArr.some(f => String(f) === String(val));
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      if (filterKomoditas && item.komoditas !== filterKomoditas) return false;
-      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
-      if (filterWadah && item.jenis_wadah !== filterWadah) return false;
-      if (filterTw && item.triwulan !== filterTw) return false;
-      if (filterBulan && item.bulan !== filterBulan) return false;
-      if (filterTahun && item.tahun !== filterTahun) return false;
+      if (!matchMultiFilter(filterKomoditas, item.komoditas)) return false;
+      if (!matchMultiFilter(filterKabupaten, item.kabupaten_kota)) return false;
+      if (!matchMultiFilter(filterWadah, item.jenis_wadah)) return false;
+      if (!matchMultiFilter(filterBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTahun, item.tahun?.toString())) return false;
       return true;
     });
-  }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
+  }, [data, filterKomoditas, filterKabupaten, filterWadah, filterBulan, filterTahun]);
+
+  const filteredTableData = useMemo(() => {
+    return data.filter(item => {
+      if (!matchMultiFilter(filterTableKomoditas, item.komoditas)) return false;
+      if (!matchMultiFilter(filterTableKabupaten, item.kabupaten_kota)) return false;
+      if (!matchMultiFilter(filterTableWadah, item.jenis_wadah)) return false;
+      if (!matchMultiFilter(filterTableBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTableTahun, item.tahun?.toString())) return false;
+      return true;
+    });
+  }, [data, filterTableKomoditas, filterTableKabupaten, filterTableWadah, filterTableBulan, filterTableTahun]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const params = new URLSearchParams();
-        if (selectedYear) params.append('tahun', selectedYear);
-        if (selectedBulan) params.append('bulan', selectedBulan);
-
-        const query = `?${params.toString()}`;
-
-        const [dataRes, statsRes] = await Promise.all([
-          api.get(`/budidaya${query}`),
-          api.get(`/budidaya/stats${query}`)
-        ]);
-
-        if (dataRes.data.success) {
-          setData(dataRes.data.data);
-        }
-        if (statsRes.data.success) {
-          setStats(statsRes.data.stats);
+        const res = await api.get('/budidaya');
+        if (res.data.success) {
+          const list = res.data.data || [];
+          setData(list);
+          if (list.length > 0) {
+            const latest = list.reduce((a, b) =>
+              new Date(a.updated_at || a.created_at || 0) > new Date(b.updated_at || b.created_at || 0) ? a : b
+            );
+            const updatedAt = new Date(latest.updated_at || latest.created_at);
+            const datePart = updatedAt.toLocaleDateString('id-ID', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            });
+            const timePart = updatedAt
+              .toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })
+              .replace(':', '.');
+            setLastUpdated(`${datePart} ${timePart}`);
+          } else {
+            setLastUpdated('-');
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -102,7 +130,114 @@ export default function Budidaya() {
     };
 
     fetchData();
-  }, [selectedYear, selectedBulan]);
+  }, []);
+
+  const stats = useMemo(() => {
+    let total_volume = 0;
+    let total_nilai = 0;
+    const komoditasMap = {};
+    const kabMap = {};
+    const wadahMap = {};
+    const heatmapRaw = {};
+
+    filteredData.forEach(item => {
+      const vol = Number(item.produksi_kg) || 0;
+      const nilai = Number(item.nilai_rp) || 0;
+
+      total_volume += vol;
+      total_nilai += nilai;
+
+      if (item.komoditas) {
+        komoditasMap[item.komoditas] = (komoditasMap[item.komoditas] || 0) + vol;
+      }
+
+      const kab = item.kabupaten_kota || 'Tidak Diketahui';
+      if (!kabMap[kab]) kabMap[kab] = { produksi: 0, nilai: 0 };
+      kabMap[kab].produksi += vol;
+      kabMap[kab].nilai += nilai;
+
+      if (item.jenis_wadah) {
+        wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + vol;
+      }
+
+      if (!heatmapRaw[kab]) {
+        heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0 }));
+      }
+      const bIndex = MONTHS.indexOf(item.bulan);
+      if (bIndex !== -1) {
+        heatmapRaw[kab][bIndex].produksi += vol;
+      }
+    });
+
+    let top_komoditas = '-';
+    let maxKomoditasProd = 0;
+    for (const [kom, prod] of Object.entries(komoditasMap)) {
+      if (prod > maxKomoditasProd) {
+        maxKomoditasProd = prod;
+        top_komoditas = kom;
+      }
+    }
+
+    const produksiPerKabupaten = Object.entries(kabMap)
+      .map(([name, s]) => ({ name, produksi: s.produksi, nilai: s.nilai }))
+      .sort((a, b) => b.produksi - a.produksi);
+
+    const komposisiWadah = Object.entries(wadahMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const top5Wadah = komposisiWadah.slice(0, 5).map(w => w.name);
+
+    const trenBulanan = MONTHS.map(bulan => {
+      const monthData = { bulan, Lainnya: 0 };
+      top5Wadah.forEach(w => monthData[w] = 0);
+      return monthData;
+    });
+
+    filteredData.forEach(item => {
+      const bIndex = MONTHS.indexOf(item.bulan);
+      if (bIndex === -1) return;
+
+      const vol = Number(item.produksi_kg) || 0;
+      if (top5Wadah.includes(item.jenis_wadah)) {
+        trenBulanan[bIndex][item.jenis_wadah] += vol;
+      } else {
+        trenBulanan[bIndex].Lainnya += vol;
+      }
+    });
+
+    const heatmapData = [];
+    Object.keys(heatmapRaw).forEach(kab => {
+      const bulanArr = heatmapRaw[kab];
+      const maxProd = Math.max(...bulanArr.map(b => b.produksi));
+      const minProd = Math.min(...bulanArr.map(b => b.produksi));
+      const range = maxProd - minProd;
+
+      bulanArr.forEach(b => {
+        let normalized = 0;
+        if (range > 0) {
+          normalized = (b.produksi - minProd) / range;
+        } else if (maxProd > 0) {
+          normalized = 1;
+        }
+        heatmapData.push({
+          kabupaten: kab,
+          bulan: b.bulan,
+          produksi: b.produksi,
+          normalized: parseFloat(normalized.toFixed(4))
+        });
+      });
+    });
+
+    return {
+      kpi: { total_volume, top_komoditas, total_nilai },
+      produksiPerKabupaten,
+      komposisiWadah,
+      top5Wadah,
+      trenBulanan,
+      heatmapData
+    };
+  }, [filteredData]);
 
   const columns = useMemo(() => [
     {
@@ -142,11 +277,11 @@ export default function Budidaya() {
     },
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
-    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<TwBadge tw={info.getValue()} />) },
+    { header: 'Triwulan', accessorKey: 'triwulan' },
     { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
-    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
+    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah' },
     { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
     { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
     { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
@@ -427,29 +562,85 @@ export default function Budidaya() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Budidaya Perikanan</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedBulan}
-            onChange={(e) => setSelectedBulan(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
-          >
-            <option value="">Semua Bulan</option>
-            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
-          >
-            <option value="">Semua Tahun</option>
-            {TAHUN_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+        <div 
+          className="
+            inline-flex items-center gap-2
+            whitespace-nowrap
+            px-4 py-2
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
+            rounded-full
+            text-sm 
+            font-medium
+            border border-cyan-200
+            dark:border-cyan-500/20
+            shadow-sm"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+          <span className="opacity-80">
+            Terakhir Diperbarui:
+          </span>
+          <span className="font-semibold">
+            {lastUpdated}
+          </span>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <SearchableMultiSelect
+            options={tahunOptions}
+            value={filterTahun}
+            onChange={setFilterTahun}
+            placeholder="Semua Tahun"
+          />
+          <SearchableMultiSelect
+            options={bulanOptions}
+            value={filterBulan}
+            onChange={setFilterBulan}
+            placeholder="Semua Bulan"
+          />
+          <SearchableMultiSelect
+            options={kabupatenOptions}
+            value={filterKabupaten}
+            onChange={setFilterKabupaten}
+            placeholder="Semua Kab/Kota"
+          />
+          <SearchableMultiSelect
+            options={komoditasOptions}
+            value={filterKomoditas}
+            onChange={setFilterKomoditas}
+            placeholder="Semua Komoditas"
+          />
+          <SearchableMultiSelect
+            options={wadahOptions}
+            value={filterWadah}
+            onChange={setFilterWadah}
+            placeholder="Semua Wadah"
+          />
+        </div>
+        {(filterKomoditas.length > 0 || filterKabupaten.length > 0 || filterWadah.length > 0 || filterBulan.length > 0 || filterTahun.length > 0) && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setFilterKomoditas([]);
+                setFilterKabupaten([]);
+                setFilterWadah([]);
+                setFilterBulan([]);
+                setFilterTahun([]);
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Reset Semua Filter
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -555,13 +746,10 @@ export default function Budidaya() {
 
           {/* Heatmap Row */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-6">
               <MapPin className="w-5 h-5 text-rose-500" />
               <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Warna merepresentasikan intensitas produksi relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
-            </p>
             <div className="h-[600px]">
               <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
             </div>
@@ -569,44 +757,66 @@ export default function Budidaya() {
 
           {/* Data Table */}
           <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Rincian Data Produksi Budidaya</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
+              {(filterTableKomoditas.length > 0 || filterTableKabupaten.length > 0 || filterTableWadah.length > 0 || filterTableBulan.length > 0 || filterTableTahun.length > 0) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterTableKomoditas([]);
+                    setFilterTableKabupaten([]);
+                    setFilterTableWadah([]);
+                    setFilterTableBulan([]);
+                    setFilterTableTahun([]);
+                  }}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Reset Filter Tabel
+                </button>
+              )}
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-              <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Tahun</option>
-                {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Triwulan</option>
-                {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Bulan</option>
-                {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Kab/Kota</option>
-                {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Komoditas</option>
-                {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-                <option value="">Semua Wadah</option>
-                {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+
+            <div className="flex flex-col gap-2 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <SearchableMultiSelect
+                  options={tahunOptions}
+                  value={filterTableTahun}
+                  onChange={setFilterTableTahun}
+                  placeholder="Semua Tahun"
+                />
+                <SearchableMultiSelect
+                  options={bulanOptions}
+                  value={filterTableBulan}
+                  onChange={setFilterTableBulan}
+                  placeholder="Semua Bulan"
+                />
+                <SearchableMultiSelect
+                  options={kabupatenOptions}
+                  value={filterTableKabupaten}
+                  onChange={setFilterTableKabupaten}
+                  placeholder="Semua Kab/Kota"
+                />
+                <SearchableMultiSelect
+                  options={komoditasOptions}
+                  value={filterTableKomoditas}
+                  onChange={setFilterTableKomoditas}
+                  placeholder="Semua Komoditas"
+                />
+                <SearchableMultiSelect
+                  options={wadahOptions}
+                  value={filterTableWadah}
+                  onChange={setFilterTableWadah}
+                  placeholder="Semua Wadah"
+                />
+              </div>
             </div>
 
             <DataTable
                 columns={columns}
-                data={filteredData}
+                data={filteredTableData}
                 exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
                 customExportButton={
                   <button
@@ -614,7 +824,7 @@ export default function Budidaya() {
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
                   >
                     <Download className="w-4 h-4" />
-                    Ekspor Ringkasan
+                    Rekap Statistik
                   </button>
                 }
                 formatExportData={(exportData) => exportData.map(row => ({
@@ -640,7 +850,7 @@ export default function Budidaya() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-6 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Ekspor Ringkasan Budidaya</h3>
+              <h3 className="text-lg font-semibold">Rekap Statistik Budidaya</h3>
               <button onClick={() => setShowExportModal(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>

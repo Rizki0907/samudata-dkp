@@ -8,10 +8,7 @@ const { BUDIDAYA_TAHUNAN_CONFIG } = require('../utils/BudidayaTahunanConfig');
 const getAll = async (req, res) => {
   try {
     const data = await prisma.budidayaTahunan.findMany({
-      orderBy: [
-        { tahun: 'desc' },
-        { kabupaten_kota: 'asc' },
-      ],
+      orderBy: { updated_at: 'desc' },
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -42,7 +39,7 @@ const createOrUpdate = async (req, res) => {
         where: { id: existingData.id },
         data: {
           data,
-          status: status || existingData.status,
+          status: status || (existingData.status === 'REJECTED' ? 'PENDING' : existingData.status),
           alasan_penolakan: null, // reset penolakan if re-submitted
         },
       });

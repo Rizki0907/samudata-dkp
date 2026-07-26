@@ -33,7 +33,7 @@ const getAllData = async (req, res) => {
 const getAdminData = async (req, res) => {
   try {
     const data = await prisma.budidaya.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: { updated_at: 'desc' }
     });
     
     res.json({ success: true, data });
@@ -213,7 +213,7 @@ const updateData = async (req, res) => {
     }
 
     let newStatus = existing.status;
-    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+    if (existing.status === 'REJECTED') {
       newStatus = 'PENDING';
     }
 

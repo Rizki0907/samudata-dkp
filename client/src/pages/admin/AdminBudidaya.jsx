@@ -5,6 +5,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import BudidayaForm from '@/components/admin/BudidayaForm';
 import { BudidayaTahunanForm } from '@/components/admin/BudidayaTahunanForm';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
@@ -36,13 +37,13 @@ export default function AdminBudidaya() {
   const [activeTab, setActiveTab] = useState('data');
   const [barFilter, setBarFilter] = useState('produksi');
 
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterKabupaten, setFilterKabupaten] = useState('');
-  const [filterWadah, setFilterWadah] = useState('');
-  const [filterTw, setFilterTw] = useState('');
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterModul, setFilterModul] = useState('');
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterKabupaten, setFilterKabupaten] = useState([]);
+  const [filterWadah, setFilterWadah] = useState([]);
+  const [filterStatus, setFilterStatus] = useState([]);
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterModul, setFilterModul] = useState([]);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportType, setExportType] = useState('wadah');
@@ -51,31 +52,42 @@ export default function AdminBudidaya() {
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
   const kabupatenOptions = useMemo(() => [...new Set([...data.map(d => d.kabupaten_kota), ...dataTahunan.map(d => d.kabupaten_kota)])].filter(Boolean).sort(), [data, dataTahunan]);
   const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
-  const twOptions = useMemo(() => [...new Set(data.map(d => d.triwulan))].filter(Boolean).sort(), [data]);
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set([...data.map(d => d.tahun), ...dataTahunan.map(d => d.tahun)])].filter(Boolean).sort(), [data, dataTahunan]);
   const modulOptions = useMemo(() => [...new Set(dataTahunan.map(d => d.modul_id))].filter(Boolean).sort(), [dataTahunan]);
 
+  const matchMultiFilter = (filterArr, val, isCaseInsensitive = false) => {
+    if (!filterArr || (Array.isArray(filterArr) && filterArr.length === 0)) return true;
+    if (!Array.isArray(filterArr)) {
+      return isCaseInsensitive
+        ? String(filterArr).toUpperCase() === String(val || '').toUpperCase()
+        : String(filterArr) === String(val);
+    }
+    return isCaseInsensitive
+      ? filterArr.some(f => String(f).toUpperCase() === String(val || '').toUpperCase())
+      : filterArr.some(f => String(f) === String(val));
+  };
+
   const filteredDataTahunan = useMemo(() => {
     return dataTahunan.filter(item => {
-      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
-      if (filterTahun && item.tahun?.toString() !== filterTahun?.toString()) return false;
-      if (filterModul && item.modul_id !== filterModul) return false;
+      if (!matchMultiFilter(filterKabupaten, item.kabupaten_kota)) return false;
+      if (!matchMultiFilter(filterTahun, item.tahun?.toString())) return false;
+      if (!matchMultiFilter(filterModul, item.modul_id)) return false;
       return true;
-    });
+    }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [dataTahunan, filterKabupaten, filterTahun, filterModul]);
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      if (filterKomoditas && item.komoditas !== filterKomoditas) return false;
-      if (filterKabupaten && item.kabupaten_kota !== filterKabupaten) return false;
-      if (filterWadah && item.jenis_wadah !== filterWadah) return false;
-      if (filterTw && item.triwulan?.toString() !== filterTw?.toString()) return false;
-      if (filterBulan && item.bulan !== filterBulan) return false;
-      if (filterTahun && item.tahun?.toString() !== filterTahun?.toString()) return false;
+      if (!matchMultiFilter(filterStatus, item.status, true)) return false;
+      if (!matchMultiFilter(filterKomoditas, item.komoditas)) return false;
+      if (!matchMultiFilter(filterKabupaten, item.kabupaten_kota)) return false;
+      if (!matchMultiFilter(filterWadah, item.jenis_wadah)) return false;
+      if (!matchMultiFilter(filterBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTahun, item.tahun?.toString())) return false;
       return true;
-    });
-  }, [data, filterKomoditas, filterKabupaten, filterWadah, filterTw, filterBulan, filterTahun]);
+    }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+  }, [data, filterStatus, filterKomoditas, filterKabupaten, filterWadah, filterBulan, filterTahun]);
 
 
   const fetchData = async () => {
@@ -135,7 +147,15 @@ export default function AdminBudidaya() {
 
   const handleEdit = (row) => {
     setEditingData(row);
+    setIsTahunanFormOpen(false);
     setIsFormOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditTahunan = (row) => {
+    setEditingData(row);
+    setIsFormOpen(false);
+    setIsTahunanFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -459,6 +479,7 @@ export default function AdminBudidaya() {
     const heatmapRaw = {};
 
     filteredData.forEach(item => {
+      if (item.status === 'REJECTED') return;
       const vol = Number(item.produksi_kg) || 0;
       const nilai = Number(item.nilai_rp) || 0;
 
@@ -644,7 +665,7 @@ export default function AdminBudidaya() {
         return (
           <StatusBadge
             row={row}
-            onEdit={() => setEditingData(row)}
+            onEdit={() => handleEdit(row)}
             contextFields={contextFields}
           />
         );
@@ -652,11 +673,11 @@ export default function AdminBudidaya() {
     },
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
-    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => (<TwBadge tw={info.getValue()} />) },
+    { header: 'Triwulan', accessorKey: 'triwulan' },
     { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
-    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah', cell: info => (<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{info.getValue()}</span>) },
+    { header: 'Jenis Wadah', accessorKey: 'jenis_wadah' },
     { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
     { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
     { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
@@ -667,9 +688,6 @@ export default function AdminBudidaya() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Data Budidaya</h1>
-          <p className="text-muted-foreground mt-1">
-            Manajemen data produksi perikanan budidaya per Kabupaten/Kota.
-          </p>
         </div>
 
         {!isFormOpen && !isTahunanFormOpen && !isSelectTypeModalOpen && (
@@ -687,9 +705,8 @@ export default function AdminBudidaya() {
 
       {isSelectTypeModalOpen && (
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm animate-in fade-in duration-300">
-          <div className="text-center max-w-xl mx-auto mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Pilih Jenis Data Budidaya</h2>
-            <p className="text-muted-foreground">Silakan pilih jenis laporan data budidaya yang ingin Anda kelola.</p>
+          <div className="text-center max-w-xl mx-auto mb-6">
+            <h2 className="text-2xl font-bold text-foreground">Pilih Jenis Data Budidaya</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -706,7 +723,6 @@ export default function AdminBudidaya() {
               </div>
               <div className="text-center">
                 <h3 className="text-lg font-bold text-foreground">Data Bulanan</h3>
-                <p className="text-sm text-muted-foreground mt-1">Laporan produksi ikan budidaya harian/bulanan.</p>
               </div>
             </button>
 
@@ -723,7 +739,6 @@ export default function AdminBudidaya() {
               </div>
               <div className="text-center">
                 <h3 className="text-lg font-bold text-foreground">Data Tahunan</h3>
-                <p className="text-sm text-muted-foreground mt-1">Laporan inventarisasi dan infrastruktur budidaya tahunan.</p>
               </div>
             </button>
           </div>
@@ -802,74 +817,114 @@ export default function AdminBudidaya() {
                     <Filter className="w-5 h-5 text-slate-500" />
                     <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
                   </div>
+                  {(filterKomoditas.length > 0 || filterKabupaten.length > 0 || filterWadah.length > 0 || filterStatus.length > 0 || filterBulan.length > 0 || filterTahun.length > 0 || filterModul.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterKomoditas([]);
+                        setFilterKabupaten([]);
+                        setFilterWadah([]);
+                        setFilterStatus([]);
+                        setFilterBulan([]);
+                        setFilterTahun([]);
+                        setFilterModul([]);
+                      }}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Reset Semua Filter
+                    </button>
+                  )}
                 </div>
                 {activeTab === 'tahunan' ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                      <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Tahun</option>
-                        {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={tahunOptions}
+                        value={filterTahun}
+                        onChange={setFilterTahun}
+                        placeholder="Semua Tahun"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                      <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Kab/Kota</option>
-                        {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={kabupatenOptions}
+                        value={filterKabupaten}
+                        onChange={setFilterKabupaten}
+                        placeholder="Semua Kab/Kota"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Modul</label>
-                      <select value={filterModul} onChange={(e) => setFilterModul(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Modul</option>
-                        {modulOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={modulOptions}
+                        value={filterModul}
+                        onChange={setFilterModul}
+                        placeholder="Semua Modul"
+                      />
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                      <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Tahun</option>
-                        {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                      <SearchableMultiSelect
+                        options={[
+                          { label: 'Verified', value: 'VERIFIED' },
+                          { label: 'Approved', value: 'APPROVED' },
+                          { label: 'Reject', value: 'REJECTED' },
+                          { label: 'Pending', value: 'PENDING' }
+                        ]}
+                        value={filterStatus}
+                        onChange={setFilterStatus}
+                        placeholder="Semua Status"
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
-                      <select value={filterTw} onChange={(e) => setFilterTw(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Triwulan</option>
-                        {twOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                      <SearchableMultiSelect
+                        options={tahunOptions}
+                        value={filterTahun}
+                        onChange={setFilterTahun}
+                        placeholder="Semua Tahun"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                      <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Bulan</option>
-                        {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={bulanOptions}
+                        value={filterBulan}
+                        onChange={setFilterBulan}
+                        placeholder="Semua Bulan"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                      <select value={filterKabupaten} onChange={(e) => setFilterKabupaten(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Kab/Kota</option>
-                        {kabupatenOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={kabupatenOptions}
+                        value={filterKabupaten}
+                        onChange={setFilterKabupaten}
+                        placeholder="Semua Kab/Kota"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                      <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Komoditas</option>
-                        {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={komoditasOptions}
+                        value={filterKomoditas}
+                        onChange={setFilterKomoditas}
+                        placeholder="Semua Komoditas"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jenis Wadah</label>
-                      <select value={filterWadah} onChange={(e) => setFilterWadah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="">Semua Wadah</option>
-                        {wadahOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableMultiSelect
+                        options={wadahOptions}
+                        value={filterWadah}
+                        onChange={setFilterWadah}
+                        placeholder="Semua Wadah"
+                      />
                     </div>
                   </div>
                 )}
@@ -897,11 +952,7 @@ export default function AdminBudidaya() {
                         return (
                           <StatusBadge
                             row={row}
-                            onEdit={() => {
-                              setEditingData(row);
-                              setIsTahunanFormOpen(true);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
+                            onEdit={() => handleEditTahunan(row)}
                             contextFields={contextFields}
                           />
                         );
@@ -912,11 +963,7 @@ export default function AdminBudidaya() {
                     { header: 'Modul', accessorKey: 'modul_id' },
                     { header: 'Terakhir Diubah', accessorKey: 'updated_at', cell: info => new Date(info.getValue()).toLocaleDateString('id-ID') }
                   ]}
-                  onEdit={(row) => {
-                    setEditingData(row);
-                    setIsTahunanFormOpen(true);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onEdit={handleEditTahunan}
                   onDelete={handleDeleteTahunan}
                   onApprove={handleApproveTahunan}
                   onReject={handleRejectTahunan}
@@ -930,7 +977,7 @@ export default function AdminBudidaya() {
                       className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
                     >
                       <Download className="w-4 h-4" />
-                      Ekspor Ringkasan
+                      Rekap Statistik
                     </button>
                   }
                   searchable={true}
@@ -1016,7 +1063,7 @@ export default function AdminBudidaya() {
                       className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
                     >
                       <Download className="w-4 h-4" />
-                      Ekspor Ringkasan
+                      Rekap Statistik
                     </button>
                   }
                   formatExportData={(exportData) => exportData.map(row => ({
@@ -1123,13 +1170,10 @@ export default function AdminBudidaya() {
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-6">
                     <MapPin className="w-5 h-5 text-rose-500" />
                     <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Warna merepresentasikan intensitas produksi relatif terhadap titik tertinggi masing-masing kabupaten. Hover untuk melihat angka tonase.
-                  </p>
                   <div className="h-[600px]">
                     <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
                   </div>
@@ -1147,7 +1191,7 @@ export default function AdminBudidaya() {
                 >
                   <X className="w-5 h-5" />
                 </button>
-                <h2 className="text-xl font-bold mb-4">Ekspor Data Budidaya</h2>
+                <h2 className="text-xl font-bold mb-4">Rekap Statistik Budidaya</h2>
                 <div className="space-y-4">
                   {activeTab !== 'tahunan' && (
                     <div className="mb-4">

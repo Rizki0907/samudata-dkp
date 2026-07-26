@@ -2123,38 +2123,57 @@ export default function AdminPengolahanPemasaran() {
       stats.detailKegiatan,
     ]);
 
-  // 5. Line Chart Tren Tahunan: dua garis Pengolahan vs Pemasaran
-  const lineOption = useMemo(() => {
+  // 5. Tren Tahunan dipisah menjadi dua grafik:
+  // Pengolahan berwarna biru dan Pemasaran berwarna hijau.
+  const trendOptions = useMemo(() => {
     const isProduksi = trendFilter === 'produksi';
 
-    const pengolahanKey = isProduksi
-      ? 'pengolahan_produksi'
-      : 'pengolahan_nilai';
+    const formatAxisValue = value => {
+      if (value >= 1_000_000_000_000) {
+        return `${(value / 1_000_000_000_000).toFixed(1)}T`;
+      }
 
-    const pemasaranKey = isProduksi
-      ? 'pemasaran_produksi'
-      : 'pemasaran_nilai';
+      if (value >= 1_000_000_000) {
+        return `${(value / 1_000_000_000).toFixed(1)}M`;
+      }
 
-    return {
+      if (value >= 1_000_000) {
+        return `${(value / 1_000_000).toFixed(1)}Jt`;
+      }
+
+      if (value >= 1_000) {
+        return `${(value / 1_000).toFixed(1)}rb`;
+      }
+
+      return value;
+    };
+
+    const createTrendOption = ({
+      category,
+      dataKey,
+      color,
+      areaStart,
+      areaEnd,
+    }) => ({
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'line',
+        },
         valueFormatter: value =>
           isProduksi
             ? `${toNumber(value).toLocaleString('id-ID')} KG`
             : formatRupiah(value),
       },
-      legend: {
-        data: ['Pengolahan', 'Pemasaran'],
-        textStyle: { color: '#cbd5e1' },
-        top: 0,
-      },
+
       grid: {
         left: '3%',
         right: '4%',
-        top: '12%',
-        bottom: '3%',
+        top: '8%',
+        bottom: '4%',
         containLabel: true,
       },
+
       xAxis: {
         type: 'category',
         boundaryGap: false,
@@ -2163,7 +2182,13 @@ export default function AdminPengolahanPemasaran() {
           color: '#94a3b8',
           fontSize: 12,
         },
+        axisLine: {
+          lineStyle: {
+            color: '#475569',
+          },
+        },
       },
+
       yAxis: {
         type: 'value',
         splitLine: {
@@ -2174,45 +2199,96 @@ export default function AdminPengolahanPemasaran() {
         },
         axisLabel: {
           color: '#94a3b8',
-          formatter: val => {
-            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
-            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
-            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
-            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
-            return val;
-          },
+          formatter: formatAxisValue,
         },
       },
+
       series: [
         {
-          name: 'Pengolahan',
+          name: category,
           type: 'line',
-          smooth: false,
+          data: stats.trenTahunan.map(item => item[dataKey]),
+
+          // Garis dibuat melengkung seperti grafik referensi.
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
           symbolSize: 8,
-          data: stats.trenTahunan.map(item => item[pengolahanKey]),
+
           lineStyle: {
             width: 3,
-            color: '#3b82f6',
+            color,
           },
+
           itemStyle: {
-            color: '#3b82f6',
+            color,
+            borderColor: '#ffffff',
+            borderWidth: 2,
           },
-        },
-        {
-          name: 'Pemasaran',
-          type: 'line',
-          smooth: false,
-          symbolSize: 8,
-          data: stats.trenTahunan.map(item => item[pemasaranKey]),
-          lineStyle: {
-            width: 3,
-            color: '#10b981',
+
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: areaStart,
+                },
+                {
+                  offset: 1,
+                  color: areaEnd,
+                },
+              ],
+            },
           },
-          itemStyle: {
-            color: '#10b981',
+
+          emphasis: {
+            focus: 'series',
           },
         },
       ],
+
+      graphic:
+        stats.trenTahunan.length === 0
+          ? [
+              {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                  text: `Belum ada data tren ${category.toLowerCase()}.`,
+                  fill: '#94a3b8',
+                  fontSize: 13,
+                },
+              },
+            ]
+          : [],
+    });
+
+    const metricSuffix = isProduksi
+      ? 'produksi'
+      : 'nilai';
+
+    return {
+      pengolahan: createTrendOption({
+        category: 'Pengolahan',
+        dataKey: `pengolahan_${metricSuffix}`,
+        color: '#3b82f6',
+        areaStart: 'rgba(59, 130, 246, 0.45)',
+        areaEnd: 'rgba(59, 130, 246, 0.03)',
+      }),
+
+      pemasaran: createTrendOption({
+        category: 'Pemasaran',
+        dataKey: `pemasaran_${metricSuffix}`,
+        color: '#10b981',
+        areaStart: 'rgba(16, 185, 129, 0.45)',
+        areaEnd: 'rgba(16, 185, 129, 0.03)',
+      }),
     };
   }, [stats.trenTahunan, trendFilter]);
 
@@ -2239,23 +2315,11 @@ export default function AdminPengolahanPemasaran() {
       {
         header: 'Kategori',
         accessorKey: 'kategori_kegiatan',
-        cell: info => {
-          const value = normalizeKategori(info.getValue());
-          const colorClass =
-            value === 'Pengolahan'
-              ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
-              : value === 'Pemasaran'
-                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                : 'bg-muted text-muted-foreground border-border';
-
-          return (
-            <span
-              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
-            >
-              {value || '-'}
-            </span>
-          );
-        },
+        cell: info => (
+          <span className="font-medium text-foreground">
+            {normalizeKategori(info.getValue()) || '-'}
+          </span>
+        ),
       },
       {
         header: 'Jenis Kegiatan',
@@ -2365,7 +2429,7 @@ export default function AdminPengolahanPemasaran() {
             onClick={handleExportRekap}
             disabled={!filteredData.length}
             title="Pilih satu tahun. Rekap hanya menghitung data VERIFIED dan wilayah yang dipilih."
-            className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Rekap Statistik
@@ -2678,21 +2742,26 @@ export default function AdminPengolahanPemasaran() {
             </div>
       </div>
 
-      {/* Baris 4 — Tren Tahunan */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Baris 4 — Tren Tahunan Pengolahan dan Pemasaran */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-teal-500" />
             <div>
-              <h2 className="text-lg font-semibold">
-                Tren Tahunan Pengolahan vs Pemasaran
+              <h2 className="text-lg font-semibold text-foreground">
+                Tren Tahunan Pengolahan dan Pemasaran
               </h2>
+              <p className="text-sm text-muted-foreground">
+                Grafik dipisahkan berdasarkan kategori kegiatan.
+              </p>
             </div>
           </div>
 
           <select
             value={trendFilter}
-            onChange={event => setTrendFilter(event.target.value)}
+            onChange={event =>
+              setTrendFilter(event.target.value)
+            }
             className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="produksi">Hasil (KG)</option>
@@ -2700,11 +2769,70 @@ export default function AdminPengolahanPemasaran() {
           </select>
         </div>
 
-        <div className="h-[380px]">
-          <ReactECharts
-            option={lineOption}
-            style={{ height: '100%', width: '100%' }}
-          />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Tren Pengolahan */}
+          <div className="rounded-2xl border border-blue-500/20 bg-card p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                <Factory className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  Tren Pengolahan
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {trendFilter === 'produksi'
+                    ? 'Perkembangan hasil pengolahan (KG)'
+                    : 'Perkembangan nilai pengolahan (Rp)'}
+                </p>
+              </div>
+            </div>
+
+            <div className="h-[340px]">
+              <ReactECharts
+                option={trendOptions.pengolahan}
+                notMerge
+                lazyUpdate
+                style={{
+                  height: '100%',
+                  width: '100%',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Tren Pemasaran */}
+          <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  Tren Pemasaran
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {trendFilter === 'produksi'
+                    ? 'Perkembangan hasil pemasaran (KG)'
+                    : 'Perkembangan nilai pemasaran (Rp)'}
+                </p>
+              </div>
+            </div>
+
+            <div className="h-[340px]">
+              <ReactECharts
+                option={trendOptions.pemasaran}
+                notMerge
+                lazyUpdate
+                style={{
+                  height: '100%',
+                  width: '100%',
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2847,7 +2975,7 @@ export default function AdminPengolahanPemasaran() {
                 />
 
                 <FilterMultiSelect
-                  label="Kab/Kota"
+                  label="Kabupaten/Kota"
                   values={filterKabupaten}
                   options={KABUPATEN_KOTA_OPTIONS}
                   onChange={setFilterKabupaten}

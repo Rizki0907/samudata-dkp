@@ -80,7 +80,7 @@ const updateData = async (req, res) => {
     }
 
     let newStatus = existing.status;
-    if (req.user && req.user.role === 'admin_cabang' && existing.status === 'REJECTED') {
+    if (existing.status === 'REJECTED') {
       newStatus = 'PENDING';
     }
 

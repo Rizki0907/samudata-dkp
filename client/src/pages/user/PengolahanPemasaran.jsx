@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import {
@@ -12,6 +12,8 @@ import {
   Users,
   Clock,
   Download,
+  ChevronDown,
+  Search,
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -162,6 +164,196 @@ const normalizeKategori = value =>
     ? 'Pemasaran'
     : 'Pengolahan';
 
+const FILTER_SELECT_CLASS =
+  'w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
+function FilterMultiSelect({
+  label,
+  values,
+  options,
+  onChange,
+  placeholder,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef(null);
+  const normalizedValues = Array.isArray(values)
+    ? values
+    : [];
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleOutsideInteraction = event => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+
+    const handleEscape = event => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+
+    document.addEventListener(
+      'mousedown',
+      handleOutsideInteraction,
+    );
+    document.addEventListener(
+      'touchstart',
+      handleOutsideInteraction,
+    );
+    document.addEventListener(
+      'keydown',
+      handleEscape,
+    );
+
+    return () => {
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideInteraction,
+      );
+      document.removeEventListener(
+        'touchstart',
+        handleOutsideInteraction,
+      );
+      document.removeEventListener(
+        'keydown',
+        handleEscape,
+      );
+    };
+  }, [isOpen]);
+
+  const filteredOptions = options.filter(option =>
+    String(option)
+      .toLowerCase()
+      .includes(search.toLowerCase()),
+  );
+
+  const toggleOption = option => {
+    onChange(
+      normalizedValues.includes(option)
+        ? normalizedValues.filter(
+            item => item !== option,
+          )
+        : [...normalizedValues, option],
+    );
+  };
+
+  const selectedText =
+    normalizedValues.length === 0
+      ? placeholder
+      : normalizedValues.length === 1
+        ? normalizedValues[0]
+        : `${normalizedValues.length} dipilih`;
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative ${isOpen ? 'z-50' : 'z-0'}`}
+    >
+      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+
+      <button
+        type="button"
+        onClick={() =>
+          setIsOpen(previous => !previous)
+        }
+        className={`${FILTER_SELECT_CLASS} flex items-center justify-between gap-3 text-left`}
+      >
+        <span className="truncate font-medium">
+          {selectedText}
+        </span>
+
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 right-0 z-50 mt-2 min-w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={event =>
+                setSearch(event.target.value)
+              }
+              placeholder={`Cari ${label.toLowerCase()}...`}
+              className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+            />
+          </div>
+
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(options)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Pilih Semua
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Bersihkan
+            </button>
+          </div>
+
+          <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+            {filteredOptions.length ? (
+              filteredOptions.map(option => {
+                const checked =
+                  normalizedValues.includes(option);
+
+                return (
+                  <label
+                    key={option}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                      checked
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        toggleOption(option)
+                      }
+                      className="h-4 w-4 rounded border-border accent-primary"
+                    />
+                    <span className="truncate">
+                      {option}
+                    </span>
+                  </label>
+                );
+              })
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                Tidak ada pilihan yang cocok.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const downloadExcelFromApi = async (
   endpoint,
   payload,
@@ -236,10 +428,13 @@ export default function PengolahanPemasaran() {
   const [lastUpdated, setLastUpdated] = useState("-");
 
   // Filter utama dashboard dan tabel
-  const [selectedYear, setSelectedYear] = useState('');
-  const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState('');
-  const [filterKabupaten, setFilterKabupaten] = useState('');
-  const [filterSkalaUsaha, setFilterSkalaUsaha] = useState('');
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterJenisKegiatan, setFilterJenisKegiatan] =
+    useState([]);
+  const [filterKabupaten, setFilterKabupaten] =
+    useState([]);
+  const [filterSkalaUsaha, setFilterSkalaUsaha] =
+    useState([]);
 
   // Pilihan metrik visualisasi
   const [barFilter, setBarFilter] = useState('produksi');
@@ -338,48 +533,43 @@ export default function PengolahanPemasaran() {
     [data],
   );
 
-  const dashboardData = useMemo(
+  const filteredData = useMemo(
     () =>
       data.filter(item => {
         if (
-          selectedYear &&
-          String(item.tahun) !== selectedYear
+          filterTahun.length &&
+          !filterTahun.includes(
+            String(item.tahun),
+          )
         ) {
           return false;
         }
 
         if (
-          selectedJenisKegiatan &&
-          normalizeKategori(item.kategori_kegiatan) !== selectedJenisKegiatan
-        ) {
-          return false;
-        }
-
-        return true;
-      }),
-    [data, selectedJenisKegiatan, selectedYear],
-  );
-
-  const kabupatenOptions = useMemo(
-    () =>
-      [...new Set(dashboardData.map(item => item.kabupaten_kota).filter(Boolean))]
-        .sort(),
-    [dashboardData],
-  );
-
-  const filteredData = useMemo(
-    () =>
-      dashboardData.filter(item => {
-        if (
-          filterKabupaten &&
-          item.kabupaten_kota !== filterKabupaten
+          filterKabupaten.length &&
+          !filterKabupaten.includes(
+            item.kabupaten_kota,
+          )
         ) {
           return false;
         }
 
         if (
-          filterSkalaUsaha &&
-          item.skala_usaha !== filterSkalaUsaha
+          filterJenisKegiatan.length &&
+          !filterJenisKegiatan.includes(
+            normalizeKategori(
+              item.kategori_kegiatan,
+            ),
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          filterSkalaUsaha.length &&
+          !filterSkalaUsaha.includes(
+            item.skala_usaha,
+          )
         ) {
           return false;
         }
@@ -387,8 +577,10 @@ export default function PengolahanPemasaran() {
         return true;
       }),
     [
-      dashboardData,
+      data,
+      filterTahun,
       filterKabupaten,
+      filterJenisKegiatan,
       filterSkalaUsaha,
     ],
   );
@@ -415,22 +607,28 @@ export default function PengolahanPemasaran() {
   };
 
   const handleExportRekap = async () => {
-    if (!selectedYear) {
+    if (filterTahun.length !== 1) {
       window.alert(
-        'Pilih satu tahun sebelum mengekspor rekap statistik.',
+        'Pilih tepat satu tahun sebelum mengekspor rekap statistik.',
       );
       return;
     }
 
+    const selectedYear = String(
+      filterTahun[0],
+    );
+
     const selectedRegions =
-      filterKabupaten
-        ? [filterKabupaten]
+      filterKabupaten.length
+        ? KABUPATEN_KOTA_OPTIONS.filter(
+            region =>
+              filterKabupaten.includes(region),
+          )
         : KABUPATEN_KOTA_OPTIONS;
 
     const reportRows = data.filter(
       row =>
-        String(row.tahun) ===
-          String(selectedYear) &&
+        String(row.tahun) === selectedYear &&
         selectedRegions.includes(
           row.kabupaten_kota,
         ),
@@ -446,7 +644,7 @@ export default function PengolahanPemasaran() {
     await downloadExcelFromApi(
       '/pengolahan-pemasaran/export-rekap',
       {
-        tahun: String(selectedYear),
+        tahun: selectedYear,
         regions: selectedRegions,
         ids: reportRows
           .map(row => row.id)
@@ -537,17 +735,7 @@ export default function PengolahanPemasaran() {
         .reduce((sum, row) => sum + toNumber(row.jumlah_unit_usaha), 0),
     }));
 
-    const trendRows = data.filter(row => {
-      if (
-        selectedJenisKegiatan &&
-        normalizeKategori(row.kategori_kegiatan) !== selectedJenisKegiatan
-      ) {
-        return false;
-      }
-      if (filterKabupaten && row.kabupaten_kota !== filterKabupaten) return false;
-      if (filterSkalaUsaha && row.skala_usaha !== filterSkalaUsaha) return false;
-      return true;
-    });
+    const trendRows = rows;
 
     const yearlyMap = new Map();
     trendRows.forEach(row => {
@@ -592,13 +780,19 @@ export default function PengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [data, filteredData, filterKabupaten, filterSkalaUsaha, selectedJenisKegiatan]);
+  }, [filteredData]);
+
+  const singleSelectedCategory =
+    filterJenisKegiatan.length === 1
+      ? filterJenisKegiatan[0]
+      : '';
 
   const activeDetailKegiatan =
-    selectedJenisKegiatan || detailKegiatanFilter;
+    singleSelectedCategory ||
+    detailKegiatanFilter;
 
   const showDetailKegiatanToggle =
-    !selectedJenisKegiatan;
+    filterJenisKegiatan.length !== 1;
 
   const columns = useMemo(
     () => [
@@ -613,21 +807,11 @@ export default function PengolahanPemasaran() {
       {
         header: 'Kategori Kegiatan',
         accessorKey: 'kategori_kegiatan',
-        cell: info => {
-          const value = normalizeKategori(info.getValue());
-          const colorClass =
-            value === 'Pengolahan'
-              ? 'border-blue-500/20 bg-blue-500/10 text-blue-600'
-              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600';
-
-          return (
-            <span
-              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${colorClass}`}
-            >
-              {value}
-            </span>
-          );
-        },
+        cell: info => (
+          <span className="font-medium text-foreground">
+            {normalizeKategori(info.getValue()) || '-'}
+          </span>
+        ),
       },
       {
         header: 'Jenis Kegiatan',
@@ -1167,7 +1351,7 @@ export default function PengolahanPemasaran() {
                 left: 'center',
                 top: 'middle',
                 style: {
-                  text: `Belum ada data detail ${activeDetailKegiatan.toLowerCase()}.`,
+                  text: `Belum ada data`,
                   fill: '#94a3b8',
                   fontSize: 13,
                 },
@@ -1180,104 +1364,173 @@ export default function PengolahanPemasaran() {
       stats.detailKegiatan,
     ]);
 
-  const lineOption = useMemo(() => {
-    const isProduksi = trendFilter === 'produksi';
+  const trendOptions = useMemo(() => {
+    const isProduksi =
+      trendFilter === 'produksi';
 
-    const pengolahanKey = isProduksi
-      ? 'pengolahan_produksi'
-      : 'pengolahan_nilai';
+    const createTrendOption = (
+      category,
+      color,
+      areaTop,
+      areaBottom,
+    ) => {
+      const dataKey =
+        category === 'Pengolahan'
+          ? isProduksi
+            ? 'pengolahan_produksi'
+            : 'pengolahan_nilai'
+          : isProduksi
+            ? 'pemasaran_produksi'
+            : 'pemasaran_nilai';
 
-    const pemasaranKey = isProduksi
-      ? 'pemasaran_produksi'
-      : 'pemasaran_nilai';
+      return {
+        animationDuration: 500,
+        tooltip: {
+          trigger: 'axis',
+          formatter: params => {
+            const item = params?.[0];
+            const value = toNumber(
+              item?.value,
+            );
 
-    const allSeries = [
-      {
-        name: 'Pengolahan',
-        type: 'line',
-        smooth: false,
-        symbolSize: 8,
-        data: stats.trenTahunan.map(item => item[pengolahanKey]),
-        lineStyle: {
-          width: 3,
-          color: '#3b82f6',
+            return [
+              `<b>${category}</b>`,
+              `Tahun: <b>${item?.name || '-'}</b>`,
+              isProduksi
+                ? `Hasil: <b>${value.toLocaleString(
+                    'id-ID',
+                  )} KG</b>`
+                : `Nilai: <b>${formatRupiah(
+                    value,
+                  )}</b>`,
+            ].join('<br/>');
+          },
         },
-        itemStyle: {
-          color: '#3b82f6',
+        grid: {
+          left: '3%',
+          right: '4%',
+          top: '8%',
+          bottom: '5%',
+          containLabel: true,
         },
-      },
-      {
-        name: 'Pemasaran',
-        type: 'line',
-        smooth: false,
-        symbolSize: 8,
-        data: stats.trenTahunan.map(item => item[pemasaranKey]),
-        lineStyle: {
-          width: 3,
-          color: '#10b981',
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: stats.trenTahunan.map(
+            item => item.tahun,
+          ),
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: 12,
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#334155',
+            },
+          },
         },
-        itemStyle: {
-          color: '#10b981',
-        },
-      },
-    ];
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            lineStyle: {
+              color: '#334155',
+              type: 'dashed',
+            },
+          },
+          axisLabel: {
+            color: '#94a3b8',
+            formatter: value => {
+              if (
+                value >=
+                1_000_000_000_000
+              ) {
+                return `${(
+                  value /
+                  1_000_000_000_000
+                ).toFixed(1)}T`;
+              }
 
-    const visibleSeries = selectedJenisKegiatan
-      ? allSeries.filter(item => item.name === selectedJenisKegiatan)
-      : allSeries;
+              if (value >= 1_000_000_000) {
+                return `${(
+                  value / 1_000_000_000
+                ).toFixed(1)}M`;
+              }
+
+              if (value >= 1_000_000) {
+                return `${(
+                  value / 1_000_000
+                ).toFixed(1)}Jt`;
+              }
+
+              if (value >= 1_000) {
+                return `${(
+                  value / 1_000
+                ).toFixed(1)}rb`;
+              }
+
+              return value;
+            },
+          },
+        },
+        series: [
+          {
+            name: category,
+            type: 'line',
+            data: stats.trenTahunan.map(
+              item => item[dataKey],
+            ),
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+              width: 3,
+              color,
+            },
+            itemStyle: {
+              color,
+              borderColor: '#ffffff',
+              borderWidth: 2,
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  {
+                    offset: 0,
+                    color: areaTop,
+                  },
+                  {
+                    offset: 1,
+                    color: areaBottom,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    };
 
     return {
-      tooltip: {
-        trigger: 'axis',
-        valueFormatter: value =>
-          isProduksi
-            ? `${toNumber(value).toLocaleString('id-ID')} KG`
-            : formatRupiah(value),
-      },
-      legend: {
-        data: visibleSeries.map(item => item.name),
-        textStyle: { color: '#cbd5e1' },
-        top: 0,
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        top: '12%',
-        bottom: '3%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: stats.trenTahunan.map(item => item.tahun),
-        axisLabel: {
-          color: '#94a3b8',
-          fontSize: 12,
-        },
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: {
-          lineStyle: {
-            color: '#334155',
-            type: 'dashed',
-          },
-        },
-        axisLabel: {
-          color: '#94a3b8',
-          formatter: val => {
-            if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
-            if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
-            if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}Jt`;
-            if (val >= 1_000) return `${(val / 1_000).toFixed(1)}rb`;
-            return val;
-          },
-        },
-      },
-      series: visibleSeries,
+      pengolahan: createTrendOption(
+        'Pengolahan',
+        '#3b82f6',
+        'rgba(59, 130, 246, 0.48)',
+        'rgba(59, 130, 246, 0.04)',
+      ),
+      pemasaran: createTrendOption(
+        'Pemasaran',
+        '#10b981',
+        'rgba(16, 185, 129, 0.48)',
+        'rgba(16, 185, 129, 0.04)',
+      ),
     };
   }, [
-    selectedJenisKegiatan,
     stats.trenTahunan,
     trendFilter,
   ]);
@@ -1316,53 +1569,58 @@ export default function PengolahanPemasaran() {
         </div>
       </div>
 
-        <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-3">
-          <select
-            value={selectedJenisKegiatan}
-            onChange={event => {
-              setSelectedJenisKegiatan(event.target.value);
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <FilterMultiSelect
+            label="Tahun"
+            values={filterTahun}
+            options={tahunOptions}
+            onChange={values => {
+              setFilterTahun(values);
               setSelectedMapRegion(null);
-              setFilterKabupaten('');
             }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-48"
-          >
-            <option value="">Semua Kategori Kegiatan</option>
-            <option value="Pengolahan">Pengolahan</option>
-            <option value="Pemasaran">Pemasaran</option>
-          </select>
+            placeholder="Semua Tahun"
+          />
 
-          <select
-            value={selectedYear}
-            onChange={event => {
-              setSelectedYear(event.target.value);
+          <FilterMultiSelect
+            label="Kabupaten/Kota"
+            values={filterKabupaten}
+            options={KABUPATEN_KOTA_OPTIONS}
+            onChange={values => {
+              setFilterKabupaten(values);
               setSelectedMapRegion(null);
-              setFilterKabupaten('');
             }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-40"
-          >
-            <option value="">Semua Tahun</option>
-            {tahunOptions.map(year => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+            placeholder="Semua Kab/Kota"
+          />
 
-          <select
-            value={filterKabupaten}
-            onChange={event => {
-              setFilterKabupaten(event.target.value);
+          <FilterMultiSelect
+            label="Kategori Kegiatan"
+            values={filterJenisKegiatan}
+            options={[
+              'Pengolahan',
+              'Pemasaran',
+            ]}
+            onChange={values => {
+              setFilterJenisKegiatan(values);
               setSelectedMapRegion(null);
             }}
-            className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-52"
-          >
-            <option value="">Semua Kabupaten/Kota</option>
-            {kabupatenOptions.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+            placeholder="Semua Kategori Kegiatan"
+          />
+
+          <FilterMultiSelect
+            label="Skala Usaha"
+            values={filterSkalaUsaha}
+            options={[
+              'Mikro',
+              'Kecil',
+              'Menengah',
+              'Besar',
+            ]}
+            onChange={values => {
+              setFilterSkalaUsaha(values);
+              setSelectedMapRegion(null);
+            }}
+            placeholder="Semua Skala Usaha"
+          />
         </div>
 
       {loading ? (
@@ -1697,35 +1955,78 @@ export default function PengolahanPemasaran() {
             </div>
           </div>
 
-          {/* Baris 4 — Tren Tahunan */}
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Baris 4 — Tren Tahunan terpisah */}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-teal-500" />
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    {selectedJenisKegiatan
-                      ? `Tren Tahunan ${selectedJenisKegiatan}`
-                      : 'Tren Tahunan Pengolahan vs Pemasaran'}
-                  </h2>
-                </div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Tren Tahunan Pengolahan dan Pemasaran
+                </h2>
               </div>
 
               <select
                 value={trendFilter}
-                onChange={event => setTrendFilter(event.target.value)}
+                onChange={event =>
+                  setTrendFilter(event.target.value)
+                }
                 className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="produksi">Hasil (KG)</option>
-                <option value="nilai">Nilai (Rp)</option>
+                <option value="produksi">
+                  Hasil (KG)
+                </option>
+                <option value="nilai">
+                  Nilai (Rp)
+                </option>
               </select>
             </div>
 
-            <div className="h-[380px]">
-              <ReactECharts
-                option={lineOption}
-                style={{ height: '100%', width: '100%' }}
-              />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-blue-500/20 bg-card p-5 shadow-sm sm:p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-blue-500" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Tren Pengolahan
+                  </h3>
+                </div>
+
+                <div className="h-[340px]">
+                  <ReactECharts
+                    option={
+                      trendOptions.pengolahan
+                    }
+                    notMerge
+                    lazyUpdate
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-500/20 bg-card p-5 shadow-sm sm:p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Tren Pemasaran
+                  </h3>
+                </div>
+
+                <div className="h-[340px]">
+                  <ReactECharts
+                    option={
+                      trendOptions.pemasaran
+                    }
+                    notMerge
+                    lazyUpdate
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1739,66 +2040,59 @@ export default function PengolahanPemasaran() {
             </div>
 
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <select
-                value={selectedYear}
-                onChange={event => {
-                  setSelectedYear(event.target.value);
-                  setSelectedMapRegion(null);
-                  setFilterKabupaten('');
-                }}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
-              >
-                <option value="">Semua Tahun</option>
-                {tahunOptions.map(year => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={filterKabupaten}
-                onChange={event => {
-                  setFilterKabupaten(event.target.value);
+              <FilterMultiSelect
+                label="Tahun"
+                values={filterTahun}
+                options={tahunOptions}
+                onChange={values => {
+                  setFilterTahun(values);
                   setSelectedMapRegion(null);
                 }}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
-              >
-                <option value="">Semua Kabupaten/Kota</option>
-                {kabupatenOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                placeholder="Semua Tahun"
+              />
 
-              <select
-                value={selectedJenisKegiatan}
-                onChange={event => {
-                  setSelectedJenisKegiatan(event.target.value);
+              <FilterMultiSelect
+                label="Kabupaten/Kota"
+                values={filterKabupaten}
+                options={KABUPATEN_KOTA_OPTIONS}
+                onChange={values => {
+                  setFilterKabupaten(values);
                   setSelectedMapRegion(null);
-                  setFilterKabupaten('');
                 }}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
-              >
-                <option value="">Semua Kategori</option>
-                <option value="Pengolahan">Pengolahan</option>
-                <option value="Pemasaran">Pemasaran</option>
-              </select>
+                placeholder="Semua Kab/Kota"
+              />
 
-              <select
-                value={filterSkalaUsaha}
-                onChange={event =>
-                  setFilterSkalaUsaha(event.target.value)
-                }
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
-              >
-                <option value="">Semua Skala Usaha</option>
-                <option value="Mikro">Mikro</option>
-                <option value="Kecil">Kecil</option>
-                <option value="Menengah">Menengah</option>
-                <option value="Besar">Besar</option>
-              </select>
+              <FilterMultiSelect
+                label="Kategori Kegiatan"
+                values={filterJenisKegiatan}
+                options={[
+                  'Pengolahan',
+                  'Pemasaran',
+                ]}
+                onChange={values => {
+                  setFilterJenisKegiatan(
+                    values,
+                  );
+                  setSelectedMapRegion(null);
+                }}
+                placeholder="Semua Kategori Kegiatan"
+              />
+
+              <FilterMultiSelect
+                label="Skala Usaha"
+                values={filterSkalaUsaha}
+                options={[
+                  'Mikro',
+                  'Kecil',
+                  'Menengah',
+                  'Besar',
+                ]}
+                onChange={values => {
+                  setFilterSkalaUsaha(values);
+                  setSelectedMapRegion(null);
+                }}
+                placeholder="Semua Skala Usaha"
+              />
             </div>
 
             <DataTable
@@ -1811,10 +2105,10 @@ export default function PengolahanPemasaran() {
                   onClick={handleExportRekap}
                   disabled={!filteredData.length}
                   title="Pilih satu tahun. Rekap mengikuti wilayah yang dipilih."
-                  className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
-                  Ekspor Rekap Statistik
+                  Rekap Statistik
                 </button>
               }
               exportName={`Pengolahan_Pemasaran_${
