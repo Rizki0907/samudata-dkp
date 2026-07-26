@@ -2742,99 +2742,92 @@ export default function AdminPengolahanPemasaran() {
             </div>
       </div>
 
-      {/* Baris 4 — Tren Tahunan Pengolahan dan Pemasaran */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-teal-500" />
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Tren Tahunan Pengolahan dan Pemasaran
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Grafik dipisahkan berdasarkan kategori kegiatan.
-              </p>
+          {/* Baris 4 — Tren Tahunan terpisah */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-blue-500/20 bg-card p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-foreground">
+                        Tren Pengolahan
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* <select
+                    value={trendFilter}
+                    onChange={event =>
+                      setTrendFilter(event.target.value)
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="produksi">Hasil (KG)</option>
+                    <option value="nilai">Nilai (Rp)</option>
+                  </select> */}
+                </div>
+
+                <div className="h-[340px]">
+                  <ReactECharts
+                    option={
+                      trendOptions.pengolahan
+                    }
+                    notMerge
+                    lazyUpdate
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-foreground">
+                        Tren Pemasaran
+                      </h3>
+                    </div>
+                  </div>
+
+                  <select
+                    value={trendFilter}
+                    onChange={event =>
+                      setTrendFilter(event.target.value)
+                    }
+                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="produksi">Hasil (KG)</option>
+                    <option value="nilai">Nilai (Rp)</option>
+                  </select>
+                </div>
+
+                <div className="h-[340px]">
+                  <ReactECharts
+                    option={
+                      trendOptions.pemasaran
+                    }
+                    notMerge
+                    lazyUpdate
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-
-          <select
-            value={trendFilter}
-            onChange={event =>
-              setTrendFilter(event.target.value)
-            }
-            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="produksi">Hasil (KG)</option>
-            <option value="nilai">Nilai (Rp)</option>
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Tren Pengolahan */}
-          <div className="rounded-2xl border border-blue-500/20 bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
-                <Factory className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-foreground">
-                  Tren Pengolahan
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {trendFilter === 'produksi'
-                    ? 'Perkembangan hasil pengolahan (KG)'
-                    : 'Perkembangan nilai pengolahan (Rp)'}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-[340px]">
-              <ReactECharts
-                option={trendOptions.pengolahan}
-                notMerge
-                lazyUpdate
-                style={{
-                  height: '100%',
-                  width: '100%',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Tren Pemasaran */}
-          <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-foreground">
-                  Tren Pemasaran
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {trendFilter === 'produksi'
-                    ? 'Perkembangan hasil pemasaran (KG)'
-                    : 'Perkembangan nilai pemasaran (Rp)'}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-[340px]">
-              <ReactECharts
-                option={trendOptions.pemasaran}
-                notMerge
-                lazyUpdate
-                style={{
-                  height: '100%',
-                  width: '100%',
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
   // ==== Akhir Blok Visualisasi Data ====
