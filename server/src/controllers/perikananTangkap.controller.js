@@ -481,7 +481,7 @@ const batchDelete = async (req, res) => {
   // POST export PUD
   const exportPUD = async (req, res) => {
     try {
-      const { ids, tahun, bulan, wilayah } = req.body;
+      const { ids, tahun, bulan, wilayah, jenis_perairan } = req.body;
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ success: false, message: 'Tidak ada data untuk diekspor' });
       }
@@ -492,77 +492,119 @@ const batchDelete = async (req, res) => {
         include: { tangkapan: true }
       });
 
-      // Load Template
-      const templatePath = path.join(__dirname, '../../templates/PUHIT.xlsx');
+      // Load Template Universal
+      const templatePath = path.join(__dirname, '../../templates/PUHIT_UNIVERSAL.xlsx');
       const XlsxPopulate = require('xlsx-populate');
       const wb = await XlsxPopulate.fromFileAsync(templatePath);
 
-      // Fill ISIAN sheet
+      // --- 1. Fill ISIAN sheet ---
       const isianSheet = wb.sheet('ISIAN');
       if (isianSheet) {
         isianSheet.cell('C3').value('Jawa Timur');
         isianSheet.cell('C5').value(wilayah || '-');
-        isianSheet.cell('C7').value('Darat / PUD');
-        isianSheet.cell('C9').value(bulan ? `${bulan}` : '-');
+        isianSheet.cell('C7').value(jenis_perairan || 'PUD');
+        
+        // PUD templates usually have Bulan/Kuartal at C9 or similar (often just Bulan)
+        isianSheet.cell('C9').value(bulan ? String(bulan) : '-');
         isianSheet.cell('C11').value(tahun || new Date().getFullYear());
       }
 
-      // Fill DATA sheet
-      const dataSheet = wb.sheet('DATA');
-      if (dataSheet) {
-        // Build fish map from row 3 (which contains the names Betok, Sidat, dll.)
-        const fishMap = {}; // name -> colNumber
-        for(let c=2; c<=80; c++) {
-          const val = dataSheet.cell(3, c).value();
-          if (val && typeof val === 'string') {
-            fishMap[val.trim().toLowerCase()] = c;
-          }
+      // Helper function to normalize string for mapping
+      const normalize = (str) => (str || '').trim().toLowerCase();
+
+      // --- 2. Fill LP-2 (GT Kapal vs Alat Tangkap) ---
+      const lp2 = wb.sheet('LP-2');
+      if (lp2) {
+        const lp2AlatMap = {}; // name -> row
+        for(let r=10; r<=60; r++) {
+          // Alat tangkap is usually in col 2 or 4. We check both, prefer 4.
+          let val = lp2.cell(r, 4).value() || lp2.cell(r, 2).value();
+          if (val && typeof val === 'string') lp2AlatMap[normalize(val)] = r;
         }
 
-        // Boat type to row mapping (based on PUD_JENIS_PERAHU_OPTIONS)
-        // From observation, the rows are 4 to 15 corresponding to boat types.
-        const boatRowMap = {
-          'Tanpa Perahu': 4,
-          'Perahu Tanpa Motor': 5,
-          'Motor Tempel < 5 GT': 6,
-          'Kapal Motor 5-10 GT': 12,
-          'Kapal Motor 10-20 GT': 13,
-          'Kapal Motor 20-30 GT': 14,
-          'Kapal Motor >30 GT': 15
-        };
+        const lp2GtMap = {}; // name -> col
+        for(let c=7; c<=30; c++) {
+          let val = lp2.cell(8, c).value();
+          if (val && typeof val === 'string') lp2GtMap[normalize(val)] = c;
+        }
 
         data.forEach(record => {
-          console.log(`Processing record ID: ${record.id}, GT: ${record.gt_kapal}`);
-          const rowNum = boatRowMap[record.gt_kapal];
-          if (!rowNum) {
-            console.log(`Unrecognized boat type: ${record.gt_kapal}`);
-            return;
-          }
+          const alat = normalize(record.alat_tangkap);
+          let gt = normalize(record.gt_kapal);
+          
+          // Map frontend 'Motor Tempel < 5 GT' to 'motor tempel' in excel
+          if (gt.includes('motor tempel')) gt = 'motor tempel';
+          if (gt.includes('kapal motor')) gt = 'kapal motor';
+          
+          const rowNum = lp2AlatMap[alat];
+          const colNum = lp2GtMap[gt];
 
-          record.tangkapan.forEach(t => {
-            const fishName = t.komoditas.trim().toLowerCase();
-            let colNum = fishMap[fishName];
-            
-            // Fallback for "Ikan lainnya" if specific fish not found
-            if (!colNum) colNum = fishMap['ikan lainnya'];
-            
-            if (colNum) {
-              const cell = dataSheet.cell(rowNum, colNum);
-              const currentVal = Number(cell.value()) || 0;
-              cell.value(currentVal + Number(t.volume || 0));
-              console.log(`Wrote ${t.volume} to row ${rowNum}, col ${colNum} for ${fishName}`);
-            } else {
-              console.log(`Could not find column for ${fishName} or 'ikan lainnya'`);
-            }
-          });
+          if (rowNum && colNum) {
+            const cell = lp2.cell(rowNum, colNum);
+            const currentVal = Number(cell.value()) || 0;
+            // Sum pud_jumlah_sampel
+            const sampleCount = Number(record.pud_jumlah_sampel) || 1; 
+            cell.value(currentVal + sampleCount);
+          }
         });
       }
 
-      console.log('Finished populating, generating buffer...');
+      // --- 3. Fill LP-3 VOL & LP-3 NIL ---
+      const lp3Vol = wb.sheet('LP-3 Vol');
+      const lp3Nil = wb.sheet('LP-3 Nil');
+      
+      if (lp3Vol && lp3Nil) {
+        const lp3AlatMap = {}; // name -> row
+        for(let r=6; r<=60; r++) {
+          let val = lp3Vol.cell(r, 4).value() || lp3Vol.cell(r, 2).value();
+          if (val && typeof val === 'string') lp3AlatMap[normalize(val)] = r;
+        }
+
+        const lp3KomMap = {}; // name -> col
+        // Komoditas can be in row 4, 6 or 7 depending on the exact template variation
+        for(let c=8; c<=120; c++) {
+          let val = lp3Vol.cell(4, c).value() || lp3Vol.cell(6, c).value() || lp3Vol.cell(7, c).value();
+          if (val && typeof val === 'string') {
+             // Remove newlines and trim
+             lp3KomMap[normalize(val.replace(/\n/g, ' '))] = c;
+          }
+        }
+
+        data.forEach(record => {
+          const alat = normalize(record.alat_tangkap);
+          const rowNum = lp3AlatMap[alat];
+
+          if (rowNum && Array.isArray(record.tangkapan)) {
+            record.tangkapan.forEach(t => {
+              const kom = normalize(t.komoditas);
+              let colNum = lp3KomMap[kom];
+              
+              if (colNum) {
+                // LP-3 VOL
+                const cellVol = lp3Vol.cell(rowNum, colNum);
+                const currentVol = Number(cellVol.value()) || 0;
+                cellVol.value(currentVol + (Number(t.volume) || 0));
+
+                // LP-3 NIL
+                const cellNil = lp3Nil.cell(rowNum, colNum);
+                const currentNil = Number(cellNil.value()) || 0;
+                cellNil.value(currentNil + (Number(t.nilai) || 0));
+              }
+            });
+          }
+        });
+      }
+
+      console.log('Finished populating 4 sheets PUD, generating buffer...');
       const buffer = await wb.outputAsync();
       console.log('Buffer generated, size:', buffer.length);
+      
+      const fileWilayah = wilayah || 'Semua';
+      const fileTahun = tahun || 'All';
+      const fileJenis = jenis_perairan || 'PUD';
+      
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_${wilayah || 'Semua'}_${tahun || 'All'}.xlsx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_${fileJenis}_${fileWilayah}_${fileTahun}.xlsx"`);
       
       res.send(buffer);
     } catch (error) {

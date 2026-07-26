@@ -6,8 +6,9 @@ import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import {  
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
-  Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle 
-, Clock, Download, Calendar, Map, Layers, ChevronDown } from 'lucide-react';
+  Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle,
+  Clock, Download, Calendar, Map, Layers, ChevronDown, Droplet, Search, Trash2, Edit, Save, X, Eye, CheckCircle, XCircle, Scale, FileSpreadsheet
+} from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
@@ -57,6 +58,7 @@ export default function AdminPerikananTangkap() {
   const [exportModalTahun, setExportModalTahun] = useState('');
   const [exportModalBulan, setExportModalBulan] = useState('');
   const [exportModalWilayah, setExportModalWilayah] = useState('');
+  const [exportModalJenisPerairan, setExportModalJenisPerairan] = useState('');
 
 
   // Local Chart Filter for Harga
@@ -936,11 +938,11 @@ export default function AdminPerikananTangkap() {
     XLSX.writeFile(wb, `LM_${pelabuhanName}_${namaBulan}_${tahun || ''}.xlsx`);
   };
 
-const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
+  const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah, jenisPerairan) => {
     try {
-      const pudData = exportData.filter(d => d.sumber_data === 'PUD');
+      const pudData = exportData;
       if (pudData.length === 0) {
-        alert("Tidak ada data PUD untuk diekspor pada filter ini.");
+        alert("Tidak ada data untuk diekspor pada filter ini.");
         return;
       }
 
@@ -950,7 +952,8 @@ const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
         ids,
         tahun: tahun,
         bulan: bulan,
-        wilayah: wilayah
+        wilayah: wilayah,
+        jenis_perairan: jenisPerairan
       }, { responseType: 'blob' });
 
       // response.data is already a Blob when using axios with responseType: 'blob'
@@ -1350,12 +1353,16 @@ const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
     }
     
     if (exportModalWilayah) {
-      dataToExport = dataToExport.filter(d => {
-         const matchesPelabuhan = (d.pelabuhan || '').toUpperCase() === exportModalWilayah.toUpperCase();
-         const matchesKabKota = (d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase();
-         return matchesPelabuhan || matchesKabKota;
-      });
-    }
+        dataToExport = dataToExport.filter(d => {
+           const matchesPelabuhan = (d.pelabuhan || '').toUpperCase() === exportModalWilayah.toUpperCase();
+           const matchesKabKota = (d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase();
+           return matchesPelabuhan || matchesKabKota;
+        });
+      }
+
+      if (exportModalPerairan === 'PUD' && exportModalJenisPerairan) {
+        dataToExport = dataToExport.filter(d => d.jenis_perairan === exportModalJenisPerairan);
+      }
     
     if (exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'LM') {
       handleExportLMPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
@@ -1363,15 +1370,15 @@ const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah) => {
       return;
     }
     
-    if (exportModalPerairan === 'PELABUHAN') {
-      handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-    } else if (exportModalPerairan === 'PUD') {
-      handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-    } else if (exportModalPerairan === 'KAB_KOTA') {
-      handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-    } else {
-      alert('Pilih Sumber Perairan terlebih dahulu.');
-    }
+      if (exportModalPerairan === 'PELABUHAN') {
+        handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+      } else if (exportModalPerairan === 'PUD') {
+        handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, exportModalJenisPerairan);
+      } else if (exportModalPerairan === 'KAB_KOTA') {
+        handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, '');
+      } else {
+        alert('Pilih Sumber Perairan terlebih dahulu.');
+      }
     setIsExportModalOpen(false);
   };
 
@@ -2161,6 +2168,7 @@ const columns = useMemo(() => [
                       setExportModalTahun('');
                       setExportModalBulan('');
                       setExportModalWilayah('');
+                      setExportModalJenisPerairan('');
                     }} 
                     className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/50 outline-none transition-all cursor-pointer hover:border-blue-500/50"
                   >
@@ -2194,6 +2202,27 @@ const columns = useMemo(() => [
                       <option value="" disabled>Pilih Jenis Laporan...</option>
                       <option value="REKAP">Rekap Bulanan</option>
                       <option value="LM">Laporan Monitoring (LM)</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              {/* Jenis Perairan (Khusus PUD) */}
+              {exportModalPerairan === 'PUD' && (
+                <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                    <Droplet className="w-4 h-4 text-cyan-500" />
+                    Jenis Perairan PUD
+                  </label>
+                  <div className="relative">
+                    <select 
+                      value={exportModalJenisPerairan} 
+                      onChange={(e) => setExportModalJenisPerairan(e.target.value)} 
+                      className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all cursor-pointer hover:border-cyan-500/50"
+                    >
+                      <option value="" disabled>Pilih Jenis Perairan...</option>
+                      {PERAIRAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
