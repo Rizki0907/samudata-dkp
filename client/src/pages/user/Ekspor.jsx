@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText } from 'lucide-react';
+import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText, Clock } from 'lucide-react';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -12,21 +13,18 @@ const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i)
 export default function Ekspor() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('');
-  const [stats, setStats] = useState({
-    kpi: { total_volume: 0, total_nilai: 0, total_transaksi: 0 },
-    treemap: [],
-    top5_names: [],
-    monthly_data_raw: [],
-    monthly_aggregate: [],
-    ranking_komoditas: [],
-    negara_tujuan: []
-  });
+  const [lastUpdated, setLastUpdated] = useState('-');
 
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterNegara, setFilterNegara] = useState('');
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterNegara, setFilterNegara] = useState([]);
+
+  const [filterTableBulan, setFilterTableBulan] = useState([]);
+  const [filterTableTahun, setFilterTableTahun] = useState([]);
+  const [filterTableKomoditas, setFilterTableKomoditas] = useState([]);
+  const [filterTableNegara, setFilterTableNegara] = useState([]);
+
   const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
   const [satuanFilter, setSatuanFilter] = useState('KG');
   const [mataUangFilter, setMataUangFilter] = useState('USD');
@@ -38,31 +36,67 @@ export default function Ekspor() {
   const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.nama_komoditas))].filter(Boolean).sort(), [data]);
   const negaraOptions = useMemo(() => [...new Set(data.map(d => d.negara_tujuan))].filter(Boolean).sort(), [data]);
 
+  const matchMultiFilter = (filterArr, val, isCaseInsensitive = false) => {
+    if (!filterArr || (Array.isArray(filterArr) && filterArr.length === 0)) return true;
+    if (!Array.isArray(filterArr)) {
+      return isCaseInsensitive
+        ? String(filterArr).toUpperCase() === String(val || '').toUpperCase()
+        : String(filterArr) === String(val);
+    }
+    return isCaseInsensitive
+      ? filterArr.some(f => String(f).toUpperCase() === String(val || '').toUpperCase())
+      : filterArr.some(f => String(f) === String(val));
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      if (filterBulan && item.bulan !== filterBulan) return false;
-      if (filterTahun && item.tahun !== filterTahun) return false;
-      if (filterKomoditas && item.nama_komoditas !== filterKomoditas) return false;
-      if (filterNegara && item.negara_tujuan !== filterNegara) return false;
+      if (!matchMultiFilter(filterBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTahun, item.tahun)) return false;
+      if (!matchMultiFilter(filterKomoditas, item.nama_komoditas)) return false;
+      if (!matchMultiFilter(filterNegara, item.negara_tujuan)) return false;
       return true;
     });
   }, [data, filterBulan, filterTahun, filterKomoditas, filterNegara]);
+
+  const filteredTableData = useMemo(() => {
+    return data.filter(item => {
+      if (!matchMultiFilter(filterTableBulan, item.bulan)) return false;
+      if (!matchMultiFilter(filterTableTahun, item.tahun)) return false;
+      if (!matchMultiFilter(filterTableKomoditas, item.nama_komoditas)) return false;
+      if (!matchMultiFilter(filterTableNegara, item.negara_tujuan)) return false;
+      return true;
+    });
+  }, [data, filterTableBulan, filterTableTahun, filterTableKomoditas, filterTableNegara]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const query = selectedYear ? `?tahun=${selectedYear}` : '';
-        const [dataRes, statsRes] = await Promise.all([
-          api.get(`/ekspor${query}`),
-          api.get(`/ekspor/stats${query}`)
-        ]);
-
-        if (dataRes.data.success) {
-          setData(dataRes.data.data);
-        }
-        if (statsRes.data.success) {
-          setStats(statsRes.data.data);
+        const res = await api.get('/ekspor');
+        if (res.data.success) {
+          const list = res.data.data || [];
+          setData(list);
+          if (list.length > 0) {
+            const latest = list.reduce((a, b) =>
+              new Date(a.updated_at || a.created_at || 0) > new Date(b.updated_at || b.created_at || 0) ? a : b
+            );
+            const updatedAt = new Date(latest.updated_at || latest.created_at);
+            const datePart = updatedAt.toLocaleDateString('id-ID', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            });
+            const timePart = updatedAt
+              .toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })
+              .replace(':', '.');
+            setLastUpdated(`${datePart} ${timePart}`);
+          } else {
+            setLastUpdated('-');
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -70,9 +104,156 @@ export default function Ekspor() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
-  }, [selectedYear]);
+  }, []);
+
+  const stats = useMemo(() => {
+    let total_volume = 0;
+    let total_nilai_usd = 0;
+    let total_nilai_rp = 0;
+
+    const komoditasMap = {};
+    const monthlyRaw = {};
+    const monthlyAgg = {};
+    const negaraMap = {};
+
+    MONTHS.forEach(m => {
+      monthlyAgg[m] = { 
+        'Semua': { volume: 0, nilai_usd: 0, nilai_rp: 0 },
+        'Segar dan Olahan': { volume: 0, nilai_usd: 0, nilai_rp: 0 },
+        'Hidup': { volume: 0, nilai_usd: 0, nilai_rp: 0 },
+        'Satuan': {}
+      };
+    });
+
+    filteredData.forEach(item => {
+      const vol = Number(item.volume) || 0;
+      const usd = Number(item.nilai_usd) || 0;
+      const rp = Number(item.nilai_rp) || 0;
+
+      total_volume += vol;
+      total_nilai_usd += usd;
+      total_nilai_rp += rp;
+
+      const kat = item.kategori_komoditas || 'Lainnya';
+      const kom = item.nama_komoditas || 'Lainnya';
+
+      if (!komoditasMap[kat]) komoditasMap[kat] = {};
+      if (!komoditasMap[kat][kom]) komoditasMap[kat][kom] = { usd: 0, rp: 0 };
+      komoditasMap[kat][kom].usd += usd;
+      komoditasMap[kat][kom].rp += rp;
+
+      const negara = item.negara_tujuan || 'Lainnya';
+      if (!negaraMap[negara]) negaraMap[negara] = { usd: 0, rp: 0 };
+      negaraMap[negara].usd += usd;
+      negaraMap[negara].rp += rp;
+
+      if (item.bulan && MONTHS.includes(item.bulan)) {
+        monthlyAgg[item.bulan]['Semua'].volume += vol;
+        monthlyAgg[item.bulan]['Semua'].nilai_usd += usd;
+        monthlyAgg[item.bulan]['Semua'].nilai_rp += rp;
+
+        if (kat === 'Segar dan Olahan' || kat === 'Hidup') {
+          monthlyAgg[item.bulan][kat].volume += vol;
+          monthlyAgg[item.bulan][kat].nilai_usd += usd;
+          monthlyAgg[item.bulan][kat].nilai_rp += rp;
+
+          const satuan = (item.satuan_volume || '').toUpperCase();
+          if (satuan) {
+            if (!monthlyAgg[item.bulan]['Satuan'][kat]) monthlyAgg[item.bulan]['Satuan'][kat] = {};
+            if (!monthlyAgg[item.bulan]['Satuan'][kat][satuan]) monthlyAgg[item.bulan]['Satuan'][kat][satuan] = { volume: 0, nilai_usd: 0, nilai_rp: 0 };
+            monthlyAgg[item.bulan]['Satuan'][kat][satuan].volume += vol;
+            monthlyAgg[item.bulan]['Satuan'][kat][satuan].nilai_usd += usd;
+            monthlyAgg[item.bulan]['Satuan'][kat][satuan].nilai_rp += rp;
+          }
+        }
+
+        if (!monthlyRaw[item.bulan]) monthlyRaw[item.bulan] = {};
+        if (!monthlyRaw[item.bulan][kom]) monthlyRaw[item.bulan][kom] = { usd: 0, rp: 0 };
+        monthlyRaw[item.bulan][kom].usd += usd;
+        monthlyRaw[item.bulan][kom].rp += rp;
+      }
+    });
+
+    const treemap = [];
+    Object.keys(komoditasMap).forEach(kat => {
+      Object.keys(komoditasMap[kat]).forEach(kom => {
+        treemap.push({
+          kategori_komoditas: kat,
+          nama_komoditas: kom,
+          _sum: { 
+            nilai_usd: komoditasMap[kat][kom].usd,
+            nilai_rp: komoditasMap[kat][kom].rp
+          }
+        });
+      });
+    });
+
+    const komoditasFlat = {};
+    treemap.forEach(t => {
+      if (!komoditasFlat[t.nama_komoditas]) komoditasFlat[t.nama_komoditas] = { usd: 0, rp: 0 };
+      komoditasFlat[t.nama_komoditas].usd += t._sum.nilai_usd;
+      komoditasFlat[t.nama_komoditas].rp += t._sum.nilai_rp;
+    });
+
+    const ranking_komoditas = Object.keys(komoditasFlat).map(kom => ({
+      nama_komoditas: kom,
+      _sum: { 
+        nilai_usd: komoditasFlat[kom].usd,
+        nilai_rp: komoditasFlat[kom].rp
+      }
+    })).sort((a, b) => b._sum.nilai_usd - a._sum.nilai_usd);
+
+    const top5_names = ranking_komoditas.slice(0, 5).map(k => k.nama_komoditas);
+
+    const negara_tujuan = Object.keys(negaraMap).map(n => ({
+      negara_tujuan: n,
+      _sum: { 
+        nilai_usd: negaraMap[n].usd,
+        nilai_rp: negaraMap[n].rp
+      }
+    })).sort((a, b) => b._sum.nilai_usd - a._sum.nilai_usd);
+
+    const monthly_aggregate = MONTHS.map(m => ({
+      bulan: m,
+      _sum: { 
+        volume: monthlyAgg[m]['Semua'].volume, 
+        nilai_usd: monthlyAgg[m]['Semua'].nilai_usd,
+        nilai_rp: monthlyAgg[m]['Semua'].nilai_rp
+      }
+    }));
+
+    const monthly_data_raw = [];
+    Object.keys(monthlyRaw).forEach(m => {
+      Object.keys(monthlyRaw[m]).forEach(kom => {
+        monthly_data_raw.push({
+          bulan: m,
+          nama_komoditas: kom,
+          _sum: { 
+            nilai_usd: monthlyRaw[m][kom].usd,
+            nilai_rp: monthlyRaw[m][kom].rp
+          }
+        });
+      });
+    });
+
+    return {
+      kpi: { 
+        total_volume, 
+        total_nilai: total_nilai_usd,
+        total_nilai_rp: total_nilai_rp,
+        total_transaksi: filteredData.length
+      },
+      treemap,
+      top5_names,
+      monthly_data_raw,
+      monthly_aggregate,
+      monthlyAgg,
+      ranking_komoditas,
+      negara_tujuan
+    };
+  }, [filteredData]);
 
   const columns = useMemo(() => [
     {
@@ -120,12 +301,7 @@ export default function Ekspor() {
     },
     {
       header: 'Kategori Komoditas',
-      accessorKey: 'kategori_komoditas',
-      cell: info => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-          {info.getValue()}
-        </span>
-      )
+      accessorKey: 'kategori_komoditas'
     },
     {
       header: 'Nama Komoditas',
@@ -377,26 +553,82 @@ export default function Ekspor() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Ekspor Perikanan</h1>
-          <p className="text-muted-foreground mt-1">
-            Visualisasi data kegiatan ekspor hasil kelautan dan perikanan Jawa Timur.
-          </p>
         </div>
-        <div>
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm"
-          >
-            <option value="">Semua Tahun</option>
-            {TAHUN_OPTIONS.map(tahun => (
-              <option key={tahun} value={tahun}>{tahun}</option>
-            ))}
+
+        <div 
+          className="
+            inline-flex items-center gap-2
+            whitespace-nowrap
+            px-4 py-2
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
+            rounded-full
+            text-sm 
+            font-medium
+            border border-cyan-200
+            dark:border-cyan-500/20
+            shadow-sm"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+          <span className="opacity-80">
+            Terakhir Diperbarui:
+          </span>
+          <span className="font-semibold">
+            {lastUpdated}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+          <SearchableMultiSelect
+            options={tahunOptions}
+            value={filterTahun}
+            onChange={setFilterTahun}
+            placeholder="Semua Tahun"
+          />
+          <SearchableMultiSelect
+            options={bulanOptions}
+            value={filterBulan}
+            onChange={setFilterBulan}
+            placeholder="Semua Bulan"
+          />
+          <SearchableMultiSelect
+            options={komoditasOptions}
+            value={filterKomoditas}
+            onChange={setFilterKomoditas}
+            placeholder="Semua Komoditas"
+          />
+          <SearchableMultiSelect
+            options={negaraOptions}
+            value={filterNegara}
+            onChange={setFilterNegara}
+            placeholder="Semua Negara Tujuan"
+          />
+          <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm">
+            <option value="USD">USD ($)</option>
+            <option value="RP">Rupiah (Rp)</option>
           </select>
         </div>
+        {(filterTahun.length > 0 || filterBulan.length > 0 || filterKomoditas.length > 0 || filterNegara.length > 0) && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setFilterTahun([]);
+                setFilterBulan([]);
+                setFilterKomoditas([]);
+                setFilterNegara([]);
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Reset Semua Filter
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Cards Grid */}
@@ -554,40 +786,59 @@ export default function Ekspor() {
 
       {/* Table Section */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-500" />
-            <h3 className="text-lg font-semibold text-foreground">Rincian Laporan Ekspor</h3>
+            <h3 className="text-lg font-semibold text-foreground">Rincian Data Ekspor</h3>
           </div>
-          <p className="text-sm text-muted-foreground">Tabel di bawah ini dapat dicari, diurutkan, dan diekspor ke Excel.</p>
+          {(filterTableTahun.length > 0 || filterTableBulan.length > 0 || filterTableKomoditas.length > 0 || filterTableNegara.length > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterTableTahun([]);
+                setFilterTableBulan([]);
+                setFilterTableKomoditas([]);
+                setFilterTableNegara([]);
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Reset Filter Tabel
+            </button>
+          )}
         </div>
-        <div className="mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-            <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Tahun</option>
-              {tahunOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Bulan</option>
-              {bulanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Komoditas</option>
-              {komoditasOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={filterNegara} onChange={(e) => setFilterNegara(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="">Semua Negara Tujuan</option>
-              {negaraOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-            <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-card text-sm">
-              <option value="USD">USD ($)</option>
-              <option value="RP">Rupiah (Rp)</option>
-            </select>
+
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <SearchableMultiSelect
+              options={tahunOptions}
+              value={filterTableTahun}
+              onChange={setFilterTableTahun}
+              placeholder="Semua Tahun"
+            />
+            <SearchableMultiSelect
+              options={bulanOptions}
+              value={filterTableBulan}
+              onChange={setFilterTableBulan}
+              placeholder="Semua Bulan"
+            />
+            <SearchableMultiSelect
+              options={komoditasOptions}
+              value={filterTableKomoditas}
+              onChange={setFilterTableKomoditas}
+              placeholder="Semua Komoditas"
+            />
+            <SearchableMultiSelect
+              options={negaraOptions}
+              value={filterTableNegara}
+              onChange={setFilterTableNegara}
+              placeholder="Semua Negara Tujuan"
+            />
           </div>
+        </div>
 
           <DataTable
             columns={columns}
-            data={filteredData}
+            data={filteredTableData}
           exportName={`Ekspor_Samudera_${new Date().toISOString().split('T')[0]}`}
           formatExportData={(exportData) => exportData.map(row => ({
             'Status': row.status || '-',
@@ -602,7 +853,6 @@ export default function Ekspor() {
             'Negara Tujuan': row.negara_tujuan || '-'
           }))}
         />
-      </div>
       </div>
 
     </div>

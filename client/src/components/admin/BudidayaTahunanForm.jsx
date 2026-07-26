@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { KAB_KOTA_OPTIONS } from '@/utils/constants';
 import { BUDIDAYA_TAHUNAN_CONFIG } from '@/utils/BudidayaTahunanConfig';
-import { Save, AlertCircle, Loader2, CheckCircle2, Plus } from 'lucide-react';
+import { AlertCircle, Loader2, CheckCircle2, Plus } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import api from '@/services/api';
 
@@ -206,8 +206,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-foreground">Form Data Tahunan Budidaya</h2>
-            <p className="text-sm text-muted-foreground mt-1">Isi data per modul. Tersimpan otomatis di perangkat Anda.</p>
+            <h2 className="text-xl font-bold text-foreground">Input Data Tahunan Budidaya</h2>
           </div>
           
           <div className="flex gap-4 items-center">
@@ -424,15 +423,15 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                 onClick={onClose}
                 className="px-6 py-2.5 border rounded-lg text-muted-foreground hover:bg-muted font-medium transition-colors"
               >
-                Tutup
+                Batal
               </button>
               <button
                 type="submit"
                 form="tahunanForm"
                 disabled={loading || !kabupaten}
-                className="px-6 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-lg font-medium shadow-lg shadow-primary/20 transition-opacity flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-lg font-medium shadow-lg shadow-primary/20 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? <span className="animate-spin text-xl leading-none">⟳</span> : <Save className="w-5 h-5" />}
+                {loading && <span className="animate-spin text-xl leading-none">⟳</span>}
                 Simpan Data
               </button>
             </div>
