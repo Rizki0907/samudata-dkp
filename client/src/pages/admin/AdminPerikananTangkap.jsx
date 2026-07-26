@@ -1332,7 +1332,7 @@ const columns = useMemo(() => [
         return (
           <StatusBadge 
             row={row} 
-            onEdit={() => setEditingData(row)} 
+            onEdit={() => handleEdit(row)} 
             contextFields={contextFields} 
           />
         );
@@ -1651,13 +1651,17 @@ const columns = useMemo(() => [
                 </>
               )}
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Status</option>
-                  <option value="VERIFIED">Verified</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
+                {activeTab === 'data' && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <option value="">Semua Status</option>
+                      <option value="VERIFIED">Verified</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="REJECTED">Rejected</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           </div>
