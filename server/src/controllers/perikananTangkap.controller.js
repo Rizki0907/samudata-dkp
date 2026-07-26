@@ -130,7 +130,7 @@ const updateData = async (req, res) => {
     const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
     if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     
-    const isCabang = req.user && ['admin_pelabuhan', 'admin_pud', 'admin_kabkota'].includes(req.user.role);
+    const isCabang = req.user && req.user.role === 'admin_cabang';
     if (existing.status === 'APPROVED' && isCabang) {
       return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui Pusat' });
     }
@@ -207,7 +207,7 @@ const deleteData = async (req, res) => {
     const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
     if (!existing) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
 
-    const isCabang = req.user && ['admin_pelabuhan', 'admin_pud', 'admin_kabkota'].includes(req.user.role);
+    const isCabang = req.user && req.user.role === 'admin_cabang';
     if (existing.status === 'APPROVED' && isCabang) {
       return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat menghapus data yang sudah disetujui Pusat' });
     }
