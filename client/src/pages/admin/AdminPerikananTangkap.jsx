@@ -956,11 +956,16 @@ export default function AdminPerikananTangkap() {
         jenis_perairan: jenisPerairan
       }, { responseType: 'blob' });
 
-      // response.data is already a Blob when using axios with responseType: 'blob'
+      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      const fileWilayah = wilayah || 'Semua';
+      const fileJenis = jenisPerairan || 'PUD';
+      const fileTahun = tahun || 'All';
+      
       const url = window.URL.createObjectURL(response.data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PUHIT_PUD_${tahun || 'All'}.xlsx`;
+      a.download = `PUHIT_${fileJenis}_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
