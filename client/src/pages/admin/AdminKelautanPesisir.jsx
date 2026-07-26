@@ -1836,16 +1836,12 @@ export default function AdminKelautanPesisir() {
               {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun' || activeTab === 'terumbu_karang') && (
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                    <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                    <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
                     <MultiSelect value={filterStatus} onChange={setFilterStatus} placeholder="Semua Status" options={['PENDING', 'VERIFIED', 'APPROVED', 'REJECTED']} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                    <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
                   </div>
                   {activeTab === 'garam' && (
                     <>
@@ -1859,6 +1855,10 @@ export default function AdminKelautanPesisir() {
                       </div>
                     </>
                   )}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                    <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+                  </div>
                   {(filterTahun.length > 0 || filterKab.length > 0 || filterTw.length > 0 || filterBulan.length > 0 || filterStatus.length > 0) && (
                     <div className="md:col-span-5 mt-2">
                       <button onClick={() => { setFilterTahun([]); setFilterKab([]); setFilterTw([]); setFilterBulan([]); setFilterStatus([]); }} className="text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">Reset Filter</button>
