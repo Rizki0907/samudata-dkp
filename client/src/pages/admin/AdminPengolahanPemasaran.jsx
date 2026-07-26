@@ -932,7 +932,7 @@ export default function AdminPengolahanPemasaran() {
       setData(response.data?.data ?? []);
     } catch (error) {
       console.error(
-        'Error fetching pengolahan & pemasaran:',
+        'Error fetching pengolahan dan pemasaran:',
         error.response?.data || error.message
       );
       setData([]);
@@ -962,7 +962,7 @@ export default function AdminPengolahanPemasaran() {
       await fetchData();
     } catch (error) {
       console.error(
-        'Error saving pengolahan & pemasaran:',
+        'Error saving pengolahan dan pemasaran:',
         error.response?.data || error.message,
       );
       window.alert(
@@ -988,7 +988,7 @@ export default function AdminPengolahanPemasaran() {
       await api.delete(`/pengolahan-pemasaran/${row.id}`);
       await fetchData();
     } catch (error) {
-      console.error('Error deleting pengolahan & pemasaran:', error);
+      console.error('Error deleting pengolahan dan pemasaran:', error);
       alert('Gagal menghapus data.');
     }
   };

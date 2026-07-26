@@ -318,7 +318,7 @@ export default function PengolahanPemasaran() {
       }
     } catch (error) {
       console.error(
-        'Error fetching pengolahan & pemasaran:',
+        'Error fetching pengolahan dan pemasaran:',
         error.response?.data || error,
       );
         setData([]);
@@ -1287,7 +1287,7 @@ export default function PengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">
-            Statistik Pengolahan & Pemasaran
+            Statistik Pengolahan dan Pemasaran Produk Kelautan Perikanan
           </h1>
         </div>
 
@@ -1734,7 +1734,7 @@ export default function PengolahanPemasaran() {
             <div className="mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-slate-500" />
               <h3 className="text-lg font-semibold text-foreground">
-                Rincian Data Pengolahan & Pemasaran
+                Rincian Data Pengolahan dan Pemasaran
               </h3>
             </div>
 
