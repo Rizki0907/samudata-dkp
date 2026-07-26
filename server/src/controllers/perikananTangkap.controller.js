@@ -510,7 +510,7 @@ const batchDelete = async (req, res) => {
       }
 
       // Helper function to normalize string for mapping
-      const normalize = (str) => (str || '').trim().toLowerCase();
+      const normalize = (str) => (str || '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
       // --- 2. Fill LP-2 (GT Kapal vs Alat Tangkap) ---
       const lp2 = wb.sheet('LP-2');
@@ -532,9 +532,11 @@ const batchDelete = async (req, res) => {
           const alat = normalize(record.alat_tangkap);
           let gt = normalize(record.gt_kapal);
           
-          // Map frontend 'Motor Tempel < 5 GT' to 'motor tempel' in excel
+          // Map frontend options to excel column names
           if (gt.includes('motor tempel')) gt = 'motor tempel';
-          if (gt.includes('kapal motor')) gt = 'kapal motor';
+          else if (gt.includes('kapal motor')) gt = 'kapal motor';
+          else if (gt.includes('perahu tanpa motor')) gt = 'perahu papan kecil'; // fallback for excel
+          else if (gt.includes('tanpa perahu')) gt = 'tanpa perahu';
           
           const rowNum = lp2AlatMap[alat];
           const colNum = lp2GtMap[gt];
@@ -545,6 +547,8 @@ const batchDelete = async (req, res) => {
             // Sum pud_jumlah_sampel
             const sampleCount = Number(record.pud_jumlah_sampel) || 1; 
             cell.value(currentVal + sampleCount);
+          } else {
+            console.log(`LP-2 Map Miss - Alat: "${alat}" (Row: ${rowNum}), GT: "${gt}" (Col: ${colNum})`);
           }
         });
       }
@@ -603,8 +607,16 @@ const batchDelete = async (req, res) => {
       const fileTahun = tahun || 'All';
       const fileJenis = jenis_perairan || 'PUD';
       
+      // Map bulan number to name for filename
+      const namaBulanMap = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      const fileBulan = bulan && namaBulanMap[Number(bulan)] ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_${fileJenis}_${fileWilayah}_${fileTahun}.xlsx"`);
+      // e.g. PUHIT_Waduk_Januari_2026.xlsx
+      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_${fileJenis}_${fileBulan}_${fileTahun}.xlsx"`);
       
       res.send(buffer);
     } catch (error) {
