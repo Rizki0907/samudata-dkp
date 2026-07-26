@@ -20,8 +20,8 @@ const USER_MENUS = [
 const ADMIN_MENUS = [
   { title: 'Overview Admin', path: '/admin', icon: LayoutDashboard },
   { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Fish },
+  { title: 'Perikanan Budidaya', path: '/admin/budidaya', icon: Waves },  
   { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Sprout },
-  { title: 'Budidaya', path: '/admin/budidaya', icon: Waves },
   { title: 'Pengolahan dan Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/admin/ekspor', icon: Globe },

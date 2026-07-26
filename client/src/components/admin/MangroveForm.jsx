@@ -217,22 +217,21 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
         <button
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="px-5 py-2.5 rounded-lg font-medium border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+          className="px-5 py-2.5 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
-          <X className="w-4 h-4" /> Batal
+          Batal
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center gap-2 text-sm shadow-lg shadow-primary/20 disabled:opacity-50"
+          className="px-5 py-2.5 rounded-xl font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isLoading ? 'Menyimpan...' : 'Simpan Data'}
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data'}
         </button>
       </div>
     </form>

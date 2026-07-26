@@ -221,13 +221,22 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
           </div>
         </section>
 
-        <div className="flex justify-end gap-3 pt-4">
-          <button type="button" onClick={onCancel} className="px-5 py-2.5 font-medium rounded-lg hover:bg-muted transition-colors border border-border text-sm">
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="px-5 py-2.5 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
             Batal
           </button>
-          <button type="submit" disabled={isLoading} className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Simpan Data
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-5 py-2.5 rounded-xl font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Data'}
           </button>
         </div>
       </form>
