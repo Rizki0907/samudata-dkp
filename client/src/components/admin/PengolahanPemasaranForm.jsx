@@ -292,8 +292,6 @@ const buildApiPayload = (source) => {
   return payload;
 };
 
-// Setelah satu rincian masuk ke daftar, Tahun dan Kabupaten/Kota tetap.
-// Kategori dan skala juga dipertahankan agar input berikutnya lebih cepat.
 const createNextDetailForm = (current) => {
   const next = createEmptyFormData();
 

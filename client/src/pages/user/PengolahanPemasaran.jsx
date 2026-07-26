@@ -1356,7 +1356,7 @@ export default function PengolahanPemasaran() {
             }}
             className="w-full cursor-pointer rounded-xl border border-border bg-card px-4 py-2.5 font-medium text-foreground shadow-sm outline-none focus:ring-2 focus:ring-primary/50 sm:min-w-52"
           >
-            <option value="">Semua Kab/Kota</option>
+            <option value="">Semua Kabupaten/Kota</option>
             {kabupatenOptions.map(option => (
               <option key={option} value={option}>
                 {option}
@@ -1764,7 +1764,7 @@ export default function PengolahanPemasaran() {
                 }}
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
               >
-                <option value="">Semua Kab/Kota</option>
+                <option value="">Semua Kabupaten/Kota</option>
                 {kabupatenOptions.map(option => (
                   <option key={option} value={option}>
                     {option}
