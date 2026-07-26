@@ -2975,7 +2975,7 @@ export default function AdminPengolahanPemasaran() {
                 />
 
                 <FilterMultiSelect
-                  label="Kab/Kota"
+                  label="Kabupaten/Kota"
                   values={filterKabupaten}
                   options={KABUPATEN_KOTA_OPTIONS}
                   onChange={setFilterKabupaten}

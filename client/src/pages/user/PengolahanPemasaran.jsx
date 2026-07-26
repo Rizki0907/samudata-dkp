@@ -1589,7 +1589,7 @@ export default function PengolahanPemasaran() {
               setFilterKabupaten(values);
               setSelectedMapRegion(null);
             }}
-            placeholder="Semua Kabupaten/Kota"
+            placeholder="Semua Kab/Kota"
           />
 
           <FilterMultiSelect
@@ -2059,7 +2059,7 @@ export default function PengolahanPemasaran() {
                   setFilterKabupaten(values);
                   setSelectedMapRegion(null);
                 }}
-                placeholder="Semua Kabupaten/Kota"
+                placeholder="Semua Kab/Kota"
               />
 
               <FilterMultiSelect
