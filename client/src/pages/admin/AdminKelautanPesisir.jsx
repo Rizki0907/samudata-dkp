@@ -195,12 +195,6 @@ const KondisiTerumbuBadge = ({ kondisi }) => {
   return <span className="text-foreground">{k.replace(/\s*\([^)]*\)\s*$/, '').trim() || '-'}</span>;
 };
 
-// Ambil rentang persentase yang ada di dalam kurung pada string kondisi, mis. "Sangat Padat (70-100%)" -> "70-100%"
-const getRentangKondisi = (kondisi) => {
-  const match = (kondisi || '').match(/\(([^)]+)\)/);
-  return match ? match[1] : '-';
-};
-
 // ── EXCEL EXPORT HELPERS (SMART LOGIC) ────────────────────────────────────────────────────────
 const borderThin = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
 const cellStyle = (opts = {}) => ({
@@ -1092,7 +1086,6 @@ export default function AdminKelautanPesisir() {
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
     { header: 'Spesies', accessorKey: 'spesies', cell: info => <p className="text-sm text-muted-foreground max-w-xs truncate" title={info.getValue()}>{info.getValue() || '-'}</p> },
     { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiBadge kondisi={info.getValue()} /> },
-    { header: 'Rentang %', accessorKey: 'kondisi', id: 'rentang_kondisi_mangrove', cell: info => <span className="text-foreground">{getRentangKondisi(info.getValue())}</span> },
     { header: 'Persentase', accessorKey: 'persentase_kondisi', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
     { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
   ], []);
@@ -1113,7 +1106,6 @@ export default function AdminKelautanPesisir() {
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
     { header: 'Tutupan', accessorKey: 'persentase_tutupan', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
     { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiLamunBadge kondisi={info.getValue()} /> },
-    { header: 'Rentang %', accessorKey: 'kondisi', id: 'rentang_kondisi_lamun', cell: info => <span className="text-foreground">{getRentangKondisi(info.getValue())}</span> },
     { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
   ], []);
 
@@ -1133,7 +1125,6 @@ export default function AdminKelautanPesisir() {
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
     { header: 'Tutupan', accessorKey: 'persentase_tutupan', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%</span> },
     { header: 'Kondisi', accessorKey: 'kondisi', cell: info => <KondisiTerumbuBadge kondisi={info.getValue()} /> },
-    { header: 'Rentang %', accessorKey: 'kondisi', id: 'rentang_kondisi_terumbu', cell: info => <span className="text-foreground">{getRentangKondisi(info.getValue())}</span> },
     { header: 'Luas Rehabilitasi', accessorKey: 'luas_rehabilitasi_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
   ], []);
 
