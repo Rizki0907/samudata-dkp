@@ -290,7 +290,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const wb = XLSX.utils.book_new();
     const sheetName = isRiil ? "Data_Riil" : "Data_Validasi";
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, \`Data_Publik_Tangkap_\${sheetName}_\${filterTahun || 'All'}.xlsx\`);
+    XLSX.writeFile(wb, `Data_Publik_Tangkap_${sheetName}_${filterTahun || 'All'}.xlsx`);
   };
 
   const renderCustomBatchActions = (selectedIds, clearSelection) => {
