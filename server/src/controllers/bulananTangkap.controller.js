@@ -120,13 +120,39 @@ const triggerSync = async (req, res) => {
   }
 };
 
+const getLogistikMap = async () => {
+  const dataRiil = await prisma.perikananTangkap.findMany({
+    where: { status: 'VERIFIED', sumber_data: 'PELABUHAN' }
+  });
+  const map = {};
+  dataRiil.forEach(row => {
+    if (!row.tanggal || !row.logistik) return;
+    const yyyyMM = row.tanggal.toISOString().substring(0, 7);
+    const pelabuhan = row.pelabuhan || 'Lainnya';
+    const key = `${yyyyMM}|PELABUHAN|${pelabuhan}`;
+    if (!map[key]) map[key] = {};
+    
+    try {
+      const parsed = JSON.parse(row.logistik);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          if (!map[key][item.nama]) map[key][item.nama] = 0;
+          map[key][item.nama] += (parseFloat(item.jumlah) || 0);
+        });
+      }
+    } catch(e) {}
+  });
+  return map;
+};
+
 const getPublikData = async (req, res) => {
   try {
     const data = await prisma.dataBulananTangkap.findMany({
       where: { volume: { gt: 0 } },
       orderBy: [{ bulan: 'desc' }, { pelabuhan: 'asc' }]
     });
-    res.status(200).json({ success: true, data });
+    const logistikBulanan = await getLogistikMap();
+    res.status(200).json({ success: true, data, logistikBulanan });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data' });
   }
@@ -137,7 +163,8 @@ const getAdminData = async (req, res) => {
     const data = await prisma.dataBulananTangkap.findMany({
       orderBy: [{ bulan: 'desc' }, { pelabuhan: 'asc' }]
     });
-    res.status(200).json({ success: true, data });
+    const logistikBulanan = await getLogistikMap();
+    res.status(200).json({ success: true, data, logistikBulanan });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data admin' });
   }

@@ -9,9 +9,10 @@ const loginAdmin = async (req, res) => {
     }
 
     let role = null;
-    if (adminCode === process.env.ADMIN_CABANG_CODE) {
+    const inputCode = adminCode.trim();
+    if (inputCode === process.env.ADMIN_CABANG_CODE) {
       role = 'admin_cabang';
-    } else if (adminCode === process.env.ADMIN_PUSAT_CODE) {
+    } else if (inputCode === process.env.ADMIN_PUSAT_CODE) {
       role = 'admin_pusat';
     }
 

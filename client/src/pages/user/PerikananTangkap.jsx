@@ -514,7 +514,7 @@ export default function PerikananTangkap() {
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
           <p className="text-muted-foreground mt-1">
-            Visualisasi data produksi harian perikanan tangkap dari 3 Cabang Sumber Data.
+            Visualisasi data produksi harian perikanan tangkap dari 3 Sumber Perairan.
           </p>
           </div>
         </div>
@@ -711,7 +711,7 @@ export default function PerikananTangkap() {
           
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cabang Sumber</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
               <select 
                 value={filterCabang} 
                 onChange={(e) => {
@@ -721,7 +721,7 @@ export default function PerikananTangkap() {
                 }} 
                 className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="">Semua Cabang</option>
+                <option value="">Semua Perairan</option>
                 <option value="PELABUHAN">Pelabuhan</option>
                 <option value="PUD">PUD</option>
                 <option value="KAB_KOTA">Non Pelabuhan</option>

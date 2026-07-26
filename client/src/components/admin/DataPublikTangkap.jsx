@@ -8,10 +8,11 @@ import { Edit2, RotateCcw, AlertCircle, CheckCircle, Save, X, Download, FileText
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS } from '@/utils/constants';
+import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, PERBEKALAN_OPTIONS } from '@/utils/constants';
 
-export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null }) {
+export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null, publicLogistik = null }) {
   const [data, setData] = useState([]);
+  const [logistikBulanan, setLogistikBulanan] = useState({});
   const [loading, setLoading] = useState(true);
   const [editingRow, setEditingRow] = useState(null);
   const [editForm, setEditForm] = useState({ volume: 0, nilai: 0, hargaRataRata: 0 });
@@ -26,6 +27,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       setLoading(true);
       const res = await api.get('/bulanan-tangkap/admin');
       setData(res.data.data || []);
+      setLogistikBulanan(res.data.logistikBulanan || {});
     } catch (error) {
       console.error('Error fetching data bulanan:', error);
     } finally {
@@ -38,11 +40,14 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       if (publicData) {
         setData(publicData);
       }
+      if (publicLogistik) {
+        setLogistikBulanan(publicLogistik);
+      }
       setLoading(false);
     } else {
       fetchData();
     }
-  }, [isPublic, publicData]);
+  }, [isPublic, publicData, publicLogistik]);
 
   const handleEditClick = (item) => {
     setEditingRow(item.id);
@@ -129,6 +134,18 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       komoditasArray = [...KOMODITAS_OPTIONS];
     }
 
+    const isPelabuhanFilter = filterCabang !== 'PUD' && filterCabang !== 'KAB_KOTA';
+    if (isPelabuhanFilter) {
+       PERBEKALAN_OPTIONS.forEach((pb, index) => {
+          if (index === 0) {
+             headerRow1.push('Logistik/Perbekalan');
+          } else {
+             headerRow1.push('');
+          }
+          headerRow2.push(`${pb.nama} (${pb.satuan})`);
+       });
+    }
+
     komoditasArray.forEach(kom => {
       headerRow1.push(kom, '', '');
       headerRow2.push('Volume (Kg)', 'Harga (Rp)', 'Nilai (Rp)');
@@ -164,6 +181,19 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
           harga: v > 0 ? (n / v) : 0 
         }; 
       });
+
+      if (isPelabuhanFilter && row.sumber_data === 'PELABUHAN') {
+         const logKey = `${row.bulan}|PELABUHAN|${row.pelabuhan}`;
+         const logData = logistikBulanan[logKey] || {};
+         PERBEKALAN_OPTIONS.forEach(pb => {
+            const val = logData[pb.nama] || 0;
+            baseRow.push(val);
+         });
+      } else if (isPelabuhanFilter) {
+         PERBEKALAN_OPTIONS.forEach(() => {
+            baseRow.push('-');
+         });
+      }
 
       komoditasArray.forEach(kom => {
         if (komMap[kom]) {
@@ -214,6 +244,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
     
     let currentCol = 5;
+    if (isPelabuhanFilter && PERBEKALAN_OPTIONS.length > 0) {
+      merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + PERBEKALAN_OPTIONS.length - 1 } });
+      currentCol += PERBEKALAN_OPTIONS.length;
+    }
+    
     komoditasArray.forEach(() => {
       merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
       currentCol += 3;
@@ -221,6 +256,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     ws['!merges'] = merges;
 
     const colWidths = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 20 }];
+    if (isPelabuhanFilter) {
+       PERBEKALAN_OPTIONS.forEach(() => {
+          colWidths.push({ wch: 15 });
+       });
+    }
     komoditasArray.forEach(() => {
       colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
     });
@@ -325,6 +365,12 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const row6 = ['', '', '', '', 'Volume', 'Nilai'];
     
     const komoditasArray = [...KOMODITAS_OPTIONS];
+    
+    PERBEKALAN_OPTIONS.forEach(pb => {
+       row4.push(pb.nama);
+       row5.push('');
+       row6.push(pb.satuan);
+    });
 
     let grandTotalVolume = 0;
     let grandTotalNilai = 0;
@@ -365,8 +411,18 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         if (komMap[kom]) {
           baseRow.push(komMap[kom].vol, komMap[kom].nilai);
         } else {
-          baseRow.push(0, 0);
+          baseRow.push('-', '-');
         }
+      });
+
+      const logKey = `${row.bulan}|PELABUHAN|${pelabuhanName}`;
+      const logData = logistikBulanan[logKey] || {};
+      PERBEKALAN_OPTIONS.forEach(pb => {
+         const val = logData[pb.nama] || 0;
+         baseRow.push(val);
+         
+         if (!komoditasTotalMap[pb.nama]) komoditasTotalMap[pb.nama] = 0;
+         komoditasTotalMap[pb.nama] += val;
       });
 
       return baseRow;
@@ -381,6 +437,10 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const totalRow = ['TOTAL PENDARATAN IKAN SELURUH WAKTU', '', '', '', grandTotalVolume, grandTotalNilai];
     komoditasArray.forEach(kom => {
       totalRow.push(komoditasTotalMap[kom].vol, komoditasTotalMap[kom].nilai);
+    });
+    
+    PERBEKALAN_OPTIONS.forEach(pb => {
+       totalRow.push(komoditasTotalMap[pb.nama] || 0);
     });
     dataRows.push(totalRow);
 
