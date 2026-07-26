@@ -200,9 +200,8 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
       <div className="mb-6 border-b border-border pb-4">
         <h2 className="text-xl font-semibold text-foreground">
-          {initialData ? 'Edit Laporan Ekspor' : 'Input Laporan Ekspor'}
+          {initialData ? 'Edit Data Ekspor' : 'Input Data Ekspor'}
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">Isi formulir laporan ekspor hasil kelautan dan perikanan.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">

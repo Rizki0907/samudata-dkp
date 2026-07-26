@@ -35,6 +35,7 @@ const formatLogistikText = (val) => {
 export default function AdminPerikananTangkap() {
   const user = useAuthStore(state => state.user);
   const [data, setData] = useState([]);
+  const [publikData, setPublikData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
@@ -73,11 +74,13 @@ export default function AdminPerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [dataRes] = await Promise.all([
-        api.get(`/perikanan-tangkap/admin`)
+      const [dataRes, publikRes] = await Promise.all([
+        api.get(`/perikanan-tangkap/admin`),
+        api.get(`/bulanan-tangkap/admin`)
       ]);
 
       setData(dataRes.data.data || []);
+      setPublikData(publikRes.data.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -331,6 +334,41 @@ export default function AdminPerikananTangkap() {
           trenMap[date].volume += vol;
           trenMap[date].nilai += nil;
         });
+      }
+    });
+
+    // Injeksi Delta dari Data Validasi Publik (Jika Admin melakukan penyesuaian)
+    publikData.forEach(adj => {
+      if (!adj.is_adjusted) return;
+      
+      const matchTahun = !filterTahun || adj.bulan.startsWith(filterTahun);
+      const matchBulan = !filterBulan || adj.bulan.substring(5, 7) === filterBulan;
+      const matchCabang = !filterCabang || (adj.sumber_data || 'PELABUHAN') === filterCabang;
+      const matchWilayah = !filterWilayah || (adj.pelabuhan || '') === filterWilayah;
+      const matchKomoditas = !filterKomoditas || adj.komoditas === filterKomoditas;
+
+      if (matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas) {
+        const dV = Number(adj.volume) - Number(adj.original_volume || 0);
+        const dN = Number(adj.nilai) - Number(adj.original_nilai || 0);
+        
+        total_volume += dV;
+        total_nilai += dN;
+        
+        const k = adj.komoditas;
+        const p = adj.pelabuhan || 'Lainnya';
+        const tgl = adj.bulan;
+        
+        if (k) {
+          if (!komoditasMap[k]) komoditasMap[k] = 0;
+          komoditasMap[k] += dV;
+        }
+        
+        if (!pelabuhanMap[p]) pelabuhanMap[p] = 0;
+        pelabuhanMap[p] += dV;
+        
+        if (!trenMap[tgl]) trenMap[tgl] = { volume: 0, nilai: 0 };
+        trenMap[tgl].volume += dV;
+        trenMap[tgl].nilai += dN;
       }
     });
 

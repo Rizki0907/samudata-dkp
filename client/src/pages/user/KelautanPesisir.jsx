@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import {
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
-  TreePine, Landmark, Globe, Fish, Info, Clock, Leaf
+  TreePine, Landmark, Globe, Fish, Info, Clock, Leaf,
+  ChevronDown, Search
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { format } from 'date-fns';
@@ -36,6 +37,107 @@ const hBarOption = (categories, values, color, unit) => ({
   yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
   series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
 });
+
+const FILTER_SELECT_CLASS = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
+
+function MultiSelect({ value, options, onChange, placeholder = 'Pilih...', className }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapperRef = useRef(null);
+  const normalizedValues = Array.isArray(value) ? value : [];
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    String(opt).toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggleOption = option => {
+    onChange(
+      normalizedValues.includes(option)
+        ? normalizedValues.filter(item => item !== option)
+        : [...normalizedValues, option]
+    );
+  };
+
+  const selectedText =
+    normalizedValues.length === 0
+      ? placeholder
+      : normalizedValues.length === 1
+        ? normalizedValues[0]
+        : `${normalizedValues.length} dipilih`;
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <div 
+        className={`${FILTER_SELECT_CLASS} flex items-center justify-between cursor-pointer hover:border-primary/50 ${className || ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className={`block truncate text-sm ${normalizedValues.length === 0 ? 'text-muted-foreground' : 'text-foreground'}`}>
+          {selectedText}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 overflow-hidden">
+          <div className="p-2 border-b border-border flex items-center gap-2 sticky top-0 bg-card z-10">
+            <Search className="w-4 h-4 text-muted-foreground ml-1" />
+            <input
+              type="text"
+              autoFocus
+              className="w-full bg-transparent border-none outline-none text-sm px-1 py-1 text-foreground focus:ring-0"
+              placeholder="Cari..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1 bg-card">
+            <button type="button" onClick={() => onChange(options)} className="text-xs font-medium text-primary hover:underline">Pilih Semua</button>
+            <button type="button" onClick={() => onChange([])} className="text-xs font-medium text-muted-foreground hover:text-foreground">Bersihkan</button>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt, idx) => {
+                const checked = normalizedValues.includes(opt);
+                return (
+                  <label
+                    key={idx}
+                    className={`px-3 py-2.5 text-sm rounded-md cursor-pointer transition-colors flex items-center gap-3 ${checked ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleOption(opt)}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                    />
+                    <span className="truncate">{String(opt)}</span>
+                  </label>
+                );
+              })
+            ) : (
+              <div className="px-3 py-6 text-center flex flex-col items-center gap-1">
+                <span className="text-sm font-medium text-muted-foreground">Tidak ditemukan</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const comboHBarOption = (categories, series, unit) => ({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -115,9 +217,9 @@ export default function KelautanPesisir() {
   const [dataTerumbuKarang, setDataTerumbuKarang] = useState([]);
 
   // Global Filters
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterTahun, setFilterTahun] = useState('');
-  const [filterKab, setFilterKab] = useState('');
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterKab, setFilterKab] = useState([]);
 
   // Table Filters
   const [activeTable, setActiveTable] = useState('garam');
@@ -167,8 +269,8 @@ export default function KelautanPesisir() {
 
   // ── KPI Potensi Perairan ──
   const filteredVisPotensi = useMemo(() => dataPotensi.filter(d => 
-    (!filterTahun || String(d.tahun_data) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun_data))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataPotensi, filterTahun, filterKab]);
 
   const potensiPerKotaFrontend = useMemo(() => {
@@ -192,9 +294,9 @@ export default function KelautanPesisir() {
 
   // ── VISUALISASI GARAM ──
   const filteredVisGaram = useMemo(() => dataGaram.filter(d => 
-    (!filterBulan || (d.bulan || '').toLowerCase() === filterBulan.toLowerCase()) &&
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterBulan.length === 0 || filterBulan.includes(formatBulan(d.bulan))) &&
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataGaram, filterBulan, filterTahun, filterKab]);
 
   const visGaramPerKota = useMemo(() => {
@@ -226,8 +328,8 @@ export default function KelautanPesisir() {
 
   // ── VISUALISASI MANGROVE ──
   const filteredVisMangrove = useMemo(() => dataMangrove.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataMangrove, filterTahun, filterKab]);
 
   const visMangrovePerKota = useMemo(() => {
@@ -268,8 +370,8 @@ export default function KelautanPesisir() {
 
   // ── VISUALISASI LAMUN ──
   const filteredVisLamun = useMemo(() => dataLamun.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataLamun, filterTahun, filterKab]);
 
   const visLamunPerKota = useMemo(() => {
@@ -310,8 +412,8 @@ export default function KelautanPesisir() {
 
   // ── VISUALISASI TERUMBU KARANG ──
   const filteredVisTerumbu = useMemo(() => dataTerumbuKarang.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataTerumbuKarang, filterTahun, filterKab]);
 
   const visTerumbuPerKota = useMemo(() => {
@@ -352,29 +454,29 @@ export default function KelautanPesisir() {
 
   // ── TABEL DATA ──
   const filteredTableGaram = useMemo(() => dataGaram.filter(d =>
-    (!filterBulan || (d.bulan || '').toLowerCase() === filterBulan.toLowerCase()) &&
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterBulan.length === 0 || filterBulan.includes(formatBulan(d.bulan))) &&
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataGaram, filterBulan, filterTahun, filterKab]);
 
   const filteredTablePotensi = useMemo(() => dataPotensi.filter(d =>
-    (!filterTahun || String(d.tahun_data) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun_data))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataPotensi, filterTahun, filterKab]);
 
   const filteredTableMangrove = useMemo(() => dataMangrove.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataMangrove, filterTahun, filterKab]);
 
   const filteredTableLamun = useMemo(() => dataLamun.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataLamun, filterTahun, filterKab]);
 
   const filteredTableTerumbu = useMemo(() => dataTerumbuKarang.filter(d =>
-    (!filterTahun || String(d.tahun) === filterTahun) &&
-    (!filterKab || d.kabupaten_kota === filterKab)
+    (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
+    (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
   ), [dataTerumbuKarang, filterTahun, filterKab]);
 
   const columnsGaram = useMemo(() => [
@@ -569,27 +671,18 @@ export default function KelautanPesisir() {
       <div className="bg-card border border-border p-4 rounded-xl flex flex-col md:flex-row gap-4 items-end shadow-sm">
         <div className="flex-1 w-full">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-          <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-            <option value="">Semua Tahun</option>
-            {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort()} />
         </div>
         <div className="flex-1 w-full">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-          <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-            <option value="">Semua Bulan</option>
-            {bulanOptions.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
         </div>
         <div className="flex-1 w-full">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-          <select value={filterKab} onChange={(e) => setFilterKab(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-            <option value="">Semua Kab/Kota</option>
-            {kabupatenOptions.map(k => <option key={k} value={k}>{k}</option>)}
-          </select>
+          <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
         </div>
-        {(filterTahun || filterBulan || filterKab) && (
-          <button onClick={() => { setFilterTahun(''); setFilterBulan(''); setFilterKab(''); }} className="w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2.5 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
+        {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
+          <button onClick={() => { setFilterTahun([]); setFilterBulan([]); setFilterKab([]); }} className="w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2.5 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
             Reset Filter
           </button>
         )}

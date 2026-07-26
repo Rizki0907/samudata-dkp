@@ -119,9 +119,8 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
       <div className="mb-6 border-b border-border pb-4">
         <h2 className="text-xl font-semibold text-foreground">
-          {initialData ? 'Edit Data Budidaya' : 'Input Data Budidaya'}
+          {initialData ? 'Edit Data Bulanan Budidaya' : 'Input Data Bulanan Budidaya'}
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">Isi formulir data produksi perikanan budidaya per Kabupaten/Kota.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
