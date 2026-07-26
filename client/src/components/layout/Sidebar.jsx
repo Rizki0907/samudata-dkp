@@ -10,8 +10,8 @@ import {
 const USER_MENUS = [
   { title: 'Overview', path: '/user', icon: LayoutDashboard },
   { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Fish },
+  { title: 'Perikanan Budidaya', path: '/user/budidaya', icon: Waves },
   { title: 'Kelautan dan Pesisir', path: '/user/kelautan-pesisir', icon: Sprout },
-  { title: 'Budidaya', path: '/user/budidaya', icon: Waves },
   { title: 'Pengolahan dan Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/user/ekspor', icon: Globe },
