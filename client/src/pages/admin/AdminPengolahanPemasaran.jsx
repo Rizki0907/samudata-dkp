@@ -708,7 +708,7 @@ function StatusBadge({ row, onEdit }) {
                   </dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="text-xs font-medium text-muted-foreground">Kabupaten/Kota</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">Kab/Kota</dt>
                   <dd className="break-words font-semibold text-foreground">
                     {row?.kabupaten_kota || '-'}
                   </dd>
@@ -2232,7 +2232,7 @@ export default function AdminPengolahanPemasaran() {
       },
       { header: 'Tahun', accessorKey: 'tahun' },
       {
-        header: 'Kabupaten/Kota',
+        header: 'Kab/Kota',
         accessorKey: 'kabupaten_kota',
         cell: info => <span className="font-medium text-foreground">{info.getValue()}</span>,
       },
@@ -2368,7 +2368,7 @@ export default function AdminPengolahanPemasaran() {
             className="order-2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
-            Ekspor Rekap Statistik
+            Rekap Statistik
           </button>
         }
         onCustomExport={handleExportData}
@@ -2733,9 +2733,6 @@ export default function AdminPengolahanPemasaran() {
             <h1 className="font-heading text-3xl font-bold text-foreground">
               Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
             </h1>
-            <p className="mt-1 text-muted-foreground">
-              Input dan Kelola Data Statistik Unit Usaha Pengolahan serta Pemasaran Produk Kelautan Perikanan.
-            </p>
           </div>
         </div>
 
@@ -2763,9 +2760,6 @@ export default function AdminPengolahanPemasaran() {
           <h1 className="font-heading text-3xl font-bold text-foreground">
             Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            Input dan Kelola Data Statistik Unit Usaha Pengolahan serta Pemasaran Produk Kelautan Perikanan.
-          </p>
         </div>
 
         <button
@@ -2853,11 +2847,11 @@ export default function AdminPengolahanPemasaran() {
                 />
 
                 <FilterMultiSelect
-                  label="Kabupaten/Kota"
+                  label="Kab/Kota"
                   values={filterKabupaten}
                   options={KABUPATEN_KOTA_OPTIONS}
                   onChange={setFilterKabupaten}
-                  placeholder="Semua Kabupaten/Kota"
+                  placeholder="Semua Kab/Kota"
                 />
 
                 <FilterMultiSelect

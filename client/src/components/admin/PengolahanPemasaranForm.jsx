@@ -4,7 +4,7 @@ import { ChevronDown, Search } from 'lucide-react';
 // ============================================================================
 // MASTER DATA & OPTIONS
 // ============================================================================
-export const KABUPATEN_KOTA_OPTIONS = [
+export const KabupatenKotaOptions = [
   'KAB. PACITAN', 'KAB. PONOROGO', 'KAB. TRENGGALEK', 'KAB. TULUNGAGUNG',
   'KAB. BLITAR', 'KAB. KEDIRI', 'KAB. MALANG', 'KAB. LUMAJANG', 'KAB. JEMBER',
   'KAB. BANYUWANGI', 'KAB. BONDOWOSO', 'KAB. SITUBONDO', 'KAB. PROBOLINGGO',
@@ -47,7 +47,7 @@ export const SERTIFIKAT_PRODUK_LIST = [
   { key: 'skp', label: 'SKP' },
   { key: 'pirt', label: 'PIRT' },
   { key: 'md', label: 'MD' },
-  { key: 'lainnya', label: 'Lain-lain' },
+  { key: 'lainnya', label: 'lainnya' },
 ];
 
 export const IZIN_USAHA_LIST = [
@@ -85,8 +85,8 @@ const INITIAL_FORM_DATA = {
 const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
-const LABEL_CLASS = 'mb-1 block text-xs font-normal uppercase tracking-wide text-white';
-
+const LABEL_CLASS =
+  'mb-1 block text-xs font-normal tracking-wide text-white';
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -985,7 +985,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             label="Kabupaten / Kota"
             value={formData.kabupaten_kota}
             onChange={(value) => setField('kabupaten_kota', value)}
-            options={KABUPATEN_KOTA_OPTIONS}
+            options={KabupatenKotaOptions}
             placeholder="Cari atau pilih kabupaten/kota"
           />
         </div>
@@ -998,7 +998,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-normal uppercase tracking-wide text-white">
+            <label className="mb-1 block text-xs font-normal tracking-wide text-white">
               Kategori Utama <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-6">
