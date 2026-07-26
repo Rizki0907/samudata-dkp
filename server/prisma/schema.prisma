@@ -33,6 +33,7 @@ model DetailTangkapan {
   id                   Int              @id @default(autoincrement())
   perikanan_tangkap_id Int
   komoditas            String
+  bentuk_ikan          String           @default("Segar")
   volume               Float
   harga                Float
   nilai                Float

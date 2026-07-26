@@ -21,7 +21,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     gt_kapal: GT_KAPAL_OPTIONS[0],
     alat_tangkap: ALAT_TANGKAP_OPTIONS[0],
     tangkapan: [
-      { komoditas: KOMODITAS_OPTIONS[0], volume: '', harga: '', pud_tangkapan_sampel: '' }
+      { komoditas: KOMODITAS_OPTIONS[0], bentuk_ikan: 'Segar', volume: '', harga: '', pud_tangkapan_sampel: '' }
     ]
   });
 
@@ -104,7 +104,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     const defaultKom = isPUD ? KOMODITAS_PUD_OPTIONS[0] : (isKabKota ? KOMODITAS_LAUT_OPTIONS[0] : KOMODITAS_OPTIONS[0]);
     setFormData(prev => ({
       ...prev,
-      tangkapan: [...prev.tangkapan, { komoditas: defaultKom, volume: '', harga: '', pud_tangkapan_sampel: '' }]
+      tangkapan: [...prev.tangkapan, { komoditas: defaultKom, bentuk_ikan: 'Segar', volume: '', harga: '', pud_tangkapan_sampel: '' }]
     }));
   };
 
@@ -582,17 +582,32 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     </p>
                   </div>
                 ) : (
-                  <div className="md:col-span-4">
-                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Volume (Kg)</label>
-                    <input 
-                      type="number" 
-                      step="0.01" min="0"
-                      placeholder="Misal: 105.5"
-                      value={item.volume}
-                      onChange={(e) => handleTangkapanChange(index, 'volume', e.target.value)}
-                      className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
-                    />
-                  </div>
+                  <>
+                    {isPelabuhan && (
+                      <div className="md:col-span-4">
+                        <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Bentuk Ikan</label>
+                        <select
+                          value={item.bentuk_ikan || 'Segar'}
+                          onChange={(e) => handleTangkapanChange(index, 'bentuk_ikan', e.target.value)}
+                          className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input appearance-none"
+                        >
+                          <option value="Segar">Segar</option>
+                          <option value="Beku">Beku</option>
+                        </select>
+                      </div>
+                    )}
+                    <div className="md:col-span-4">
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Volume (Kg)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" min="0"
+                        placeholder="Misal: 105.5"
+                        value={item.volume}
+                        onChange={(e) => handleTangkapanChange(index, 'volume', e.target.value)}
+                        className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="md:col-span-4">

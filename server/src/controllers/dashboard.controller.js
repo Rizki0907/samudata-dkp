@@ -4,9 +4,9 @@ const getOverviewStats = async (req, res) => {
   try {
     // === 1. PERIKANAN TANGKAP ===
     // Mengambil total volume produksi (dari DetailTangkapan) dan jumlah pendaratan unik (PerikananTangkap)
-    const tangkapVolume = await prisma.detailTangkapan.aggregate({
-      _sum: { volume: true },
-      where: { perikananTangkap: { status: 'VERIFIED' } }
+    // Menggunakan DataBulananTangkap agar mencerminkan data publik yang sudah divalidasi dan di-adjust admin
+    const tangkapVolume = await prisma.dataBulananTangkap.aggregate({
+      _sum: { volume: true }
     });
 
     const tangkapTrip = await prisma.perikananTangkap.aggregate({

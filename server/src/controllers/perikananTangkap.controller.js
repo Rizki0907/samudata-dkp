@@ -81,6 +81,7 @@ const createData = async (req, res) => {
 
       return {
         komoditas: t.komoditas,
+        bentuk_ikan: t.bentuk_ikan || 'Segar',
         pud_tangkapan_sampel: isPUD ? pudTangkapSampel : null,
         volume: vol,
         harga: hrg,
@@ -160,6 +161,7 @@ const updateData = async (req, res) => {
 
       return {
         komoditas: t.komoditas,
+        bentuk_ikan: t.bentuk_ikan || 'Segar',
         pud_tangkapan_sampel: isPUD ? pudTangkapSampel : null,
         volume: vol,
         harga: hrg,
@@ -217,9 +219,9 @@ const deleteData = async (req, res) => {
       where: { id: parseInt(id) }
     });
 
-    if (existing.status === 'APPROVED' || existing.status === 'VERIFIED') {
-      await syncDataBulananInternal();
-    }
+    if (existing.status === 'VERIFIED') {
+        syncDataBulananInternal().catch(err => console.error('Error background sync:', err));
+      }
 
     res.status(200).json({ success: true, message: 'Data berhasil dihapus' });
   } catch (error) {
@@ -339,9 +341,14 @@ const exportData = async (req, res) => {
 
 // PUT status [ADMIN PUSAT]
 const updateStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, alasan_penolakan } = req.body;
+    try {
+      const { id } = req.params;
+      const { status, alasan_penolakan } = req.body;
+
+      const oldData = await prisma.perikananTangkap.findUnique({
+        where: { id: parseInt(id) },
+        select: { status: true }
+      });
 
     if (!req.user || req.user.role !== 'admin_pusat') {
       return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
@@ -355,10 +362,10 @@ const updateStatus = async (req, res) => {
       }
     });
 
-    // Auto-sync ke wadah publik jika ada perubahan approval
-    if (status === 'APPROVED' || status === 'REJECTED' || status === 'VERIFIED') {
-      await syncDataBulananInternal();
-    }
+    // Auto-sync ke wadah publik HANYA jika ada perubahan yang memengaruhi status VERIFIED
+      if (status === 'VERIFIED' || oldData?.status === 'VERIFIED') {
+        syncDataBulananInternal().catch(err => console.error('Error background sync:', err));
+      }
 
     res.status(200).json({ success: true, message: `Status berhasil diubah menjadi ${status}`, data: updated });
   } catch (error) {
@@ -368,23 +375,30 @@ const updateStatus = async (req, res) => {
 };
 // POST batch status [ADMIN PUSAT]
 const batchStatus = async (req, res) => {
-  try {
-    const { ids, status, alasan_penolakan } = req.body;
-    if (!req.user || req.user.role !== 'admin_pusat') {
-      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
-    }
-    await prisma.perikananTangkap.updateMany({
-      where: { id: { in: ids.map(id => parseInt(id)) } },
-      data: {
-        status,
-        alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+    try {
+      const { ids, status, alasan_penolakan } = req.body;
+      if (!req.user || req.user.role !== 'admin_pusat') {
+        return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menyetujui/menolak data' });
       }
-    });
 
-    // Auto-sync ke wadah publik jika ada perubahan approval
-    if (status === 'APPROVED' || status === 'REJECTED' || status === 'VERIFIED') {
-      await syncDataBulananInternal();
-    }
+      const oldRecords = await prisma.perikananTangkap.findMany({
+        where: { id: { in: ids.map(id => parseInt(id)) } },
+        select: { status: true }
+      });
+      const hasVerified = oldRecords.some(r => r.status === 'VERIFIED');
+  
+        await prisma.perikananTangkap.updateMany({
+        where: { id: { in: ids.map(id => parseInt(id)) } },
+        data: {
+          status,
+          alasan_penolakan: status === 'REJECTED' ? alasan_penolakan : null
+        }
+      });
+  
+      // Auto-sync ke wadah publik HANYA jika ada perubahan yang memengaruhi status VERIFIED
+        if (status === 'VERIFIED' || hasVerified) {
+        syncDataBulananInternal().catch(err => console.error('Error background sync:', err));
+      }
 
     res.status(200).json({ success: true, message: `Berhasil mengubah status ${ids.length} data` });
   } catch (error) {
@@ -395,11 +409,17 @@ const batchStatus = async (req, res) => {
 
 // POST batch delete [ADMIN PUSAT]
 const batchDelete = async (req, res) => {
-  try {
-    const { ids } = req.body;
-    if (!req.user || req.user.role !== 'admin_pusat') {
-      return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menghapus data' });
-    }
+    try {
+      const { ids } = req.body;
+      if (!req.user || req.user.role !== 'admin_pusat') {
+        return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat menghapus data' });
+      }
+
+      const oldRecords = await prisma.perikananTangkap.findMany({
+        where: { id: { in: ids.map(id => parseInt(id)) } },
+        select: { status: true }
+      });
+      const hasVerified = oldRecords.some(r => r.status === 'VERIFIED');
     
     // Hapus child table dulu (Tangkapan)
     await prisma.detailTangkapan.deleteMany({
@@ -407,10 +427,12 @@ const batchDelete = async (req, res) => {
     });
     
     await prisma.perikananTangkap.deleteMany({
-      where: { id: { in: ids.map(id => parseInt(id)) } }
-    });
-    
-    await syncDataBulananInternal();
+        where: { id: { in: ids.map(id => parseInt(id)) } }
+      });
+
+      if (hasVerified) {
+        syncDataBulananInternal().catch(err => console.error('Error background sync:', err));
+      }
 
     res.status(200).json({ success: true, message: `Berhasil menghapus ${ids.length} data` });
   } catch (error) {
@@ -525,3 +547,4 @@ const batchDelete = async (req, res) => {
   batchDelete,
   exportPUD
 };
+

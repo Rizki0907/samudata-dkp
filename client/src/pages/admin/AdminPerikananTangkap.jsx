@@ -570,6 +570,7 @@ export default function AdminPerikananTangkap() {
     let totalNilai = 0;
     const logistikSummaryMap = {};
     const apiToKomoditasMap = {};
+    const bentukIkanMap = {};
 
     exportData.forEach(row => {
       // Logistik
@@ -605,6 +606,13 @@ export default function AdminPerikananTangkap() {
           
           totalVol += v;
           totalNilai += n;
+
+          const bentuk = t.bentuk_ikan || 'Segar';
+          if (bentuk === 'Segar' || bentuk === 'Beku') {
+             const bKey = kName + '||' + bentuk;
+             if (!bentukIkanMap[bKey]) bentukIkanMap[bKey] = 0;
+             bentukIkanMap[bKey] += v;
+          }
         });
       }
     });
@@ -761,10 +769,25 @@ export default function AdminPerikananTangkap() {
     
     // TABEL 7
     rows.push(['7.    Bentuk Ikan yang Dipasarkan', '', '', '', '', '']);
-    rows.push(['No.', 'Jenis Ikan', 'Olahan', 'Jumlah (Kg)', 'Keterangan', '']);
-    rows.push(['1', '', '', '', '', '']);
-    rows.push(['2', '', '', '', '', '']);
-    rows.push(['', 'TOTAL', '', '', '', '']);
+    rows.push(['No.', 'Jenis Ikan', 'Segar/Beku', 'Jumlah (Kg)', 'Keterangan', '']);
+    
+    let table7Total = 0;
+    let counter7 = 1;
+    const sortedKeys = Object.keys(bentukIkanMap).sort();
+    sortedKeys.forEach(key => {
+       const volume = bentukIkanMap[key];
+       if (volume > 0) {
+          const [jenis, bentuk] = key.split('||');
+          rows.push([counter7++, jenis, bentuk, volume, '', '']);
+          table7Total += volume;
+       }
+    });
+    
+    if (counter7 === 1) {
+       rows.push(['1', '-', '-', 0, '', '']);
+    }
+    
+    rows.push(['', 'TOTAL', '', table7Total, '', '']);
     rows.push(['', '', '', '', '', '']);
     
     // TABEL 8
@@ -1719,8 +1742,8 @@ const columns = useMemo(() => [
 
                   const showLogistikCols = !filterCabang || filterCabang === 'PELABUHAN';
 
-                  const headerRow1 = ['Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
-                  const headerRow2 = ['', '', '', '', '', '', '', '', '', ''];
+                  const headerRow1 = ['Status', 'Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
                   
                   if (showLogistikCols) {
                     headerRow1.push('Logistik / Perbekalan');
@@ -1757,6 +1780,7 @@ const columns = useMemo(() => [
                     }
 
                     const baseRow = [
+                      row.status || '-',
                       row.tanggal ? row.tanggal.split('T')[0] : '-',
                       row.sumber_data === 'PUD' ? 'Perairan PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Perairan Non Pelabuhan' : 'Perairan Pelabuhan'),
                       row.sumber_data === 'PUD' ? (row.jenis_perairan || '-') : '-',
@@ -1809,7 +1833,7 @@ const columns = useMemo(() => [
                   
                   const logistikHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "EAD1DC" } } };
 
-                  const totalBaseCols = 10;
+                  const totalBaseCols = 11;
                   const totalLogistikCols = showLogistikCols ? PERBEKALAN_OPTIONS.length : 0;
                   const totalTotalsCols = 2; // Total Volume, Total Nilai
                   
