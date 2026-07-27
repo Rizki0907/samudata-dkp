@@ -1796,22 +1796,22 @@ const columns = useMemo(() => [
                     (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED', 'PENDING'].includes(row.status)) || 
                     (user?.role === 'admin_bidang' && row.status === 'PENDING')
                   )}
-                exportName={`Perikanan_Tangkap_${filterCabang || 'All'}_${filterTahun || 'All'}`}
+                exportName={`Perikanan_Tangkap_${filterCabang && filterCabang.length > 0 ? filterCabang.join('_') : 'All'}_${filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All'}`}
                 renderSubComponent={renderSubComponent}
                 customExportButton={null}
                 onCustomExport={(exportData) => {
                     let komoditasArray = [];
-                    if (!filterCabang) {
+                    if (!filterCabang || filterCabang.length === 0) {
                       komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
-                    } else if (filterCabang === 'PUD') {
+                    } else if (filterCabang.includes('PUD') && filterCabang.length === 1) {
                       komoditasArray = [...KOMODITAS_PUD_OPTIONS];
-                    } else if (filterCabang === 'KAB_KOTA') {
+                    } else if (filterCabang.includes('KAB_KOTA') && filterCabang.length === 1) {
                       komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
                     } else {
                       komoditasArray = [...KOMODITAS_OPTIONS];
                     }
 
-                  const showLogistikCols = !filterCabang || filterCabang === 'PELABUHAN';
+                  const showLogistikCols = !filterCabang || filterCabang.length === 0 || filterCabang.includes('PELABUHAN');
 
                   const headerRow1 = ['Status', 'Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
                   const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];

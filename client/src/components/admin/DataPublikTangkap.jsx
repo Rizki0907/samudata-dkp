@@ -124,17 +124,17 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const headerRow2 = ['', '', ''];
 
     let komoditasArray = [];
-    if (!filterCabang) {
+    if (!filterCabang || filterCabang.length === 0) {
       komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
-    } else if (filterCabang === 'PUD') {
+    } else if (filterCabang.includes('PUD') && filterCabang.length === 1) {
       komoditasArray = [...KOMODITAS_PUD_OPTIONS];
-    } else if (filterCabang === 'KAB_KOTA') {
+    } else if (filterCabang.includes('KAB_KOTA') && filterCabang.length === 1) {
       komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
     } else {
       komoditasArray = [...KOMODITAS_OPTIONS];
     }
 
-    const isPelabuhanFilter = filterCabang !== 'PUD' && filterCabang !== 'KAB_KOTA';
+    const isPelabuhanFilter = !filterCabang || filterCabang.length === 0 || filterCabang.includes('PELABUHAN');
     
     // 1. Tambahkan header Logistik
     if (isPelabuhanFilter) {
@@ -290,7 +290,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     const wb = XLSX.utils.book_new();
     const sheetName = isRiil ? "Data_Riil" : "Data_Validasi";
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, `Data_Publik_Tangkap_${sheetName}_${filterTahun || 'All'}.xlsx`);
+    const tahunStr = filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All';
+    XLSX.writeFile(wb, `Data_Publik_Tangkap_${sheetName}_${tahunStr}.xlsx`);
   };
 
   const renderCustomBatchActions = (selectedIds, clearSelection) => {
@@ -372,9 +373,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   ], []);
 
   const handleExportLaporanPelabuhanBulanan = () => {
-    if (!filterWilayah) return;
-    const pelabuhanName = filterWilayah.toUpperCase();
-    const dateStr = filterTahun ? filterTahun : 'Semua Waktu';
+    if (!filterWilayah || filterWilayah.length !== 1) return;
+    const pelabuhanName = filterWilayah[0].toUpperCase();
+    const dateStr = filterTahun && filterTahun.length > 0 ? filterTahun.join(', ') : 'Semua Waktu';
     
     const row0 = [`REKAPITULASI DATA BULANAN PELABUHAN ${pelabuhanName}`];
     const row1 = [`Tahun : ${dateStr}`];
@@ -634,10 +635,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   // Apply super filters locally
   const filteredData = useMemo(() => {
     return data.filter(row => {
-      const matchTahun = !filterTahun || row.bulan.startsWith(filterTahun);
-      const matchCabang = !filterCabang || row.sumber_data === filterCabang;
-      const matchWilayah = !filterWilayah || row.pelabuhan === filterWilayah;
-      const matchKomoditas = !filterKomoditas || row.komoditas === filterKomoditas;
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+      const matchTahun = !filterTahun || filterTahun.length === 0 || filterTahun.includes(rowTahun);
+      const matchCabang = !filterCabang || filterCabang.length === 0 || filterCabang.includes(row.sumber_data || 'PELABUHAN');
+      const matchWilayah = !filterWilayah || filterWilayah.length === 0 || filterWilayah.includes(row.pelabuhan || '');
+      const matchKomoditas = !filterKomoditas || filterKomoditas.length === 0 || filterKomoditas.includes(row.komoditas);
       return matchTahun && matchCabang && matchWilayah && matchKomoditas;
     });
   }, [data, filterTahun, filterCabang, filterWilayah, filterKomoditas]);
@@ -707,14 +709,14 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         columns={columns} 
         data={aggregatedData}
         hideUpdatedAt={true}
-        exportName={`Data_Validasi_Bidang_${filterTahun || 'All'}`}
+        exportName={`Data_Validasi_Bidang_${filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All'}`}
         defaultPageSize={50}
         customBatchActions={renderCustomBatchActions}
         renderSubComponent={renderSubComponent}
         hideDefaultExport={true}
         customExportButton={
           <div className="flex gap-2">
-            {filterWilayah && filterCabang === 'PELABUHAN' && (
+            {filterWilayah && filterWilayah.length === 1 && filterCabang && filterCabang.includes('PELABUHAN') && filterCabang.length === 1 && (
               <button
                 onClick={handleExportLaporanPelabuhanBulanan}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"

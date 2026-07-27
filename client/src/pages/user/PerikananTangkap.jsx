@@ -19,6 +19,7 @@ const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', '
 export default function PerikananTangkap() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [logistikData, setLogistikData] = useState({});
   
   // Super Filters State
   const [filterTahun, setFilterTahun] = useState([]);
@@ -51,6 +52,7 @@ export default function PerikananTangkap() {
         ]);
 
         setData(dataRes.data.data || []);
+        setLogistikData(dataRes.data.logistikBulanan || {});
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -794,6 +796,7 @@ export default function PerikananTangkap() {
             filterKomoditas={filterKomoditas}
             isPublic={true}
             publicData={data} 
+            publicLogistik={logistikData}
           />
         </div>
       </div>
