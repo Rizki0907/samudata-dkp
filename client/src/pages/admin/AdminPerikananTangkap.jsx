@@ -2194,9 +2194,9 @@ const columns = useMemo(() => [
       {/* Modal Ekspor Laporan */}
       {isExportModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="bg-background rounded-3xl w-full max-w-lg shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-background rounded-3xl w-full max-w-lg shadow-2xl border border-border animate-in zoom-in-95 duration-300">
             {/* Header */}
-            <div className="relative p-6 bg-gradient-to-br from-blue-600 to-indigo-700 overflow-hidden">
+            <div className="relative p-6 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-t-3xl overflow-hidden">
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-black/10 rounded-full blur-xl"></div>
               <div className="relative flex items-center justify-between">
@@ -2351,7 +2351,7 @@ const columns = useMemo(() => [
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
+            <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3 rounded-b-3xl">
               <button 
                 onClick={() => setIsExportModalOpen(false)}
                 className="px-6 py-2.5 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
