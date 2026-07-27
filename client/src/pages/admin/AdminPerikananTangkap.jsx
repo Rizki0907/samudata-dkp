@@ -1337,8 +1337,8 @@ export default function AdminPerikananTangkap() {
   const handleModalExport = () => {
     // Filter by status if selected, otherwise all
     let dataToExport = data;
-    if (filterStatus) {
-      dataToExport = dataToExport.filter(d => d.status === filterStatus);
+    if (filterStatus && filterStatus.length > 0) {
+      dataToExport = dataToExport.filter(d => filterStatus.includes(d.status));
     }
     
     if (exportModalPerairan) {
