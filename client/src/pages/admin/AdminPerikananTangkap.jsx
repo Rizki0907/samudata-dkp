@@ -981,6 +981,43 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  const handleExportLaporanNonPelabuhan = async (exportData, tahun, bulan, wilayah) => {
+    try {
+      const npData = exportData;
+      if (npData.length === 0) {
+        alert("Tidak ada data untuk diekspor pada filter ini.");
+        return;
+      }
+
+      const ids = npData.map(d => d.id);
+      
+      const response = await api.post('/perikanan-tangkap/export-non-pelabuhan', {
+        ids,
+        tahun: tahun,
+        bulan: bulan,
+        wilayah: wilayah
+      }, { responseType: 'blob' });
+
+      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      const fileWilayah = wilayah || 'Semua';
+      const fileTahun = tahun || 'All';
+      
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PUHIT_KAB_KOTA_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal melakukan export Non Pelabuhan: " + err.message);
+    }
+  };
+
     const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
     if (!wilayah) {
        alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Rekap.");
@@ -1384,7 +1421,7 @@ export default function AdminPerikananTangkap() {
       } else if (exportModalPerairan === 'PUD') {
         handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, exportModalJenisPerairan);
       } else if (exportModalPerairan === 'KAB_KOTA') {
-        handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, '');
+        handleExportLaporanNonPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
       } else {
         alert('Pilih Sumber Perairan terlebih dahulu.');
       }

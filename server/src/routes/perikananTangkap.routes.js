@@ -10,6 +10,7 @@ const {
   getStats,
   exportData,
   exportPUD,
+  exportNonPelabuhan,
   updateStatus,
   batchStatus,
   batchDelete
@@ -20,6 +21,7 @@ router.get('/', getAllData);
 router.get('/stats', getStats);
 router.get('/export', exportData);
 router.post('/export-pud', exportPUD);
+router.post('/export-non-pelabuhan', exportNonPelabuhan);
 
 // Protected routes (Admin only)
 router.get('/admin', verifyToken, getAdminData);

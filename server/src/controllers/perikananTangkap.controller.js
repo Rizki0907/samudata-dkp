@@ -640,6 +640,152 @@ const batchDelete = async (req, res) => {
     }
   };
 
+  // POST export Non Pelabuhan
+  const exportNonPelabuhan = async (req, res) => {
+    try {
+      const { ids, tahun, bulan, wilayah } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'Tidak ada data untuk diekspor' });
+      }
+
+      // Fetch the data to export
+      const data = await prisma.perikananTangkap.findMany({
+        where: { id: { in: ids } },
+        include: { tangkapan: true }
+      });
+
+      // Load Template Non Pelabuhan
+      const templatePath = path.join(__dirname, '../../templates/NON_PELABUHAN.xlsx');
+      const XlsxPopulate = require('xlsx-populate');
+      const wb = await XlsxPopulate.fromFileAsync(templatePath);
+
+      // --- 1. Fill ISIAN sheet ---
+      const isianSheet = wb.sheet('ISIAN');
+      if (isianSheet) {
+        isianSheet.cell('C3').value('Jawa Timur');
+        isianSheet.cell('C5').value(wilayah || '-');
+        isianSheet.cell('C7').value(bulan ? String(bulan) : '-');
+        isianSheet.cell('C9').value(tahun || new Date().getFullYear());
+      }
+
+      // Helper function to normalize string for mapping
+      const normalize = (str) => (str || '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+
+      // --- 2. Fill TRIP ---
+      const tripSheet = wb.sheet('TRIP');
+      if (tripSheet) {
+        const alatMap = {}; // name -> row
+        for(let r=6; r<=60; r++) { 
+          let val = tripSheet.cell(r, 2).value() || tripSheet.cell(r, 3).value();
+          if (val && typeof val === 'string') alatMap[normalize(val)] = r;
+        }
+
+        const gtMap = {}; // name -> col
+        for(let c=7; c<=30; c++) {
+          let val = tripSheet.cell(4, c).value();
+          if (val && typeof val === 'string') gtMap[normalize(val)] = c;
+        }
+
+        data.forEach(record => {
+          const alat = normalize(record.alat_tangkap);
+          let gt = normalize(record.gt_kapal);
+          
+          if (gt.includes('motor tempel')) gt = 'motor tempel';
+          else if (gt.includes('kapal motor')) gt = 'kapal motor';
+          else if (gt.includes('perahu tanpa motor')) gt = 'perahu papan kecil'; // fallback for excel
+          else if (gt.includes('tanpa perahu')) gt = 'tanpa perahu';
+          
+          const rowNum = alatMap[alat];
+          const colNum = gtMap[gt];
+
+          if (rowNum && colNum) {
+            const cell = tripSheet.cell(rowNum, colNum);
+            const currentVal = Number(cell.value()) || 0;
+            const sampleCount = Number(record.pud_jumlah_sampel) || 1; 
+            cell.value(currentVal + sampleCount);
+          }
+        });
+      }
+
+      // --- 3. Fill VOLUME & NILAI ---
+      const volSheet = wb.sheet('VOLUME');
+      const nilSheet = wb.sheet('NILAI');
+      
+      if (volSheet && nilSheet) {
+        const alatMap = {}; // name -> row
+        for(let r=6; r<=60; r++) {
+          let val = volSheet.cell(r, 2).value() || volSheet.cell(r, 3).value();
+          if (val && typeof val === 'string') alatMap[normalize(val)] = r;
+        }
+
+        const komMap = {}; // name -> col
+        for(let c=5; c<=120; c++) {
+          let headerVal = '';
+          for (let r=3; r<=7; r++) {
+            const v = volSheet.cell(r, c).value();
+            if (v && typeof v === 'string' && v.trim().length > 0) {
+              headerVal = v;
+              break;
+            }
+          }
+
+          if (headerVal) {
+             volSheet.column(c).width(12);
+             nilSheet.column(c).width(16);
+             
+             let valForMap = volSheet.cell(4, c).value() || volSheet.cell(6, c).value() || volSheet.cell(7, c).value();
+             if (valForMap && typeof valForMap === 'string') {
+                komMap[normalize(valForMap.replace(/\n/g, ' '))] = c;
+             }
+          }
+        }
+
+        data.forEach(record => {
+          const alat = normalize(record.alat_tangkap);
+          const rowNum = alatMap[alat];
+
+          if (rowNum && Array.isArray(record.tangkapan)) {
+            record.tangkapan.forEach(t => {
+              const kom = normalize(t.komoditas);
+              let colNum = komMap[kom];
+              
+              if (colNum) {
+                // VOLUME
+                const cellVol = volSheet.cell(rowNum, colNum);
+                const currentVol = Number(cellVol.value()) || 0;
+                cellVol.value(currentVol + (Number(t.volume) || 0));
+
+                // NILAI
+                const cellNil = nilSheet.cell(rowNum, colNum);
+                const currentNil = Number(cellNil.value()) || 0;
+                cellNil.value(currentNil + (Number(t.nilai) || 0));
+              }
+            });
+          }
+        });
+      }
+
+      const buffer = await wb.outputAsync();
+      
+      const fileWilayah = wilayah || 'Semua';
+      const fileTahun = tahun || 'All';
+      
+      const namaBulanMap = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      const fileBulan = bulan && namaBulanMap[Number(bulan)] ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_NON_PELABUHAN_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx"`);
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Export Non Pelabuhan Error:', error);
+      res.status(500).json({ success: false, message: 'Gagal mengekspor laporan Non Pelabuhan' });
+    }
+  };
+
   module.exports = {
   getAllData,
   getAdminData,
@@ -651,6 +797,7 @@ const batchDelete = async (req, res) => {
   updateStatus,
   batchStatus,
   batchDelete,
-  exportPUD
+  exportPUD,
+  exportNonPelabuhan
 };
 
