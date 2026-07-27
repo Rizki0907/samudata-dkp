@@ -662,10 +662,17 @@ const batchDelete = async (req, res) => {
       // --- 1. Fill ISIAN sheet ---
       const isianSheet = wb.sheet('ISIAN');
       if (isianSheet) {
+        const sampleRecord = data.length > 0 ? data[0] : {};
+        
         isianSheet.cell('C3').value('Jawa Timur');
         isianSheet.cell('C5').value(wilayah || '-');
         isianSheet.cell('C7').value(bulan ? String(bulan) : '-');
         isianSheet.cell('C9').value(tahun || new Date().getFullYear());
+        
+        // F11: Daerah Operasi (WPP)
+        isianSheet.cell('F11').value(sampleRecord.jenis_perairan || '-');
+        // C13: Perairan Pantai (Pendaratan)
+        isianSheet.cell('C13').value(sampleRecord.pelabuhan || '-');
       }
 
       // Helper function to normalize string for mapping
@@ -777,7 +784,7 @@ const batchDelete = async (req, res) => {
       const fileBulan = bulan && namaBulanMap[Number(bulan)] ? namaBulanMap[Number(bulan)] : 'AllBulan';
       
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="PUHIT_NON_PELABUHAN_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="PRODUKSI_LHIT_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx"`);
       
       res.send(buffer);
     } catch (error) {

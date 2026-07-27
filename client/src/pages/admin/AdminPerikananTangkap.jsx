@@ -1006,7 +1006,7 @@ export default function AdminPerikananTangkap() {
       const url = window.URL.createObjectURL(response.data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PUHIT_KAB_KOTA_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
+      a.download = `PRODUKSI_LHIT_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
