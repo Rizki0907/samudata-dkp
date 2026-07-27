@@ -565,12 +565,27 @@ const batchDelete = async (req, res) => {
         }
 
         const lp3KomMap = {}; // name -> col
-        // Komoditas can be in row 4, 6 or 7 depending on the exact template variation
-        for(let c=8; c<=120; c++) {
-          let val = lp3Vol.cell(4, c).value() || lp3Vol.cell(6, c).value() || lp3Vol.cell(7, c).value();
-          if (val && typeof val === 'string') {
-             // Remove newlines and trim
-             lp3KomMap[normalize(val.replace(/\n/g, ' '))] = c;
+        for(let c=5; c<=120; c++) {
+          // Cari header di baris 3 sampai 7 (bisa komoditas, bisa Jumlah, bisa Sub Jumlah)
+          let headerVal = '';
+          for (let r=3; r<=7; r++) {
+            const v = lp3Vol.cell(r, c).value();
+            if (v && typeof v === 'string' && v.trim().length > 0) {
+              headerVal = v;
+              break;
+            }
+          }
+
+          if (headerVal) {
+             // Perlebar kolom agar angka / rupiah tidak tampil "#####" di Excel
+             lp3Vol.column(c).width(12);
+             lp3Nil.column(c).width(16);
+             
+             // Mapping hanya untuk header komoditas (diambil dari baris 4, 6, 7 biasanya)
+             let valForMap = lp3Vol.cell(4, c).value() || lp3Vol.cell(6, c).value() || lp3Vol.cell(7, c).value();
+             if (valForMap && typeof valForMap === 'string') {
+                lp3KomMap[normalize(valForMap.replace(/\n/g, ' '))] = c;
+             }
           }
         }
 
