@@ -2281,6 +2281,7 @@ const columns = useMemo(() => [
                   </label>
                   <div className="relative">
                     <SearchableSelect 
+                      placement="top"
                       value={exportModalJenisPerairan} 
                       onChange={(e) => setExportModalJenisPerairan(e.target.value)} 
                       options={PERAIRAN_OPTIONS.map(opt => ({ value: opt, label: opt }))}
@@ -2301,6 +2302,7 @@ const columns = useMemo(() => [
                     </label>
                       <div className="relative">
                         <SearchableSelect 
+                          placement="top"
                           value={exportModalTahun} 
                           onChange={(e) => {
                             setExportModalTahun(e.target.value);
@@ -2318,6 +2320,7 @@ const columns = useMemo(() => [
                     </label>
                     <div className="relative">
                       <SearchableSelect 
+                        placement="top"
                         value={exportModalBulan} 
                         onChange={(e) => {
                           setExportModalBulan(e.target.value);
@@ -2340,6 +2343,7 @@ const columns = useMemo(() => [
                   </label>
                   <div className="relative">
                       <SearchableSelect 
+                        placement="top"
                         value={exportModalWilayah} 
                         onChange={(e) => setExportModalWilayah(e.target.value)} 
                         options={exportModalPerairan === 'PELABUHAN' ? PELABUHAN_OPTIONS.map(opt => ({ value: opt, label: opt })) : KAB_KOTA_OPTIONS.map(opt => ({ value: opt, label: opt }))}
