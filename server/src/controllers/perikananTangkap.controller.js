@@ -687,23 +687,32 @@ const batchDelete = async (req, res) => {
           if (val && typeof val === 'string') alatMap[normalize(val)] = r;
         }
 
-        const gtMap = {}; // name -> col
-        for(let c=7; c<=30; c++) {
-          let val = tripSheet.cell(4, c).value();
-          if (val && typeof val === 'string') gtMap[normalize(val)] = c;
+        const gtMap = {}; 
+        let currentParent = '';
+        for(let c=5; c<=30; c++) {
+          let parentVal = tripSheet.cell(3, c).value();
+          if (parentVal && typeof parentVal === 'string' && parentVal.trim().length > 0) {
+             currentParent = normalize(parentVal).replace(/\s+/g, ''); // 'tanpaperahu', 'motortempel', dll
+             if (currentParent === 'tanpaperahu' || currentParent === 'perahutanpamotor') {
+                gtMap[currentParent] = c;
+             }
+          }
+          
+          let childVal = tripSheet.cell(4, c).value();
+          if (childVal && typeof childVal === 'string' && childVal.trim().length > 0 && !childVal.toLowerCase().includes('jumlah')) {
+             if (currentParent) {
+                 let normChild = normalize(childVal).replace(/\s+/g, ''); // '<5gt'
+                 gtMap[currentParent + normChild] = c;
+             }
+          }
         }
 
         data.forEach(record => {
           const alat = normalize(record.alat_tangkap);
-          let gt = normalize(record.gt_kapal);
-          
-          if (gt.includes('motor tempel')) gt = 'motor tempel';
-          else if (gt.includes('kapal motor')) gt = 'kapal motor';
-          else if (gt.includes('perahu tanpa motor')) gt = 'perahu papan kecil'; // fallback for excel
-          else if (gt.includes('tanpa perahu')) gt = 'tanpa perahu';
+          let gtNorm = normalize(record.gt_kapal).replace(/\s+/g, '');
           
           const rowNum = alatMap[alat];
-          const colNum = gtMap[gt];
+          const colNum = gtMap[gtNorm];
 
           if (rowNum && colNum) {
             const cell = tripSheet.cell(rowNum, colNum);
