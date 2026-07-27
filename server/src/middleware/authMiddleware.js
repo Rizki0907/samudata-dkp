@@ -17,4 +17,11 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+const requireAdminPusat = (req, res, next) => {
+  if (req.user?.role !== 'admin_pusat') {
+    return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat mengakses fitur ini' });
+  }
+  next();
+};
+
+module.exports = { verifyToken, requireAdminPusat };

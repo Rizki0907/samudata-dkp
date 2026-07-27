@@ -21,10 +21,10 @@ const ADMIN_MENUS = [
   { title: 'Overview Admin', path: '/admin', icon: LayoutDashboard },
   { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Fish },
   { title: 'Perikanan Budidaya', path: '/admin/budidaya', icon: Waves },  
-  { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Sprout },
-  { title: 'Pengolahan dan Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package },
+  { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Sprout, reqPusat: true },
+  { title: 'Pengolahan dan Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package, reqPusat: true },
 
-  { title: 'Ekspor', path: '/admin/ekspor', icon: Globe },
+  { title: 'Ekspor', path: '/admin/ekspor', icon: Globe, reqPusat: true },
   { title: 'Master Data', path: '/admin/master-data', icon: Database, reqPusat: true },
 ];
 
@@ -105,7 +105,15 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             title={collapsed ? "Logout" : undefined}
           >
             <LogOut className="w-5 h-5" />
-            {!collapsed && <span>Keluar (Admin)</span>}
+            {!collapsed && (
+              <span>
+                {user?.role === 'admin_cabang'
+                  ? 'Keluar (Unit Kerja)'
+                  : user?.role === 'admin_pusat'
+                  ? 'Keluar (Admin Pusat)'
+                  : 'Keluar (Admin)'}
+              </span>
+            )}
           </button>
         ) : (
           <NavLink

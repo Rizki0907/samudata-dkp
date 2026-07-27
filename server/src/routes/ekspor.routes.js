@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdminPusat } = require('../middleware/authMiddleware');
 const {
   getAllData,
   getAdminData,
@@ -17,14 +17,14 @@ const {
 router.get('/', getAllData);
 router.get('/stats', getStats);
 
-// Protected routes (Admin only)
-router.post('/batch-status', verifyToken, batchStatus);
-router.post('/batch-delete', verifyToken, batchDelete);
+// Protected routes (Admin Pusat only)
+router.post('/batch-status', verifyToken, requireAdminPusat, batchStatus);
+router.post('/batch-delete', verifyToken, requireAdminPusat, batchDelete);
 
-router.get('/admin', verifyToken, getAdminData);
-router.post('/', verifyToken, createData);
-router.put('/:id', verifyToken, updateData);
-router.delete('/:id', verifyToken, deleteData);
-router.put('/:id/status', verifyToken, updateStatus);
+router.get('/admin', verifyToken, requireAdminPusat, getAdminData);
+router.post('/', verifyToken, requireAdminPusat, createData);
+router.put('/:id', verifyToken, requireAdminPusat, updateData);
+router.delete('/:id', verifyToken, requireAdminPusat, deleteData);
+router.put('/:id/status', verifyToken, requireAdminPusat, updateStatus);
 
 module.exports = router;
