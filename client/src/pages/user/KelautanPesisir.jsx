@@ -12,6 +12,16 @@ import ReactECharts from 'echarts-for-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
+const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const formatBulan = (val) => {
+  if (!val) return '';
+  const num = parseInt(val, 10);
+  if (num >= 1 && num <= 12) {
+    return NAMA_BULAN_LIST[num - 1];
+  }
+  return val;
+};
+
 const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
 // ── MARITIME COLOR PALETTE ──
@@ -657,9 +667,6 @@ export default function KelautanPesisir() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan dan Pesisir</h1>
-          <p className="text-muted-foreground mt-1">
-            Visualisasi data Kelautan, Pesisir, dan Potensi Perairan Jawa Timur.
-          </p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm shrink-0">
           <Clock className="w-6 h-6 animate-pulse" />
@@ -668,24 +675,25 @@ export default function KelautanPesisir() {
       </div>
 
       {/* ── Filter Global ── */}
-      <div className="bg-card border border-border p-4 rounded-xl flex flex-col md:flex-row gap-4 items-end shadow-sm">
-        <div className="flex-1 w-full">
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-          <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.tahun || d.tahun_data))].filter(Boolean).sort()} />
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col md:flex-row gap-3 w-full">
+          <div className="flex-1">
+            <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+          </div>
+          <div className="flex-1">
+            <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+          </div>
+          <div className="flex-1">
+            <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+          </div>
+          {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
+            <div className="md:w-auto">
+              <button onClick={() => { setFilterTahun([]); setFilterBulan([]); setFilterKab([]); }} className="h-full w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
+                Reset Filter
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex-1 w-full">
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-          <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
-        </div>
-        <div className="flex-1 w-full">
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-          <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
-        </div>
-        {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
-          <button onClick={() => { setFilterTahun([]); setFilterBulan([]); setFilterKab([]); }} className="w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2.5 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
-            Reset Filter
-          </button>
-        )}
       </div>
 
       {/* ── Potensi Perairan KPI (TOP) ── */}
@@ -696,22 +704,18 @@ export default function KelautanPesisir() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Jml. Pulau-Pulau Kecil</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Garis Pantai</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Luas Wilayah Laut</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-muted-foreground font-normal">Km²</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><MapPin className="w-5 h-5 text-pink-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Desa Pesisir</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-muted-foreground font-normal">Desa</span></p>
           </div>
@@ -730,17 +734,14 @@ export default function KelautanPesisir() {
         {/* Garam KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><FlaskConical className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.produksi)} <span className="text-sm text-muted-foreground font-normal">Ton</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-amber-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Fish className="w-5 h-5 text-amber-500" /><p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.petambak)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 bg-blue-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
             <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Lahan Tambak</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.lahan)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
           </div>
@@ -749,25 +750,25 @@ export default function KelautanPesisir() {
         {/* Garam Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Volume Produksi per Kab/Kota (Ton)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Volume Produksi per Kab/Kota (Ton)</h3>
             {garamKota.length > 0
               ? <ReactECharts option={hBarOption(garamKota, garamProduksi, '#0891b2', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Kelompok per Kab/Kota</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
               ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#7c3aed', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Luas Lahan per Kab/Kota</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Lahan per Kab/Kota</h3>
             {garamKota.length > 0
               ? <ReactECharts option={pieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Jumlah Petambak per Kab/Kota</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Petambak per Kab/Kota</h3>
             {garamKota.length > 0
               ? <ReactECharts option={pieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak')} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -787,7 +788,7 @@ export default function KelautanPesisir() {
         {/* Mangrove Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-sm font-semibold text-foreground mb-2 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiMangrove.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiPieOption(kondisiChartData)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -795,13 +796,11 @@ export default function KelautanPesisir() {
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
+                <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-cyan-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-cyan-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-cyan-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
@@ -809,13 +808,13 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
               ? <ReactECharts option={hBarOption(mangroveKota, mangroveEksisting, '#10b981', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
               ? <ReactECharts option={hBarOption(mangroveKota, mangroveRehab, '#06b6d4', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -835,7 +834,7 @@ export default function KelautanPesisir() {
         {/* Terumbu Karang Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-sm font-semibold text-foreground mb-2 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiTerumbu.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -843,13 +842,11 @@ export default function KelautanPesisir() {
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-sky-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
               <div className="flex items-center gap-3 mb-3"><Waves className="w-6 h-6 text-sky-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-pink-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-pink-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
@@ -857,13 +854,13 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
               ? <ReactECharts option={hBarOption(terumbuKota, terumbuEksisting, '#0ea5e9', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
               ? <ReactECharts option={hBarOption(terumbuKota, terumbuRehab, '#ec4899', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -883,7 +880,7 @@ export default function KelautanPesisir() {
         {/* Lamun Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-sm font-semibold text-foreground mb-2 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiLamun.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiLamunPieOption(kondisiLamunChartData)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -891,12 +888,10 @@ export default function KelautanPesisir() {
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
-              <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="absolute -right-4 -bottom-4 bg-purple-500/5 w-32 h-32 rounded-full group-hover:scale-110 transition-transform"></div>
               <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-purple-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
               <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
@@ -905,13 +900,13 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
               ? <ReactECharts option={hBarOption(lamunKota, lamunEksisting, '#10b981', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
               ? <ReactECharts option={hBarOption(lamunKota, lamunRehab, '#8b5cf6', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -922,7 +917,7 @@ export default function KelautanPesisir() {
       {/* ── Tabel Data + Filter ── */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-x-auto min-h-[600px] mt-6">
         <h2 className="text-lg font-bold text-foreground mb-4">Data Kelautan dan Pesisir</h2>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-border pb-6">
+        <div className="flex flex-col gap-4 mb-6 border-b border-border pb-6">
           <div className="flex flex-wrap items-center gap-2 bg-muted/40 p-1 rounded-lg w-fit">
             <button
               onClick={() => setActiveTable('potensi')}
@@ -954,6 +949,17 @@ export default function KelautanPesisir() {
             >
               <Leaf className="w-6 h-6 inline mr-1.5" /> Lamun
             </button>
+          </div>
+          <div className="flex flex-col md:flex-row gap-3 w-full">
+            <div className="flex-1">
+              <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+            </div>
+            <div className="flex-1">
+              <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+            </div>
+            <div className="flex-1">
+              <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+            </div>
           </div>
         </div>
 
