@@ -105,7 +105,6 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           <h2 className="text-lg font-bold text-foreground">
             {initialData ? 'Edit Data Terumbu Karang' : 'Tambah Data Terumbu Karang'}
           </h2>
-          <p className="text-sm text-muted-foreground">Isi data kondisi dan rehabilitasi terumbu karang sesuai standar DKP.</p>
         </div>
       </div>
 

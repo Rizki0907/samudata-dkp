@@ -77,6 +77,11 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
   const inputClass = "w-full rounded-lg border bg-background px-3 py-2 text-center outline-none focus:ring-2 focus:ring-primary/50 border-input";
   const labelClass = "block text-sm font-medium mb-2 text-center";
 
+  // ── Sistem heading & label (disamakan biar konsisten di semua section) ──
+  const sectionTitleClass = "text-lg font-semibold flex items-center gap-2 mb-4";
+  const sectionBadgeClass = "w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold";
+  const metaLabelClass = "text-xs text-muted-foreground tracking-wide mb-1";
+
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden text-card-foreground">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
@@ -84,7 +89,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <FlaskConical className="w-4 h-4 text-primary" />
           </div>
-          <h2 className="text-base font-bold">{initialData ? 'Edit' : 'Tambah'} Data Garam</h2>
+          <h2 className="text-lg font-bold">{initialData ? 'Edit' : 'Tambah'} Data Garam</h2>
         </div>
         <button onClick={onCancel} className="p-2 hover:bg-muted rounded-full transition-colors">
           <X className="w-5 h-5" />
@@ -123,8 +128,8 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
         <div className="h-px bg-border my-6"></div>
 
         <section>
-          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
+          <h3 className={sectionTitleClass}>
+            <span className={sectionBadgeClass}>1</span>
             Lahan & SDM
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
@@ -150,8 +155,8 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
         <div className="h-px bg-border my-6"></div>
 
         <section>
-          <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
+          <h3 className={sectionTitleClass}>
+            <span className={sectionBadgeClass}>2</span>
             Kualitas Garam
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -167,19 +172,19 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
                   <h4 className="font-bold text-center text-sm">{k.label}</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Produksi (Ton)</label>
+                      <label className={metaLabelClass}>Produksi (Ton)</label>
                       <input type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Stok (Ton)</label>
+                      <label className={metaLabelClass}>Stok (Ton)</label>
                       <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-muted-foreground">Harga (Rp)</label>
+                      <label className={metaLabelClass}>Harga (Rp)</label>
                       <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={inputClass} placeholder="0" />
                     </div>
                     <div className="pt-3 border-t border-border flex justify-between items-center">
-                      <span className="text-xs font-medium text-muted-foreground">Nilai Produksi</span>
+                      <span className={metaLabelClass.replace(' mb-1', '')}>Nilai Produksi</span>
                       <span className="text-sm font-bold">{(p * h).toLocaleString('id-ID')}</span>
                     </div>
                   </div>
@@ -194,21 +199,21 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
         {/* ── LIVE KALKULASI PANEL ─────────────────────────────────────────── */}
         <section>
           <div className="bg-muted/10 border border-border rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">∑</span>
-              <h4 className="text-sm font-bold text-foreground tracking-wider">Kalkulasi Otomatis</h4>
-            </div>
+            <h3 className={sectionTitleClass}>
+              <span className={sectionBadgeClass}>∑</span>
+              Kalkulasi Otomatis
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-background rounded-xl border border-border p-4">
-                <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-1">Total Produksi</p>
+                <p className={metaLabelClass}>Total Produksi</p>
                 <p className="text-2xl font-bold text-primary">{totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
               </div>
               <div className="bg-background rounded-xl border border-border p-4">
-                <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-1">Total Stok</p>
+                <p className={metaLabelClass}>Total Stok</p>
                 <p className="text-2xl font-bold text-primary">{totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
               </div>
               <div className="bg-background rounded-xl border border-border p-4">
-                <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-1">Produktivitas Lahan</p>
+                <p className={metaLabelClass}>Produktivitas Lahan</p>
                 <p className="text-2xl font-bold text-primary">
                   {lp > 0 ? (
                     <>{produktivitas.toLocaleString('id-ID', { maximumFractionDigits: 3 })} <span className="text-sm font-normal text-muted-foreground">Ton/Ha</span></>

@@ -1766,7 +1766,7 @@ export default function AdminKelautanPesisir() {
             className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
             <Plus className="w-5 h-5" />
-            Tambah {DATA_TABS.find(t => t.key === activeTab)?.label}
+            Tambah Data Baru
           </button>
         )}
       </div>

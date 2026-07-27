@@ -52,7 +52,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Anchor className="w-4 h-4 text-primary" />
           </div>
-          <h2 className="text-base font-bold">{initialData ? 'Edit' : 'Input'} Data Potensi Perairan</h2>
+          <h2 className="text-lg font-bold">{initialData ? 'Edit' : 'Tambah'} Data Potensi Perairan</h2>
         </div>
         <button type="button" onClick={onCancel} className="p-2 hover:bg-muted rounded-full transition-colors">
           <X className="w-5 h-5" />
