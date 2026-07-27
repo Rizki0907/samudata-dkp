@@ -26,11 +26,15 @@ export default function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getLabel = (opt) => typeof opt === 'object' && opt !== null ? String(opt.label) : String(opt);
+  const getValue = (opt) => typeof opt === 'object' && opt !== null ? String(opt.value) : String(opt);
+
   const filteredOptions = options.filter(opt => 
-    String(opt).toLowerCase().includes(search.toLowerCase())
+    getLabel(opt).toLowerCase().includes(search.toLowerCase())
   );
 
-  const displayValue = value || placeholder;
+  const selectedOpt = options.find(opt => getValue(opt) === String(value));
+  const displayValue = selectedOpt ? getLabel(selectedOpt) : (value || placeholder);
 
   return (
     <div ref={wrapperRef} className="relative w-full">
@@ -64,22 +68,25 @@ export default function SearchableSelect({
           </div>
           <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt, idx) => (
+              filteredOptions.map((opt, idx) => {
+                const optVal = getValue(opt);
+                const optLabel = getLabel(opt);
+                return (
                 <div
                   key={idx}
                   className={cn(
                     "px-3 py-2.5 text-sm rounded-md cursor-pointer transition-colors flex items-center justify-between",
-                    value === String(opt) ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                    String(value) === String(optVal) ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
                   )}
                   onClick={() => {
-                    onChange({ target: { name, value: String(opt) } });
+                    onChange({ target: { name, value: optVal } });
                     setIsOpen(false);
                     setSearch('');
                   }}
                 >
-                  {String(opt)}
+                  {optLabel}
                 </div>
-              ))
+              )})
             ) : (
               <div className="px-3 py-6 text-center flex flex-col items-center gap-1">
                 <span className="text-sm font-medium text-muted-foreground">Tidak ditemukan</span>

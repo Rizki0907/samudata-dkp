@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
+import SearchableSelect from '@/components/shared/SearchableSelect';
 import {  
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
   Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle,
@@ -2279,15 +2280,12 @@ const columns = useMemo(() => [
                     Jenis Perairan PUD
                   </label>
                   <div className="relative">
-                    <select 
+                    <SearchableSelect 
                       value={exportModalJenisPerairan} 
                       onChange={(e) => setExportModalJenisPerairan(e.target.value)} 
-                      className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all cursor-pointer hover:border-cyan-500/50"
-                    >
-                      <option value="" disabled>Pilih Jenis Perairan...</option>
-                      {PERAIRAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      options={PERAIRAN_OPTIONS.map(opt => ({ value: opt, label: opt }))}
+                      placeholder="Pilih Jenis Perairan..."
+                    />
                   </div>
                 </div>
               )}
@@ -2301,20 +2299,17 @@ const columns = useMemo(() => [
                       <Calendar className="w-4 h-4 text-emerald-500" />
                       Tahun
                     </label>
-                    <div className="relative">
-                      <select 
-                        value={exportModalTahun} 
-                        onChange={(e) => {
-                          setExportModalTahun(e.target.value);
-                          setExportModalWilayah('');
-                        }} 
-                        className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all cursor-pointer hover:border-emerald-500/50"
-                      >
-                        <option value="" disabled>Tahun...</option>
-                        {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    </div>
+                      <div className="relative">
+                        <SearchableSelect 
+                          value={exportModalTahun} 
+                          onChange={(e) => {
+                            setExportModalTahun(e.target.value);
+                            setExportModalWilayah('');
+                          }} 
+                          options={TAHUN_OPTIONS.map(opt => ({ value: String(opt), label: String(opt) }))}
+                          placeholder="Tahun..."
+                        />
+                      </div>
                   </div>
                   <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                     <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
@@ -2322,18 +2317,15 @@ const columns = useMemo(() => [
                       Bulan
                     </label>
                     <div className="relative">
-                      <select 
+                      <SearchableSelect 
                         value={exportModalBulan} 
                         onChange={(e) => {
                           setExportModalBulan(e.target.value);
                           setExportModalWilayah('');
                         }} 
-                        className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all cursor-pointer hover:border-emerald-500/50"
-                      >
-                        <option value="" disabled>Bulan...</option>
-                        {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        options={BULAN_OPTIONS.map((opt, i) => ({ value: String(i+1), label: opt }))}
+                        placeholder="Bulan..."
+                      />
                     </div>
                   </div>
                 </div>
@@ -2347,18 +2339,13 @@ const columns = useMemo(() => [
                     {exportModalPerairan === 'PELABUHAN' ? 'Pilih Pelabuhan' : 'Wilayah / Kabupaten Kota'}
                   </label>
                   <div className="relative">
-                    <select 
-                      value={exportModalWilayah} 
-                      onChange={(e) => setExportModalWilayah(e.target.value)} 
-                      className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-rose-500/50 outline-none transition-all cursor-pointer hover:border-rose-500/50"
-                    >
-                      <option value="" disabled>Pilih lokasi...</option>
-                      {exportModalPerairan === 'PELABUHAN'
-                        ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
+                      <SearchableSelect 
+                        value={exportModalWilayah} 
+                        onChange={(e) => setExportModalWilayah(e.target.value)} 
+                        options={exportModalPerairan === 'PELABUHAN' ? PELABUHAN_OPTIONS.map(opt => ({ value: opt, label: opt })) : KAB_KOTA_OPTIONS.map(opt => ({ value: opt, label: opt }))}
+                        placeholder="Pilih lokasi..."
+                      />
+                    </div>
                 </div>
               )}
             </div>
