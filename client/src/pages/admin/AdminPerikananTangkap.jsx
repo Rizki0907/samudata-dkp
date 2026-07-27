@@ -4,6 +4,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import {  
   Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
   Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle,
@@ -44,12 +45,12 @@ export default function AdminPerikananTangkap() {
   
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState('data'); // 'data' or 'visual'
-  const [filterTahun, setFilterTahun] = useState(currentYear.toString());
-  const [filterBulan, setFilterBulan] = useState('');
-  const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterWilayah, setFilterWilayah] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterBulan, setFilterBulan] = useState([]);
+  const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterWilayah, setFilterWilayah] = useState([]);
+  const [filterStatus, setFilterStatus] = useState([]);
 
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -64,7 +65,7 @@ export default function AdminPerikananTangkap() {
   // Local Chart Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
-  const [filterKabKotaChart, setFilterKabKotaChart] = useState('');
+  const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
 
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
@@ -276,12 +277,12 @@ export default function AdminPerikananTangkap() {
       const itemTahun = item.tanggal ? item.tanggal.substring(0, 4) : '';
       const itemBulan = item.tanggal ? String(parseInt(item.tanggal.substring(5, 7))) : '';
       
-      const matchTahun = !filterTahun || itemTahun === filterTahun;
-      const matchBulan = !filterBulan || itemBulan === filterBulan;
-      const matchCabang = !filterCabang || (item.sumber_data || 'PELABUHAN') === filterCabang;
-      const matchWilayah = !filterWilayah || (item.pelabuhan || item.kabupaten_kota || '') === filterWilayah;
-      const matchKomoditas = !filterKomoditas || (item.tangkapan && item.tangkapan.some(t => t.komoditas === filterKomoditas));
-      const matchStatus = !filterStatus || item.status === filterStatus;
+      const matchTahun = filterTahun.length === 0 || filterTahun.includes(itemTahun);
+      const matchBulan = filterBulan.length === 0 || filterBulan.includes(itemBulan);
+      const matchCabang = filterCabang.length === 0 || filterCabang.includes(item.sumber_data || 'PELABUHAN');
+      const matchWilayah = filterWilayah.length === 0 || filterWilayah.includes(item.pelabuhan || item.kabupaten_kota || '');
+      const matchKomoditas = filterKomoditas.length === 0 || (item.tangkapan && item.tangkapan.some(t => filterKomoditas.includes(t.komoditas)));
+      const matchStatus = filterStatus.length === 0 || filterStatus.includes(item.status);
       
       return matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas && matchStatus;
     });
@@ -343,11 +344,14 @@ export default function AdminPerikananTangkap() {
     publikData.forEach(adj => {
       if (!adj.is_adjusted) return;
       
-      const matchTahun = !filterTahun || adj.bulan.startsWith(filterTahun);
-      const matchBulan = !filterBulan || adj.bulan.substring(5, 7) === filterBulan;
-      const matchCabang = !filterCabang || (adj.sumber_data || 'PELABUHAN') === filterCabang;
-      const matchWilayah = !filterWilayah || (adj.pelabuhan || '') === filterWilayah;
-      const matchKomoditas = !filterKomoditas || adj.komoditas === filterKomoditas;
+      const adjTahun = adj.bulan.substring(0, 4);
+      const adjBulan = String(parseInt(adj.bulan.substring(5, 7)));
+      
+      const matchTahun = filterTahun.length === 0 || filterTahun.includes(adjTahun);
+      const matchBulan = filterBulan.length === 0 || filterBulan.includes(adjBulan);
+      const matchCabang = filterCabang.length === 0 || filterCabang.includes(adj.sumber_data || 'PELABUHAN');
+      const matchWilayah = filterWilayah.length === 0 || filterWilayah.includes(adj.pelabuhan || '');
+      const matchKomoditas = filterKomoditas.length === 0 || filterKomoditas.includes(adj.komoditas);
 
       if (matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas) {
         const dV = Number(adj.volume) - Number(adj.original_volume || 0);
@@ -452,7 +456,7 @@ export default function AdminPerikananTangkap() {
         kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
       }
       
-      if (filterKabKotaChart && kabKota !== filterKabKotaChart) return;
+      if (filterKabKotaChart.length > 0 && !filterKabKotaChart.includes(kabKota)) return;
       
       let vol = 0;
       if (row.tangkapan && Array.isArray(row.tangkapan)) {
@@ -1583,7 +1587,6 @@ const columns = useMemo(() => [
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Perikanan Tangkap</h1>
-          <p className="text-muted-foreground mt-1">Input dan Kelola Laporan Pendaratan Ikan Harian.</p>
         </div>
         
         {!isFormOpen && (
@@ -1661,7 +1664,7 @@ const columns = useMemo(() => [
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi & Unduh Data)</h3>
+                <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
               </div>
               <div className="flex items-center gap-2">
                 
@@ -1670,56 +1673,70 @@ const columns = useMemo(() => [
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
-                <select 
+                <SearchableMultiSelect 
                   value={filterCabang} 
-                  onChange={(e) => {
-                    setFilterCabang(e.target.value);
-                    setFilterWilayah('');
-                    setFilterKomoditas('');
+                  onChange={(val) => {
+                    setFilterCabang(val);
+                    setFilterWilayah([]);
+                    setFilterKomoditas([]);
                   }} 
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="">Semua Perairan</option>
-                  <option value="PELABUHAN">Pelabuhan</option>
-                  <option value="PUD">PUD</option>
-                  <option value="KAB_KOTA">Non Pelabuhan</option>
-                </select>
+                  options={[
+                    { label: 'Pelabuhan', value: 'PELABUHAN' },
+                    { label: 'PUD', value: 'PUD' },
+                    { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
+                  ]}
+                  placeholder="Semua Perairan"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-                <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="">Semua Tahun</option>
-                  {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <SearchableMultiSelect 
+                  value={filterTahun} 
+                  onChange={setFilterTahun} 
+                  options={TAHUN_OPTIONS}
+                  placeholder="Semua Tahun"
+                />
               </div>
               {activeTab === 'data' && (
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                  <select value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                    <option value="">Semua Bulan</option>
-                    {BULAN_OPTIONS.map((opt, i) => <option key={opt} value={i+1}>{opt}</option>)}
-                  </select>
+                  <SearchableMultiSelect 
+                    value={filterBulan} 
+                    onChange={setFilterBulan} 
+                    options={BULAN_OPTIONS.map((b, i) => ({ label: b, value: String(i+1) }))}
+                    placeholder="Semua Bulan"
+                  />
                 </div>
               )}
-              {filterCabang && (
+              {filterCabang.length > 0 && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
-                    <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Wilayah</option>
-                      {filterCabang === 'PELABUHAN'
-                        ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota / Pelabuhan</label>
+                    <SearchableMultiSelect 
+                      value={filterWilayah} 
+                      onChange={setFilterWilayah} 
+                      options={
+                        [...new Set([
+                          ...(filterCabang.includes('PELABUHAN') ? PELABUHAN_OPTIONS : []),
+                          ...(filterCabang.includes('PUD') || filterCabang.includes('KAB_KOTA') ? KAB_KOTA_OPTIONS : [])
+                        ])]
+                      }
+                      placeholder="Semua Wilayah"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                    <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Komoditas</option>
-                      {filterCabang === 'PUD'
-                        ? KOMODITAS_PUD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        : KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                    <SearchableMultiSelect 
+                      value={filterKomoditas} 
+                      onChange={setFilterKomoditas} 
+                      options={
+                        [...new Set([
+                          ...(filterCabang.includes('PELABUHAN') || filterCabang.includes('KAB_KOTA') ? KOMODITAS_OPTIONS : []),
+                          ...(filterCabang.includes('PUD') ? KOMODITAS_PUD_OPTIONS : [])
+                        ])]
+                      }
+                      placeholder="Semua Komoditas"
+                    />
                   </div>
                 </>
               )}
@@ -1727,12 +1744,16 @@ const columns = useMemo(() => [
                 {activeTab === 'data' && (
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
-                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                      <option value="">Semua Status</option>
-                      <option value="VERIFIED">Verified</option>
-                      <option value="PENDING">Pending</option>
-                      <option value="REJECTED">Rejected</option>
-                    </select>
+                    <SearchableMultiSelect 
+                      value={filterStatus} 
+                      onChange={setFilterStatus} 
+                      options={[
+                        { label: 'Verified', value: 'VERIFIED' },
+                        { label: 'Pending', value: 'PENDING' },
+                        { label: 'Rejected', value: 'REJECTED' }
+                      ]}
+                      placeholder="Semua Status"
+                    />
                   </div>
                 )}
               </div>
@@ -2024,14 +2045,14 @@ const columns = useMemo(() => [
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <select 
-                          value={filterKabKotaChart} 
-                          onChange={(e) => setFilterKabKotaChart(e.target.value)} 
-                          className="bg-background border border-border text-foreground text-sm font-medium outline-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/50 w-32 truncate"
-                        >
-                          <option value="">Semua Wilayah</option>
-                          {KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
+                        <div className="w-48">
+                          <SearchableMultiSelect 
+                            value={filterKabKotaChart} 
+                            onChange={setFilterKabKotaChart} 
+                            options={KAB_KOTA_OPTIONS}
+                            placeholder="Semua Kab/Kota"
+                          />
+                        </div>
                       </div>
                     </div>
                     
@@ -2205,7 +2226,7 @@ const columns = useMemo(() => [
                       className="w-full appearance-none rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all cursor-pointer hover:border-indigo-500/50"
                     >
                       <option value="" disabled>Pilih Jenis Laporan...</option>
-                      <option value="REKAP">Rekap Bulanan</option>
+                      <option value="REKAP">Rekap Statistik</option>
                       <option value="LM">Laporan Monitoring (LM)</option>
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

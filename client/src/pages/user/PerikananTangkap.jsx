@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah } from '@/utils/formatRupiah';
@@ -20,15 +21,15 @@ export default function PerikananTangkap() {
   const [data, setData] = useState([]);
   
   // Super Filters State
-  const [filterTahun, setFilterTahun] = useState(currentYear.toString());
-  const [filterCabang, setFilterCabang] = useState(''); // PELABUHAN, PUD, KAB_KOTA
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterWilayah, setFilterWilayah] = useState('');
+  const [filterTahun, setFilterTahun] = useState([]);
+  const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  const [filterKomoditas, setFilterKomoditas] = useState([]);
+  const [filterWilayah, setFilterWilayah] = useState([]);
 
   // Local Chart Filters
-  const [chartGlobalTahun, setChartGlobalTahun] = useState(currentYear.toString());
-  const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState('');
-  const [filterKabKotaChart, setFilterKabKotaChart] = useState('');
+  const [chartGlobalTahun, setChartGlobalTahun] = useState([]);
+  const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState([]);
+  const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
   
   // Local Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
@@ -62,10 +63,11 @@ export default function PerikananTangkap() {
 
   const filteredData = useMemo(() => {
     return data.filter(row => {
-      const matchTahun = !filterTahun || (row.bulan && row.bulan.startsWith(filterTahun));
-      const matchCabang = !filterCabang || row.sumber_data === filterCabang;
-      const matchWilayah = !filterWilayah || row.pelabuhan === filterWilayah;
-      const matchKomoditas = !filterKomoditas || row.komoditas === filterKomoditas;
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+      const matchTahun = filterTahun.length === 0 || filterTahun.includes(rowTahun);
+      const matchCabang = filterCabang.length === 0 || filterCabang.includes(row.sumber_data || 'PELABUHAN');
+      const matchWilayah = filterWilayah.length === 0 || filterWilayah.includes(row.pelabuhan || '');
+      const matchKomoditas = filterKomoditas.length === 0 || filterKomoditas.includes(row.komoditas);
 
       return matchTahun && matchCabang && matchWilayah && matchKomoditas;
     });
@@ -193,7 +195,8 @@ export default function PerikananTangkap() {
     let total_nilai = 0;
     let total_trip = 0;
     data.forEach(row => {
-      const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+      const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
       if (!matchTahun) return;
       
       total_trip++;
@@ -214,8 +217,8 @@ export default function PerikananTangkap() {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       const rowWilayah = row.pelabuhan || '';
       
-      const matchTahun = !chartGlobalTahun || rowTahun === chartGlobalTahun;
-      const matchWilayah = !chartKomoditasWilayah || rowWilayah === chartKomoditasWilayah;
+      const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
+      const matchWilayah = chartKomoditasWilayah.length === 0 || chartKomoditasWilayah.includes(rowWilayah);
       
       if (matchTahun && matchWilayah) {
         if (!map[row.komoditas]) map[row.komoditas] = 0;
@@ -232,14 +235,14 @@ export default function PerikananTangkap() {
     
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
-      if (chartGlobalTahun && rowTahun !== chartGlobalTahun) return;
+      if (chartGlobalTahun.length > 0 && !chartGlobalTahun.includes(rowTahun)) return;
       
       let kabKota = row.kabupaten_kota || row.pelabuhan || '';
       if (row.sumber_data === 'PELABUHAN') {
         kabKota = PELABUHAN_TO_KABKOTA[row.pelabuhan] || 'Lainnya';
       }
       
-      if (filterKabKotaChart && kabKota !== filterKabKotaChart) return;
+      if (filterKabKotaChart.length > 0 && !filterKabKotaChart.includes(kabKota)) return;
       
       const vol = Number(row.volume) || 0;
       if (row.sumber_data === 'PUD') {
@@ -349,7 +352,7 @@ export default function PerikananTangkap() {
     const komoditasMap = {};
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
-      if (chartGlobalTahun && rowTahun !== chartGlobalTahun) return;
+      if (chartGlobalTahun.length > 0 && !chartGlobalTahun.includes(rowTahun)) return;
       
       const kom = row.komoditas;
       const vol = Number(row.volume) || 0;
@@ -387,7 +390,8 @@ export default function PerikananTangkap() {
   const trenChartOption = useMemo(() => {
     const localTrenMap = {};
     data.forEach(row => {
-       const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
+       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+       const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
        if (!matchTahun) return;
 
        const date = row.bulan ? row.bulan : 'Unknown';
@@ -428,7 +432,8 @@ export default function PerikananTangkap() {
   const hargaData = useMemo(() => {
     const pelMap = {};
     data.forEach(row => {
-      const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
+      const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+      const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
       if (!matchTahun) return;
 
       const pel = row.pelabuhan || 'Lainnya';
@@ -451,7 +456,8 @@ export default function PerikananTangkap() {
     });
     
     data.forEach(row => {
-       const matchTahun = !chartGlobalTahun || (row.bulan && row.bulan.startsWith(chartGlobalTahun));
+       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
+       const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
        if (!matchTahun) return;
 
        const pel = row.pelabuhan || 'Lainnya';
@@ -513,11 +519,8 @@ export default function PerikananTangkap() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
-          <p className="text-muted-foreground mt-1">
-            Visualisasi data produksi harian perikanan tangkap dari 3 Sumber Perairan.
-          </p>
-          </div>
         </div>
+      </div>
 
       {/* GLOBAL CHART FILTER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/10">
@@ -525,16 +528,16 @@ export default function PerikananTangkap() {
           <h2 className="text-lg font-bold text-foreground">Visualisasi & Statistik</h2>
           <p className="text-sm text-muted-foreground">Pilih tahun untuk memfilter seluruh data metrik dan grafik di bawah.</p>
         </div>
-        <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border shadow-sm">
+        <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border shadow-sm min-w-[200px]">
           <Filter className="w-4 h-4 text-primary ml-2" />
-          <select 
-            value={chartGlobalTahun} 
-            onChange={(e) => setChartGlobalTahun(e.target.value)} 
-            className="bg-transparent border-none text-foreground text-sm font-medium outline-none pr-4 cursor-pointer focus:ring-0"
-          >
-            <option className="bg-background text-foreground" value="">Semua Tahun (All-Time)</option>
-            {TAHUN_OPTIONS.map(opt => <option className="bg-background text-foreground" key={opt} value={opt}>{opt}</option>)}
-          </select>
+          <div className="w-full">
+            <SearchableMultiSelect 
+              value={chartGlobalTahun} 
+              onChange={setChartGlobalTahun} 
+              options={TAHUN_OPTIONS}
+              placeholder="Semua Tahun"
+            />
+          </div>
         </div>
       </div>
 
@@ -591,14 +594,14 @@ export default function PerikananTangkap() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <select 
-                value={filterKabKotaChart} 
-                onChange={(e) => setFilterKabKotaChart(e.target.value)} 
-                className="bg-background border border-border text-foreground text-sm font-medium outline-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/50 w-32 truncate"
-              >
-                <option value="">Semua Wilayah</option>
-                {KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+              <div className="w-48">
+                <SearchableMultiSelect 
+                  value={filterKabKotaChart} 
+                  onChange={setFilterKabKotaChart} 
+                  options={KAB_KOTA_OPTIONS}
+                  placeholder="Semua Kab/Kota"
+                />
+              </div>
             </div>
           </div>
           
@@ -623,10 +626,14 @@ export default function PerikananTangkap() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <select value={chartKomoditasWilayah} onChange={(e) => setChartKomoditasWilayah(e.target.value)} className="rounded-lg border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/50 w-32 truncate">
-                <option value="">Semua Wilayah</option>
-                {PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+              <div className="w-48">
+                <SearchableMultiSelect 
+                  value={chartKomoditasWilayah} 
+                  onChange={setChartKomoditasWilayah} 
+                  options={PELABUHAN_OPTIONS}
+                  placeholder="Semua Wilayah"
+                />
+              </div>
             </div>
           </div>
           {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -706,53 +713,65 @@ export default function PerikananTangkap() {
         <div className="mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-slate-500" />
-            <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi (Eksplorasi Data)</h3>
+            <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
           </div>
           
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
-              <select 
+              <SearchableMultiSelect 
                 value={filterCabang} 
-                onChange={(e) => {
-                  setFilterCabang(e.target.value);
-                  setFilterWilayah('');
-                  setFilterKomoditas('');
+                onChange={(val) => {
+                  setFilterCabang(val);
+                  setFilterWilayah([]);
+                  setFilterKomoditas([]);
                 }} 
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="">Semua Perairan</option>
-                <option value="PELABUHAN">Pelabuhan</option>
-                <option value="PUD">PUD</option>
-                <option value="KAB_KOTA">Non Pelabuhan</option>
-              </select>
+                options={[
+                  { label: 'Pelabuhan', value: 'PELABUHAN' },
+                  { label: 'PUD', value: 'PUD' },
+                  { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
+                ]}
+                placeholder="Semua Perairan"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-              <select value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                <option value="">Semua Tahun</option>
-                {TAHUN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+              <SearchableMultiSelect 
+                value={filterTahun} 
+                onChange={setFilterTahun} 
+                options={TAHUN_OPTIONS}
+                placeholder="Semua Tahun"
+              />
             </div>
-            {filterCabang && (
+            {filterCabang.length > 0 && (
               <>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
-                  <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                    <option value="">Semua Wilayah</option>
-                    {filterCabang === 'PELABUHAN'
-                      ? PELABUHAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                      : KAB_KOTA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  <SearchableMultiSelect 
+                    value={filterWilayah} 
+                    onChange={setFilterWilayah} 
+                    options={
+                      [...new Set([
+                        ...(filterCabang.includes('PELABUHAN') ? PELABUHAN_OPTIONS : []),
+                        ...(filterCabang.includes('PUD') || filterCabang.includes('KAB_KOTA') ? KAB_KOTA_OPTIONS : [])
+                      ])]
+                    }
+                    placeholder="Semua Wilayah"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
-                  <select value={filterKomoditas} onChange={(e) => setFilterKomoditas(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                    <option value="">Semua Komoditas</option>
-                    {filterCabang === 'PUD'
-                      ? KOMODITAS_PUD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
-                      : KOMODITAS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  <SearchableMultiSelect 
+                    value={filterKomoditas} 
+                    onChange={setFilterKomoditas} 
+                    options={
+                      [...new Set([
+                        ...(filterCabang.includes('PELABUHAN') || filterCabang.includes('KAB_KOTA') ? KOMODITAS_OPTIONS : []),
+                        ...(filterCabang.includes('PUD') ? KOMODITAS_PUD_OPTIONS : [])
+                      ])]
+                    }
+                    placeholder="Semua Komoditas"
+                  />
                 </div>
               </>
             )}
