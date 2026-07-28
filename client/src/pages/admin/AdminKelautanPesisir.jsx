@@ -193,14 +193,17 @@ const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, fil
 
 // Fungsi Builder (Bisa switch rowMode 'kabupaten' atau 'bulan')
 const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') => {
-  const h1 = ['No', rowMode === 'kabupaten' ? 'Kab/Kota' : rowMode === 'bulan' ? 'Bulan' : 'Tahun', 'L Total (Ha)', 'L Prod (Ha)', 'Σ Pok', 'Σ Petambak',
+  const h1 = ['No', 'Status', rowMode === 'kabupaten' ? 'Kab/Kota' : rowMode === 'bulan' ? 'Bulan' : 'Tahun', 'L Total (Ha)', 'L Prod (Ha)', 'Σ Pok', 'Σ Petambak',
     'Produksi (Ton)', '', '', 'Σ Prod (Ton)', 'Prodtv',
     'Stok (Ton)', '', '', 'Σ Stok',
     'Harga (Rp)', '', '', 'Nilai Produksi', '', ''];
-  const h2 = ['', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
+  const h2 = ['', '', '', '', '', '', '', 'K1', 'K2', 'K3', '', '', 'K1', 'K2', 'K3', '', 'K1', 'K2', 'K3', 'K1', 'K2', 'K3'];
+
+  const fmt = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : v.toLocaleString('id-ID'));
 
   let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
   let totalNilaiK1 = 0, totalNilaiK2 = 0, totalNilaiK3 = 0, sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0, countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
+  let sumProd = 0, countProd = 0, countNilaiK1 = 0, countNilaiK2 = 0, countNilaiK3 = 0;
 
   const aggData = {};
   dataRowsRaw.forEach(row => {
@@ -217,8 +220,8 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
     }
     
     const target = aggData[key];
-    target.produksi_k1_ton += row.produksi_k1_ton || 0; target.produksi_k2_ton += row.produksi_k2_ton || 0; target.produksi_k3_ton += row.produksi_k3_ton || 0; target.total_produksi_ton += row.total_produksi_ton || 0;
-    target.stok_k1_ton += row.stok_k1_ton || 0; target.stok_k2_ton += row.stok_k2_ton || 0; target.stok_k3_ton += row.stok_k3_ton || 0; target.total_stok_ton += row.total_stok_ton || 0;
+    target.produksi_k1_ton += row.produksi_k1_ton || 0; target.produksi_k2_ton += row.produksi_k2_ton || 0; target.produksi_k3_ton += row.produksi_k3_ton || 0; target.total_produksi_ton += (row.produksi_k1_ton || 0) + (row.produksi_k2_ton || 0) + (row.produksi_k3_ton || 0);
+    target.stok_k1_ton += row.stok_k1_ton || 0; target.stok_k2_ton += row.stok_k2_ton || 0; target.stok_k3_ton += row.stok_k3_ton || 0; target.total_stok_ton += (row.stok_k1_ton || 0) + (row.stok_k2_ton || 0) + (row.stok_k3_ton || 0);
 
     const kab = row.kabupaten_kota;
     if (!target.max_per_kab[kab]) target.max_per_kab[kab] = { luas_total: 0, luas_prod: 0, pok: 0, petambak: 0 };
@@ -246,16 +249,19 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
 
     totalProduksi += row.total_produksi_ton; totalStok += row.total_stok_ton; totalLuas += rowLuas; totalLProd += rowLProd; totalPok += rowPok; totalPetambak += rowPetambak;
     const nk1 = row.produksi_k1_ton * row.harga_k1_rp; const nk2 = row.produksi_k2_ton * row.harga_k2_rp; const nk3 = row.produksi_k3_ton * row.harga_k3_rp;
-    totalNilaiK1 += nk1; totalNilaiK2 += nk2; totalNilaiK3 += nk3;
+    if (nk1 > 0) { totalNilaiK1 += nk1; countNilaiK1++; }
+    if (nk2 > 0) { totalNilaiK2 += nk2; countNilaiK2++; }
+    if (nk3 > 0) { totalNilaiK3 += nk3; countNilaiK3++; }
     if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
     if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
     if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
 
     const prod = rowLProd > 0 ? row.total_produksi_ton / rowLProd : 0;
-    return [ i + 1, row.nama_baris, rowLuas.toLocaleString('id-ID'), rowLProd.toLocaleString('id-ID'), rowPok, rowPetambak,
-      row.produksi_k1_ton.toLocaleString('id-ID'), row.produksi_k2_ton.toLocaleString('id-ID'), row.produksi_k3_ton.toLocaleString('id-ID'), row.total_produksi_ton.toLocaleString('id-ID'), prod.toLocaleString('id-ID', { maximumFractionDigits: 3 }),
-      row.stok_k1_ton.toLocaleString('id-ID'), row.stok_k2_ton.toLocaleString('id-ID'), row.stok_k3_ton.toLocaleString('id-ID'), row.total_stok_ton.toLocaleString('id-ID'),
-      row.harga_k1_rp.toLocaleString('id-ID'), row.harga_k2_rp.toLocaleString('id-ID'), row.harga_k3_rp.toLocaleString('id-ID'), nk1.toLocaleString('id-ID'), nk2.toLocaleString('id-ID'), nk3.toLocaleString('id-ID')
+    if (prod > 0) { sumProd += prod; countProd++; }
+    return [ i + 1, 'VERIFIED', row.nama_baris, fmt(rowLuas), fmt(rowLProd), rowPok || '-', rowPetambak || '-',
+      fmt(row.produksi_k1_ton), fmt(row.produksi_k2_ton), fmt(row.produksi_k3_ton), fmt(row.total_produksi_ton), fmt(prod, 3),
+      fmt(row.stok_k1_ton), fmt(row.stok_k2_ton), fmt(row.stok_k3_ton), fmt(row.total_stok_ton),
+      fmt(row.harga_k1_rp), fmt(row.harga_k2_rp), fmt(row.harga_k3_rp), fmt(nk1), fmt(nk2), fmt(nk3)
     ];
   });
 
@@ -263,7 +269,12 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   const avgK2 = countHargaK2 > 0 ? (sumHargaK2 / countHargaK2).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
   const avgK3 = countHargaK3 > 0 ? (sumHargaK3 / countHargaK3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
 
-  const totalRow = [ 'TOTAL', '', totalLuas.toLocaleString('id-ID'), totalLProd.toLocaleString('id-ID'), totalPok, totalPetambak, '', '', '', totalProduksi.toLocaleString('id-ID', { maximumFractionDigits: 2 }), '', '', '', '', totalStok.toLocaleString('id-ID', { maximumFractionDigits: 2 }), avgK1, avgK2, avgK3, totalNilaiK1.toLocaleString('id-ID'), totalNilaiK2.toLocaleString('id-ID'), totalNilaiK3.toLocaleString('id-ID') ];
+  const avgProd = countProd > 0 ? sumProd / countProd : 0;
+  const avgNilaiK1 = countNilaiK1 > 0 ? totalNilaiK1 / countNilaiK1 : 0;
+  const avgNilaiK2 = countNilaiK2 > 0 ? totalNilaiK2 / countNilaiK2 : 0;
+  const avgNilaiK3 = countNilaiK3 > 0 ? totalNilaiK3 / countNilaiK3 : 0;
+
+  const totalRow = [ 'TOTAL', '', '', fmt(totalLuas), fmt(totalLProd), totalPok || '-', totalPetambak || '-', '', '', '', fmt(totalProduksi, 2), fmt(avgProd, 3), '', '', '', fmt(totalStok, 2), avgK1, avgK2, avgK3, fmt(avgNilaiK1), fmt(avgNilaiK2), fmt(avgNilaiK3) ];
   
   const ws = XLSX.utils.aoa_to_sheet([[title], [subtitle], [], h1, h2, ...dataRows, totalRow]);
   // (Bagian styling layout di bawah ini tetap sama persis seperti kode aslimu)
@@ -278,12 +289,79 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
     if (!ws[r3]) ws[r3] = { t: 's', v: '' }; if (!ws[r4]) ws[r4] = { t: 's', v: '' }; ws[r3].s = hStyle; ws[r4].s = hStyle;
   }
   const totalRowIdx = 5 + dataRows.length;
-  for (let R = 5; R < totalRowIdx; R++) { for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: R }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = C === 1 ? dataLeftStyle : dataStyle; } }
-  for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = (C === 9 || C === 14) ? totalSumStyle : totalStyle; }
-  ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 3, c: 8 } }, { s: { r: 3, c: 9 }, e: { r: 4, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 3, c: 13 } }, { s: { r: 3, c: 14 }, e: { r: 4, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 3, c: 17 } }, { s: { r: 3, c: 18 }, e: { r: 3, c: 20 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 5 } } ];
-  ws['!cols'] = [ { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 } ];
+  for (let R = 5; R < totalRowIdx; R++) { for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: R }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = C === 2 ? dataLeftStyle : dataStyle; } }
+  for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = (C === 10 || C === 15) ? totalSumStyle : totalStyle; }
+  ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 21 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 4, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 4, c: 11 } }, { s: { r: 3, c: 12 }, e: { r: 3, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 4, c: 15 } }, { s: { r: 3, c: 16 }, e: { r: 3, c: 18 } }, { s: { r: 3, c: 19 }, e: { r: 3, c: 21 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 6 } } ];
+  ws['!cols'] = [ { wch: 5 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 } ];
   ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
   return ws;
+};
+
+const fmtExcel = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : v.toLocaleString('id-ID'));
+
+const exportMangroveExcel = (data) => {
+  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+  const title = 'DATA MANGROVE JAWA TIMUR';
+  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const dataRows = data.map((row, i) => [
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    fmtExcel(row.luas_eksisting_ha),
+    row.spesies || '-', fmtExcel(row.persentase_kondisi),
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+  ]);
+  buildStandardSheet(title, h1, dataRows, 'Data_Mangrove');
+};
+
+const exportLamunExcel = (data) => {
+  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+  const title = 'DATA LAMUN JAWA TIMUR';
+  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const dataRows = data.map((row, i) => [
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    fmtExcel(row.luas_eksisting_ha),
+    fmtExcel(row.persentase_tutupan),
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+  ]);
+  buildStandardSheet(title, h1, dataRows, 'Data_Lamun');
+};
+
+const exportTerumbuKarangExcel = (data) => {
+  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+  const title = 'DATA TERUMBU KARANG JAWA TIMUR';
+  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const dataRows = data.map((row, i) => [
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    fmtExcel(row.luas_eksisting_ha),
+    fmtExcel(row.persentase_tutupan),
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+  ]);
+  buildStandardSheet(title, h1, dataRows, 'Data_Terumbu_Karang');
+};
+
+const buildStandardSheet = (title, h1, dataRows, filenamePrefix) => {
+  const aoa = [[title], [], h1, ...dataRows];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const hStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF' });
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  ws[XLSX.utils.encode_cell({ c: 0, r: 0 })].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const r2 = XLSX.utils.encode_cell({ c: C, r: 2 });
+    if (!ws[r2]) ws[r2] = { t: 's', v: '' };
+    ws[r2].s = hStyle;
+  }
+  for (let R = 3; R <= range.e.r; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const ref = XLSX.utils.encode_cell({ c: C, r: R });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = cellStyle({ align: C <= 2 ? 'left' : 'center' });
+    }
+  }
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: h1.length - 1 } }];
+  const cols = h1.map((_, i) => ({ wch: i === 0 ? 5 : i === 2 ? 18 : 15 }));
+  ws['!cols'] = cols;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
 const exportPotensiExcel = (dataRaw) => {
@@ -294,66 +372,16 @@ const exportPotensiExcel = (dataRaw) => {
   }
 
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
-  const h1 = ['No', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)',
-    'Panjang Garis Pantai (km)', '', '', '', 'Total Pantai (km)',
-    'Luas Perairan (km²)', 'Pulau Kecil', 'Berpenghuni', 'Tdk Berpenghuni',
-    'Desa Pesisir', 'Konservasi (Ha)', 'Potensi (Ton/Th)', 'Keterangan'];
-  const h2 = ['', '', '', '', 'Utara', 'Selatan', 'Timur', 'Barat', '', '', '', '', '', '', '', '', ''];
+  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
   const dataRows = data.map((row, i) => {
-    const tp = (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) +
-      (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0);
-    return [i + 1, row.kabupaten_kota, row.tahun_data,
-      row.luas_wilayah_laut_km2?.toLocaleString('id-ID') ?? 0,
-      row.panjang_pantai_utara_km ?? 0, row.panjang_pantai_selatan_km ?? 0,
-      row.panjang_pantai_timur_km ?? 0, row.panjang_pantai_barat_km ?? 0,
-      tp.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
-      row.luas_perairan_km2?.toLocaleString('id-ID') ?? 0,
-      row.jumlah_pulau_kecil ?? 0, row.pulau_berpenghuni ?? 0, row.pulau_tidak_berpenghuni ?? 0,
-      row.desa_pesisir ?? 0,
-      row.luas_kawasan_konservasi_ha?.toLocaleString('id-ID') ?? 0,
-      row.potensi_perikanan_ton_th?.toLocaleString('id-ID') ?? 0,
-      row.keterangan ?? ''];
+    return [i + 1, row.status || '-', row.kabupaten_kota, row.tahun_data,
+      fmtExcel(row.luas_wilayah_laut_km2),
+      fmtExcel(row.total_panjang_garis_pantai_km),
+      fmtExcel(row.jumlah_pulau_kecil),
+      fmtExcel(row.desa_pesisir),
+      row.keterangan || '-'];
   });
-  const aoa = [[title], [], h1, h2, ...dataRows];
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const hStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF' });
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  ws[XLSX.utils.encode_cell({ c: 0, r: 0 })].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
-  for (let C = range.s.c; C <= range.e.c; C++) {
-    const r2 = XLSX.utils.encode_cell({ c: C, r: 2 });
-    const r3 = XLSX.utils.encode_cell({ c: C, r: 3 });
-    if (!ws[r2]) ws[r2] = { t: 's', v: '' };
-    if (!ws[r3]) ws[r3] = { t: 's', v: '' };
-    ws[r2].s = hStyle; ws[r3].s = hStyle;
-  }
-  for (let R = 4; R <= range.e.r; R++) {
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const ref = XLSX.utils.encode_cell({ c: C, r: R });
-      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
-      ws[ref].s = cellStyle({ align: C <= 1 || C === 16 ? 'left' : 'center' });
-    }
-  }
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
-    { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } },
-    { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } },
-    { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } },
-    { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } },
-    { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
-    { s: { r: 2, c: 8 }, e: { r: 3, c: 8 } },
-    { s: { r: 2, c: 9 }, e: { r: 3, c: 9 } },
-    { s: { r: 2, c: 10 }, e: { r: 3, c: 10 } },
-    { s: { r: 2, c: 11 }, e: { r: 3, c: 11 } },
-    { s: { r: 2, c: 12 }, e: { r: 3, c: 12 } },
-    { s: { r: 2, c: 13 }, e: { r: 3, c: 13 } },
-    { s: { r: 2, c: 14 }, e: { r: 3, c: 14 } },
-    { s: { r: 2, c: 15 }, e: { r: 3, c: 15 } },
-    { s: { r: 2, c: 16 }, e: { r: 3, c: 16 } },
-  ];
-  ws['!cols'] = [{ wch: 5 }, { wch: 18 }, { wch: 8 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 30 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Potensi_Perairan');
-  XLSX.writeFile(wb, `Potensi_Perairan_Jatim_${new Date().toISOString().split('T')[0]}.xlsx`);
+  buildStandardSheet(title, h1, dataRows, 'Potensi_Perairan_Jatim');
 };
 
 // ── CHART OPTION HELPERS ────────────────────────────────────────────────────────
@@ -1574,10 +1602,19 @@ export default function AdminKelautanPesisir() {
 
   const handleCustomExport = (data) => {
       if (activeTab === 'garam') {
-        // Panggil fungsi pintar yang baru, lempar semua status filternya!
-        exportGaramExcelPintar(data, filterTahun, filterTw, filterBulan, filterKab);
+        const strTahun = filterTahun?.length > 0 ? filterTahun.join(', ') : '';
+        const strTw = filterTw?.length > 0 ? filterTw.join(', ') : '';
+        const strBulan = filterBulan?.length > 0 ? filterBulan.join(', ') : '';
+        const strKab = filterKab?.length > 0 ? filterKab.join(', ') : '';
+        exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab);
       } else if (activeTab === 'potensi_perairan') {
         exportPotensiExcel(data);
+      } else if (activeTab === 'mangrove') {
+        exportMangroveExcel(data);
+      } else if (activeTab === 'lamun') {
+        exportLamunExcel(data);
+      } else if (activeTab === 'terumbu_karang') {
+        exportTerumbuKarangExcel(data);
       }
     };
 
@@ -1863,15 +1900,26 @@ export default function AdminKelautanPesisir() {
               canBatchReject={(selectedRows) => user?.role === 'admin_pusat' && selectedRows.some(row => ['PENDING', 'APPROVED', 'VERIFIED'].includes(row.status))}
               renderSubComponent={activeSubRow}
               exportName={`Data_${activeTab}`}
+              formatExportData={(data) => data.map(row => {
+                const finalRow = {};
+                if ('status' in row) {
+                  finalRow['Status'] = row.status;
+                }
+                for (const key in row) {
+                  if (key !== 'status') {
+                    let val = row[key];
+                    finalRow[key] = (val === 0 || val === null || val === '') ? '-' : val;
+                  }
+                }
+                return finalRow;
+              })}
               onCustomExport={handleCustomExport}
-              hideDefaultExport={activeTab === 'garam'}
+              hideDefaultExport={true}
               customExportButton={
-                activeTab === 'garam' ? (
-                  <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
-                    <Download className="w-6 h-6" />
-                    Ekspor Excel
-                  </button>
-                ) : null
+                <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
+                  <Download className="w-6 h-6" />
+                  Ekspor Excel
+                </button>
               }
             />
           ) : (
