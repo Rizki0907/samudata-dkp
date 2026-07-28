@@ -1,3 +1,4 @@
+// Force IDE refresh for Decimal changes
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
@@ -201,38 +202,12 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
 
   const fmt = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : v.toLocaleString('id-ID'));
 
-  let totalProduksi = 0, totalStok = 0, totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
-  let totalNilaiK1 = 0, totalNilaiK2 = 0, totalNilaiK3 = 0, sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0, countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
-  let sumProd = 0, countProd = 0, countNilaiK1 = 0, countNilaiK2 = 0, countNilaiK3 = 0;
-
   const aggData = {};
   dataRowsRaw.forEach(row => {
     const key = rowMode === 'kabupaten' ? row.kabupaten_kota : rowMode === 'bulan' ? formatBulan(row.bulan) : row.tahun;
     if (!key) return;
-
-    if (!aggData[key]) {
-      aggData[key] = { 
-        nama_baris: key, 
-        produksi_k1_ton: 0, produksi_k2_ton: 0, produksi_k3_ton: 0, stok_k1_ton: 0, stok_k2_ton: 0, stok_k3_ton: 0, 
-        total_produksi_ton: 0, total_stok_ton: 0, harga_k1_rp: 0, harga_k2_rp: 0, harga_k3_rp: 0,
-        max_per_kab: {} 
-      };
-    }
-    
-    const target = aggData[key];
-    target.produksi_k1_ton += row.produksi_k1_ton || 0; target.produksi_k2_ton += row.produksi_k2_ton || 0; target.produksi_k3_ton += row.produksi_k3_ton || 0; target.total_produksi_ton += (row.produksi_k1_ton || 0) + (row.produksi_k2_ton || 0) + (row.produksi_k3_ton || 0);
-    target.stok_k1_ton += row.stok_k1_ton || 0; target.stok_k2_ton += row.stok_k2_ton || 0; target.stok_k3_ton += row.stok_k3_ton || 0; target.total_stok_ton += (row.stok_k1_ton || 0) + (row.stok_k2_ton || 0) + (row.stok_k3_ton || 0);
-
-    const kab = row.kabupaten_kota;
-    if (!target.max_per_kab[kab]) target.max_per_kab[kab] = { luas_total: 0, luas_prod: 0, pok: 0, petambak: 0 };
-    target.max_per_kab[kab].luas_total = Math.max(target.max_per_kab[kab].luas_total, row.luas_total_ha || 0);
-    target.max_per_kab[kab].luas_prod = Math.max(target.max_per_kab[kab].luas_prod, row.luas_produksi_ha || 0);
-    target.max_per_kab[kab].pok = Math.max(target.max_per_kab[kab].pok, row.jumlah_kelompok || 0);
-    target.max_per_kab[kab].petambak = Math.max(target.max_per_kab[kab].petambak, row.jumlah_petambak || 0);
-
-    if (row.harga_k1_rp > 0) target.harga_k1_rp = target.harga_k1_rp === 0 ? row.harga_k1_rp : (target.harga_k1_rp + row.harga_k1_rp) / 2;
-    if (row.harga_k2_rp > 0) target.harga_k2_rp = target.harga_k2_rp === 0 ? row.harga_k2_rp : (target.harga_k2_rp + row.harga_k2_rp) / 2;
-    if (row.harga_k3_rp > 0) target.harga_k3_rp = target.harga_k3_rp === 0 ? row.harga_k3_rp : (target.harga_k3_rp + row.harga_k3_rp) / 2;
+    if (!aggData[key]) aggData[key] = { key, rows: [] };
+    aggData[key].rows.push(row);
   });
 
   const sortedKeys = Object.keys(aggData);
@@ -240,41 +215,107 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   else if (rowMode === 'bulan') sortedKeys.sort((a, b) => NAMA_BULAN_LIST.indexOf(a) - NAMA_BULAN_LIST.indexOf(b));
   else sortedKeys.sort();
 
+  let totalLuas = 0, totalLProd = 0, totalPok = 0, totalPetambak = 0;
+  let totalProdK1 = 0, totalProdK2 = 0, totalProdK3 = 0, totalProduksi = 0;
+  let totalStokK1 = 0, totalStokK2 = 0, totalStokK3 = 0, totalStok = 0;
+  let sumHargaK1 = 0, sumHargaK2 = 0, sumHargaK3 = 0, countHargaK1 = 0, countHargaK2 = 0, countHargaK3 = 0;
+  let sumProd = 0, countProd = 0;
+
   const dataRows = sortedKeys.map((key, i) => {
-    const row = aggData[key];
+    const item = aggData[key];
+    const rows = item.rows;
+    // Urutkan berdasarkan bulan
+    rows.sort((a, b) => NAMA_BULAN_LIST.indexOf(formatBulan(a.bulan)) - NAMA_BULAN_LIST.indexOf(formatBulan(b.bulan)));
+    
     let rowLuas = 0, rowLProd = 0, rowPok = 0, rowPetambak = 0;
-    Object.values(row.max_per_kab).forEach(k => {
-      rowLuas += k.luas_total; rowLProd += k.luas_prod; rowPok += k.pok; rowPetambak += k.petambak;
+    let rStokK1 = 0, rStokK2 = 0, rStokK3 = 0, rTotalStok = 0;
+    
+    if (rowMode === 'kabupaten') {
+      const lastRow = rows[rows.length - 1]; 
+      rowLuas = lastRow.luas_total_ha || 0;
+      rowLProd = lastRow.luas_produksi_ha || 0;
+      rowPok = lastRow.jumlah_kelompok || 0;
+      rowPetambak = lastRow.jumlah_petambak || 0;
+      rStokK1 = lastRow.stok_k1_ton || 0;
+      rStokK2 = lastRow.stok_k2_ton || 0;
+      rStokK3 = lastRow.stok_k3_ton || 0;
+      rTotalStok = rStokK1 + rStokK2 + rStokK3;
+    } else {
+      rows.forEach(r => {
+        rowLuas += r.luas_total_ha || 0;
+        rowLProd += r.luas_produksi_ha || 0;
+        rowPok += r.jumlah_kelompok || 0;
+        rowPetambak += r.jumlah_petambak || 0;
+        rStokK1 += r.stok_k1_ton || 0;
+        rStokK2 += r.stok_k2_ton || 0;
+        rStokK3 += r.stok_k3_ton || 0;
+      });
+      rTotalStok = rStokK1 + rStokK2 + rStokK3;
+    }
+
+    let rProdK1 = 0, rProdK2 = 0, rProdK3 = 0, rTotalProd = 0;
+    let sH1 = 0, sH2 = 0, sH3 = 0, cH1 = 0, cH2 = 0, cH3 = 0;
+    let sNilaiK1 = 0, sNilaiK2 = 0, sNilaiK3 = 0, cNilaiK1 = 0, cNilaiK2 = 0, cNilaiK3 = 0;
+    let sProdtv = 0, cProdtv = 0;
+
+    rows.forEach(r => {
+      rProdK1 += r.produksi_k1_ton || 0;
+      rProdK2 += r.produksi_k2_ton || 0;
+      rProdK3 += r.produksi_k3_ton || 0;
+
+      if (r.harga_k1_rp > 0) { sH1 += r.harga_k1_rp; cH1++; }
+      if (r.harga_k2_rp > 0) { sH2 += r.harga_k2_rp; cH2++; }
+      if (r.harga_k3_rp > 0) { sH3 += r.harga_k3_rp; cH3++; }
+
+      const nk1 = (r.produksi_k1_ton || 0) * (r.harga_k1_rp || 0);
+      const nk2 = (r.produksi_k2_ton || 0) * (r.harga_k2_rp || 0);
+      const nk3 = (r.produksi_k3_ton || 0) * (r.harga_k3_rp || 0);
+      if (nk1 > 0) { sNilaiK1 += nk1; cNilaiK1++; }
+      if (nk2 > 0) { sNilaiK2 += nk2; cNilaiK2++; }
+      if (nk3 > 0) { sNilaiK3 += nk3; cNilaiK3++; }
+
+      const tp = (r.produksi_k1_ton || 0) + (r.produksi_k2_ton || 0) + (r.produksi_k3_ton || 0);
+      const lp = r.luas_produksi_ha || 0;
+      if (lp > 0 && tp > 0) { sProdtv += (tp / lp); cProdtv++; }
     });
 
-    totalProduksi += row.total_produksi_ton; totalStok += row.total_stok_ton; totalLuas += rowLuas; totalLProd += rowLProd; totalPok += rowPok; totalPetambak += rowPetambak;
-    const nk1 = row.produksi_k1_ton * row.harga_k1_rp; const nk2 = row.produksi_k2_ton * row.harga_k2_rp; const nk3 = row.produksi_k3_ton * row.harga_k3_rp;
-    if (nk1 > 0) { totalNilaiK1 += nk1; countNilaiK1++; }
-    if (nk2 > 0) { totalNilaiK2 += nk2; countNilaiK2++; }
-    if (nk3 > 0) { totalNilaiK3 += nk3; countNilaiK3++; }
-    if (row.harga_k1_rp > 0) { sumHargaK1 += row.harga_k1_rp; countHargaK1++; }
-    if (row.harga_k2_rp > 0) { sumHargaK2 += row.harga_k2_rp; countHargaK2++; }
-    if (row.harga_k3_rp > 0) { sumHargaK3 += row.harga_k3_rp; countHargaK3++; }
+    rTotalProd = rProdK1 + rProdK2 + rProdK3;
+    const rHargaK1 = cH1 > 0 ? sH1 / cH1 : 0;
+    const rHargaK2 = cH2 > 0 ? sH2 / cH2 : 0;
+    const rHargaK3 = cH3 > 0 ? sH3 / cH3 : 0;
+    const rNilaiK1 = cNilaiK1 > 0 ? sNilaiK1 / cNilaiK1 : 0;
+    const rNilaiK2 = cNilaiK2 > 0 ? sNilaiK2 / cNilaiK2 : 0;
+    const rNilaiK3 = cNilaiK3 > 0 ? sNilaiK3 / cNilaiK3 : 0;
+    const rProdtv = cProdtv > 0 ? sProdtv / cProdtv : 0;
 
-    const prod = rowLProd > 0 ? row.total_produksi_ton / rowLProd : 0;
-    if (prod > 0) { sumProd += prod; countProd++; }
-    return [ i + 1, 'VERIFIED', row.nama_baris, fmt(rowLuas), fmt(rowLProd), rowPok || '-', rowPetambak || '-',
-      fmt(row.produksi_k1_ton), fmt(row.produksi_k2_ton), fmt(row.produksi_k3_ton), fmt(row.total_produksi_ton), fmt(prod, 3),
-      fmt(row.stok_k1_ton), fmt(row.stok_k2_ton), fmt(row.stok_k3_ton), fmt(row.total_stok_ton),
-      fmt(row.harga_k1_rp), fmt(row.harga_k2_rp), fmt(row.harga_k3_rp), fmt(nk1), fmt(nk2), fmt(nk3)
+    totalLuas += rowLuas; totalLProd += rowLProd; totalPok += rowPok; totalPetambak += rowPetambak;
+    totalProdK1 += rProdK1; totalProdK2 += rProdK2; totalProdK3 += rProdK3; totalProduksi += rTotalProd;
+    totalStokK1 += rStokK1; totalStokK2 += rStokK2; totalStokK3 += rStokK3; totalStok += rTotalStok;
+    
+    if (rHargaK1 > 0) { sumHargaK1 += rHargaK1; countHargaK1++; }
+    if (rHargaK2 > 0) { sumHargaK2 += rHargaK2; countHargaK2++; }
+    if (rHargaK3 > 0) { sumHargaK3 += rHargaK3; countHargaK3++; }
+    if (rProdtv > 0) { sumProd += rProdtv; countProd++; }
+
+    return [ i + 1, 'VERIFIED', key, fmt(rowLuas), fmt(rowLProd), fmt(rowPok), fmt(rowPetambak),
+      fmt(rProdK1), fmt(rProdK2), fmt(rProdK3), fmt(rTotalProd), fmt(rProdtv),
+      fmt(rStokK1), fmt(rStokK2), fmt(rStokK3), fmt(rTotalStok),
+      fmt(rHargaK1), fmt(rHargaK2), fmt(rHargaK3), fmt(rNilaiK1), fmt(rNilaiK2), fmt(rNilaiK3)
     ];
   });
 
-  const avgK1 = countHargaK1 > 0 ? (sumHargaK1 / countHargaK1).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
-  const avgK2 = countHargaK2 > 0 ? (sumHargaK2 / countHargaK2).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
-  const avgK3 = countHargaK3 > 0 ? (sumHargaK3 / countHargaK3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-';
+  const avgK1 = countHargaK1 > 0 ? sumHargaK1 / countHargaK1 : 0;
+  const avgK2 = countHargaK2 > 0 ? sumHargaK2 / countHargaK2 : 0;
+  const avgK3 = countHargaK3 > 0 ? sumHargaK3 / countHargaK3 : 0;
+  const avgProdtv = countProd > 0 ? sumProd / countProd : 0;
 
-  const avgProd = countProd > 0 ? sumProd / countProd : 0;
-  const avgNilaiK1 = countNilaiK1 > 0 ? totalNilaiK1 / countNilaiK1 : 0;
-  const avgNilaiK2 = countNilaiK2 > 0 ? totalNilaiK2 / countNilaiK2 : 0;
-  const avgNilaiK3 = countNilaiK3 > 0 ? totalNilaiK3 / countNilaiK3 : 0;
-
-  const totalRow = [ 'TOTAL', '', '', fmt(totalLuas), fmt(totalLProd), totalPok || '-', totalPetambak || '-', '', '', '', fmt(totalProduksi, 2), fmt(avgProd, 3), '', '', '', fmt(totalStok, 2), avgK1, avgK2, avgK3, fmt(avgNilaiK1), fmt(avgNilaiK2), fmt(avgNilaiK3) ];
+  const totalRow = [
+    'TOTAL', '', 'TOTAL', 
+    fmt(totalLuas), fmt(totalLProd), fmt(totalPok), fmt(totalPetambak),
+    fmt(totalProdK1), fmt(totalProdK2), fmt(totalProdK3), fmt(totalProduksi), fmt(avgProdtv),
+    fmt(totalStokK1), fmt(totalStokK2), fmt(totalStokK3), fmt(totalStok),
+    fmt(avgK1), fmt(avgK2), fmt(avgK3), '-', '-', '-'
+  ];
   
   const ws = XLSX.utils.aoa_to_sheet([[title], [subtitle], [], h1, h2, ...dataRows, totalRow]);
   // (Bagian styling layout di bawah ini tetap sama persis seperti kode aslimu)
@@ -291,7 +332,7 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   const totalRowIdx = 5 + dataRows.length;
   for (let R = 5; R < totalRowIdx; R++) { for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: R }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = C === 2 ? dataLeftStyle : dataStyle; } }
   for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = (C === 10 || C === 15) ? totalSumStyle : totalStyle; }
-  ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 21 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 4, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 4, c: 11 } }, { s: { r: 3, c: 12 }, e: { r: 3, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 4, c: 15 } }, { s: { r: 3, c: 16 }, e: { r: 3, c: 18 } }, { s: { r: 3, c: 19 }, e: { r: 3, c: 21 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 6 } } ];
+  ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 21 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 4, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 4, c: 11 } }, { s: { r: 3, c: 12 }, e: { r: 3, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 4, c: 15 } }, { s: { r: 3, c: 16 }, e: { r: 3, c: 18 } }, { s: { r: 3, c: 19 }, e: { r: 3, c: 21 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } } ];
   ws['!cols'] = [ { wch: 5 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 } ];
   ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
   return ws;
