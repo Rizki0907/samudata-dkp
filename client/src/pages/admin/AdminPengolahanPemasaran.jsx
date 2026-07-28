@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, 
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -473,148 +474,6 @@ const createInitialForm = initialData => {
   return form;
 };
 
-
-function FilterMultiSelect({ label, values, options, onChange, placeholder }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const containerRef = useRef(null);
-  const normalizedValues = Array.isArray(values) ? values : [];
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const handleOutsideInteraction = event => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-        setSearch('');
-      }
-    };
-
-    const handleEscape = event => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-        setSearch('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideInteraction);
-    document.addEventListener('touchstart', handleOutsideInteraction);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideInteraction);
-      document.removeEventListener('touchstart', handleOutsideInteraction);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
-  const filteredOptions = options.filter(option =>
-    String(option).toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const toggleOption = option => {
-    onChange(
-      normalizedValues.includes(option)
-        ? normalizedValues.filter(item => item !== option)
-        : [...normalizedValues, option],
-    );
-  };
-
-  const selectedText =
-    normalizedValues.length === 0
-      ? placeholder
-      : normalizedValues.length === 1
-        ? normalizedValues[0]
-        : `${normalizedValues.length} dipilih`;
-
-  return (
-    <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
-
-      <button
-        type="button"
-        onClick={() => setIsOpen(previous => !previous)}
-        className={`${FILTER_SELECT_CLASS} flex items-center justify-between gap-3 text-left`}
-      >
-        <span className="truncate font-medium text-white">
-          {selectedText}
-        </span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
-
-      {isOpen ? (
-        <div className="absolute left-0 right-0 z-40 mt-2 rounded-2xl border border-border bg-card p-3 shadow-xl">
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder={`Cari ${label.toLowerCase()}...`}
-              className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            />
-          </div>
-
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => onChange(options)}
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              Pilih Semua
-            </button>
-            <button
-              type="button"
-              onClick={() => onChange([])}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Bersihkan
-            </button>
-          </div>
-
-          <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
-            {filteredOptions.length ? (
-              filteredOptions.map(option => {
-                const checked = normalizedValues.includes(option);
-
-                return (
-                  <label
-                    key={option}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
-                      checked
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleOption(option)}
-                      className="h-4 w-4 rounded border-border accent-primary"
-                    />
-                    <span className="truncate">{option}</span>
-                  </label>
-                );
-              })
-            ) : (
-              <p className="px-3 py-2 text-sm text-muted-foreground">
-                Tidak ada pilihan yang cocok.
-              </p>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function StatusBadge({ row, onEdit }) {
   const [showModal, setShowModal] = useState(false);
@@ -2951,47 +2810,78 @@ export default function AdminPengolahanPemasaran() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <FilterMultiSelect
-                  label="Status"
-                  values={filterStatus}
-                  options={['VERIFIED', 'PENDING', 'REJECTED', 'APPROVED']}
-                  onChange={setFilterStatus}
-                  placeholder="Semua Status"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                  <SearchableMultiSelect
+                    values={filterStatus}
+                    options={[
+                      { label: 'Verified', value: 'VERIFIED' },
+                      { label: 'Approved', value: 'APPROVED' },
+                      { label: 'Rejected', value: 'REJECTED' },
+                      { label: 'Pending', value: 'PENDING' }
+                    ]}
+                    onChange={setFilterStatus}
+                    placeholder="Semua Status"
+                  />
+                </div>
 
-                <FilterMultiSelect
-                  label="Tahun"
-                  values={filterTahun}
-                  options={tahunOptions}
-                  onChange={setFilterTahun}
-                  placeholder="Semua Tahun"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
+                  <SearchableMultiSelect
+                    values={filterTahun}
+                    options={tahunOptions}
+                    onChange={setFilterTahun}
+                    placeholder="Semua Tahun"
+                  />
+                </div>
 
-                <FilterMultiSelect
-                  label="Kabupaten/Kota"
-                  values={filterKabupaten}
-                  options={KABUPATEN_KOTA_OPTIONS}
-                  onChange={setFilterKabupaten}
-                  placeholder="Semua Kab/Kota"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                  <SearchableMultiSelect
+                    values={filterKabupaten}
+                    options={KABUPATEN_KOTA_OPTIONS}
+                    onChange={setFilterKabupaten}
+                    placeholder="Semua Kab/Kota"
+                  />
+                </div>
 
-                <FilterMultiSelect
-                  label="Kategori Kegiatan"
-                  values={filterJenisKegiatan}
-                  options={['Pengolahan', 'Pemasaran']}
-                  onChange={setFilterJenisKegiatan}
-                  placeholder="Semua Kategori Kegiatan"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Kegiatan</label>
+                  <SearchableMultiSelect
+                    values={filterJenisKegiatan}
+                    options={['Pengolahan', 'Pemasaran']}
+                    onChange={setFilterJenisKegiatan}
+                    placeholder="Semua Kategori Kegiatan"
+                  />
+                </div>
 
-                <FilterMultiSelect
-                  label="Skala Usaha"
-                  values={filterSkalaUsaha}
-                  options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
-                  onChange={setFilterSkalaUsaha}
-                  placeholder="Semua Skala Usaha"
-                />
-     
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Skala Usaha</label>
+                  <SearchableMultiSelect
+                    values={filterSkalaUsaha}
+                    options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
+                    onChange={setFilterSkalaUsaha}
+                    placeholder="Semua Skala Usaha"
+                  />
+                </div>
               </div>
+              {(filterStatus.length > 0 || filterTahun.length > 0 || filterKabupaten.length > 0 || filterJenisKegiatan.length > 0 || filterSkalaUsaha.length > 0) && (
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterStatus([]);
+                      setFilterTahun([]);
+                      setFilterKabupaten([]);
+                      setFilterJenisKegiatan([]);
+                      setFilterSkalaUsaha([]);
+                    }}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Reset Semua Filter
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

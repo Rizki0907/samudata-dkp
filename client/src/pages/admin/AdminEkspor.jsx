@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Loader2, Globe, Box, Target, LineChart, TrendingUp, Filter } from 'lucide-react';
+import { Plus, Loader2, Globe, Box, Target, LineChart, TrendingUp, Filter, Clock } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -23,6 +23,7 @@ export default function AdminEkspor() {
   const [filterTahun, setFilterTahun] = useState([]);
   const [filterKomoditas, setFilterKomoditas] = useState([]);
   const [filterNegara, setFilterNegara] = useState([]);
+  const [filterStatus, setFilterStatus] = useState([]);
   const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
   const [satuanFilter, setSatuanFilter] = useState('KG');
   const [mataUangFilter, setMataUangFilter] = useState('USD');
@@ -46,12 +47,27 @@ export default function AdminEkspor() {
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
+      if (!matchMultiFilter(filterStatus, item.status, true)) return false;
       if (!matchMultiFilter(filterBulan, item.bulan)) return false;
       if (!matchMultiFilter(filterTahun, item.tahun)) return false;
       if (!matchMultiFilter(filterKomoditas, item.nama_komoditas)) return false;
+      if (!matchMultiFilter(filterNegara, item.negara_tujuan)) return false;
       return true;
     }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
-  }, [data, filterBulan, filterTahun, filterKomoditas, filterNegara]);
+  }, [data, filterStatus, filterBulan, filterTahun, filterKomoditas, filterNegara]);
+
+  const lastUpdated = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) return null;
+    let maxDate = new Date(0);
+    filteredData.forEach(row => {
+      if (row.updated_at || row.created_at) {
+        const dt = new Date(row.updated_at || row.created_at);
+        if (dt > maxDate) maxDate = dt;
+      }
+    });
+    if (maxDate.getTime() === 0) return null;
+    return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }, [filteredData]);
 
   const fetchData = async () => {
     try {
@@ -674,27 +690,33 @@ export default function AdminEkspor() {
 
           {/* Super Filters */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
               </div>
-              {(filterTahun.length > 0 || filterBulan.length > 0 || filterKomoditas.length > 0 || filterNegara.length > 0) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterTahun([]);
-                    setFilterBulan([]);
-                    setFilterKomoditas([]);
-                    setFilterNegara([]);
-                  }}
-                  className="text-xs text-primary hover:underline font-medium"
-                >
-                  Reset Semua Filter
-                </button>
-              )}
+              {activeTab === 'visual' && lastUpdated ? (
+                <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                  <Clock className="h-4 w-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
+              ) : null}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                <SearchableMultiSelect
+                  options={[
+                    { label: 'Verified', value: 'VERIFIED' },
+                    { label: 'Approved', value: 'APPROVED' },
+                    { label: 'Rejected', value: 'REJECTED' },
+                    { label: 'Pending', value: 'PENDING' }
+                  ]}
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  placeholder="Semua Status"
+                />
+              </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                 <SearchableMultiSelect
@@ -739,6 +761,23 @@ export default function AdminEkspor() {
                 </select>
               </div>
             </div>
+            {(filterStatus.length > 0 || filterTahun.length > 0 || filterBulan.length > 0 || filterKomoditas.length > 0 || filterNegara.length > 0) && (
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterStatus([]);
+                    setFilterTahun([]);
+                    setFilterBulan([]);
+                    setFilterKomoditas([]);
+                    setFilterNegara([]);
+                  }}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Reset Semua Filter
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

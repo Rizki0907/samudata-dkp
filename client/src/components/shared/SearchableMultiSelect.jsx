@@ -4,7 +4,9 @@ import { cn } from '../../lib/utils';
 
 export default function SearchableMultiSelect({
   options = [],
-  value = [],
+  value,
+  values,
+  label,
   onChange,
   placeholder = 'Semua Pilihan',
   disabled = false,
@@ -14,7 +16,8 @@ export default function SearchableMultiSelect({
   const [search, setSearch] = useState('');
   const wrapperRef = useRef(null);
 
-  const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+  const activeVal = value !== undefined ? value : (values !== undefined ? values : []);
+  const selectedValues = Array.isArray(activeVal) ? activeVal : (activeVal ? [activeVal] : []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -79,6 +82,11 @@ export default function SearchableMultiSelect({
 
   return (
     <div ref={wrapperRef} className="relative w-full">
+      {label && (
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+      )}
       <div
         className={cn(
           "flex items-center justify-between w-full rounded-lg border bg-background px-3 py-2 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary/50 text-sm select-none",

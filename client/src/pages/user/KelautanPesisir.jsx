@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import {
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
   TreePine, Landmark, Globe, Fish, Info, Clock, Leaf,
@@ -48,106 +49,6 @@ const hBarOption = (categories, values, color, unit) => ({
   series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
 });
 
-const FILTER_SELECT_CLASS = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
-
-function MultiSelect({ value, options, onChange, placeholder = 'Pilih...', className }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const wrapperRef = useRef(null);
-  const normalizedValues = Array.isArray(value) ? value : [];
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearch('');
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredOptions = options.filter(opt => 
-    String(opt).toLowerCase().includes(search.toLowerCase())
-  );
-
-  const toggleOption = option => {
-    onChange(
-      normalizedValues.includes(option)
-        ? normalizedValues.filter(item => item !== option)
-        : [...normalizedValues, option]
-    );
-  };
-
-  const selectedText =
-    normalizedValues.length === 0
-      ? placeholder
-      : normalizedValues.length === 1
-        ? normalizedValues[0]
-        : `${normalizedValues.length} dipilih`;
-
-  return (
-    <div ref={wrapperRef} className="relative w-full">
-      <div 
-        className={`${FILTER_SELECT_CLASS} flex items-center justify-between cursor-pointer hover:border-primary/50 ${className || ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className={`block truncate text-sm ${normalizedValues.length === 0 ? 'text-muted-foreground' : 'text-foreground'}`}>
-          {selectedText}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 overflow-hidden">
-          <div className="p-2 border-b border-border flex items-center gap-2 sticky top-0 bg-card z-10">
-            <Search className="w-4 h-4 text-muted-foreground ml-1" />
-            <input
-              type="text"
-              autoFocus
-              className="w-full bg-transparent border-none outline-none text-sm px-1 py-1 text-foreground focus:ring-0"
-              placeholder="Cari..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1 bg-card">
-            <button type="button" onClick={() => onChange(options)} className="text-xs font-medium text-primary hover:underline">Pilih Semua</button>
-            <button type="button" onClick={() => onChange([])} className="text-xs font-medium text-muted-foreground hover:text-foreground">Bersihkan</button>
-          </div>
-
-          <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt, idx) => {
-                const checked = normalizedValues.includes(opt);
-                return (
-                  <label
-                    key={idx}
-                    className={`px-3 py-2.5 text-sm rounded-md cursor-pointer transition-colors flex items-center gap-3 ${checked ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleOption(opt)}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-                    />
-                    <span className="truncate">{String(opt)}</span>
-                  </label>
-                );
-              })
-            ) : (
-              <div className="px-3 py-6 text-center flex flex-col items-center gap-1">
-                <span className="text-sm font-medium text-muted-foreground">Tidak ditemukan</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const comboHBarOption = (categories, series, unit) => ({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -676,24 +577,28 @@ export default function KelautanPesisir() {
 
       {/* ── Filter Global ── */}
       <div className="flex flex-col gap-2">
-        <div className="flex flex-col md:flex-row gap-3 w-full">
-          <div className="flex-1">
-            <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+          <div>
+            <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
           </div>
-          <div className="flex-1">
-            <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+          <div>
+            <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
           </div>
-          <div className="flex-1">
-            <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+          <div>
+            <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
           </div>
-          {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
-            <div className="md:w-auto">
-              <button onClick={() => { setFilterTahun([]); setFilterBulan([]); setFilterKab([]); }} className="h-full w-full md:w-auto text-destructive hover:text-destructive/80 text-sm font-medium px-4 py-2 rounded-lg border border-destructive/20 hover:bg-destructive/10 transition-colors">
-                Reset Filter
-              </button>
-            </div>
-          )}
         </div>
+        {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
+          <div className="flex justify-end mt-1">
+            <button
+              type="button"
+              onClick={() => { setFilterTahun([]); setFilterBulan([]); setFilterKab([]); }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              Reset Semua Filter
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Potensi Perairan KPI (TOP) ── */}
@@ -952,13 +857,13 @@ export default function KelautanPesisir() {
           </div>
           <div className="flex flex-col md:flex-row gap-3 w-full">
             <div className="flex-1">
-              <MultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+              <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
             </div>
             <div className="flex-1">
-              <MultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+              <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
             </div>
             <div className="flex-1">
-              <MultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+              <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
             </div>
           </div>
         </div>

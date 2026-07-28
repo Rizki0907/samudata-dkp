@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Loader2, MapPin, TrendingUp, Box, LineChart, Fish, Filter, X, Download, FileText } from 'lucide-react';
+import { Plus, Loader2, MapPin, TrendingUp, Box, LineChart, Fish, Filter, X, Download, FileText, Clock } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -88,6 +88,20 @@ export default function AdminBudidaya() {
       return true;
     }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
   }, [data, filterStatus, filterKomoditas, filterKabupaten, filterWadah, filterBulan, filterTahun]);
+
+  const lastUpdated = useMemo(() => {
+    const list = activeTab === 'tahunan' ? filteredDataTahunan : filteredData;
+    if (!list || list.length === 0) return null;
+    let maxDate = new Date(0);
+    list.forEach(row => {
+      if (row.updated_at || row.created_at) {
+        const dt = new Date(row.updated_at || row.created_at);
+        if (dt > maxDate) maxDate = dt;
+      }
+    });
+    if (maxDate.getTime() === 0) return null;
+    return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }, [activeTab, filteredData, filteredDataTahunan]);
 
 
   const fetchData = async () => {
@@ -584,7 +598,7 @@ export default function AdminBudidaya() {
     return {
       title: { text: 'Produksi Budidaya per Kabupaten/Kota', textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
       tooltip: { trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG</b>` },
-      visualMap: { left: 'right', min: 1, max: maxVal || 100, inRange: { color: ['#0f172a', '#1e3a8a', '#3b82f6', '#93c5fd', '#34d399'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: '#94a3b8' }, calculable: true, type: 'piecewise', splitNumber: 5 },
+      visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: '#94a3b8' }, calculable: false },
       series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: '#1e293b', borderColor: '#334155' }, data: mapData }]
     };
   }, [computedStats.produksiPerKabupaten]);
@@ -812,28 +826,17 @@ export default function AdminBudidaya() {
 
               {/* Super Filters */}
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Filter className="w-5 h-5 text-slate-500" />
                     <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
                   </div>
-                  {(filterKomoditas.length > 0 || filterKabupaten.length > 0 || filterWadah.length > 0 || filterStatus.length > 0 || filterBulan.length > 0 || filterTahun.length > 0 || filterModul.length > 0) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterKomoditas([]);
-                        setFilterKabupaten([]);
-                        setFilterWadah([]);
-                        setFilterStatus([]);
-                        setFilterBulan([]);
-                        setFilterTahun([]);
-                        setFilterModul([]);
-                      }}
-                      className="text-xs text-primary hover:underline font-medium"
-                    >
-                      Reset Semua Filter
-                    </button>
-                  )}
+                  {activeTab === 'visual' && lastUpdated ? (
+                    <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                      <Clock className="h-4 w-4 animate-pulse" />
+                      <span>Terakhir Diperbarui: {lastUpdated}</span>
+                    </div>
+                  ) : null}
                 </div>
                 {activeTab === 'tahunan' ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -926,6 +929,25 @@ export default function AdminBudidaya() {
                         placeholder="Semua Wadah"
                       />
                     </div>
+                  </div>
+                )}
+                {(filterKomoditas.length > 0 || filterKabupaten.length > 0 || filterWadah.length > 0 || filterStatus.length > 0 || filterBulan.length > 0 || filterTahun.length > 0 || filterModul.length > 0) && (
+                  <div className="flex justify-end mt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterKomoditas([]);
+                        setFilterKabupaten([]);
+                        setFilterWadah([]);
+                        setFilterStatus([]);
+                        setFilterBulan([]);
+                        setFilterTahun([]);
+                        setFilterModul([]);
+                      }}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Reset Semua Filter
+                    </button>
                   </div>
                 )}
               </div>
@@ -1126,6 +1148,9 @@ export default function AdminBudidaya() {
                     <div className="h-[450px]">
                       <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
                     </div>
+                    <p className="mt-3 text-center text-xs text-muted-foreground">
+                      Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
+                    </p>
                   </div>
                   <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-6">

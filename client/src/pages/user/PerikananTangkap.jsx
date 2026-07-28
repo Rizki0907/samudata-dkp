@@ -720,7 +720,6 @@ export default function PerikananTangkap() {
           
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sumber Perairan</label>
               <SearchableMultiSelect 
                 value={filterCabang} 
                 onChange={(val) => {
@@ -737,7 +736,6 @@ export default function PerikananTangkap() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
               <SearchableMultiSelect 
                 value={filterTahun} 
                 onChange={setFilterTahun} 
@@ -748,7 +746,6 @@ export default function PerikananTangkap() {
             {filterCabang.length > 0 && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Wilayah / Pelabuhan</label>
                   <SearchableMultiSelect 
                     value={filterWilayah} 
                     onChange={setFilterWilayah} 
@@ -762,7 +759,6 @@ export default function PerikananTangkap() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Komoditas</label>
                   <SearchableMultiSelect 
                     value={filterKomoditas} 
                     onChange={setFilterKomoditas} 
