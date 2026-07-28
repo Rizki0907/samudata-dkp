@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database } from 'lucide-react';
+import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database, X } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
 
@@ -198,10 +198,21 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-      <div className="mb-6 border-b border-border pb-4">
+      <div className="mb-6 border-b border-border pb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">
           {initialData ? 'Edit Data Ekspor' : 'Input Data Ekspor'}
         </h2>
+        <button
+          type="button"
+          onClick={() => {
+            if (onCancel) onCancel();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          title="Tutup & Kembali ke Awal"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -405,7 +416,10 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => {
+              if (onCancel) onCancel();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             disabled={isLoading}
             className="px-5 py-2.5 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >

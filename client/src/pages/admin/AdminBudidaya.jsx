@@ -9,6 +9,7 @@ import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
+import { useThemeStore } from '@/store/themeStore';
 
 echarts.registerMap('jawa_timur', geoJsonData);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -26,6 +27,13 @@ const TwBadge = ({ tw }) => {
 };
 
 export default function AdminBudidaya() {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+  const chartText = isDark ? '#e2e8f0' : '#0f172a';
+  const chartSubText = isDark ? '#cbd5e1' : '#1e293b';
+  const chartAxisLabel = isDark ? '#94a3b8' : '#334155';
+  const chartGridLine = isDark ? '#334155' : '#cbd5e1';
+
   const [data, setData] = useState([]);
   const [dataTahunan, setDataTahunan] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -596,12 +604,12 @@ export default function AdminBudidaya() {
     const mapData = computedStats.produksiPerKabupaten.map(item => ({ name: item.name, value: item.produksi }));
     const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
     return {
-      title: { text: 'Produksi Budidaya per Kabupaten/Kota', textStyle: { color: '#e2e8f0', fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
+      title: { text: 'Produksi Budidaya per Kabupaten/Kota', textStyle: { color: chartText, fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
       tooltip: { trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG</b>` },
-      visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: '#94a3b8' }, calculable: false },
-      series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: '#1e293b', borderColor: '#334155' }, data: mapData }]
+      visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: isDark ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: chartSubText }, calculable: false },
+      series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }, data: mapData }]
     };
-  }, [computedStats.produksiPerKabupaten]);
+  }, [computedStats.produksiPerKabupaten, chartText, chartSubText, chartGridLine, isDark]);
 
   const barOption = useMemo(() => {
     const sortedData = [...computedStats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
@@ -612,32 +620,33 @@ export default function AdminBudidaya() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => `${params[0].name}<br/>${seriesName}: <b>${formatter(params[0].value || 0)}</b>` },
       grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', splitLine: { lineStyle: { color: '#334155', type: 'dashed' } }, axisLabel: { color: '#94a3b8', formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
-      yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: '#cbd5e1', fontSize: 11 } },
-      series: [{ name: seriesName, type: 'bar', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#0ea5e9' }, { offset: 1, color: '#2563eb' }]), borderRadius: [0, 4, 4, 0] } }]
+      xAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
+      yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: chartSubText, fontSize: 11 } },
+      series: [{ name: seriesName, type: 'bar', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' }, { offset: 1, color: isDark ? '#2563eb' : '#1e40af' }]), borderRadius: [0, 4, 4, 0] } }]
     };
-  }, [computedStats.produksiPerKabupaten, barFilter]);
+  }, [computedStats.produksiPerKabupaten, barFilter, chartGridLine, chartAxisLabel, chartSubText, isDark]);
 
   const lineOption = useMemo(() => {
     const seriesData = computedStats.top5Wadah.map(wadah => ({ name: wadah, type: 'line', smooth: true, symbolSize: 6, data: computedStats.trenBulanan.map(m => m[wadah] || 0) }));
-    seriesData.push({ name: 'Lainnya', type: 'line', smooth: true, lineStyle: { type: 'dashed', width: 2, color: '#94a3b8' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', data: computedStats.trenBulanan.map(m => m.Lainnya || 0) });
+    seriesData.push({ name: 'Lainnya', type: 'line', smooth: true, lineStyle: { type: 'dashed', width: 2, color: chartAxisLabel }, itemStyle: { color: chartAxisLabel }, symbol: 'none', data: computedStats.trenBulanan.map(m => m.Lainnya || 0) });
     return {
+      color: isDark ? undefined : ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#64748b'],
       tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
-      legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: '#cbd5e1' }, top: 0 },
+      legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: chartSubText }, top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#94a3b8', fontSize: 11, rotate: 30 } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#334155', type: 'dashed' } }, axisLabel: { color: '#94a3b8' } },
+      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisLabel, fontSize: 11, rotate: 30 } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel } },
       series: seriesData
     };
-  }, [computedStats.trenBulanan, computedStats.top5Wadah]);
+  }, [computedStats.trenBulanan, computedStats.top5Wadah, chartAxisLabel, chartSubText, chartGridLine, isDark]);
 
   const treemapOption = useMemo(() => {
     const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w.value }));
     return {
       tooltip: { formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG` },
-      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`, color: '#fff', fontWeight: 'bold' }, itemStyle: { borderColor: '#0f172a', gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] } } }]
+      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`, color: '#fff', fontWeight: 'bold' }, itemStyle: { borderColor: isDark ? '#0f172a' : '#ffffff', gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
     };
-  }, [computedStats.komposisiWadah]);
+  }, [computedStats.komposisiWadah, isDark]);
 
   const heatmapOption = useMemo(() => {
     const yAxisData = [...new Set(computedStats.heatmapData.map(d => d.kabupaten))].sort();
@@ -655,12 +664,12 @@ export default function AdminBudidaya() {
     return {
       tooltip: { position: 'top', formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`; } },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
-      xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', rotate: 45 } },
-      yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 } },
-      visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: ['#0f172a', '#2563eb', '#06b6d4', '#facc15', '#22c55e'] }, textStyle: { color: '#cbd5e1' }, formatter: (value) => value.toFixed(1) },
+      xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, rotate: 45 } },
+      yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, fontSize: 10 } },
+      visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: isDark ? ['#0f172a', '#2563eb', '#06b6d4', '#facc15', '#22c55e'] : ['#f0f9ff', '#bae6fd', '#0284c7', '#0369a1', '#155e75'] }, textStyle: { color: chartSubText }, formatter: (value) => value.toFixed(1) },
       series: [{ name: 'Heatmap', type: 'heatmap', data: dataPairs, label: { show: false }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } } }]
     };
-  }, [computedStats.heatmapData]);
+  }, [computedStats.heatmapData, chartSubText, isDark]);
 
   const columns = useMemo(() => [
     {
@@ -696,6 +705,20 @@ export default function AdminBudidaya() {
     { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
     { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
   ], []);
+
+  const hasMapData = useMemo(() => computedStats.produksiPerKabupaten && computedStats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x.value || 0) > 0), [computedStats.produksiPerKabupaten]);
+  const hasBarData = useMemo(() => computedStats.produksiPerKabupaten && computedStats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x[barFilter] || 0) > 0), [computedStats.produksiPerKabupaten, barFilter]);
+  const hasLineData = useMemo(() => {
+    if (!computedStats.trenBulanan || !Array.isArray(computedStats.trenBulanan)) return false;
+    return computedStats.trenBulanan.some(x => {
+      return Object.entries(x).some(([key, val]) => key !== 'bulan' && Number(val || 0) > 0);
+    });
+  }, [computedStats.trenBulanan]);
+  const hasTreemapData = useMemo(() => computedStats.komposisiWadah && computedStats.komposisiWadah.some(x => (x.value || 0) > 0 || (x.produksi || 0) > 0), [computedStats.komposisiWadah]);
+  const hasHeatmapData = useMemo(() => {
+    if (!computedStats.heatmapData || !Array.isArray(computedStats.heatmapData)) return false;
+    return computedStats.heatmapData.some(item => (Number(item.produksi) || 0) > 0 || (Number(item.value) || 0) > 0);
+  }, [computedStats.heatmapData]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1146,7 +1169,13 @@ export default function AdminBudidaya() {
                       <h2 className="text-lg font-semibold">Peta Sebaran Produksi</h2>
                     </div>
                     <div className="h-[450px]">
-                      <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+                      {hasMapData ? (
+                        <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                          Tidak ada data
+                        </div>
+                      )}
                     </div>
                     <p className="mt-3 text-center text-xs text-muted-foreground">
                       Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
@@ -1161,14 +1190,20 @@ export default function AdminBudidaya() {
                       <select
                         value={barFilter}
                         onChange={(e) => setBarFilter(e.target.value)}
-                        className="bg-slate-800/50 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none text-slate-200"
+                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                       >
-                        <option value="produksi">Produksi (KG)</option>
-                        <option value="nilai">Nilai Total (Rp)</option>
+                        <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (KG)</option>
+                        <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
                       </select>
                     </div>
                     <div className="h-[450px]">
-                      <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+                      {hasBarData ? (
+                        <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                          Tidak ada data
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1180,7 +1215,13 @@ export default function AdminBudidaya() {
                       <h2 className="text-lg font-semibold">Tren Produksi Bulanan</h2>
                     </div>
                     <div className="h-[350px]">
-                      <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+                      {hasLineData ? (
+                        <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                          Tidak ada data
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -1189,7 +1230,13 @@ export default function AdminBudidaya() {
                       <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
                     </div>
                     <div className="h-[350px]">
-                      <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
+                      {hasTreemapData ? (
+                        <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                          Tidak ada data
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1200,7 +1247,13 @@ export default function AdminBudidaya() {
                     <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
                   </div>
                   <div className="h-[600px]">
-                    <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+                    {hasHeatmapData ? (
+                      <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                        Tidak ada data
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

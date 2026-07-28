@@ -6,12 +6,20 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EksporForm } from '@/components/admin/EksporForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
+import { useThemeStore } from '@/store/themeStore';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const currentYear = new Date().getFullYear();
 
 export default function AdminEkspor() {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+  const chartText = isDark ? '#e2e8f0' : '#0f172a';
+  const chartSubText = isDark ? '#94a3b8' : '#334155';
+  const chartAxisColor = isDark ? '#94a3b8' : '#334155';
+  const chartGridColor = isDark ? '#334155' : '#e2e8f0';
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -409,8 +417,8 @@ export default function AdminEkspor() {
         roam: false,
         top: '2%', bottom: '10%', left: '0%', right: '0%',
         label: { show: true, formatter: '{b}', color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
-        breadcrumb: { show: true, bottom: '2%', itemStyle: { color: '#f1f5f9', textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' } }, textStyle: { color: '#0f172a', fontSize: 14, fontWeight: 'bold' } },
-        itemStyle: { borderColor: '#0f172a' },
+        breadcrumb: { show: true, bottom: '2%', itemStyle: { color: isDark ? '#f1f5f9' : '#0f172a', textStyle: { color: isDark ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: 'bold' } }, textStyle: { color: isDark ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: 'bold' } },
+        itemStyle: { borderColor: isDark ? '#0f172a' : '#ffffff' },
         levels: [
           { itemStyle: { borderWidth: 0, gapWidth: 2 } },
           { itemStyle: { borderWidth: 2, gapWidth: 1, borderColorSaturation: 0.55 } }
@@ -426,7 +434,7 @@ export default function AdminEkspor() {
         }
       }
     };
-  }, [computedStats.treemap]);
+  }, [computedStats.treemap, isDark]);
 
   const lineChartOption = useMemo(() => {
     const { top5_names, monthly_data_raw } = computedStats;
@@ -459,13 +467,13 @@ export default function AdminEkspor() {
 
     return {
       tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
-      legend: { data: legendData, bottom: 0, textStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' } },
+      legend: { data: legendData, bottom: 0, textStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' } },
-      yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' } },
+      yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: chartGridColor } } },
       series
     };
-  }, [computedStats, mataUangFilter]);
+  }, [computedStats, mataUangFilter, chartSubText, chartAxisColor, chartGridColor]);
 
   const groupedBarOption = useMemo(() => {
     const formatSatuan = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -480,19 +488,19 @@ export default function AdminEkspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
-      legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' } },
+      legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' } },
       grid: { left: '6%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
-      xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' } }],
+      xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' } }],
       yAxis: [
-        { type: 'value', name: volumeLabel, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500', align: 'left', padding: [0, 0, 0, 10] }, axisLabel: { formatter: '{value}', color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
-        { type: 'value', name: `Nilai (${computedStats.mataUangPrefix})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${computedStats.mataUangPrefix}{value}`, color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
+        { type: 'value', name: volumeLabel, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500', align: 'left', padding: [0, 0, 0, 10] }, axisLabel: { formatter: '{value}', color: chartAxisColor, fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: chartGridColor } } },
+        { type: 'value', name: `Nilai (${computedStats.mataUangPrefix})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${computedStats.mataUangPrefix}{value}`, color: chartAxisColor, fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
         { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
         { name: `Nilai (${mataUangFilter})`, type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
-  }, [computedStats.monthlyAgg, agregatFilter, satuanFilter, mataUangFilter, computedStats.mataUangPrefix]);
+  }, [computedStats.monthlyAgg, agregatFilter, satuanFilter, mataUangFilter, computedStats.mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const rankingOption = useMemo(() => {
     const sorted = [...computedStats.ranking_komoditas]
@@ -504,20 +512,20 @@ export default function AdminEkspor() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500', formatter: (val) => {
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
         if (val >= 1000000) return `${computedStats.mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
         if (val >= 1000) return `${computedStats.mataUangPrefix}${(val / 1000).toFixed(1)}k`;
         return `${computedStats.mataUangPrefix}${val}`;
-      } }, splitLine: { lineStyle: { color: '#334155' } } },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
+      } }, splitLine: { lineStyle: { color: chartGridColor } } },
+      yAxis: { type: 'category', data: categories, axisLabel: { color: chartSubText, fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
         {
           name: 'Nilai',
           type: 'bar',
           data: values,
           itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#64748b', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+          label: { show: true, position: 'right', color: chartSubText, fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
             if (val >= 1000000) return `${computedStats.mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
@@ -527,7 +535,7 @@ export default function AdminEkspor() {
         }
       ]
     };
-  }, [computedStats.ranking_komoditas, mataUangFilter, computedStats.mataUangPrefix]);
+  }, [computedStats.ranking_komoditas, mataUangFilter, computedStats.mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const negaraOption = useMemo(() => {
     const sorted = [...computedStats.negara_tujuan]
@@ -539,13 +547,13 @@ export default function AdminEkspor() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500', formatter: (val) => {
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
         if (val >= 1000000) return `${computedStats.mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
         if (val >= 1000) return `${computedStats.mataUangPrefix}${(val / 1000).toFixed(1)}k`;
         return `${computedStats.mataUangPrefix}${val}`;
-      } }, splitLine: { lineStyle: { color: '#334155' } } },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
+      } }, splitLine: { lineStyle: { color: chartGridColor } } },
+      yAxis: { type: 'category', data: categories, axisLabel: { color: chartSubText, fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
         {
           name: 'Nilai',
@@ -553,7 +561,7 @@ export default function AdminEkspor() {
           barWidth: '60%',
           data: values,
           itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#64748b', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+          label: { show: true, position: 'right', color: chartSubText, fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
             if (val >= 1000000) return `${computedStats.mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
@@ -563,7 +571,7 @@ export default function AdminEkspor() {
         }
       ]
     };
-  }, [computedStats.negara_tujuan, mataUangFilter, computedStats.mataUangPrefix]);
+  }, [computedStats.negara_tujuan, mataUangFilter, computedStats.mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const columns = useMemo(() => [
     {
@@ -628,6 +636,18 @@ export default function AdminEkspor() {
       accessorKey: 'negara_tujuan'
     }
   ], []);
+
+  const hasTreemapData = useMemo(() => computedStats.treemap && computedStats.treemap.some(x => ((x.value || 0) > 0 || (x._sum?.nilai_usd || 0) > 0 || (x._sum?.nilai_rp || 0) > 0)), [computedStats.treemap]);
+  const hasRankingData = useMemo(() => computedStats.ranking_komoditas && computedStats.ranking_komoditas.some(x => ((x.value || 0) > 0 || (x._sum?.nilai_usd || 0) > 0 || (x._sum?.nilai_rp || 0) > 0)), [computedStats.ranking_komoditas]);
+  const hasLineData = useMemo(() => computedStats.monthly_data_raw && computedStats.monthly_data_raw.some(x => ((x._sum?.nilai_usd || 0) > 0 || (x._sum?.nilai_rp || 0) > 0)), [computedStats.monthly_data_raw]);
+  const hasGroupedBarData = useMemo(() => {
+    if (!computedStats.monthlyAgg) return false;
+    return MONTHS.some(m => {
+      const cell = computedStats.monthlyAgg[m]?.['Satuan']?.[agregatFilter]?.[satuanFilter];
+      return cell && ((cell.volume || 0) > 0 || (cell.nilai_usd || 0) > 0 || (cell.nilai_rp || 0) > 0);
+    });
+  }, [computedStats.monthlyAgg, agregatFilter, satuanFilter]);
+  const hasNegaraData = useMemo(() => computedStats.negara_tujuan && computedStats.negara_tujuan.some(x => ((x.value || 0) > 0 || (x._sum?.nilai_usd || 0) > 0 || (x._sum?.nilai_rp || 0) > 0)), [computedStats.negara_tujuan]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -854,14 +874,26 @@ export default function AdminEkspor() {
                   <Box className="w-5 h-5 text-blue-500" />
                   <h3 className="text-lg font-semibold text-foreground">Komposisi Nilai Ekspor per Komoditas</h3>
                 </div>
-                <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
+                {hasTreemapData ? (
+                  <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
+                ) : (
+                  <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                    Tidak ada data
+                  </div>
+                )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="w-5 h-5 text-pink-500" />
                   <h3 className="text-lg font-semibold text-foreground">Ranking Komoditas Berdasarkan Nilai</h3>
                 </div>
-                <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
+                {hasRankingData ? (
+                  <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
+                ) : (
+                  <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                    Tidak ada data
+                  </div>
+                )}
               </div>
             </div>
 
@@ -870,7 +902,13 @@ export default function AdminEkspor() {
                 <LineChart className="w-5 h-5 text-emerald-500" />
                 <h3 className="text-lg font-semibold text-foreground">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h3>
               </div>
-              <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
+              {hasLineData ? (
+                <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
+              ) : (
+                <div className="h-[450px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                  Tidak ada data
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -888,42 +926,54 @@ export default function AdminEkspor() {
                         setAgregatFilter(val);
                         setSatuanFilter(val === 'Segar dan Olahan' ? 'KG' : 'PCS');
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                     >
-                      <option value="Segar dan Olahan">Segar & Olahan</option>
-                      <option value="Hidup">Hidup</option>
+                      <option value="Segar dan Olahan" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Segar & Olahan</option>
+                      <option value="Hidup" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Hidup</option>
                     </select>
                     {agregatFilter === 'Segar dan Olahan' && (
                       <select
                         value={satuanFilter}
                         onChange={(e) => setSatuanFilter(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                       >
-                        <option value="KG">KG</option>
-                        <option value="LITER">Liter</option>
+                        <option value="KG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">KG</option>
+                        <option value="LITER" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Liter</option>
                       </select>
                     )}
                     {agregatFilter === 'Hidup' && (
                       <select
                         value={satuanFilter}
                         onChange={(e) => setSatuanFilter(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                       >
-                        <option value="PCS">PCS</option>
-                        <option value="EKOR">Ekor</option>
-                        <option value="BATANG">Batang</option>
+                        <option value="PCS" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">PCS</option>
+                        <option value="EKOR" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Ekor</option>
+                        <option value="BATANG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Batang</option>
                       </select>
                     )}
                   </div>
                 </div>
-                <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
+                {hasGroupedBarData ? (
+                  <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
+                ) : (
+                  <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                    Tidak ada data
+                  </div>
+                )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Globe className="w-5 h-5 text-teal-500" />
                   <h3 className="text-lg font-semibold text-foreground">Ranking Negara Tujuan</h3>
                 </div>
-                <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
+                {hasNegaraData ? (
+                  <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
+                ) : (
+                  <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                    Tidak ada data
+                  </div>
+                )}
               </div>
             </div>
           </div>

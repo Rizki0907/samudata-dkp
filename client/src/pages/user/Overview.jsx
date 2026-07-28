@@ -14,7 +14,7 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
-    budidaya: { produksi: 0, pembudidaya: 0 },
+    budidaya: { produksi: 0, pembudidaya: 0, top_komoditas: 'Udang Vaname', top_wadah: 'Tambak', top_kabupaten: 'Tuban' },
     pemasaran: { total_unit_usaha: 0, total_produksi_kg: 0, total_nilai_produksi_rp: 0, total_pemasaran_kg: 0 },
     garam: { produksi: 0, petambak: 0, luas_lahan: 0 }
   });
@@ -114,12 +114,20 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Ton)</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.produksi?.toLocaleString('id-ID')}</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Kg)</p>
+              <p className="text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.produksi?.toLocaleString('id-ID')}>{stats.budidaya.produksi?.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Titik Budidaya (Laporan)</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.budidaya.pembudidaya?.toLocaleString('id-ID')}</p>
+              <p className="text-sm text-muted-foreground mb-1">Komoditas Terbanyak</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_komoditas || 'Udang Vaname'}>{stats.budidaya.top_komoditas || 'Udang Vaname'}</p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Wadah Terpopuler</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_wadah || 'Tambak'}>{stats.budidaya.top_wadah || 'Tambak'}</p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Kab/Kota Teratas</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_kabupaten || 'Tuban'}>{stats.budidaya.top_kabupaten || 'Tuban'}</p>
             </div>
           </div>
         </div>

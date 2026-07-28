@@ -35,9 +35,42 @@ const getOverviewStats = async (req, res) => {
       _count: { id: true }
     });
 
+    // Cari Komoditas terbanyak berdasarkan produksi_kg
+    const topKomoditasGroup = await prisma.budidaya.groupBy({
+      by: ['komoditas'],
+      where: { status: 'VERIFIED', komoditas: { not: '-' } },
+      _sum: { produksi_kg: true },
+      orderBy: { _sum: { produksi_kg: 'desc' } },
+      take: 1
+    });
+    const topKomoditas = topKomoditasGroup.length > 0 ? topKomoditasGroup[0].komoditas : 'Udang Vaname';
+
+    // Cari Wadah yang paling banyak digunakan (atau produksi terbanyak)
+    const topWadahGroup = await prisma.budidaya.groupBy({
+      by: ['jenis_wadah'],
+      where: { status: 'VERIFIED', jenis_wadah: { not: '-' } },
+      _sum: { produksi_kg: true },
+      orderBy: { _sum: { produksi_kg: 'desc' } },
+      take: 1
+    });
+    const topWadah = topWadahGroup.length > 0 ? topWadahGroup[0].jenis_wadah : 'Tambak';
+
+    // Cari Kabupaten/Kota produksi terbanyak
+    const topKabupatenGroup = await prisma.budidaya.groupBy({
+      by: ['kabupaten_kota'],
+      where: { status: 'VERIFIED', kabupaten_kota: { not: '-' } },
+      _sum: { produksi_kg: true },
+      orderBy: { _sum: { produksi_kg: 'desc' } },
+      take: 1
+    });
+    const topKabupaten = topKabupatenGroup.length > 0 ? topKabupatenGroup[0].kabupaten_kota : 'Tuban';
+
     const budidaya = {
       produksi: budidayaStats._sum.produksi_kg || 0, // Dalam KG
-      pembudidaya: budidayaStats._count.id || 0 // Asumsi jumlah titik/laporan
+      pembudidaya: budidayaStats._count.id || 0,
+      top_komoditas: topKomoditas,
+      top_wadah: topWadah,
+      top_kabupaten: topKabupaten
     };
 
     // === 3.(Pengolahan & Pemasaran) ===

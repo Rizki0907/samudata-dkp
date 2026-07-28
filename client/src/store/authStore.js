@@ -26,7 +26,7 @@ export const useAuthStore = create((set) => ({
     const token = localStorage.getItem('admin_token')
     if (token) {
       const decoded = parseJwt(token);
-      if (decoded && decoded.role) {
+      if (decoded && decoded.role && (!decoded.exp || decoded.exp * 1000 > Date.now())) {
         set({ user: { role: decoded.role }, token })
       } else {
         localStorage.removeItem('admin_token');

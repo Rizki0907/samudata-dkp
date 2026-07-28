@@ -62,18 +62,18 @@ export default function SearchableMultiSelect({
 
   const renderDisplayValue = () => {
     if (selectedValues.length === 0) {
-      return <span className="text-muted-foreground truncate">{placeholder}</span>;
+      return <span className="text-foreground/90 font-medium truncate">{placeholder}</span>;
     }
     if (selectedValues.length === 1) {
       const found = options.find(opt => getOptionValue(opt) === selectedValues[0]);
-      return <span className="text-foreground font-medium truncate">{found ? getOptionLabel(found) : selectedValues[0]}</span>;
+      return <span className="text-foreground font-semibold truncate">{found ? getOptionLabel(found) : selectedValues[0]}</span>;
     }
     return (
       <div className="flex items-center gap-1.5 truncate">
         <span className="px-2 py-0.5 bg-primary/10 text-primary font-bold rounded-full text-xs shrink-0">
           {selectedValues.length} Terpilih
         </span>
-        <span className="text-xs text-muted-foreground truncate">
+        <span className="text-xs text-foreground/80 font-medium truncate">
           ({selectedValues.slice(0, 2).join(', ')}{selectedValues.length > 2 ? '...' : ''})
         </span>
       </div>
@@ -83,7 +83,7 @@ export default function SearchableMultiSelect({
   return (
     <div ref={wrapperRef} className="relative w-full">
       {label && (
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        <label className="mb-1.5 block text-xs font-semibold text-foreground">
           {label}
         </label>
       )}
