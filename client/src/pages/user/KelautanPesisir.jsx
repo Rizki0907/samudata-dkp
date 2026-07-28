@@ -563,15 +563,36 @@ export default function KelautanPesisir() {
     : '-';
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Kelautan dan Pesisir</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">
+            Statistik Kelautan dan Pesisir
+          </h1>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm shrink-0">
-          <Clock className="w-6 h-6 animate-pulse" />
-          Terakhir Diperbarui: {lastUpdated}
+
+        <div 
+          className="
+            inline-flex item-center gap-2
+            whitespace-nowrap
+            px-4 py-2
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
+            rounded-full
+            text-sm 
+            font-medium
+            border border-cyan-200
+            dark:border-cyan-500/20
+            shadow-sm"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+          
+          <span className="opacity-80">
+            Terakhir Diperbarui:
+          </span>
+          <span className="font-semibold">
+            {lastUpdated}
+          </span>
         </div>
       </div>
 
@@ -632,7 +653,7 @@ export default function KelautanPesisir() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-xl font-bold text-foreground">Visualisasi Produksi Garam</h2>
+            <h2 className="text-xl font-bold text-foreground">Produksi Garam</h2>
           </div>
         </div>
         
@@ -647,7 +668,7 @@ export default function KelautanPesisir() {
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.petambak)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Lahan Tambak</p></div>
+            <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.lahan)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
           </div>
         </div>
@@ -657,13 +678,13 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Volume Produksi per Kab/Kota (Ton)</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamProduksi, '#0891b2', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+              ? <ReactECharts option={hBarOption(garamKota, garamProduksi, '#0077b6', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#7c3aed', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#023e8a', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -686,7 +707,7 @@ export default function KelautanPesisir() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
             <TreePine className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Mangrove</h2>
+            <h2 className="text-xl font-bold text-foreground">Mangrove</h2>
           </div>
         </div>
 
@@ -702,11 +723,11 @@ export default function KelautanPesisir() {
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-cyan-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
         </div>
@@ -715,13 +736,13 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
-              ? <ReactECharts option={hBarOption(mangroveKota, mangroveEksisting, '#10b981', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+              ? <ReactECharts option={hBarOption(mangroveKota, mangroveEksisting, '#0077b6', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
-              ? <ReactECharts option={hBarOption(mangroveKota, mangroveRehab, '#06b6d4', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+              ? <ReactECharts option={hBarOption(mangroveKota, mangroveRehab, '#023e8a', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -732,7 +753,7 @@ export default function KelautanPesisir() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Waves className="w-5 h-5 text-cyan-500" />
-            <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Terumbu Karang</h2>
+            <h2 className="text-xl font-bold text-foreground">Terumbu Karang</h2>
           </div>
         </div>
 
@@ -748,11 +769,11 @@ export default function KelautanPesisir() {
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-3"><Waves className="w-6 h-6 text-sky-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-pink-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
         </div>
@@ -778,7 +799,7 @@ export default function KelautanPesisir() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Leaf className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-xl font-bold text-foreground">Visualisasi Kondisi Lamun</h2>
+            <h2 className="text-xl font-bold text-foreground">Lamun</h2>
           </div>
         </div>
 
@@ -794,11 +815,11 @@ export default function KelautanPesisir() {
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-purple-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
-              <p className="text-4xl font-extrabold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
         </div>
