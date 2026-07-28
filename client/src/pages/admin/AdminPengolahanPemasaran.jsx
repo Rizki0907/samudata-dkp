@@ -770,16 +770,25 @@ export default function AdminPengolahanPemasaran() {
       tooltipBorder: isDark ? '#334155' : '#e2e8f0',
       tooltipText: isDark ? '#f8fafc' : '#0f172a',
 
-      mapArea: isDark ? '#0f172a' : '#e2e8f0',
-      mapBorder: isDark ? '#334155' : '#94a3b8',
+      // Peta mengikuti warna Budidaya dan halaman user publik.
+      mapArea: isDark ? '#1e293b' : '#f8fafc',
+      mapBorder: isDark ? '#334155' : '#cbd5e1',
 
-      // Nama wilayah yang muncul saat hover/dipilih:
-      // hitam di light mode, putih di dark mode.
+      // Nama wilayah hitam di light mode dan putih di dark mode.
       mapLabel: isDark ? '#ffffff' : '#0f172a',
       mapEmphasisBorder: isDark ? '#ffffff' : '#0f172a',
+      mapHoverArea: isDark ? '#38bdf8' : '#f59e0b',
+      mapSelectedArea: isDark ? '#0284c7' : '#f59e0b',
 
-      // Palet utama yang sama dengan halaman user.
-      primaryBlue: '#0077B6',
+      mapInRange: isDark
+        ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399']
+        : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'],
+
+      // Gradasi bar Top 10 sama dengan halaman user dan Budidaya.
+      barGradientStart: isDark ? '#0ea5e9' : '#0284c7',
+      barGradientEnd: isDark ? '#2563eb' : '#1e40af',
+
+      // Palet kategori Pengolahan dan Pemasaran.
       categoryPengolahan: '#0096C7',
       categoryPemasaran: '#023E8A',
     }),
@@ -1607,14 +1616,7 @@ export default function AdminPengolahanPemasaran() {
         },
 
         inRange: {
-          // Nilai rendah merah, lalu bertransisi hingga hijau emerald untuk nilai tertinggi.
-          color: [
-            '#dc2626',
-            '#f97316',
-            '#facc15',
-            '#a3e635',
-            '#34d399',
-          ],
+          color: chartTheme.mapInRange,
         },  
       },
 
@@ -1645,7 +1647,7 @@ export default function AdminPengolahanPemasaran() {
 
           label: {
             show: false,
-            color: '#ffffff',
+            color: chartTheme.mapLabel,
             fontSize: 10,
           },
 
@@ -1663,7 +1665,7 @@ export default function AdminPengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#38bdf8',
+              areaColor: chartTheme.mapHoverArea,
               borderColor: chartTheme.mapEmphasisBorder,
               borderWidth: 1.5,
             },
@@ -1678,7 +1680,7 @@ export default function AdminPengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#0284c7',
+              areaColor: chartTheme.mapSelectedArea,
               borderColor: chartTheme.mapEmphasisBorder,
               borderWidth: 2,
             },
@@ -1810,8 +1812,14 @@ export default function AdminPengolahanPemasaran() {
           },
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-              { offset: 0, color: chartTheme.primaryBlue },
-              { offset: 1, color: chartTheme.primaryBlue },
+              {
+                offset: 0,
+                color: chartTheme.barGradientStart,
+              },
+              {
+                offset: 1,
+                color: chartTheme.barGradientEnd,
+              },
             ]),
             borderRadius: [0, 4, 4, 0],
           },
@@ -2853,7 +2861,7 @@ export default function AdminPengolahanPemasaran() {
                 </div>
 
                 {activeTab !== 'table' ? (
-                  <div className="inline-flex items-center gap-2 self-start rounded-full border border-[#023E8A]/20 bg-[#023E8A]/10 px-4 py-2 text-sm font-medium text-[#023E8A] shadow-sm  dark:border-[#00B4D8]/20 dark:bg-[#00B4D8]/20 dark:text-[#00B4D8] sm:self-auto">
+                  <div className="inline-flex items-center gap-2 self-start whitespace-nowrap rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 sm:self-auto">
                     <Clock className="h-4 w-4 animate-pulse" />
                     <span>Terakhir Diperbarui: {lastUpdated}</span>
                   </div>

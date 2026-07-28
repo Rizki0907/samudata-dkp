@@ -219,6 +219,8 @@ export default function PengolahanPemasaran() {
       mapBorder: isDark ? '#334155' : '#cbd5e1',
       mapLabel: isDark ? '#ffffff' : '#0f172a',
       mapEmphasisBorder: isDark ? '#ffffff' : '#0f172a',
+      mapHoverArea: isDark ? '#38bdf8' : '#f59e0b',
+      mapSelectedArea: isDark ? '#0284c7' : '#f59e0b',
       pieBorder: isDark ? '#0f172a' : '#ffffff',
       // Skala warna choropleth peta — disamakan dengan peta Budidaya:
       // light mode pakai gradasi biru, dark mode pakai gradasi merah→hijau.
@@ -707,7 +709,7 @@ export default function PengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#38bdf8',
+              areaColor: chartColors.mapHoverArea,
               borderColor: chartColors.mapEmphasisBorder,
               borderWidth: 1.5,
             },
@@ -722,7 +724,7 @@ export default function PengolahanPemasaran() {
             },
 
             itemStyle: {
-              areaColor: '#0284c7',
+              areaColor: chartColors.mapSelectedArea,
               borderColor: chartColors.mapEmphasisBorder,
               borderWidth: 2,
             },
