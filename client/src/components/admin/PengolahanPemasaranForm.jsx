@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 
 // ============================================================================
 // MASTER DATA & OPTIONS
@@ -86,7 +86,7 @@ const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
 const LABEL_CLASS =
-  'mb-1 block text-xs font-normal tracking-wide text-white';
+  'mb-1 block text-xs font-normal tracking-wide text-foreground';
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -405,17 +405,31 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 // ============================================================================
 // REUSABLE FIELDS
 // ============================================================================
-function SectionCard({ number, title, children }) {
+function SectionCard({ number, title, children, onClose }) {
   return (
     <section className="relative overflow-visible rounded-2xl border border-border bg-card shadow-sm">
       <div className="rounded-t-2xl border-b border-border bg-muted/35 px-5 py-4 md:px-6">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {number}
-          </span>
-          <h2 className="font-heading text-base font-semibold leading-tight text-foreground">
-            {title}
-          </h2>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {number}
+            </span>
+            <h2 className="font-heading text-base font-semibold leading-tight text-foreground">
+              {title}
+            </h2>
+          </div>
+
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              title="Tutup form"
+              aria-label="Tutup form Pengolahan dan Pemasaran"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-foreground transition-opacity hover:opacity-60 focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
       </div>
       <div className="p-5 md:p-6">{children}</div>
@@ -672,7 +686,7 @@ function NestedAmountGrid({
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {list.map((item) => (
         <div key={item.key}>
-          <label className="mb-1 block text-xs font-normal text-white">
+          <label className="mb-1 block text-xs font-normal text-foreground">
             {item.label} <span className="text-rose-500">*</span>
           </label>
           <NumericInputWithStepper
@@ -972,6 +986,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       <SectionCard
         number="1"
         title="Tahun dan Wilayah"
+        onClose={onCancel}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <SelectField
@@ -998,7 +1013,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-normal tracking-wide text-white">
+            <label className="mb-1 block text-xs font-normal tracking-wide text-foreground">
               Kategori Utama <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-6">

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, } from 'lucide-react';
+import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm';
@@ -720,6 +721,10 @@ export default function AdminPengolahanPemasaran() {
   const { user } = useAuthStore();
   const isAdminPusat = user?.role === 'admin_pusat';
 
+  // Menggunakan sumber tema yang sama dengan halaman user publik.
+  const theme = useThemeStore((state) => state.theme);
+  const isDark = theme === 'dark';
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -744,6 +749,42 @@ export default function AdminPengolahanPemasaran() {
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
+
+  // Palet visualisasi disamakan dengan halaman user publik.
+  // Light mode memakai teks slate yang lebih gelap agar mudah dibaca.
+  const chartTheme = useMemo(
+    () => ({
+      strongText: isDark ? '#e2e8f0' : '#1e293b',
+      text: isDark ? '#e2e8f0' : '#1e293b',
+      mutedText: isDark ? '#94a3b8' : '#64748b',
+
+      grid: isDark ? '#334155' : '#cbd5e1',
+      axisLine: isDark ? '#475569' : '#94a3b8',
+
+      surface: isDark ? '#0f172a' : '#ffffff',
+      pieBorder: isDark ? '#0f172a' : '#ffffff',
+
+      tooltipBackground: isDark
+        ? 'rgba(15, 23, 42, 0.96)'
+        : 'rgba(255, 255, 255, 0.98)',
+      tooltipBorder: isDark ? '#334155' : '#e2e8f0',
+      tooltipText: isDark ? '#f8fafc' : '#0f172a',
+
+      mapArea: isDark ? '#0f172a' : '#e2e8f0',
+      mapBorder: isDark ? '#334155' : '#94a3b8',
+
+      // Nama wilayah yang muncul saat hover/dipilih:
+      // hitam di light mode, putih di dark mode.
+      mapLabel: isDark ? '#ffffff' : '#0f172a',
+      mapEmphasisBorder: isDark ? '#ffffff' : '#0f172a',
+
+      // Palet utama yang sama dengan halaman user.
+      primaryBlue: '#0077B6',
+      categoryPengolahan: '#0096C7',
+      categoryPemasaran: '#023E8A',
+    }),
+    [isDark],
+  );
 
   // Modal input alasan penolakan (saat Pusat menolak data)
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -1490,11 +1531,11 @@ export default function AdminPengolahanPemasaran() {
 
         confine: true,
 
-        backgroundColor: 'rgba(15, 23, 42, 0.96)',
-        borderColor: '#334155',
+        backgroundColor: chartTheme.tooltipBackground,
+        borderColor: chartTheme.tooltipBorder,
         borderWidth: 1,
         textStyle: {
-          color: '#f8fafc',
+          color: chartTheme.tooltipText,
           fontSize: 12,
         },
         
@@ -1561,7 +1602,7 @@ export default function AdminPengolahanPemasaran() {
         text: ['Tinggi', 'Rendah'],
 
         textStyle: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           fontSize: 10,
         },
 
@@ -1609,21 +1650,21 @@ export default function AdminPengolahanPemasaran() {
           },
 
           itemStyle: {
-            areaColor: '#0f172a',
-            borderColor: '#334155',
+            areaColor: chartTheme.mapArea,
+            borderColor: chartTheme.mapBorder,
             borderWidth: 0.8,
           },
 
           emphasis: {
             label: {
               show: !isMobileMap,
-              color: '#ffffff',
+              color: chartTheme.mapLabel,
               fontWeight: 'bold',
             },
 
             itemStyle: {
-              areaColor: '#0284c7',
-              borderColor: '#ffffff',
+              areaColor: '#38bdf8',
+              borderColor: chartTheme.mapEmphasisBorder,
               borderWidth: 1.5,
             },
           },
@@ -1631,14 +1672,14 @@ export default function AdminPengolahanPemasaran() {
           select: {
             label: {
               show: true,
-              color: '#ffffff',
+              color: chartTheme.mapLabel,
               fontSize: 10,
               fontWeight: 'bold',
             },
 
             itemStyle: {
-              areaColor: '#f59e0b',
-              borderColor: '#ffffff',
+              areaColor: '#0284c7',
+              borderColor: chartTheme.mapEmphasisBorder,
               borderWidth: 2,
             },
           },
@@ -1652,6 +1693,7 @@ export default function AdminPengolahanPemasaran() {
     barFilter,
     isMobileMap,
     mapInteractionEnabled,
+    chartTheme,
   ]);
 
   const mapEvents = useMemo(
@@ -1694,6 +1736,11 @@ export default function AdminPengolahanPemasaran() {
     return {
       tooltip: {
         trigger: 'axis',
+        backgroundColor: chartTheme.tooltipBackground,
+        borderColor: chartTheme.tooltipBorder,
+        textStyle: {
+          color: chartTheme.tooltipText,
+        },
         axisPointer: { type: 'shadow' },
         formatter: params => {
           const value = toNumber(params[0]?.value);
@@ -1717,12 +1764,12 @@ export default function AdminPengolahanPemasaran() {
         type: 'value',
         splitLine: {
           lineStyle: {
-            color: '#334155',
+            color: chartTheme.grid,
             type: 'dashed',
           },
         },
         axisLabel: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           formatter: val => {
             if (val >= 1_000_000_000_000) return `${(val / 1_000_000_000_000).toFixed(1)}T`;
             if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}M`;
@@ -1736,7 +1783,7 @@ export default function AdminPengolahanPemasaran() {
         type: 'category',
         data: top10.map(item => item.name),
         axisLabel: {
-          color: '#cbd5e1',
+          color: chartTheme.text,
           fontSize: 11,
         },
       },
@@ -1750,7 +1797,7 @@ export default function AdminPengolahanPemasaran() {
             show: true,
             position: 'right',
             distance: 8,
-            color: '#cbd5e1',
+            color: chartTheme.text,
             fontSize: 10,
             fontWeight: 600,
             formatter: params => {
@@ -1763,15 +1810,15 @@ export default function AdminPengolahanPemasaran() {
           },
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-              { offset: 0, color: '#f97316' },
-              { offset: 1, color: '#ea580c' },
+              { offset: 0, color: chartTheme.primaryBlue },
+              { offset: 1, color: chartTheme.primaryBlue },
             ]),
             borderRadius: [0, 4, 4, 0],
           },
         },
       ],
     };
-  }, [stats.produksiPerKabupaten, topKabFilter]);
+  }, [stats.produksiPerKabupaten, topKabFilter, chartTheme]);
 
   // 3. Donut Jumlah UPI Pengolahan vs Pemasaran
   const pieOption = useMemo(() => {
@@ -1787,17 +1834,22 @@ export default function AdminPengolahanPemasaran() {
         left: 'center',
         top: '36%',
         textStyle: {
-          color: '#e2e8f0',
+          color: chartTheme.strongText,
           fontSize: 26,
           fontWeight: 'bold',
         },
         subtextStyle: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           fontSize: 12,
         },
       },
       tooltip: {
         trigger: 'item',
+        backgroundColor: chartTheme.tooltipBackground,
+        borderColor: chartTheme.tooltipBorder,
+        textStyle: {
+          color: chartTheme.tooltipText,
+        },
         formatter: params => {
           const pct = total > 0
             ? ((params.value / total) * 100).toFixed(1)
@@ -1810,7 +1862,7 @@ export default function AdminPengolahanPemasaran() {
       },
       legend: {
         bottom: 0,
-        textStyle: { color: '#cbd5e1' },
+        textStyle: { color: chartTheme.text },
       },
       series: [
         {
@@ -1820,12 +1872,12 @@ export default function AdminPengolahanPemasaran() {
           center: ['50%', '44%'],
           avoidLabelOverlap: true,
           itemStyle: {
-            borderColor: '#0f172a',
+            borderColor: chartTheme.pieBorder,
             borderWidth: 2,
           },
           label: {
             show: true,
-            color: '#e2e8f0',
+            color: chartTheme.strongText,
             formatter: params => {
               const pct = total > 0
                 ? ((params.value / total) * 100).toFixed(1)
@@ -1835,26 +1887,30 @@ export default function AdminPengolahanPemasaran() {
             },
           },
           labelLine: {
-            lineStyle: { color: '#475569' },
+            lineStyle: { color: chartTheme.axisLine },
           },
           data: [
             {
               ...stats.rasioKegiatan.find(
                 item => item.name === 'Pengolahan',
               ),
-              itemStyle: { color: '#3b82f6' },
+              itemStyle: {
+                color: chartTheme.categoryPengolahan,
+              },
             },
             {
               ...stats.rasioKegiatan.find(
                 item => item.name === 'Pemasaran',
               ),
-              itemStyle: { color: '#10b981' },
+              itemStyle: {
+                color: chartTheme.categoryPemasaran,
+              },
             },
           ],
         },
       ],
     };
-  }, [stats.rasioKegiatan]);
+  }, [stats.rasioKegiatan, chartTheme]);
 
   // 4. Bar chart Jenis Detail Kegiatan
 
@@ -1877,6 +1933,11 @@ export default function AdminPengolahanPemasaran() {
 
       tooltip: {
         trigger: 'axis',
+        backgroundColor: chartTheme.tooltipBackground,
+        borderColor: chartTheme.tooltipBorder,
+        textStyle: {
+          color: chartTheme.tooltipText,
+        },
         axisPointer: {
           type: 'shadow',
         },
@@ -1907,13 +1968,13 @@ export default function AdminPengolahanPemasaran() {
 
         splitLine: {
           lineStyle: {
-            color: '#334155',
+            color: chartTheme.grid,
             type: 'dashed',
           },
         },
 
         axisLabel: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           formatter: value =>
             Number(value).toLocaleString('id-ID'),
         },
@@ -1924,7 +1985,7 @@ export default function AdminPengolahanPemasaran() {
         data: chartData.map(item => item.name),
 
         axisLabel: {
-          color: '#cbd5e1',
+          color: chartTheme.text,
           fontSize: 11,
           width: 190,
           overflow: 'break',
@@ -1944,7 +2005,7 @@ export default function AdminPengolahanPemasaran() {
           label: {
             show: true,
             position: 'right',
-            color: '#cbd5e1',
+            color: chartTheme.text,
             formatter: params =>
               `${toNumber(params.value).toLocaleString(
                 'id-ID',
@@ -1953,8 +2014,8 @@ export default function AdminPengolahanPemasaran() {
 
           itemStyle: {
             color: isPengolahan
-              ? '#3b82f6'
-              : '#10b981',
+              ? chartTheme.categoryPengolahan
+              : chartTheme.categoryPemasaran,
 
             borderRadius: [0, 6, 6, 0],
           },  
@@ -1970,7 +2031,7 @@ export default function AdminPengolahanPemasaran() {
                 top: 'middle',
                 style: {
                   text: `Belum ada data detail ${activeDetailKegiatan.toLowerCase()}.`,
-                  fill: '#94a3b8',
+                  fill: chartTheme.mutedText,
                   fontSize: 13,
                 },
               },
@@ -1980,6 +2041,7 @@ export default function AdminPengolahanPemasaran() {
     }, [
       activeDetailKegiatan,
       stats.detailKegiatan,
+      chartTheme,
     ]);
 
   // 5. Tren Tahunan dipisah menjadi dua grafik:
@@ -2016,6 +2078,11 @@ export default function AdminPengolahanPemasaran() {
     }) => ({
       tooltip: {
         trigger: 'axis',
+        backgroundColor: chartTheme.tooltipBackground,
+        borderColor: chartTheme.tooltipBorder,
+        textStyle: {
+          color: chartTheme.tooltipText,
+        },
         axisPointer: {
           type: 'line',
         },
@@ -2038,12 +2105,12 @@ export default function AdminPengolahanPemasaran() {
         boundaryGap: false,
         data: stats.trenTahunan.map(item => item.tahun),
         axisLabel: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           fontSize: 12,
         },
         axisLine: {
           lineStyle: {
-            color: '#475569',
+            color: chartTheme.axisLine,
           },
         },
       },
@@ -2052,12 +2119,12 @@ export default function AdminPengolahanPemasaran() {
         type: 'value',
         splitLine: {
           lineStyle: {
-            color: '#334155',
+            color: chartTheme.grid,
             type: 'dashed',
           },
         },
         axisLabel: {
-          color: '#94a3b8',
+          color: chartTheme.mutedText,
           formatter: formatAxisValue,
         },
       },
@@ -2081,7 +2148,7 @@ export default function AdminPengolahanPemasaran() {
 
           itemStyle: {
             color,
-            borderColor: '#ffffff',
+            borderColor: chartTheme.surface,
             borderWidth: 2,
           },
 
@@ -2120,7 +2187,7 @@ export default function AdminPengolahanPemasaran() {
                 top: 'middle',
                 style: {
                   text: `Belum ada data tren ${category.toLowerCase()}.`,
-                  fill: '#94a3b8',
+                  fill: chartTheme.mutedText,
                   fontSize: 13,
                 },
               },
@@ -2136,20 +2203,20 @@ export default function AdminPengolahanPemasaran() {
       pengolahan: createTrendOption({
         category: 'Pengolahan',
         dataKey: `pengolahan_${metricSuffix}`,
-        color: '#3b82f6',
-        areaStart: 'rgba(59, 130, 246, 0.45)',
-        areaEnd: 'rgba(59, 130, 246, 0.03)',
+        color: chartTheme.categoryPengolahan,
+        areaStart: 'rgba(0, 150, 199, 0.48)',
+        areaEnd: 'rgba(0, 150, 199, 0.04)',
       }),
 
       pemasaran: createTrendOption({
         category: 'Pemasaran',
         dataKey: `pemasaran_${metricSuffix}`,
-        color: '#10b981',
-        areaStart: 'rgba(16, 185, 129, 0.45)',
-        areaEnd: 'rgba(16, 185, 129, 0.03)',
+        color: chartTheme.categoryPemasaran,
+        areaStart: 'rgba(2, 62, 138, 0.48)',
+        areaEnd: 'rgba(2, 62, 138, 0.04)',
       }),
     };
-  }, [stats.trenTahunan, trendFilter]);
+  }, [stats.trenTahunan, trendFilter, chartTheme]);
 
   // ==== Akhir Visualisasi Data ====
 
@@ -2541,8 +2608,8 @@ export default function AdminPengolahanPemasaran() {
                   <Factory
                     className={`mt-0.5 h-5 w-5 ${
                       activeDetailKegiatan === 'Pengolahan'
-                        ? 'text-blue-500'
-                        : 'text-emerald-500'
+                        ? 'text-[#0096C7]'
+                        : 'text-[#023E8A]'
                     }`}
                   />
 
@@ -2563,7 +2630,7 @@ export default function AdminPengolahanPemasaran() {
                       }
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                         activeDetailKegiatan === 'Pengolahan'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#0096C7] text-white'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -2577,7 +2644,7 @@ export default function AdminPengolahanPemasaran() {
                       }
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                         activeDetailKegiatan === 'Pemasaran'
-                          ? 'bg-emerald-500 text-white'
+                          ? 'bg-[#023E8A] text-white shadow-md hover:bg-[#034ea2]'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -2604,10 +2671,10 @@ export default function AdminPengolahanPemasaran() {
           {/* Baris 4 — Tren Tahunan terpisah */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl border border-blue-500/20 bg-card p-6 shadow-sm">
+              <div className="rounded-2xl border border-[#0096C7]/20 bg-card p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                    <div className="rounded-xl bg-[#0096C7]/10 p-2.5 text-[#0096C7]">
                       <TrendingUp className="h-5 w-5" />
                     </div>
 
@@ -2645,10 +2712,10 @@ export default function AdminPengolahanPemasaran() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
+              <div className="rounded-2xl border border-[#023E8A]/20 bg-card p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                    <div className="rounded-xl bg-[#023E8A]/10 p-2.5 text-[#023E8A]">
                       <TrendingUp className="h-5 w-5" />
                     </div>
 
@@ -2694,26 +2761,10 @@ export default function AdminPengolahanPemasaran() {
   if (isFormOpen) {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setIsFormOpen(false);
-              setEditingData(null);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            title="Kembali"
-            aria-label="Kembali ke halaman utama"
-            className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-
-          <div>
-            <h1 className="font-heading text-3xl font-bold text-foreground">
-              Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
-            </h1>
-          </div>
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-foreground">
+            Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
+          </h1>
         </div>
 
         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
@@ -2802,7 +2853,7 @@ export default function AdminPengolahanPemasaran() {
                 </div>
 
                 {activeTab !== 'table' ? (
-                  <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                  <div className="inline-flex items-center gap-2 self-start rounded-full border border-[#023E8A]/20 bg-[#023E8A]/10 px-4 py-2 text-sm font-medium text-[#023E8A] shadow-sm  dark:border-[#00B4D8]/20 dark:bg-[#00B4D8]/20 dark:text-[#00B4D8] sm:self-auto">
                     <Clock className="h-4 w-4 animate-pulse" />
                     <span>Terakhir Diperbarui: {lastUpdated}</span>
                   </div>

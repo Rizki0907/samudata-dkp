@@ -694,7 +694,7 @@ export default function PengolahanPemasaran() {
           emphasis: {
             label: {
               show: !isMobileMap,
-              color: '#ffffff',
+              color: chartColors.mapLabel,
               fontWeight: 'bold',
             },
 
@@ -708,7 +708,7 @@ export default function PengolahanPemasaran() {
           select: {
             label: {
               show: true,
-              color: '#ffffff',
+              color: chartColors.mapLabel,
               fontSize: 10,
               fontWeight: 'bold',
             },
@@ -1503,7 +1503,7 @@ export default function PengolahanPemasaran() {
                   <Factory
                     className={`mt-0.5 h-5 w-5 ${
                       activeDetailKegiatan === 'Pengolahan'
-                        ? 'text-blue-500'
+                        ? 'text-[#0096C7]'
                         : 'text-[#023E8A]'
                     }`}
                   />
@@ -1520,7 +1520,7 @@ export default function PengolahanPemasaran() {
                       onClick={() => setDetailKegiatanFilter('Pengolahan')}
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                         activeDetailKegiatan === 'Pengolahan'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#0096C7] text-white'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
