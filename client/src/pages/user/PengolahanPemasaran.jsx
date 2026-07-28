@@ -1186,17 +1186,17 @@ export default function PengolahanPemasaran() {
         </div>
 
         <div
-          className="
+           className="
             inline-flex items-center gap-2
             whitespace-nowrap
             px-4 py-2
-            bg-[#023E8A]/10 text-[#023E8A]
-            dark:bg-[#00B4D8]/20 dark:text-[#00B4D8]
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
             rounded-full
             text-sm 
             font-medium
-            border border-[#023E8A]/20
-            dark:border-[#00B4D8]/20
+            border border-cyan-200
+            dark:border-cyan-500/20
             shadow-sm"
         >
           <Clock className="w-4 h-4 flex-shrink-0 animate-pulse" />
