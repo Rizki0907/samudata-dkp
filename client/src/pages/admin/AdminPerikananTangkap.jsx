@@ -1607,15 +1607,14 @@ const columns = useMemo(() => [
         yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
         series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
-        series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#0077B6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0, 119, 182, 0.5)' }, { offset: 1, color: 'rgba(0, 119, 182, 0.05)' }] } } }]
       },
       nilai: {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-        xAxis: { type: 'category', data: computedStats.hargaData.categories, axisLabel: { color: '#64748b', interval: 0, width: 90, overflow: 'break' } },
-        yAxis: { type: 'value', name: 'Harga Rata-rata (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } } },
+        xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#64748b' } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-        series: [{ name: 'Nilai', type: 'line', data: nilais, smooth: true, symbolSize: 8, itemStyle: { color: '#0284c7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(2, 132, 199, 0.5)' }, { offset: 1, color: 'rgba(2, 132, 199, 0.05)' }] } } }]
+        series: [{ name: 'Nilai', type: 'line', data: nilais, smooth: true, symbolSize: 8, itemStyle: { color: '#0096C7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0, 150, 199, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 199, 0.05)' }] } } }]
       }
     };
   }, [computedStats.tren]);
