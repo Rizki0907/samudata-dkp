@@ -473,13 +473,34 @@ export default function AdminPerikananTangkap() {
       }
     });
     
+    publikData.forEach(adj => {
+      if (!adj.is_adjusted) return;
+      
+      let kabKota = adj.pelabuhan || '';
+      if (adj.sumber_data === 'PELABUHAN') {
+        kabKota = PELABUHAN_TO_KABKOTA[adj.pelabuhan] || 'Lainnya';
+      }
+      
+      if (filterKabKotaChart.length > 0 && !filterKabKotaChart.includes(kabKota)) return;
+      
+      const dV = Number(adj.volume) - Number(adj.original_volume || 0);
+      
+      if (adj.sumber_data === 'PUD') {
+        totalPud += dV;
+      } else if (adj.sumber_data === 'KAB_KOTA') {
+        totalNonPelabuhan += dV;
+      } else {
+        totalPelabuhan += dV;
+      }
+    });
+    
     return {
-      pelabuhan: totalPelabuhan,
-      pud: totalPud,
-      nonPelabuhan: totalNonPelabuhan,
-      total: totalPelabuhan + totalPud + totalNonPelabuhan
+      pelabuhan: totalPelabuhan / 1000,
+      pud: totalPud / 1000,
+      nonPelabuhan: totalNonPelabuhan / 1000,
+      total: (totalPelabuhan + totalPud + totalNonPelabuhan) / 1000
     };
-  }, [verifiedFilteredData, filterKabKotaChart]);
+  }, [verifiedFilteredData, publikData, filterKabKotaChart]);
 
   const topKomoditasUnggulan = useMemo(() => {
     const komoditasMap = {};
@@ -1598,27 +1619,7 @@ const columns = useMemo(() => [
     };
   }, [computedStats.tren]);
 
-  const hargaChartOption = useMemo(() => {
-    return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { show: false },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { 
-        type: 'category', 
-        data: computedStats.hargaCategories,
-        axisLabel: { color: '#64748b', interval: 0, width: 90, overflow: 'break' }
-      },
-      yAxis: { 
-        type: 'value', 
-        name: 'Harga Rata-rata (Rp/Kg)', 
-        nameTextStyle: { color: '#64748b' }, 
-        axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
-        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
-      },
-      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
-      series: computedStats.hargaSeries
-    };
-  }, [computedStats.hargaCategories, computedStats.hargaSeries]);
+
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">

@@ -257,10 +257,10 @@ export default function PerikananTangkap() {
     });
     
     return {
-      pelabuhan: totalPelabuhan,
-      pud: totalPud,
-      nonPelabuhan: totalNonPelabuhan,
-      total: totalPelabuhan + totalPud + totalNonPelabuhan
+      pelabuhan: totalPelabuhan / 1000,
+      pud: totalPud / 1000,
+      nonPelabuhan: totalNonPelabuhan / 1000,
+      total: (totalPelabuhan + totalPud + totalNonPelabuhan) / 1000
     };
   }, [data, chartGlobalTahun, filterKabKotaChart]);
 
