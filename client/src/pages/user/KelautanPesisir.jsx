@@ -45,9 +45,16 @@ const hBarOption = (categories, values, color, unit) => ({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
   grid: { left: 140, right: 40, top: 10, bottom: 10 },
   xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
+  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false }, inverse: true },
   series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
 });
+
+// Urutkan kategori & value bar chart dari yang tertinggi ke terendah
+const sortBarData = (categories, values) => {
+  const paired = categories.map((c, i) => ({ c, v: values[i] }));
+  paired.sort((a, b) => b.v - a.v);
+  return { categories: paired.map(p => p.c), values: paired.map(p => p.v) };
+};
 
 
 const comboHBarOption = (categories, series, unit) => ({
@@ -678,13 +685,21 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Volume Produksi per Kab/Kota (Ton)</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamProduksi, '#0077b6', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+              ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={hBarOption(garamKota, garamKelompok, '#023e8a', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+              ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -736,13 +751,21 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
-              ? <ReactECharts option={hBarOption(mangroveKota, mangroveEksisting, '#0077b6', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
-              ? <ReactECharts option={hBarOption(mangroveKota, mangroveRehab, '#023e8a', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -782,13 +805,21 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
-              ? <ReactECharts option={hBarOption(terumbuKota, terumbuEksisting, '#0ea5e9', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
-              ? <ReactECharts option={hBarOption(terumbuKota, terumbuRehab, '#ec4899', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#ec4899', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -828,13 +859,21 @@ export default function KelautanPesisir() {
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
-              ? <ReactECharts option={hBarOption(lamunKota, lamunEksisting, '#10b981', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#10b981', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
             <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
-              ? <ReactECharts option={hBarOption(lamunKota, lamunRehab, '#8b5cf6', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+              ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
+                  <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#8b5cf6', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                  </div>
+                ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
