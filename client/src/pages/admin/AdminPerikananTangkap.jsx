@@ -14,14 +14,16 @@ import {
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
 import * as XLSX from 'xlsx-js-style';
-import { PERBEKALAN_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA, PERAIRAN_OPTIONS } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+import { PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
 const formatLogistikText = (val) => {
   if (!val) return '-';
@@ -36,7 +38,19 @@ const formatLogistikText = (val) => {
   }
 };
 
+import {
+  KOMODITAS_OPTIONS,
+  KOMODITAS_PUD_OPTIONS,
+  KOMODITAS_LAUT_OPTIONS,
+  PELABUHAN_OPTIONS,
+  KAB_KOTA_OPTIONS,
+  PERAIRAN_OPTIONS,
+  PERBEKALAN_OPTIONS
+} from '@/utils/constants';
+
 export default function AdminPerikananTangkap() {
+  const { getKabKotaByPelabuhan } = useMasterDataStore();
+
   const user = useAuthStore(state => state.user);
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';

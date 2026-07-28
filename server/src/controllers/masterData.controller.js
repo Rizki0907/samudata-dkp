@@ -31,7 +31,7 @@ const getMasterDataByCategory = async (req, res) => {
 
 const createMasterData = async (req, res) => {
   try {
-    const { category, value } = req.body;
+    const { category, value, metadata } = req.body;
     
     if (!category || !value) {
       return res.status(400).json({ success: false, message: 'Category dan value harus diisi' });
@@ -48,13 +48,47 @@ const createMasterData = async (req, res) => {
     }
 
     const newData = await prisma.masterData.create({
-      data: { category, value }
+      data: { category, value, metadata: metadata || null }
     });
 
     res.status(201).json({ success: true, data: newData, message: 'Master data berhasil ditambahkan' });
   } catch (error) {
     console.error('Error creating master data:', error);
     res.status(500).json({ success: false, message: 'Gagal menambah master data' });
+  }
+};
+
+const updateMasterData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category, value, metadata } = req.body;
+
+    if (!category || !value) {
+      return res.status(400).json({ success: false, message: 'Category dan value harus diisi' });
+    }
+
+    // Cek apakah ada konflik dengan data lain
+    const existing = await prisma.masterData.findFirst({
+      where: {
+        category,
+        value,
+        id: { not: parseInt(id) }
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Nilai ini sudah ada dalam kategori tersebut' });
+    }
+
+    const updatedData = await prisma.masterData.update({
+      where: { id: parseInt(id) },
+      data: { category, value, metadata: metadata || null }
+    });
+
+    res.status(200).json({ success: true, data: updatedData, message: 'Master data berhasil diperbarui' });
+  } catch (error) {
+    console.error('Error updating master data:', error);
+    res.status(500).json({ success: false, message: 'Gagal memperbarui master data' });
   }
 };
 
@@ -75,5 +109,6 @@ module.exports = {
   getAllMasterData,
   getMasterDataByCategory,
   createMasterData,
+  updateMasterData,
   deleteMasterData
 };

@@ -8,9 +8,15 @@ import { Edit2, RotateCcw, AlertCircle, CheckCircle, Save, X, Download, FileText
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, PERBEKALAN_OPTIONS } from '@/utils/constants';
+import {
+  KOMODITAS_OPTIONS,
+  KOMODITAS_PUD_OPTIONS,
+  KOMODITAS_LAUT_OPTIONS,
+  PERBEKALAN_OPTIONS
+} from '@/utils/constants';
 
 export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null, publicLogistik = null }) {
+
   const [data, setData] = useState([]);
   const [logistikBulanan, setLogistikBulanan] = useState({});
   const [loading, setLoading] = useState(true);

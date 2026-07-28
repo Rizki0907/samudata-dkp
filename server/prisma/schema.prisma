@@ -437,6 +437,7 @@ model MasterData {
   id         Int      @id @default(autoincrement())
   category   String
   value      String
+  metadata   Json?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 

@@ -10,14 +10,18 @@ import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatDate } from '@/utils/dateHelper';
-import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 import { useThemeStore } from '@/store/themeStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+import { PELABUHAN_TO_KABKOTA, KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS } from '@/utils/constants';
+
 export default function PerikananTangkap() {
+  const { getKabKotaByPelabuhan } = useMasterDataStore();
+
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
