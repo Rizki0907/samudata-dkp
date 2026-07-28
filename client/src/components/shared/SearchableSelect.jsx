@@ -9,7 +9,8 @@ export default function SearchableSelect({
   name,
   placeholder = 'Pilih...',
   disabled = false,
-  className
+  className,
+  placement = 'bottom'
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -53,7 +54,10 @@ export default function SearchableSelect({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 overflow-hidden">
+        <div className={cn(
+          "absolute z-50 w-full bg-card border border-border rounded-xl shadow-lg animate-in fade-in overflow-hidden",
+          placement === 'top' ? "bottom-full mb-1 slide-in-from-bottom-2" : "mt-1 slide-in-from-top-2"
+        )}>
           <div className="p-2 border-b border-border flex items-center gap-2 sticky top-0 bg-card z-10">
             <Search className="w-4 h-4 text-muted-foreground ml-1" />
             <input

@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx-js-style';
 import { PERBEKALAN_OPTIONS, KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KOMODITAS_LAUT_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA, PERAIRAN_OPTIONS } from '@/utils/constants';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
@@ -37,6 +38,8 @@ const formatLogistikText = (val) => {
 
 export default function AdminPerikananTangkap() {
   const user = useAuthStore(state => state.user);
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const [data, setData] = useState([]);
   const [publikData, setPublikData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,7 @@ export default function AdminPerikananTangkap() {
   const [filterTahun, setFilterTahun] = useState([]);
   const [filterBulan, setFilterBulan] = useState([]);
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
   const [filterKomoditas, setFilterKomoditas] = useState([]);
   const [filterWilayah, setFilterWilayah] = useState([]);
   const [filterStatus, setFilterStatus] = useState([]);
@@ -281,13 +285,14 @@ export default function AdminPerikananTangkap() {
       const matchTahun = filterTahun.length === 0 || filterTahun.includes(itemTahun);
       const matchBulan = filterBulan.length === 0 || filterBulan.includes(itemBulan);
       const matchCabang = filterCabang.length === 0 || filterCabang.includes(item.sumber_data || 'PELABUHAN');
+      const matchJenisPerairan = filterJenisPerairan.length === 0 || (item.jenis_perairan && filterJenisPerairan.includes(item.jenis_perairan));
       const matchWilayah = filterWilayah.length === 0 || filterWilayah.includes(item.pelabuhan || item.kabupaten_kota || '');
       const matchKomoditas = filterKomoditas.length === 0 || (item.tangkapan && item.tangkapan.some(t => filterKomoditas.includes(t.komoditas)));
       const matchStatus = filterStatus.length === 0 || filterStatus.includes(item.status);
       
-      return matchTahun && matchBulan && matchCabang && matchWilayah && matchKomoditas && matchStatus;
+      return matchTahun && matchBulan && matchCabang && matchJenisPerairan && matchWilayah && matchKomoditas && matchStatus;
     });
-    }, [data, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas, filterStatus]);
+    }, [data, filterTahun, filterBulan, filterCabang, filterJenisPerairan, filterWilayah, filterKomoditas, filterStatus]);
 
   const verifiedFilteredData = useMemo(() => {
     return filteredData.filter(item => item.status === 'VERIFIED');
@@ -444,7 +449,7 @@ export default function AdminPerikananTangkap() {
       hargaCategories: targetPelabuhan,
       hargaSeries
     };
-  }, [verifiedFilteredData, chartHargaKomoditas, chartHargaWilayah]);
+  }, [verifiedFilteredData, chartHargaKomoditas, chartHargaWilayah, filterTahun, filterBulan, filterCabang, filterWilayah, filterKomoditas, publikData]);
 
   const lautVsPudData = useMemo(() => {
     let totalPelabuhan = 0;
@@ -554,14 +559,14 @@ export default function AdminPerikananTangkap() {
         type: 'category',
         data: ['Pelabuhan', 'Non Pelabuhan', 'PUD', 'Total'],
         axisLabel: { color: '#64748b', fontWeight: 'bold', fontSize: 12, interval: 0 },
-        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
+        axisLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } }
       },
       yAxis: {
         type: 'value',
         name: 'Volume (Ton)',
         nameTextStyle: { color: '#94a3b8', padding: [0, 0, 0, 20] },
         axisLabel: { color: '#94a3b8' },
-        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } }
+        splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#1e293b' : 'rgba(148, 163, 184, 0.2)' } }
       },
       series: [
         {
@@ -574,7 +579,9 @@ export default function AdminPerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#023E8A' }, { offset: 1, color: '#0077B6' }]
+                  colorStops: isDark 
+                      ? [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1e3a8a' }]
+                      : [{ offset: 0, color: '#023E8A' }, { offset: 1, color: '#0077B6' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -584,7 +591,9 @@ export default function AdminPerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#0077B6' }, { offset: 1, color: '#0096C7' }]
+                  colorStops: isDark
+                      ? [{ offset: 0, color: '#f59e0b' }, { offset: 1, color: '#b45309' }]
+                      : [{ offset: 0, color: '#0077B6' }, { offset: 1, color: '#0096C7' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -594,7 +603,9 @@ export default function AdminPerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#0096C7' }, { offset: 1, color: '#00B4D8' }]
+                  colorStops: isDark
+                      ? [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#064e3b' }]
+                      : [{ offset: 0, color: '#0096C7' }, { offset: 1, color: '#00B4D8' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -604,7 +615,9 @@ export default function AdminPerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#03045E' }, { offset: 1, color: '#023E8A' }]
+                  colorStops: isDark
+                      ? [{ offset: 0, color: '#8b5cf6' }, { offset: 1, color: '#4c1d95' }]
+                      : [{ offset: 0, color: '#03045E' }, { offset: 1, color: '#023E8A' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -613,7 +626,7 @@ export default function AdminPerikananTangkap() {
         }
       ]
     };
-  }, [lautVsPudData]);
+  }, [lautVsPudData, isDark]);
 
 
 
@@ -1568,11 +1581,11 @@ const columns = useMemo(() => [
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } } },
+      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
-      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#0077B6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
+      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: isDark ? '#3b82f6' : '#0077B6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
     };
-  }, [computedStats.komoditas]);
+  }, [computedStats.komoditas, isDark]);
 
   const pelabuhanChartOption = useMemo(() => {
     const categories = computedStats.pelabuhan.map(item => item.pelabuhan);
@@ -1581,11 +1594,11 @@ const columns = useMemo(() => [
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } },
+      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontWeight: 'bold' } },
-      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
+      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: isDark ? '#10b981' : '#0096C7', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
     };
-  }, [computedStats.pelabuhan]);
+  }, [computedStats.pelabuhan, isDark]);
 
   const trenChartOption = useMemo(() => {
     const dates = computedStats.tren.map(t => {
@@ -1604,20 +1617,20 @@ const columns = useMemo(() => [
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#64748b' } },
-        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
+        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-        series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
+        series: [{ name: 'Volume', type: 'line', data: volumes, smooth: true, symbolSize: 8, itemStyle: { color: isDark ? '#8b5cf6' : '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: isDark ? [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] : [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
       },
       nilai: {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: '#64748b' } },
-        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-        series: [{ name: 'Nilai', type: 'line', data: nilais, smooth: true, symbolSize: 8, itemStyle: { color: '#0096C7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0, 150, 199, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 199, 0.05)' }] } } }]
+        series: [{ name: 'Nilai', type: 'line', data: nilais, smooth: true, symbolSize: 8, itemStyle: { color: isDark ? '#10b981' : '#0096C7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: isDark ? [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] : [{ offset: 0, color: 'rgba(0, 150, 199, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 199, 0.05)' }] } } }]
       }
     };
-  }, [computedStats.tren]);
+  }, [computedStats.tren, isDark]);
 
 
 
@@ -1721,6 +1734,7 @@ const columns = useMemo(() => [
                     setFilterCabang(val);
                     setFilterWilayah([]);
                     setFilterKomoditas([]);
+                    setFilterJenisPerairan([]);
                   }} 
                   options={[
                     { label: 'Pelabuhan', value: 'PELABUHAN' },
@@ -1730,6 +1744,19 @@ const columns = useMemo(() => [
                   placeholder="Semua Perairan"
                 />
               </div>
+              
+              {filterCabang.includes('PUD') && (
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Perairan (PUD)</label>
+                  <SearchableMultiSelect 
+                    value={filterJenisPerairan} 
+                    onChange={setFilterJenisPerairan} 
+                    options={PERAIRAN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
+                    placeholder="Semua Perairan"
+                  />
+                </div>
+              )}
+              
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                 <SearchableMultiSelect 
@@ -2121,8 +2148,8 @@ const columns = useMemo(() => [
                 {/* Row 3: Komoditas Unggulan & Wilayah Penghasil */}
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
-                    <div className="p-2 bg-sky-600/10 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-sky-600" />
+                    <div className={`p-2 ${isDark ? 'bg-amber-500/10' : 'bg-sky-600/10'} rounded-lg`}>
+                      <TrendingUp className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-sky-600'}`} />
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
@@ -2131,15 +2158,15 @@ const columns = useMemo(() => [
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {computedStats.topKomoditasUnggulan.map((item, idx) => (
+                    {topKomoditasUnggulan.map((item, idx) => (
                       <div key={idx} className="bg-muted/10 border border-border rounded-xl p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="text-lg font-bold text-foreground">{item.komoditas}</h4>
                             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Produksi</p>
-                            <p className="text-xl font-black text-sky-600 mt-1">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
+                            <p className={`text-xl font-black ${isDark ? 'text-amber-500' : 'text-sky-600'} mt-1`}>{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
                           </div>
-                          <div className="w-10 h-10 rounded-full bg-sky-600/20 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
+                          <div className={`w-10 h-10 rounded-full ${isDark ? 'bg-amber-500/20 text-amber-500' : 'bg-sky-600/20 text-sky-600'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                             <Fish className="w-5 h-5" />
                           </div>
                         </div>
@@ -2155,7 +2182,7 @@ const columns = useMemo(() => [
                                   <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w.volume / 1000)} Ton</span>
                                 </div>
                                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                  <div className="h-full bg-sky-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                                  <div className={`h-full ${isDark ? 'bg-amber-500' : 'bg-sky-600'} rounded-full`} style={{ width: `${percent}%` }}></div>
                                 </div>
                               </div>
                             );

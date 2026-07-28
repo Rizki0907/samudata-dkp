@@ -11,12 +11,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatDate } from '@/utils/dateHelper';
 import { KOMODITAS_OPTIONS, PELABUHAN_OPTIONS, KOMODITAS_PUD_OPTIONS, KAB_KOTA_OPTIONS, PELABUHAN_TO_KABKOTA } from '@/utils/constants';
+import { useThemeStore } from '@/store/themeStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 export default function PerikananTangkap() {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [logistikData, setLogistikData] = useState({});
@@ -24,11 +27,13 @@ export default function PerikananTangkap() {
   // Super Filters State
   const [filterTahun, setFilterTahun] = useState([]);
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
   const [filterKomoditas, setFilterKomoditas] = useState([]);
   const [filterWilayah, setFilterWilayah] = useState([]);
 
   // Local Chart Filters
   const [chartGlobalTahun, setChartGlobalTahun] = useState([]);
+  const [chartCabang, setChartCabang] = useState([]); // Filter Cabang/Sumber untuk Chart
   const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState([]);
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
   
@@ -68,12 +73,13 @@ export default function PerikananTangkap() {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       const matchTahun = filterTahun.length === 0 || filterTahun.includes(rowTahun);
       const matchCabang = filterCabang.length === 0 || filterCabang.includes(row.sumber_data || 'PELABUHAN');
+      const matchJenisPerairan = filterJenisPerairan.length === 0 || (row.jenis_perairan && filterJenisPerairan.includes(row.jenis_perairan));
       const matchWilayah = filterWilayah.length === 0 || filterWilayah.includes(row.pelabuhan || '');
       const matchKomoditas = filterKomoditas.length === 0 || filterKomoditas.includes(row.komoditas);
 
-      return matchTahun && matchCabang && matchWilayah && matchKomoditas;
+      return matchTahun && matchCabang && matchJenisPerairan && matchWilayah && matchKomoditas;
     });
-  }, [data, filterTahun, filterCabang, filterWilayah, filterKomoditas]);
+  }, [data, filterTahun, filterCabang, filterJenisPerairan, filterWilayah, filterKomoditas]);
 
   const aggregatedData = useMemo(() => {
     const map = {};
@@ -199,7 +205,8 @@ export default function PerikananTangkap() {
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
-      if (!matchTahun) return;
+      const matchCabang = chartCabang.length === 0 || chartCabang.includes(row.sumber_data || 'PELABUHAN');
+      if (!matchTahun || !matchCabang) return;
       
       total_trip++;
       total_volume += Number(row.volume) || 0;
@@ -211,7 +218,7 @@ export default function PerikananTangkap() {
       total_trip,
       avg_volume_per_trip: total_trip ? total_volume / total_trip : 0
     };
-  }, [data, chartGlobalTahun]);
+  }, [data, chartGlobalTahun, chartCabang]);
 
   const localKomoditas = useMemo(() => {
     const map = {};
@@ -220,15 +227,16 @@ export default function PerikananTangkap() {
       const rowWilayah = row.pelabuhan || '';
       
       const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
+      const matchCabang = chartCabang.length === 0 || chartCabang.includes(row.sumber_data || 'PELABUHAN');
       const matchWilayah = chartKomoditasWilayah.length === 0 || chartKomoditasWilayah.includes(rowWilayah);
       
-      if (matchTahun && matchWilayah) {
+      if (matchTahun && matchCabang && matchWilayah) {
         if (!map[row.komoditas]) map[row.komoditas] = 0;
         map[row.komoditas] += Number(row.volume) || 0;
       }
     });
     return Object.entries(map).map(([k, v]) => ({ komoditas: k, volume: v })).sort((a, b) => b.volume - a.volume).slice(0, 6);
-  }, [data, chartGlobalTahun, chartKomoditasWilayah]);
+  }, [data, chartGlobalTahun, chartCabang, chartKomoditasWilayah]);
 
   const lautVsPudData = useMemo(() => {
     let totalPelabuhan = 0;
@@ -238,6 +246,7 @@ export default function PerikananTangkap() {
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       if (chartGlobalTahun.length > 0 && !chartGlobalTahun.includes(rowTahun)) return;
+      if (chartCabang.length > 0 && !chartCabang.includes(row.sumber_data || 'PELABUHAN')) return;
       
       let kabKota = row.kabupaten_kota || row.pelabuhan || '';
       if (row.sumber_data === 'PELABUHAN') {
@@ -262,7 +271,7 @@ export default function PerikananTangkap() {
       nonPelabuhan: totalNonPelabuhan / 1000,
       total: (totalPelabuhan + totalPud + totalNonPelabuhan) / 1000
     };
-  }, [data, chartGlobalTahun, filterKabKotaChart]);
+  }, [data, chartGlobalTahun, chartCabang, filterKabKotaChart]);
 
   const lautVsPudChartOption = useMemo(() => {
     return {
@@ -276,14 +285,14 @@ export default function PerikananTangkap() {
         type: 'category',
         data: ['Pelabuhan', 'Non Pelabuhan', 'PUD', 'Total'],
         axisLabel: { color: '#64748b', fontWeight: 'bold', fontSize: 12, interval: 0 },
-        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
+        axisLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } }
       },
       yAxis: {
         type: 'value',
         name: 'Volume (Ton)',
         nameTextStyle: { color: '#94a3b8', padding: [0, 0, 0, 20] },
         axisLabel: { color: '#94a3b8' },
-        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } }
+        splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#1e293b' : 'rgba(148, 163, 184, 0.2)' } }
       },
       series: [
         {
@@ -296,7 +305,9 @@ export default function PerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#023E8A' }, { offset: 1, color: '#0077B6' }]
+                  colorStops: isDark
+                    ? [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1e3a8a' }]
+                    : [{ offset: 0, color: '#023E8A' }, { offset: 1, color: '#0077B6' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -306,7 +317,9 @@ export default function PerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#0077B6' }, { offset: 1, color: '#0096C7' }]
+                  colorStops: isDark
+                    ? [{ offset: 0, color: '#f59e0b' }, { offset: 1, color: '#b45309' }]
+                    : [{ offset: 0, color: '#0077B6' }, { offset: 1, color: '#0096C7' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -316,7 +329,9 @@ export default function PerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#0096C7' }, { offset: 1, color: '#00B4D8' }]
+                  colorStops: isDark
+                    ? [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#064e3b' }]
+                    : [{ offset: 0, color: '#0096C7' }, { offset: 1, color: '#00B4D8' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -326,7 +341,9 @@ export default function PerikananTangkap() {
               itemStyle: {
                 color: {
                   type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                  colorStops: [{ offset: 0, color: '#03045E' }, { offset: 1, color: '#023E8A' }]
+                  colorStops: isDark
+                    ? [{ offset: 0, color: '#8b5cf6' }, { offset: 1, color: '#4c1d95' }]
+                    : [{ offset: 0, color: '#03045E' }, { offset: 1, color: '#023E8A' }]
                 },
                 borderRadius: [8, 8, 0, 0]
               }
@@ -335,7 +352,7 @@ export default function PerikananTangkap() {
         }
       ]
     };
-  }, [lautVsPudData]);
+  }, [lautVsPudData, isDark]);
 
   const komoditasChartOption = useMemo(() => {
     const categories = localKomoditas.map(item => item.komoditas);
@@ -344,17 +361,18 @@ export default function PerikananTangkap() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } } },
+      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
-      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#0077B6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
+      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: isDark ? '#3b82f6' : '#0077B6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
     };
-  }, [localKomoditas]);
+  }, [localKomoditas, isDark]);
 
   const topKomoditasUnggulan = useMemo(() => {
     const komoditasMap = {};
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       if (chartGlobalTahun.length > 0 && !chartGlobalTahun.includes(rowTahun)) return;
+      if (chartCabang.length > 0 && !chartCabang.includes(row.sumber_data || 'PELABUHAN')) return;
       
       const kom = row.komoditas;
       const vol = Number(row.volume) || 0;
@@ -387,14 +405,15 @@ export default function PerikananTangkap() {
         topWilayah
       };
     });
-  }, [data, chartGlobalTahun]);
+  }, [data, chartGlobalTahun, chartCabang]);
 
   const trenChartOption = useMemo(() => {
     const localTrenMap = {};
     data.forEach(row => {
        const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
        const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
-       if (!matchTahun) return;
+       const matchCabang = chartCabang.length === 0 || chartCabang.includes(row.sumber_data || 'PELABUHAN');
+       if (!matchTahun || !matchCabang) return;
 
        const date = row.bulan ? row.bulan : 'Unknown';
        if (!localTrenMap[date]) localTrenMap[date] = { volume: 0, nilai: 0 };
@@ -416,27 +435,28 @@ export default function PerikananTangkap() {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
-        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
+        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-        series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
+        series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: isDark ? '#8b5cf6' : '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: isDark ? [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] : [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
       },
       nilai: {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
-        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
-        series: [{ name: 'Nilai', type: 'line', data: localNilais, smooth: true, symbolSize: 8, itemStyle: { color: '#0096C7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0, 150, 199, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 199, 0.05)' }] } } }]
+        series: [{ name: 'Nilai', type: 'line', data: localNilais, smooth: true, symbolSize: 8, itemStyle: { color: isDark ? '#10b981' : '#0096C7' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: isDark ? [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] : [{ offset: 0, color: 'rgba(0, 150, 199, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 199, 0.05)' }] } } }]
       }
     };
-  }, [data, chartGlobalTahun]);
+  }, [data, chartGlobalTahun, chartCabang, isDark]);
 
   const hargaData = useMemo(() => {
     const pelMap = {};
     data.forEach(row => {
       const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
       const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
-      if (!matchTahun) return;
+      const matchCabang = chartCabang.length === 0 || chartCabang.includes(row.sumber_data || 'PELABUHAN');
+      if (!matchTahun || !matchCabang) return;
 
       const pel = row.pelabuhan || 'Lainnya';
       if (!pelMap[pel]) pelMap[pel] = 0;
@@ -445,7 +465,6 @@ export default function PerikananTangkap() {
     
     let targetPelabuhan = chartHargaWilayah;
     
-    // Jika user belum memilih wilayah spesifik, ambil Top 10 pelabuhan dengan volume tertinggi sebagai default
     if (targetPelabuhan.length === 0) {
       targetPelabuhan = Object.entries(pelMap)
         .sort((a, b) => b[1] - a[1])
@@ -460,7 +479,8 @@ export default function PerikananTangkap() {
     data.forEach(row => {
        const rowTahun = row.bulan ? row.bulan.substring(0, 4) : '';
        const matchTahun = chartGlobalTahun.length === 0 || chartGlobalTahun.includes(rowTahun);
-       if (!matchTahun) return;
+       const matchCabang = chartCabang.length === 0 || chartCabang.includes(row.sumber_data || 'PELABUHAN');
+       if (!matchTahun || !matchCabang) return;
 
        const pel = row.pelabuhan || 'Lainnya';
        if (hMap[pel] && row.komoditas === chartHargaKomoditas) {
@@ -476,12 +496,12 @@ export default function PerikananTangkap() {
           const stat = hMap[pel];
           return stat.vol > 0 ? Math.round(stat.nilai / stat.vol) : 0;
        }),
-       itemStyle: { color: '#00B4D8', borderRadius: [4, 4, 0, 0] },
+       itemStyle: { color: isDark ? '#f59e0b' : '#00B4D8', borderRadius: [4, 4, 0, 0] },
        label: { show: true, position: 'top', color: '#64748b', formatter: (p) => 'Rp ' + (p.value/1000) + 'k' }
     }];
 
     return { categories: targetPelabuhan, series };
-  }, [data, chartHargaKomoditas, chartHargaWilayah, chartGlobalTahun]);
+  }, [data, chartHargaKomoditas, chartHargaWilayah, chartGlobalTahun, chartCabang, isDark]);
 
   const hargaChartOption = useMemo(() => {
     return {
@@ -498,12 +518,12 @@ export default function PerikananTangkap() {
         name: 'Harga Rata-rata (Rp)', 
         nameTextStyle: { color: '#64748b' }, 
         axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
-        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148, 163, 184, 0.2)' } } 
+        splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } 
       },
       dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
       series: hargaData.series
     };
-  }, [hargaData]);
+  }, [hargaData, isDark]);
 
   if (loading) {
     return (
@@ -517,7 +537,6 @@ export default function PerikananTangkap() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       
-      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
@@ -547,17 +566,26 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* GLOBAL CHART FILTER */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 mb-1">
           <Filter className="w-5 h-5 text-slate-500" />
           <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <SearchableMultiSelect 
+            value={chartCabang} 
+            onChange={setChartCabang} 
+            options={[
+              { label: 'Pelabuhan', value: 'PELABUHAN' },
+              { label: 'PUD', value: 'PUD' },
+              { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
+            ]}
+            placeholder="Semua Sumber"
+          />
           <SearchableMultiSelect 
             value={chartGlobalTahun} 
             onChange={setChartGlobalTahun} 
-            options={TAHUN_OPTIONS}
+            options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
             placeholder="Semua Tahun"
           />
           <SearchableMultiSelect 
@@ -573,12 +601,13 @@ export default function PerikananTangkap() {
             placeholder="Semua Pelabuhan"
           />
         </div>
-        {(chartGlobalTahun.length > 0 || filterKabKotaChart.length > 0 || chartKomoditasWilayah.length > 0) && (
+        {(chartGlobalTahun.length > 0 || filterKabKotaChart.length > 0 || chartKomoditasWilayah.length > 0 || chartCabang.length > 0) && (
           <div className="flex justify-end">
             <button
               type="button"
               onClick={() => {
                 setChartGlobalTahun([]);
+                setChartCabang([]);
                 setFilterKabKotaChart([]);
                 setChartKomoditasWilayah([]);
               }}
@@ -590,8 +619,7 @@ export default function PerikananTangkap() {
         )}
       </div>
 
-      {/* KPI Cards (Now using localKpi filtered by chartGlobalTahun) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -bottom-4 bg-primary/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
           <div className="flex items-center gap-3 mb-2"><Database className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Volume</p></div>
@@ -622,9 +650,7 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* Row 2: Charts (Laut vs PUD + Komoditas) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Laut vs PUD Comparison Chart */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
             <div className="p-2 bg-primary/10 rounded-lg">
@@ -659,11 +685,10 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-      {/* Row 3: Komoditas Unggulan & Wilayah Penghasil */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
-          <div className="p-2 bg-sky-600/10 rounded-lg">
-            <TrendingUp className="w-6 h-6 text-sky-600" />
+          <div className={`p-2 ${isDark ? 'bg-amber-500/10' : 'bg-sky-600/10'} rounded-lg`}>
+            <TrendingUp className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-sky-600'}`} />
           </div>
           <div>
             <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
@@ -678,9 +703,9 @@ export default function PerikananTangkap() {
                 <div>
                   <h4 className="text-lg font-bold text-foreground">{item.komoditas}</h4>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Produksi</p>
-                  <p className="text-xl font-black text-sky-600 mt-1">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
+                  <p className={`text-xl font-black ${isDark ? 'text-amber-500' : 'text-sky-600'} mt-1`}>{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.total / 1000)} <span className="text-sm font-normal">Ton</span></p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-sky-600/20 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
+                <div className={`w-10 h-10 rounded-full ${isDark ? 'bg-amber-500/20 text-amber-500' : 'bg-sky-600/20 text-sky-600'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                   <Fish className="w-5 h-5" />
                 </div>
               </div>
@@ -696,7 +721,7 @@ export default function PerikananTangkap() {
                         <span className="text-muted-foreground">{Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w.volume / 1000)} Ton</span>
                       </div>
                       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-sky-600 rounded-full" style={{ width: `${percent}%` }}></div>
+                        <div className={`h-full ${isDark ? 'bg-amber-500' : 'bg-sky-600'} rounded-full`} style={{ width: `${percent}%` }}></div>
                       </div>
                     </div>
                   );
@@ -725,9 +750,6 @@ export default function PerikananTangkap() {
         </div>
       </div>
 
-
-
-      {/* Table Section with SUPER FILTERS */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -735,7 +757,7 @@ export default function PerikananTangkap() {
             <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
           </div>
           
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <SearchableMultiSelect 
                 value={filterCabang} 
@@ -743,20 +765,33 @@ export default function PerikananTangkap() {
                   setFilterCabang(val);
                   setFilterWilayah([]);
                   setFilterKomoditas([]);
+                  setFilterJenisPerairan([]);
                 }} 
                 options={[
                   { label: 'Pelabuhan', value: 'PELABUHAN' },
                   { label: 'PUD', value: 'PUD' },
                   { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
                 ]}
-                placeholder="Semua Perairan"
+                placeholder="Semua Sumber"
               />
             </div>
+            
+            {filterCabang.includes('PUD') && (
+              <div>
+                <SearchableMultiSelect 
+                  value={filterJenisPerairan} 
+                  onChange={setFilterJenisPerairan} 
+                  options={[{label: "Sungai", value: "Sungai"}, {label: "Danau", value: "Danau"}, {label: "Waduk", value: "Waduk"}, {label: "Rawa", value: "Rawa"}, {label: "Genangan Air", value: "Genangan Air"}]}
+                  placeholder="Semua Perairan"
+                />
+              </div>
+            )}
+            
             <div>
               <SearchableMultiSelect 
                 value={filterTahun} 
                 onChange={setFilterTahun} 
-                options={TAHUN_OPTIONS}
+                options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
                 placeholder="Semua Tahun"
               />
             </div>
@@ -793,7 +828,7 @@ export default function PerikananTangkap() {
           </div>
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-500" />
             <h3 className="text-lg font-semibold text-foreground">Rincian Data Pendaratan</h3>
@@ -813,7 +848,6 @@ export default function PerikananTangkap() {
           />
         </div>
       </div>
-
     </div>
   );
 }
