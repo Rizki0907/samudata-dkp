@@ -1700,14 +1700,17 @@ const columns = useMemo(() => [
 
           {/* Super Filters */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
               </div>
-              <div className="flex items-center gap-2">
-                
-              </div>
+              {activeTab === 'visual' && lastUpdated ? (
+                <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                  <Clock className="h-4 w-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
+              ) : null}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
@@ -2029,12 +2032,7 @@ const columns = useMemo(() => [
             />
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-end mb-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
-                  <Clock className="w-4 h-4 animate-pulse" />
-                  Terakhir Diperbarui: {lastUpdated || '-'}
-                </div>
-              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
