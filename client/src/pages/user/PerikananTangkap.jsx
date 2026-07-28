@@ -257,10 +257,10 @@ export default function PerikananTangkap() {
     });
     
     return {
-      pelabuhan: totalPelabuhan,
-      pud: totalPud,
-      nonPelabuhan: totalNonPelabuhan,
-      total: totalPelabuhan + totalPud + totalNonPelabuhan
+      pelabuhan: totalPelabuhan / 1000,
+      pud: totalPud / 1000,
+      nonPelabuhan: totalNonPelabuhan / 1000,
+      total: (totalPelabuhan + totalPud + totalNonPelabuhan) / 1000
     };
   }, [data, chartGlobalTahun, filterKabKotaChart]);
 
@@ -518,38 +518,79 @@ export default function PerikananTangkap() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Tangkap</h1>
+        </div>
+        
+        <div 
+          className="
+            inline-flex items-center gap-2
+            whitespace-nowrap
+            px-4 py-2
+            bg-cyan-50 text-cyan-700
+            dark:bg-cyan-500/10 dark:text-cyan-300
+            rounded-full
+            text-sm 
+            font-medium
+            border border-cyan-200
+            dark:border-cyan-500/20
+            shadow-sm"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+          <span className="opacity-80">
+            Terakhir Diperbarui:
+          </span>
+          <span className="font-semibold">
+            {lastUpdated || '-'}
+          </span>
         </div>
       </div>
 
       {/* GLOBAL CHART FILTER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/10">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">Visualisasi & Statistik</h2>
-          <p className="text-sm text-muted-foreground">Pilih tahun untuk memfilter seluruh data metrik dan grafik di bawah.</p>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Filter className="w-5 h-5 text-slate-500" />
+          <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
         </div>
-        <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border shadow-sm min-w-[200px]">
-          <Filter className="w-4 h-4 text-primary ml-2" />
-          <div className="w-full">
-            <SearchableMultiSelect 
-              value={chartGlobalTahun} 
-              onChange={setChartGlobalTahun} 
-              options={TAHUN_OPTIONS}
-              placeholder="Semua Tahun"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <SearchableMultiSelect 
+            value={chartGlobalTahun} 
+            onChange={setChartGlobalTahun} 
+            options={TAHUN_OPTIONS}
+            placeholder="Semua Tahun"
+          />
+          <SearchableMultiSelect 
+            value={filterKabKotaChart} 
+            onChange={setFilterKabKotaChart} 
+            options={KAB_KOTA_OPTIONS}
+            placeholder="Semua Kab/Kota"
+          />
+          <SearchableMultiSelect 
+            value={chartKomoditasWilayah} 
+            onChange={setChartKomoditasWilayah} 
+            options={PELABUHAN_OPTIONS}
+            placeholder="Semua Pelabuhan"
+          />
+        </div>
+        {(chartGlobalTahun.length > 0 || filterKabKotaChart.length > 0 || chartKomoditasWilayah.length > 0) && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setChartGlobalTahun([]);
+                setFilterKabKotaChart([]);
+                setChartKomoditasWilayah([]);
+              }}
+              className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+            >
+              Reset Filter
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* KPI Cards (Now using localKpi filtered by chartGlobalTahun) */}
-              <div className="flex justify-end mb-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
-            <Clock className="w-4 h-4 animate-pulse" />
-            Terakhir Diperbarui: {lastUpdated || '-'}
-          </div>
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -bottom-4 bg-primary/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
@@ -585,25 +626,13 @@ export default function PerikananTangkap() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Laut vs PUD Comparison Chart */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-border pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
-                <p className="text-sm text-muted-foreground">Berdasarkan Jenis Perairan</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <BarChart3 className="w-6 h-6 text-primary" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-48">
-                <SearchableMultiSelect 
-                  value={filterKabKotaChart} 
-                  onChange={setFilterKabKotaChart} 
-                  options={KAB_KOTA_OPTIONS}
-                  placeholder="Semua Kab/Kota"
-                />
-              </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
+              <p className="text-sm text-muted-foreground">Berdasarkan Jenis Perairan</p>
             </div>
           </div>
           
@@ -617,25 +646,13 @@ export default function PerikananTangkap() {
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-border pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Fish className="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Komoditas Terbanyak</h3>
-                <p className="text-sm text-muted-foreground">Total Keseluruhan</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Fish className="w-6 h-6 text-blue-500" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-48">
-                <SearchableMultiSelect 
-                  value={chartKomoditasWilayah} 
-                  onChange={setChartKomoditasWilayah} 
-                  options={PELABUHAN_OPTIONS}
-                  placeholder="Semua Wilayah"
-                />
-              </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Komoditas Terbanyak</h3>
+              <p className="text-sm text-muted-foreground">Total Keseluruhan</p>
             </div>
           </div>
           {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}

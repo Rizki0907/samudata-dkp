@@ -473,13 +473,34 @@ export default function AdminPerikananTangkap() {
       }
     });
     
+    publikData.forEach(adj => {
+      if (!adj.is_adjusted) return;
+      
+      let kabKota = adj.pelabuhan || '';
+      if (adj.sumber_data === 'PELABUHAN') {
+        kabKota = PELABUHAN_TO_KABKOTA[adj.pelabuhan] || 'Lainnya';
+      }
+      
+      if (filterKabKotaChart.length > 0 && !filterKabKotaChart.includes(kabKota)) return;
+      
+      const dV = Number(adj.volume) - Number(adj.original_volume || 0);
+      
+      if (adj.sumber_data === 'PUD') {
+        totalPud += dV;
+      } else if (adj.sumber_data === 'KAB_KOTA') {
+        totalNonPelabuhan += dV;
+      } else {
+        totalPelabuhan += dV;
+      }
+    });
+    
     return {
-      pelabuhan: totalPelabuhan,
-      pud: totalPud,
-      nonPelabuhan: totalNonPelabuhan,
-      total: totalPelabuhan + totalPud + totalNonPelabuhan
+      pelabuhan: totalPelabuhan / 1000,
+      pud: totalPud / 1000,
+      nonPelabuhan: totalNonPelabuhan / 1000,
+      total: (totalPelabuhan + totalPud + totalNonPelabuhan) / 1000
     };
-  }, [verifiedFilteredData, filterKabKotaChart]);
+  }, [verifiedFilteredData, publikData, filterKabKotaChart]);
 
   const topKomoditasUnggulan = useMemo(() => {
     const komoditasMap = {};
@@ -1598,27 +1619,7 @@ const columns = useMemo(() => [
     };
   }, [computedStats.tren]);
 
-  const hargaChartOption = useMemo(() => {
-    return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { show: false },
-      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { 
-        type: 'category', 
-        data: computedStats.hargaCategories,
-        axisLabel: { color: '#64748b', interval: 0, width: 90, overflow: 'break' }
-      },
-      yAxis: { 
-        type: 'value', 
-        name: 'Harga Rata-rata (Rp)', 
-        nameTextStyle: { color: '#64748b' }, 
-        axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
-        splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
-      },
-      dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
-      series: computedStats.hargaSeries
-    };
-  }, [computedStats.hargaCategories, computedStats.hargaSeries]);
+
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -1699,14 +1700,17 @@ const columns = useMemo(() => [
 
           {/* Super Filters */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-slate-500" />
                 <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
               </div>
-              <div className="flex items-center gap-2">
-                
-              </div>
+              {activeTab === 'visual' && lastUpdated ? (
+                <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
+                  <Clock className="h-4 w-4 animate-pulse" />
+                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                </div>
+              ) : null}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
@@ -2028,12 +2032,7 @@ const columns = useMemo(() => [
             />
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-end mb-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-sm font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
-                  <Clock className="w-4 h-4 animate-pulse" />
-                  Terakhir Diperbarui: {lastUpdated || '-'}
-                </div>
-              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
