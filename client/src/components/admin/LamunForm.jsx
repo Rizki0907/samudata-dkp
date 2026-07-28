@@ -97,15 +97,20 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── HEADER ── */}
-      <div className="flex items-center gap-3 pb-4 border-b border-border">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-          <Leaf className="w-5 h-5 text-cyan-400" />
+      <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+            <Leaf className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">
+              {initialData ? 'Edit Data Padang Lamun' : 'Tambah Data Lamun'}
+            </h2>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-foreground">
-            {initialData ? 'Edit Data Padang Lamun' : 'Tambah Data Lamun'}
-          </h2>
-        </div>
+        <button type="button" onClick={onCancel} className="p-2 hover:bg-muted rounded-full transition-colors">
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* ── GRID INPUT UTAMA ── */}
