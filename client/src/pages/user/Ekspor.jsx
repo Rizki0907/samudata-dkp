@@ -393,10 +393,10 @@ export default function Ekspor() {
 
     return {
       tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
-      legend: { data: legendData, bottom: 0, textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
+      legend: { data: legendData, bottom: 0, textStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } },
-      yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+      xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' } },
+      yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
       series
     };
   }, [stats, mataUangKey, mataUangFilter]);
@@ -422,12 +422,12 @@ export default function Ekspor() {
 
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
-      legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' } },
+      legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
-      xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500' } }],
+      xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500' } }],
       yAxis: [
-        { type: 'value', name: volumeLabel, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
-        { type: 'value', name: `Nilai (${mataUangPrefix})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${mataUangPrefix}{value}`, color: '#f8fafc', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
+        { type: 'value', name: volumeLabel, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: '{value}', color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: '#334155' } } },
+        { type: 'value', name: `Nilai (${mataUangPrefix})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${mataUangPrefix}{value}`, color: '#64748b', fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
         { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
@@ -446,20 +446,20 @@ export default function Ekspor() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500', formatter: (val) => {
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
         if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
         if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
         return `${mataUangPrefix}${val}`;
       } }, splitLine: { lineStyle: { color: '#334155' } } },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
+      yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontSize: 14, fontWeight: 'bold', interval: 0, width: 100, overflow: 'truncate' } },
       series: [
         {
           name: 'Nilai',
           type: 'bar',
           data: values,
           itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+          label: { show: true, position: 'right', color: '#64748b', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
             if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
@@ -481,20 +481,20 @@ export default function Ekspor() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
-      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#f8fafc', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#f8fafc', fontSize: 12, fontWeight: '500', formatter: (val) => {
+      xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: '#64748b', fontSize: 13, fontWeight: '500' }, axisLabel: { color: '#64748b', fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
         if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;
         if (val >= 1000) return `${mataUangPrefix}${(val / 1000).toFixed(1)}k`;
         return `${mataUangPrefix}${val}`;
       } }, splitLine: { lineStyle: { color: '#334155' } } },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' } },
+      yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontSize: 14, fontWeight: 'bold' } },
       series: [
         {
           name: 'Nilai',
           type: 'bar',
           data: values,
           itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: 'right', color: '#ffffff', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
+          label: { show: true, position: 'right', color: '#64748b', fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
             if (val >= 1000000) return `${mataUangPrefix}${(val / 1000000).toFixed(1)}m`;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
+import ThemeToggle from '@/components/shared/ThemeToggle';
 import { 
   Waves, Sprout, Fish, Package, Database, Globe, 
   LayoutDashboard, LogOut, Lock, User as UserIcon, 
@@ -100,6 +101,7 @@ export default function Navbar() {
 
           {/* Right Section: Role Badge / Login Admin */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-foreground leading-tight">

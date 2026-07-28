@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { ShieldAlert, User as UserIcon } from 'lucide-react';
+import ThemeToggle from '@/components/shared/ThemeToggle';
 
 export default function Header() {
   const { user } = useAuthStore();
@@ -15,6 +16,7 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-foreground">

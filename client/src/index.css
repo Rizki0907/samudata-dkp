@@ -4,6 +4,43 @@
 
 @layer base {
   :root {
+    /* ── LIGHT MODE (Bersih, Cerah, Profesional DKP Kelautan & Pesisir) ── */
+    --background: 210 40% 98%; /* #F8FAFC */
+    --foreground: 222 47% 11%; /* #0F172A */
+
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 199 89% 45%; /* #0EA5E9 vibrant ocean blue */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 199 89% 38%; /* #0369A1 deep ocean cyan */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 93%; /* #F1F5F9 */
+    --muted-foreground: 215 16% 47%; /* #64748B */
+
+    --accent: 38 92% 50%; /* #F59E0B amber */
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%; /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%; /* #10B981 */
+    --success-foreground: 0 0% 100%;
+
+    --border: 214 32% 88%; /* #E2E8F0 */
+    --input: 214 32% 88%;
+    --ring: 199 89% 45%;
+
+    --radius: 1rem; /* rounded-2xl */
+  }
+
+  .dark {
+    /* ── DARK MODE (Tema Asli Biru Gelap DKP Laut) ── */
     --background: 216 60% 10%; /* #0A1628 */
     --foreground: 206 70% 95%; /* #E8F4FD */
 
@@ -34,8 +71,6 @@
     --border: 219 57% 27%; /* #1E3A6E */
     --input: 219 57% 27%;
     --ring: 190 100% 50%;
-
-    --radius: 1rem; /* rounded-2xl */
   }
 }
 
@@ -44,7 +79,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', sans-serif;

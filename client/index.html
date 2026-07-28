@@ -5,6 +5,16 @@
     <link rel="icon" type="image/png" href="/icon_DKP.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Samudera Dashboard DKP</title>
+    <script>
+      (function() {
+        const stored = localStorage.getItem('app_theme') || 'dark';
+        if (stored === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

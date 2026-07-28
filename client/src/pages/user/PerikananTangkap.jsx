@@ -275,7 +275,7 @@ export default function PerikananTangkap() {
       xAxis: {
         type: 'category',
         data: ['Pelabuhan', 'Non Pelabuhan', 'PUD', 'Total'],
-        axisLabel: { color: '#f8fafc', fontWeight: 'bold', fontSize: 12, interval: 0 },
+        axisLabel: { color: '#64748b', fontWeight: 'bold', fontSize: 12, interval: 0 },
         axisLine: { lineStyle: { color: '#334155' } }
       },
       yAxis: {
@@ -344,9 +344,9 @@ export default function PerikananTangkap() {
     return {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
-      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } },
-      yAxis: { type: 'category', data: categories, axisLabel: { color: '#f8fafc', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
-      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#ffffff', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
+      xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } },
+      yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
+      series: [{ name: 'Volume', type: 'bar', data: values, itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#64748b', formatter: (p) => p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ton' } }]
     };
   }, [localKomoditas]);
 
@@ -415,16 +415,16 @@ export default function PerikananTangkap() {
       volume: {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#f8fafc' } },
-        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: '#334155' } } },
+        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
+        yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: '#334155' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
         series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] } } }]
       },
       nilai: {
         tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#f8fafc' } },
-        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#f8fafc' }, axisLabel: { color: '#f8fafc', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: '#334155' } } },
+        xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
+        yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: '#334155' } } },
         dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }],
         series: [{ name: 'Nilai', type: 'line', data: localNilais, smooth: true, symbolSize: 8, itemStyle: { color: '#10b981' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.5)' }, { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }] } } }]
       }
@@ -491,13 +491,13 @@ export default function PerikananTangkap() {
       xAxis: { 
         type: 'category', 
         data: hargaData.categories,
-        axisLabel: { color: '#f8fafc', interval: 0, width: 90, overflow: 'break' }
+        axisLabel: { color: '#64748b', interval: 0, width: 90, overflow: 'break' }
       },
       yAxis: { 
         type: 'value', 
         name: 'Harga Rata-rata (Rp)', 
-        nameTextStyle: { color: '#f8fafc' }, 
-        axisLabel: { color: '#f8fafc', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
+        nameTextStyle: { color: '#64748b' }, 
+        axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
         splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
       },
       dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100, bottom: 0 }],
