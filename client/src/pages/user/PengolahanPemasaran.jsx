@@ -215,11 +215,19 @@ export default function PengolahanPemasaran() {
       tooltipBg: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.98)',
       tooltipBorder: isDark ? '#334155' : '#e2e8f0',
       tooltipText: isDark ? '#f8fafc' : '#0f172a',
-      mapArea: isDark ? '#0f172a' : '#e2e8f0', // wilayah tanpa data
-      mapBorder: isDark ? '#334155' : '#94a3b8',
+      mapArea: isDark ? '#1e293b' : '#f8fafc', // wilayah tanpa data (disamakan dgn peta Budidaya)
+      mapBorder: isDark ? '#334155' : '#cbd5e1',
       mapLabel: isDark ? '#ffffff' : '#0f172a',
       mapEmphasisBorder: isDark ? '#ffffff' : '#0f172a',
       pieBorder: isDark ? '#0f172a' : '#ffffff',
+      // Skala warna choropleth peta — disamakan dengan peta Budidaya:
+      // light mode pakai gradasi biru, dark mode pakai gradasi merah→hijau.
+      mapInRange: isDark
+        ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399']
+        : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'],
+      // Gradasi warna bar Top 10 — disamakan dengan bar Top 10 Budidaya.
+      barGradientStart: isDark ? '#0ea5e9' : '#0284c7',
+      barGradientEnd: isDark ? '#2563eb' : '#1e40af',
     }),
     [isDark],
   );
@@ -656,8 +664,8 @@ export default function PengolahanPemasaran() {
         },
 
         inRange: {
-          // Nilai rendah merah, lalu bertransisi hingga hijau emerald untuk nilai tertinggi.
-          color: ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'],
+          // Disamakan dengan skala warna peta Budidaya: biru (light) / merah→hijau (dark).
+          color: chartColors.mapInRange,
         },
       },
 
@@ -834,9 +842,10 @@ export default function PengolahanPemasaran() {
             },
           },
           itemStyle: {
+            // Disamakan dengan gradasi bar Top 10 Budidaya, beda warna light/dark.
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-              { offset: 0, color: '#0077B6' },
-              { offset: 1, color: '#0077B6' },
+              { offset: 0, color: chartColors.barGradientStart },
+              { offset: 1, color: chartColors.barGradientEnd },
             ]),
             borderRadius: [0, 4, 4, 0],
           },
