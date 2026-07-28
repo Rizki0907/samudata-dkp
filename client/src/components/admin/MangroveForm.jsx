@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TreePine, Loader2, Save, X } from 'lucide-react';
+import SearchableSelect from '@/components/shared/SearchableSelect';
 
 // ── DAFTAR KAB/KOTA JAWA TIMUR ─────────────────────────────────────────────
-const KABUPATEN_KOTA_LIST = [
-  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember',
-  'Jombang', 'Kediri', 'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 
-  'Kota Malang', 'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya',
-  'Lamongan', 'Lumajang', 'Madiun', 'Magetan', 'Malang', 'Mojokerto', 'Nganjuk', 
-  'Ngawi', 'PT. Garam', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo', 'Probolinggo', 
-  'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 'Trenggalek', 'Tuban', 'Tulungagung',
-];
+const KABUPATEN_KOTA_LIST = ["Bangkalan","Banyuwangi","Batu","Blitar","Bojonegoro","Bondowoso","Gresik","Jember","Jombang","Kediri","Lamongan","Lumajang","Madiun","Magetan","Malang","Mojokerto","Nganjuk","Ngawi","PT. Garam","Pacitan","Pamekasan","Pasuruan","Ponorogo","Probolinggo","Sampang","Sidoarjo","Situbondo","Sumenep","Surabaya","Trenggalek","Tuban","Tulungagung"];
 
 // ── HELPER KATEGORI KONDISI (0-100%) ───────────────────────────────────────
 const getKondisiMangrove = (persentase) => {
@@ -89,9 +83,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
   };
 
   const inputCls = (field) =>
-    `w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${
-      errors[field] ? 'border-destructive' : 'border-border'
-    }`;
+    `w-full bg-background border ${errors[field] ? 'border-destructive hover:border-destructive' : 'border-border hover:border-border'} rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -123,14 +115,14 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
-          <select
+          <SearchableSelect
+            name="kabupaten_kota"
             value={form.kabupaten_kota}
             onChange={(e) => handleChange('kabupaten_kota', e.target.value)}
             className={inputCls('kabupaten_kota')}
-          >
-            <option value="">Pilih Kabupaten/Kota</option>
-            {KABUPATEN_KOTA_LIST.map(k => <option key={k} value={k}>{k}</option>)}
-          </select>
+            options={KABUPATEN_KOTA_LIST}
+            placeholder="-- Pilih Kab/Kota --"
+          />
           {errors.kabupaten_kota && <p className="text-xs text-destructive mt-1">{errors.kabupaten_kota}</p>}
         </div>
 

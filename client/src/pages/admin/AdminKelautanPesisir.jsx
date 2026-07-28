@@ -1734,7 +1734,7 @@ export default function AdminKelautanPesisir() {
               </div>
 
               {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun' || activeTab === 'terumbu_karang') && (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className={activeTab === 'garam' ? "grid grid-cols-1 md:grid-cols-5 gap-4" : "grid grid-cols-1 md:grid-cols-3 gap-4"}>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
                     <SearchableMultiSelect
@@ -1770,7 +1770,7 @@ export default function AdminKelautanPesisir() {
                     <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
                   </div>
                   {(filterTahun.length > 0 || filterKab.length > 0 || filterTw.length > 0 || filterBulan.length > 0 || filterStatus.length > 0) && (
-                    <div className="md:col-span-5 flex justify-end mt-1">
+                    <div className={activeTab === 'garam' ? "md:col-span-5 flex justify-end mt-1" : "md:col-span-3 flex justify-end mt-1"}>
                       <button
                         type="button"
                         onClick={() => { setFilterTahun([]); setFilterKab([]); setFilterTw([]); setFilterBulan([]); setFilterStatus([]); }}
@@ -1797,7 +1797,7 @@ export default function AdminKelautanPesisir() {
                   <span>Terakhir Diperbarui: {lastUpdated}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                   <SearchableMultiSelect value={visTahun} onChange={setVisTahun} placeholder="Semua Tahun" options={[...new Set([
@@ -1819,7 +1819,7 @@ export default function AdminKelautanPesisir() {
                     ].filter(Boolean))].sort()} />
                 </div>
                 {(visTahun.length > 0 || visBulan.length > 0 || visKab.length > 0) && (
-                  <div className="md:col-span-4 flex justify-end mt-1">
+                  <div className="md:col-span-3 flex justify-end mt-1">
                     <button
                       type="button"
                       onClick={() => { setVisTahun([]); setVisBulan([]); setVisKab([]); }}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Loader2, FlaskConical, X } from 'lucide-react';
+import SearchableSelect from '@/components/shared/SearchableSelect';
 
 const NAMA_BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -12,14 +13,7 @@ const getTriwulan = (bulan) => {
   return '-';
 };
 
-const KAB_KOTA_JATIM = [
-  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember',
-  'Jombang', 'Kediri', 'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 
-  'Kota Malang', 'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya',
-  'Lamongan', 'Lumajang', 'Madiun', 'Magetan', 'Malang', 'Mojokerto', 'Nganjuk', 
-  'Ngawi', 'PT. Garam', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo', 'Probolinggo', 
-  'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 'Trenggalek', 'Tuban', 'Tulungagung'
-];
+const KAB_KOTA_JATIM = ["Bangkalan","Banyuwangi","Batu","Blitar","Bojonegoro","Bondowoso","Gresik","Jember","Jombang","Kediri","Lamongan","Lumajang","Madiun","Magetan","Malang","Mojokerto","Nganjuk","Ngawi","PT. Garam","Pacitan","Pamekasan","Pasuruan","Ponorogo","Probolinggo","Sampang","Sidoarjo","Situbondo","Sumenep","Surabaya","Trenggalek","Tuban","Tulungagung"];
 
 export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState(initialData || {
@@ -74,8 +68,8 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     onSubmit(finalData);
   };
 
-  const inputClass = "w-full rounded-lg border bg-background px-3 py-2 text-center outline-none focus:ring-2 focus:ring-primary/50 border-input";
-  const labelClass = "block text-sm font-medium mb-2 text-center";
+  const inputClass = "w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary hover:border-border transition-all outline-none";
+  const labelClass = "block text-xs font-medium text-muted-foreground mb-1.5";
 
   // ── Sistem heading & label (disamakan biar konsisten di semua section) ──
   const sectionTitleClass = "text-lg font-semibold flex items-center gap-2 mb-4";
@@ -101,9 +95,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
             <div>
               <label className={labelClass}>Bulan</label>
-              <select name="bulan" value={formData.bulan} onChange={handleChange} className={inputClass + " pr-10"}>
-                {NAMA_BULAN_LIST.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <SearchableSelect name="bulan" value={formData.bulan} onChange={handleChange} className={inputClass} options={NAMA_BULAN_LIST} placeholder="-- Pilih Bulan --" />
             </div>
             <div>
               <label className={labelClass}>Triwulan</label>
@@ -117,10 +109,14 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             </div>
             <div>
               <label className={labelClass}>Kabupaten / Kota</label>
-              <select name="kabupaten_kota" value={formData.kabupaten_kota} onChange={handleChange} className={inputClass + " pr-10"} required>
-                <option value="" disabled>-- Pilih Kab/Kota --</option>
-                {KAB_KOTA_JATIM.map(kab => <option key={kab} value={kab}>{kab}</option>)}
-              </select>
+              <SearchableSelect
+                name="kabupaten_kota"
+                value={formData.kabupaten_kota}
+                onChange={handleChange}
+                className={inputClass}
+                options={KAB_KOTA_JATIM}
+                placeholder="-- Pilih Kab/Kota --"
+              />
             </div>
           </div>
         </section>
