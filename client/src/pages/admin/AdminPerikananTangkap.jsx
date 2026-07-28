@@ -1610,7 +1610,7 @@ const columns = useMemo(() => [
       },
       yAxis: { 
         type: 'value', 
-        name: 'Harga Rata-rata (Rp)', 
+        name: 'Harga Rata-rata (Rp/Kg)', 
         nameTextStyle: { color: '#64748b' }, 
         axisLabel: { color: '#64748b', formatter: (value) => 'Rp ' + (value/1000) + 'k' }, 
         splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } 
