@@ -44,6 +44,13 @@ const createMasterData = async (req, res) => {
     });
 
     if (existing) {
+      if (category === 'OVERVIEW_BUDIDAYA') {
+        const updated = await prisma.masterData.update({
+          where: { id: existing.id },
+          data: { metadata: metadata || null }
+        });
+        return res.status(200).json({ success: true, data: updated, message: 'Master data overview berhasil diperbarui' });
+      }
       return res.status(400).json({ success: false, message: 'Data ini sudah ada dalam kategori tersebut' });
     }
 

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '@/services/api';
-import { Ship, Fish, Package, Droplets, Loader2 } from 'lucide-react';
-
+import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter } from 'lucide-react';
 
 // Import Assets
 import oceanBg from '@/assets/ocean_bg.png';
@@ -10,19 +9,30 @@ import iconDKP from '@/assets/icon_DKP.png';
 import imgFisherman from '@/assets/fisherman.png';
 import imgTambak from '@/assets/tambak.png';
 
+const currentYear = new Date().getFullYear();
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+
 export default function Overview() {
   const [loading, setLoading] = useState(true);
+  const [selectedTahun, setSelectedTahun] = useState('Semua');
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
-    budidaya: { produksi: 0, pembudidaya: 0, top_komoditas: 'Udang Vaname', top_wadah: 'Tambak', top_kabupaten: 'Tuban' },
+    budidaya: { produksi: 0, pembudidaya: null, top_komoditas: '-', luas_lahan: null },
     pemasaran: { total_unit_usaha: 0, total_produksi_kg: 0, total_nilai_produksi_rp: 0, total_pemasaran_kg: 0 },
-    garam: { produksi: 0, petambak: 0, luas_lahan: 0 }
+    garam: { produksi: 0, petambak: 0, luas_lahan: 0 },
+    ekspor: { volume_ton: 0, nilai_usd: 0 },
+    kim: { total_konsumsi: '-' }
   });
 
   useEffect(() => {
     const fetchOverview = async () => {
       try {
-        const res = await api.get('/dashboard/overview');
+        setLoading(true);
+        const res = await api.get('/dashboard/overview', {
+          params: {
+            tahun: selectedTahun === 'Semua' ? '' : selectedTahun
+          }
+        });
         if (res.data.success) {
           setStats(res.data.data);
         }
@@ -33,7 +43,7 @@ export default function Overview() {
       }
     };
     fetchOverview();
-  }, []);
+  }, [selectedTahun]);
 
   if (loading) {
     return (
@@ -70,6 +80,27 @@ export default function Overview() {
             dan <b>luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
             yang tersebar di <b>38 kabupaten/kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
           </p>
+        </div>
+      </div>
+
+      {/* Filter Tahun Overview */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card border border-border p-4 px-6 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <Filter className="w-5 h-5 text-primary" />
+          <span className="font-semibold text-foreground text-sm">Filter Data Potensi Perikanan:</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            id="filter-tahun-overview"
+            value={selectedTahun}
+            onChange={(e) => setSelectedTahun(e.target.value)}
+            className="px-4 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px]"
+          >
+            <option value="Semua">Semua Tahun</option>
+            {TAHUN_OPTIONS.map((th) => (
+              <option key={th} value={th}>{th}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -114,20 +145,28 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Kg)</p>
-              <p className="text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.produksi?.toLocaleString('id-ID')}>{stats.budidaya.produksi?.toLocaleString('id-ID')}</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Ton)</p>
+              <p className="text-2xl font-bold text-emerald-600 truncate" title={((stats.budidaya.produksi || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })}>
+                {((stats.budidaya.produksi || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Komoditas Terbanyak</p>
-              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_komoditas || 'Udang Vaname'}>{stats.budidaya.top_komoditas || 'Udang Vaname'}</p>
+              <p className="text-sm text-muted-foreground mb-1">Komoditas Unggulan</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_komoditas || '-'}>
+                {stats.budidaya.top_komoditas || '-'}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Wadah Terpopuler</p>
-              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_wadah || 'Tambak'}>{stats.budidaya.top_wadah || 'Tambak'}</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Pembudidaya</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.pembudidaya !== null && stats.budidaya.pembudidaya !== undefined ? Number(stats.budidaya.pembudidaya).toLocaleString('id-ID') : '-'}>
+                {stats.budidaya.pembudidaya !== null && stats.budidaya.pembudidaya !== undefined ? Number(stats.budidaya.pembudidaya).toLocaleString('id-ID') : '-'}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Kab/Kota Teratas</p>
-              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.top_kabupaten || 'Tuban'}>{stats.budidaya.top_kabupaten || 'Tuban'}</p>
+              <p className="text-sm text-muted-foreground mb-1">Luas Lahan (Ha)</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.luas_lahan !== null && stats.budidaya.luas_lahan !== undefined ? Number(stats.budidaya.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}>
+                {stats.budidaya.luas_lahan !== null && stats.budidaya.luas_lahan !== undefined ? Number(stats.budidaya.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+              </p>
             </div>
           </div>
         </div>
@@ -180,6 +219,52 @@ export default function Overview() {
             <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam (Ha)</p>
               <p className="text-2xl font-bold text-slate-600">{stats.garam.luas_lahan?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 5: Ekspor (Kiri Bawah) */}
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-purple-500 text-white rounded-xl shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
+                <Globe className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Ekspor</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
+              <p className="text-sm text-muted-foreground mb-1">Volume Ekspor (Ton)</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {stats.ekspor?.volume_ton ? Number(stats.ekspor.volume_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0'}
+              </p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
+              <p className="text-sm text-muted-foreground mb-1">Nilai Ekspor (USD)</p>
+              <p className="text-2xl font-bold text-purple-600">
+                ${stats.ekspor?.nilai_usd ? Number(stats.ekspor.nilai_usd).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 6: Konsumsi Ikan Masyarakat / KIM (Kanan Bawah) */}
+        <div className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
+                <Utensils className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Konsumsi Ikan Masyarakat (KIM)</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
+              <p className="text-sm text-muted-foreground mb-1">Total Konsumsi Ikan</p>
+              <p className="text-2xl font-bold text-amber-600">
+                {stats.kim?.total_konsumsi || '-'}
+              </p>
             </div>
           </div>
         </div>
