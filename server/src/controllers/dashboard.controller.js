@@ -2,80 +2,80 @@ const prisma = require('../utils/prisma');
 
 const getOverviewStats = async (req, res) => {
   try {
+    const { tahun } = req.query;
+
     // === 1. PERIKANAN TANGKAP ===
-    // Mengambil total volume produksi (dari DetailTangkapan) dan jumlah pendaratan unik (PerikananTangkap)
-    // Menggunakan DataBulananTangkap agar mencerminkan data publik yang sudah divalidasi dan di-adjust admin
-    const tangkapVolume = await prisma.dataBulananTangkap.aggregate({
+    const tangkapWhere = { status: 'VERIFIED' };
+    if (tahun && tahun !== 'Semua') {
+      tangkapWhere.tanggal = {
+        gte: new Date(`${tahun}-01-01T00:00:00.000Z`),
+        lte: new Date(`${tahun}-12-31T23:59:59.999Z`)
+      };
+    }
+
+    const tangkapVolume = await prisma.detailTangkapan.aggregate({
+      where: {
+        perikananTangkap: tangkapWhere
+      },
       _sum: { volume: true }
     });
 
     const tangkapTrip = await prisma.perikananTangkap.aggregate({
       _count: { id: true },
-      where: { status: 'VERIFIED' }
+      where: tangkapWhere
     });
 
-    // Menghitung jumlah pelabuhan unik yang sudah ada datanya
     const pelabuhanDistinct = await prisma.perikananTangkap.findMany({
-      where: { status: 'VERIFIED' },
+      where: tangkapWhere,
       select: { pelabuhan: true },
       distinct: ['pelabuhan']
     });
 
     const tangkap = {
       produksi: tangkapVolume._sum.volume || 0,
-      kapal: tangkapTrip._count.id || 0, // Asumsi 1 id/trip = 1 unit kapal untuk sementara
+      kapal: tangkapTrip._count.id || 0,
       pelabuhan: pelabuhanDistinct.length || 0,
-      nelayan: 0 // Tidak ada data nelayan di skema saat ini
+      nelayan: 0
     };
 
     // === 2. PERIKANAN BUDIDAYA ===
+    const budidayaWhere = { status: 'VERIFIED' };
+    if (tahun && tahun !== 'Semua') {
+      budidayaWhere.tahun = String(tahun);
+    }
+
     const budidayaStats = await prisma.budidaya.aggregate({
-      where: { status: 'VERIFIED' },
+      where: budidayaWhere,
       _sum: { produksi_kg: true },
       _count: { id: true }
     });
 
-    // Cari Komoditas terbanyak berdasarkan produksi_kg
-    const topKomoditasGroup = await prisma.budidaya.groupBy({
-      by: ['komoditas'],
-      where: { status: 'VERIFIED', komoditas: { not: '-' } },
-      _sum: { produksi_kg: true },
-      orderBy: { _sum: { produksi_kg: 'desc' } },
-      take: 1
-    });
-    const topKomoditas = topKomoditasGroup.length > 0 ? topKomoditasGroup[0].komoditas : 'Udang Vaname';
+    const budidayaOverviewWhere = { category: 'OVERVIEW_BUDIDAYA' };
+    if (tahun && tahun !== 'Semua') {
+      budidayaOverviewWhere.value = String(tahun);
+    }
 
-    // Cari Wadah yang paling banyak digunakan (atau produksi terbanyak)
-    const topWadahGroup = await prisma.budidaya.groupBy({
-      by: ['jenis_wadah'],
-      where: { status: 'VERIFIED', jenis_wadah: { not: '-' } },
-      _sum: { produksi_kg: true },
-      orderBy: { _sum: { produksi_kg: 'desc' } },
-      take: 1
+    const budidayaOverview = await prisma.masterData.findFirst({
+      where: budidayaOverviewWhere,
+      orderBy: { value: 'desc' }
     });
-    const topWadah = topWadahGroup.length > 0 ? topWadahGroup[0].jenis_wadah : 'Tambak';
-
-    // Cari Kabupaten/Kota produksi terbanyak
-    const topKabupatenGroup = await prisma.budidaya.groupBy({
-      by: ['kabupaten_kota'],
-      where: { status: 'VERIFIED', kabupaten_kota: { not: '-' } },
-      _sum: { produksi_kg: true },
-      orderBy: { _sum: { produksi_kg: 'desc' } },
-      take: 1
-    });
-    const topKabupaten = topKabupatenGroup.length > 0 ? topKabupatenGroup[0].kabupaten_kota : 'Tuban';
 
     const budidaya = {
       produksi: budidayaStats._sum.produksi_kg || 0, // Dalam KG
-      pembudidaya: budidayaStats._count.id || 0,
-      top_komoditas: topKomoditas,
-      top_wadah: topWadah,
-      top_kabupaten: topKabupaten
+      pembudidaya: budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.jumlah_pembudidaya !== undefined && budidayaOverview.metadata.jumlah_pembudidaya !== "" ? Number(budidayaOverview.metadata.jumlah_pembudidaya) : null,
+      top_komoditas: (budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.komoditas_unggulan) ? budidayaOverview.metadata.komoditas_unggulan : '-',
+      luas_lahan: budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.luas_lahan !== undefined && budidayaOverview.metadata.luas_lahan !== "" ? Number(budidayaOverview.metadata.luas_lahan) : null,
+      tahun_overview: budidayaOverview ? budidayaOverview.value : null
     };
 
-    // === 3.(Pengolahan & Pemasaran) ===
+    // === 3. PENGOLAHAN & PEMASARAN ===
+    const pemasaranWhere = { status: 'VERIFIED' };
+    if (tahun && tahun !== 'Semua') {
+      pemasaranWhere.tahun = Number(tahun);
+    }
+
     const pengolahanAgg = await prisma.pengolahanPemasaran.aggregate({
-      where: { status: 'VERIFIED' },
+      where: pemasaranWhere,
       _count: { id: true },
       _sum: {
         hasil_produksi_per_tahun_kg: true,
@@ -90,10 +90,15 @@ const getOverviewStats = async (req, res) => {
       total_nilai_produksi_rp: pengolahanAgg._sum.nilai_hasil_produksi_per_tahun_rp || 0,
       total_pemasaran_kg: pengolahanAgg._sum.total_pemasaran_per_tahun_kg || 0
     };
-    
+
     // === 4. GARAM (Kelautan & Pesisir) ===
+    const garamWhere = { status: 'VERIFIED' };
+    if (tahun && tahun !== 'Semua') {
+      garamWhere.tahun = Number(tahun);
+    }
+
     const allGaram = await prisma.garam.findMany({
-      where: { status: 'VERIFIED' },
+      where: garamWhere,
       orderBy: { created_at: 'desc' }
     });
 
@@ -117,13 +122,49 @@ const getOverviewStats = async (req, res) => {
       luas_lahan: totalGaramLuas
     };
 
+    // === 5. EKSPOR PERIKANAN ===
+    const eksporWhere = {
+      status: 'VERIFIED',
+      satuan_volume: {
+        in: ['Kilogram', 'KG', 'kg', 'Kg', 'KILOGRAM', 'kilogram']
+      }
+    };
+    if (tahun && tahun !== 'Semua') {
+      eksporWhere.tahun = String(tahun);
+    }
+
+    const eksporAgg = await prisma.ekspor.aggregate({
+      where: eksporWhere,
+      _sum: {
+        volume: true,
+        nilai_usd: true
+      }
+    });
+
+    // Volume pada DB disimpan dalam KG, konversikan ke Ton maksimal 2 angka di belakang koma
+    const eksporVolumeKg = eksporAgg._sum.volume || 0;
+    const eksporVolumeTon = Number((eksporVolumeKg / 1000).toFixed(2));
+    const eksporNilaiUsd = Number((eksporAgg._sum.nilai_usd || 0).toFixed(2));
+
+    const ekspor = {
+      volume_ton: eksporVolumeTon,
+      nilai_usd: eksporNilaiUsd
+    };
+
+    // === 6. KONSUMSI IKAN MASYARAKAT (KIM) ===
+    const kim = {
+      total_konsumsi: '-'
+    };
+
     res.status(200).json({
       success: true,
       data: {
         tangkap,
         budidaya,
         pemasaran,
-        garam
+        garam,
+        ekspor,
+        kim
       }
     });
   } catch (error) {

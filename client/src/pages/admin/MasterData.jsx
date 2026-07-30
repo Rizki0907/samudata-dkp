@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import InputOverviewBudidaya from '@/components/admin/InputOverviewBudidaya';
 
 const CATEGORY_MAP = {
   'Perikanan Tangkap Laut': [
@@ -53,6 +54,14 @@ const CATEGORY_MAP = {
 
 const SATUAN_OPTIONS = ['Kilogram', 'Liter', 'Tabung', 'Ton', 'Kuintal', 'Gram', 'Pcs', 'Unit', 'Paket'];
 
+const OVERVIEW_BIDANG_LIST = [
+  'Perikanan Tangkap',
+  'Perikanan Budidaya',
+  'Pengolahan & Pemasaran',
+  'Kelautan dan Pesisir',
+  'Konsumsi Ikan Masyarakat (KIM)'
+];
+
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
@@ -88,6 +97,8 @@ export default function MasterData() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  const [activeMode, setActiveMode] = useState('BIDANG');
+  const [activeOverviewBidang, setActiveOverviewBidang] = useState('Perikanan Budidaya');
   const [activeBidang, setActiveBidang] = useState('Perikanan Tangkap Laut');
   const [activeCategory, setActiveCategory] = useState(CATEGORY_MAP['Perikanan Tangkap Laut'][0].value);
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,36 +274,65 @@ export default function MasterData() {
         
         {/* Sidebar Nav */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-4 sticky top-6">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 px-2">Bidang</h3>
-            <div className="space-y-1">
-              {Object.keys(CATEGORY_MAP).map(bidang => (
-                <button
-                  key={bidang}
-                  onClick={() => {
-                    setActiveBidang(bidang);
-                    setActiveCategory(CATEGORY_MAP[bidang][0].value);
-                    setSearchQuery('');
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                    activeBidang === bidang 
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {bidang}
-                  {activeBidang === bidang && <ChevronRight className="w-4 h-4 opacity-70" />}
-                </button>
-              ))}
+          <div className="sticky top-6 space-y-6">
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 px-2">Bidang</h3>
+              <div className="space-y-1">
+                {Object.keys(CATEGORY_MAP).map(bidang => (
+                  <button
+                    key={bidang}
+                    onClick={() => {
+                      setActiveMode('BIDANG');
+                      setActiveBidang(bidang);
+                      setActiveCategory(CATEGORY_MAP[bidang][0].value);
+                      setSearchQuery('');
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                      activeMode === 'BIDANG' && activeBidang === bidang 
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    {bidang}
+                    {activeMode === 'BIDANG' && activeBidang === bidang && <ChevronRight className="w-4 h-4 opacity-70" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 px-2">Input Overview</h3>
+              <div className="space-y-1">
+                {OVERVIEW_BIDANG_LIST.map(bidang => (
+                  <button
+                    key={bidang}
+                    onClick={() => {
+                      setActiveMode('OVERVIEW');
+                      setActiveOverviewBidang(bidang);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                      activeMode === 'OVERVIEW' && activeOverviewBidang === bidang 
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    {bidang}
+                    {activeMode === 'OVERVIEW' && activeOverviewBidang === bidang && <ChevronRight className="w-4 h-4 opacity-70" />}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Main Content Area */}
         <div className="lg:col-span-9 space-y-6">
-          {/* Sub Categories Tabs */}
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-2 flex flex-wrap gap-2">
+          {activeMode === 'BIDANG' ? (
+            <>
+              {/* Sub Categories Tabs */}
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-2 flex flex-wrap gap-2">
             {CATEGORY_MAP[activeBidang].map(cat => {
               const Icon = cat.icon || Database;
               return (
@@ -405,6 +445,22 @@ export default function MasterData() {
               </div>
             )}
           </div>
+            </>
+          ) : (
+            activeOverviewBidang === 'Perikanan Budidaya' ? (
+              <InputOverviewBudidaya showToast={showToast} onDataChange={fetchData} />
+            ) : (
+              <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-sm">
+                <Database className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-foreground mb-1">
+                  Input Overview: {activeOverviewBidang}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto text-sm">
+                  Form input overview untuk bidang ini masih kosong / dalam tahap pengembangan (saat ini baru Perikanan Budidaya yang aktif diisi sesuai instruksi).
+                </p>
+              </div>
+            )
+          )}
         </div>
       </div>
 

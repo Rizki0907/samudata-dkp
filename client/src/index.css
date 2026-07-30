@@ -6,13 +6,13 @@
   :root {
     /* ── LIGHT MODE (Bersih, Cerah, Profesional DKP Kelautan & Pesisir) ── */
     --background: 210 40% 98%; /* #F8FAFC */
-    --foreground: 222 47% 11%; /* #0F172A */
+    --foreground: 222 84% 5%; /* #020617 Ultra Dark Slate/Black agar teks sangat tegas */
 
     --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 84% 5%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 84% 5%;
 
     --primary: 199 89% 45%; /* #0EA5E9 vibrant ocean blue */
     --primary-foreground: 0 0% 100%;
@@ -21,10 +21,10 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 93%; /* #F1F5F9 */
-    --muted-foreground: 215 25% 27%; /* #334155 Slate 700 for high-contrast readable text in Light Mode */
+    --muted-foreground: 215 35% 20%; /* #213043 Sangat gelap & tegas di Light Mode */
 
     --accent: 38 92% 50%; /* #F59E0B amber */
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 222 84% 5%;
 
     --destructive: 0 84% 60%; /* #EF4444 */
     --destructive-foreground: 0 0% 100%;
@@ -32,8 +32,8 @@
     --success: 142 71% 45%; /* #10B981 */
     --success-foreground: 0 0% 100%;
 
-    --border: 214 32% 88%; /* #E2E8F0 */
-    --input: 214 32% 88%;
+    --border: 214 32% 84%; /* #D1D5DB Lebih jelas garis tepi */
+    --input: 214 32% 84%;
     --ring: 199 89% 45%;
 
     --radius: 1rem; /* rounded-2xl */
@@ -42,34 +42,34 @@
   .dark {
     /* ── DARK MODE (Tema Asli Biru Gelap DKP Laut) ── */
     --background: 216 60% 10%; /* #0A1628 */
-    --foreground: 206 70% 95%; /* #E8F4FD */
+    --foreground: 210 100% 99%; /* #FAFEFF Putih Cerah agar teks sangat tegas & tajam di Dark Mode */
 
     --card: 221 64% 16%; /* #0F2044 */
-    --card-foreground: 206 70% 95%;
+    --card-foreground: 210 100% 99%;
 
     --popover: 220 59% 21%; /* #162B55 */
-    --popover-foreground: 206 70% 95%;
+    --popover-foreground: 210 100% 99%;
 
     --primary: 190 100% 50%; /* #00D4FF */
-    --primary-foreground: 216 60% 10%;
+    --primary-foreground: 222 84% 5%;
 
     --secondary: 191 100% 40%; /* #00A8CC */
-    --secondary-foreground: 216 60% 10%;
+    --secondary-foreground: 210 100% 99%;
 
     --muted: 220 59% 21%;
-    --muted-foreground: 212 33% 66%; /* #8BA7C7 */
+    --muted-foreground: 212 60% 86%; /* #CBE5F5 Sangat jelas, tajam & mudah dibaca di Dark Mode */
 
     --accent: 41 100% 47%; /* #F0A500 */
-    --accent-foreground: 216 60% 10%;
+    --accent-foreground: 222 84% 5%;
 
     --destructive: 0 100% 66%; /* #FF5252 */
-    --destructive-foreground: 216 60% 10%;
+    --destructive-foreground: 222 84% 5%;
 
     --success: 151 100% 45%; /* #00E676 */
-    --success-foreground: 216 60% 10%;
+    --success-foreground: 222 84% 5%;
 
-    --border: 219 57% 27%; /* #1E3A6E */
-    --input: 219 57% 27%;
+    --border: 219 57% 32%;
+    --input: 219 57% 32%;
     --ring: 190 100% 50%;
   }
 }
@@ -80,8 +80,21 @@
   }
   body {
     @apply bg-background text-foreground transition-colors duration-300;
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    @apply font-bold tracking-tight text-foreground;
+  }
+  /* Membuat semua teks standard, label, tabel, tombol, dan paragraf lebih TEGAS dan jelas dibaca */
+  p, span, label, input, select, textarea, td, th, a, button, li {
+    font-weight: 500;
+  }
+  strong, b {
+    @apply font-extrabold text-foreground;
   }
 }

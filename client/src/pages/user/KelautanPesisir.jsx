@@ -12,6 +12,7 @@ import {
 import ReactECharts from 'echarts-for-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { useThemeStore } from '@/store/themeStore';
 
 const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const formatBulan = (val) => {
@@ -41,13 +42,30 @@ const CHART_PALETTE = [
   '#dc2626', // red-600
 ];
 
-const hBarOption = (categories, values, color, unit) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
-  grid: { left: 140, right: 40, top: 10, bottom: 10 },
-  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false }, inverse: true },
-  series: [{ data: values, type: 'bar', itemStyle: { color, borderRadius: [0, 4, 4, 0] }, barMaxWidth: 28 }],
-});
+const hBarOption = (categories, values, color, unit, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const gridColor = isDark ? '#334155' : '#cbd5e1';
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
+    grid: { left: 95, right: 85, top: 15, bottom: 20 },
+    xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
+    yAxis: { type: 'category', data: categories, axisLabel: { color: textColor, fontSize: 13, fontWeight: 'bold' }, axisTick: { show: false }, inverse: true },
+    series: [{
+      data: values,
+      type: 'bar',
+      itemStyle: { color, borderRadius: [0, 4, 4, 0] },
+      barMaxWidth: 28,
+      label: {
+        show: true,
+        position: 'right',
+        formatter: (p) => `${Number(p.value).toLocaleString('id-ID')} ${unit}`,
+        color: textColor,
+        fontWeight: 'bold',
+        fontSize: 12
+      }
+    }],
+  };
+};
 
 // Urutkan kategori & value bar chart dari yang tertinggi ke terendah
 const sortBarData = (categories, values) => {
@@ -56,77 +74,94 @@ const sortBarData = (categories, values) => {
   return { categories: paired.map(p => p.c), values: paired.map(p => p.v) };
 };
 
+const comboHBarOption = (categories, series, unit, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const gridColor = isDark ? '#334155' : '#cbd5e1';
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { bottom: 0, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 12 } },
+    grid: { left: 95, right: 50, top: 15, bottom: 40 },
+    xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
+    yAxis: { type: 'category', data: categories, axisLabel: { color: textColor, fontSize: 13, fontWeight: 'bold' }, axisTick: { show: false } },
+    series: series.map(s => ({ ...s, type: 'bar', barGap: '0%', barMaxWidth: 28, itemStyle: { ...s.itemStyle, borderRadius: [0, 4, 4, 0] } })),
+  };
+};
 
-const comboHBarOption = (categories, series, unit) => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { bottom: 0, textStyle: { color: '#475569' } },
-  grid: { left: 140, right: 40, top: 10, bottom: 40 },
-  xAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } } },
-  yAxis: { type: 'category', data: categories, axisLabel: { color: '#475569', fontSize: 11, fontWeight: 500 }, axisTick: { show: false } },
-  series: series.map(s => ({ ...s, type: 'bar', barGap: '0%', barMaxWidth: 28, itemStyle: { ...s.itemStyle, borderRadius: [0, 4, 4, 0] } })),
-});
-
-const pieOption = (title, data, nameField, valueField) => ({
-  color: CHART_PALETTE,
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
-  series: [{
-    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
-    data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
-    label: { show: false },
-    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
-  }]
-});
+const pieOption = (title, data, nameField, valueField, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  return {
+    color: CHART_PALETTE,
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
+    series: [{
+      type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
+      data: data.map(d => ({ name: d[nameField], value: d[valueField] })).filter(d => d.value > 0),
+      label: { show: false },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
+    }]
+  };
+};
 
 const KONDISI_COLOR_MAP = {
   'Sangat Padat (70-100%)': '#10b981',
   'Sedang (30-70%)': '#f59e0b',
   'Jarang (0-30%)': '#f43f5e',
 };
-const kondisiPieOption = (data) => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
-  series: [{
-    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
-    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_COLOR_MAP[d.name] } })),
-    label: { show: false },
-    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
-  }]
-});
+const kondisiPieOption = (data, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
+    series: [{
+      type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
+      data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_COLOR_MAP[d.name] } })),
+      label: { show: false },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
+    }]
+  };
+};
 
 const KONDISI_TERUMBU_COLOR_MAP = {
   'Sangat Baik (75-100%)': '#10b981',
   'Baik (50-75%)': '#f59e0b',
   'Rusak (0-50%)': '#f43f5e',
 };
-const kondisiTerumbuPieOption = (data) => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
-  series: [{
-    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
-    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_TERUMBU_COLOR_MAP[d.name] } })),
-    label: { show: false },
-    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
-  }]
-});
+const kondisiTerumbuPieOption = (data, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
+    series: [{
+      type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
+      data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_TERUMBU_COLOR_MAP[d.name] } })),
+      label: { show: false },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
+    }]
+  };
+};
 
 const KONDISI_LAMUN_COLOR_MAP = {
   'Kaya (60-100%)': '#10b981',
   'Kurang Kaya (30-60%)': '#f59e0b',
   'Miskin (0-30%)': '#f43f5e',
 };
-const kondisiLamunPieOption = (data) => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
-  legend: { type: 'scroll', orient: 'vertical', right: 10, top: 20, bottom: 20, textStyle: { color: '#475569', fontSize: 11 } },
-  series: [{
-    type: 'pie', radius: ['40%', '70%'], center: ['35%', '50%'],
-    data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_LAMUN_COLOR_MAP[d.name] } })),
-    label: { show: false },
-    emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
-  }]
-});
+const kondisiLamunPieOption = (data, isDark = false) => {
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
+    series: [{
+      type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
+      data: data.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, itemStyle: { color: KONDISI_LAMUN_COLOR_MAP[d.name] } })),
+      label: { show: false },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.15)' } }
+    }]
+  };
+};
 
 export default function KelautanPesisir() {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensi, setDataPotensi] = useState([]);
@@ -683,35 +718,35 @@ export default function KelautanPesisir() {
         {/* Garam Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Volume Produksi per Kab/Kota (Ton)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Volume Produksi per Kab/Kota (Ton)</h3>
             {garamKota.length > 0
               ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ton')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Kelompok per Kab/Kota</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Kelompok per Kab/Kota</h3>
             {garamKota.length > 0
               ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Kelompok')} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Lahan per Kab/Kota</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Lahan per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={pieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan')} style={{ height: '320px' }} />
+              ? <ReactECharts option={pieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan', isDark)} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Jumlah Petambak per Kab/Kota</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Petambak per Kab/Kota</h3>
             {garamKota.length > 0
-              ? <ReactECharts option={pieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak')} style={{ height: '320px' }} />
+              ? <ReactECharts option={pieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -729,19 +764,19 @@ export default function KelautanPesisir() {
         {/* Mangrove Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiMangrove.jumlah_lokasi > 0
-              ? <ReactECharts option={kondisiPieOption(kondisiChartData)} style={{ height: '240px', width: '100%' }} />
+              ? <ReactECharts option={kondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
+                <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-emerald-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-cyan-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-cyan-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
@@ -749,21 +784,21 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
               ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {mangroveKota.length > 0
               ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Ha')} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -783,19 +818,19 @@ export default function KelautanPesisir() {
         {/* Terumbu Karang Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiTerumbu.jumlah_lokasi > 0
-              ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData)} style={{ height: '240px', width: '100%' }} />
+              ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-3"><Waves className="w-6 h-6 text-sky-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
+              <div className="flex items-center gap-3 mb-3"><Waves className="w-6 h-6 text-sky-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-pink-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-pink-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
@@ -803,21 +838,21 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
               ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {terumbuKota.length > 0
               ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#ec4899', 'Ha')} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#ec4899', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -837,19 +872,19 @@ export default function KelautanPesisir() {
         {/* Lamun Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
             {kpiLamun.jumlah_lokasi > 0
-              ? <ReactECharts option={kondisiLamunPieOption(kondisiLamunChartData)} style={{ height: '240px', width: '100%' }} />
+              ? <ReactECharts option={kondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           
           <div className="flex flex-col gap-3 justify-center h-full">
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-emerald-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Eksisting</p></div>
+                <div className="flex items-center gap-3 mb-3"><Leaf className="w-6 h-6 text-emerald-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
             <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-purple-500" /><p className="text-base font-semibold text-muted-foreground">Total Luas Rehabilitasi</p></div>
+              <div className="flex items-center gap-3 mb-3"><TreePine className="w-6 h-6 text-purple-500" /><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
             </div>
           </div>
@@ -857,21 +892,21 @@ export default function KelautanPesisir() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
               ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#10b981', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#10b981', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-            <h3 className="text-base font-bold text-foreground mb-4 text-center">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
             {lamunKota.length > 0
               ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#8b5cf6', 'Ha')} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#8b5cf6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}

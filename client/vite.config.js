@@ -14,6 +14,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['framer-motion']
-  }
+    include: ['framer-motion', 'lucide-react', 'echarts', 'echarts-for-react']
+  },
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
 })
