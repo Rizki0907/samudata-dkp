@@ -28,6 +28,9 @@ const kondisiLamunStyle = (kondisi) => {
   return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
 };
 
+// ── KATEGORI LUAS LAHAN (DIPILIH MANUAL, TIDAK OTOMATIS) ──────────────────
+const KATEGORI_LUAS_LAHAN_LIST = ['Luas', 'Sedang', 'Sempit'];
+
 const currentYear = new Date().getFullYear();
 
 export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
@@ -37,6 +40,8 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
     luas_eksisting_ha: '',
     persentase_tutupan: '',
     luas_rehabilitasi_ha: '',
+    luas_lahan_ha: '',
+    kategori_luas_lahan: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -49,6 +54,8 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
         luas_eksisting_ha: initialData.luas_eksisting_ha ?? '',
         persentase_tutupan: initialData.persentase_tutupan ?? '',
         luas_rehabilitasi_ha: initialData.luas_rehabilitasi_ha ?? '',
+        luas_lahan_ha: initialData.luas_lahan_ha ?? '',
+        kategori_luas_lahan: initialData.kategori_luas_lahan ?? '',
       });
     }
   }, [initialData]);
@@ -71,6 +78,8 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
       err.persentase_tutupan = 'Persentase tutupan harus di antara 0 - 100';
     }
     if (form.luas_rehabilitasi_ha === '' || Number(form.luas_rehabilitasi_ha) < 0) err.luas_rehabilitasi_ha = 'Luas rehabilitasi wajib diisi';
+    if (form.luas_lahan_ha === '' || Number(form.luas_lahan_ha) < 0) err.luas_lahan_ha = 'Luas lahan wajib diisi';
+    if (!form.kategori_luas_lahan) err.kategori_luas_lahan = 'Kategori luas lahan wajib dipilih';
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -87,6 +96,8 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
       persentase_tutupan: parseFloat(form.persentase_tutupan) || 0,
       kondisi: getKondisiLamun(form.persentase_tutupan), // Kategori langsung disimpan ke DB
       luas_rehabilitasi_ha: parseFloat(form.luas_rehabilitasi_ha) || 0,
+      luas_lahan_ha: parseFloat(form.luas_lahan_ha) || 0,
+      kategori_luas_lahan: form.kategori_luas_lahan, // Kategori dipilih manual oleh user
     };
     onSubmit(payload);
   };
@@ -167,6 +178,35 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
           />
           {errors.luas_rehabilitasi_ha && <p className="text-xs text-destructive mt-1">{errors.luas_rehabilitasi_ha}</p>}
         </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Luas Lahan (Ha)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.luas_lahan_ha}
+            onChange={(e) => handleChange('luas_lahan_ha', e.target.value)}
+            className={inputCls('luas_lahan_ha')}
+            placeholder="0.00"
+          />
+          {errors.luas_lahan_ha && <p className="text-xs text-destructive mt-1">{errors.luas_lahan_ha}</p>}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Luas Lahan</label>
+          <select
+            value={form.kategori_luas_lahan}
+            onChange={(e) => handleChange('kategori_luas_lahan', e.target.value)}
+            className={inputCls('kategori_luas_lahan')}
+          >
+            <option value="">-- Pilih Kategori --</option>
+            {KATEGORI_LUAS_LAHAN_LIST.map((kategori) => (
+              <option key={kategori} value={kategori}>{kategori}</option>
+            ))}
+          </select>
+          {errors.kategori_luas_lahan && <p className="text-xs text-destructive mt-1">{errors.kategori_luas_lahan}</p>}
+        </div>
       </div>
 
       {/* ── KOTAK KONDISI LAMUN (SLIDER INTERAKTIF) ── */}
@@ -180,19 +220,16 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
             step="1"
             value={form.persentase_tutupan === '' ? 0 : form.persentase_tutupan}
             onChange={(e) => handleChange('persentase_tutupan', e.target.value)}
-            className="flex-1 accent-emerald-500 cursor-pointer"
+            style={{ accentColor: '#10b981' }}
+            className="flex-1 w-full h-2.5 rounded-full bg-muted cursor-pointer appearance-none
+              [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-muted [&::-webkit-slider-runnable-track]:h-2.5
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:-mt-0.5 [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-muted [&::-moz-range-track]:h-2.5
+              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-emerald-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
           />
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={form.persentase_tutupan}
-            onChange={(e) => handleChange('persentase_tutupan', e.target.value)}
-            className={`${inputCls('persentase_tutupan')} w-24`}
-            placeholder="0-100"
-          />
-          <span className="text-sm text-muted-foreground font-bold">%</span>
+          <span className="text-sm text-muted-foreground font-bold w-14 text-right">
+            {form.persentase_tutupan === '' ? 0 : form.persentase_tutupan}%
+          </span>
         </div>
         {errors.persentase_tutupan && <p className="text-xs text-destructive">{errors.persentase_tutupan}</p>}
 
