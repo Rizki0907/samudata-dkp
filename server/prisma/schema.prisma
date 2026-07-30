@@ -467,6 +467,9 @@ model Mangrove {
   spesies              String
   persentase_kondisi   Float    @default(0)
   kondisi              String   @db.VarChar(50)
+  luas_sangat_padat    Float    @default(0)
+  luas_sedang          Float    @default(0)
+  luas_jarang          Float    @default(0)
   luas_rehabilitasi_ha Float    @default(0)
   status               String   @default("PENDING") @db.VarChar(20)
   alasan_penolakan     String?
@@ -482,7 +485,11 @@ model lamun {
   kabupaten_kota       String   @db.VarChar(100)
   luas_eksisting_ha    Float    @default(0)
   persentase_tutupan   Float    @default(0)
+  persentase_kondisi   Float    @default(0)
   kondisi              String   @db.VarChar(50)
+  luas_kaya            Float    @default(0)
+  luas_kurang_kaya     Float    @default(0)
+  luas_miskin          Float    @default(0)
   luas_rehabilitasi_ha Float    @default(0)
   status               String   @default("PENDING") @db.VarChar(20)
   alasan_penolakan     String?
@@ -496,7 +503,12 @@ model terumbu_karang {
   kabupaten_kota       String   @db.VarChar(100)
   luas_eksisting_ha    Float    @default(0)
   persentase_tutupan   Float    @default(0)
+  persentase_kondisi   Float    @default(0)
   kondisi              String   @db.VarChar(50)
+  luas_sangat_baik     Float    @default(0)
+  luas_baik            Float    @default(0)
+  luas_sedang          Float    @default(0)
+  luas_rusak           Float    @default(0)
   luas_rehabilitasi_ha Float    @default(0)
   status               String   @default("PENDING") @db.VarChar(20)
   alasan_penolakan     String?

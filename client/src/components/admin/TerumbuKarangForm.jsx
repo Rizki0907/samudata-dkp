@@ -24,7 +24,8 @@ const getKondisiTerumbu = (persentase) => {
 const kondisiTerumbuStyle = (kondisi) => {
   const k = kondisi || '';
   if (k.startsWith('Sangat Baik')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-  if (k.startsWith('Baik')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  if (k.startsWith('Baik')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+  if (k.startsWith('Sedang')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
   return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
 };
 
@@ -36,6 +37,11 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
     kabupaten_kota: '',
     luas_eksisting_ha: '',
     persentase_tutupan: '',
+    persentase_kondisi: '',
+    luas_sangat_baik: '',
+    luas_baik: '',
+    luas_sedang: '',
+    luas_rusak: '',
     luas_rehabilitasi_ha: '',
   });
   const [errors, setErrors] = useState({});
@@ -48,13 +54,18 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
         kabupaten_kota: initialData.kabupaten_kota ?? '',
         luas_eksisting_ha: initialData.luas_eksisting_ha ?? '',
         persentase_tutupan: initialData.persentase_tutupan ?? '',
+        persentase_kondisi: initialData.persentase_kondisi ?? '',
+        luas_sangat_baik: initialData.luas_sangat_baik ?? '',
+        luas_baik: initialData.luas_baik ?? '',
+        luas_sedang: initialData.luas_sedang ?? '',
+        luas_rusak: initialData.luas_rusak ?? '',
         luas_rehabilitasi_ha: initialData.luas_rehabilitasi_ha ?? '',
       });
     }
   }, [initialData]);
 
   // ── KATEGORI OTOMATIS REAL-TIME ──
-  const kondisiPreview = useMemo(() => getKondisiTerumbu(form.persentase_tutupan), [form.persentase_tutupan]);
+  const kondisiPreview = useMemo(() => getKondisiTerumbu(form.persentase_kondisi), [form.persentase_kondisi]);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -69,6 +80,9 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
     if (form.luas_eksisting_ha === '' || Number(form.luas_eksisting_ha) < 0) err.luas_eksisting_ha = 'Luas eksisting wajib diisi';
     if (form.persentase_tutupan === '' || Number(form.persentase_tutupan) < 0 || Number(form.persentase_tutupan) > 100) {
       err.persentase_tutupan = 'Persentase tutupan harus di antara 0 - 100';
+    }
+    if (form.persentase_kondisi === '' || Number(form.persentase_kondisi) < 0 || Number(form.persentase_kondisi) > 100) {
+      err.persentase_kondisi = 'Persentase kondisi harus di antara 0 - 100';
     }
     if (form.luas_rehabilitasi_ha === '' || Number(form.luas_rehabilitasi_ha) < 0) err.luas_rehabilitasi_ha = 'Luas rehabilitasi wajib diisi';
     setErrors(err);
@@ -85,7 +99,12 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
       kabupaten_kota: form.kabupaten_kota,
       luas_eksisting_ha: parseFloat(form.luas_eksisting_ha) || 0,
       persentase_tutupan: parseFloat(form.persentase_tutupan) || 0,
-      kondisi: getKondisiTerumbu(form.persentase_tutupan), // Kategori langsung disimpan ke DB
+      persentase_kondisi: parseFloat(form.persentase_kondisi) || 0,
+      luas_sangat_baik: parseFloat(form.luas_sangat_baik) || 0,
+      luas_baik: parseFloat(form.luas_baik) || 0,
+      luas_sedang: parseFloat(form.luas_sedang) || 0,
+      luas_rusak: parseFloat(form.luas_rusak) || 0,
+      kondisi: getKondisiTerumbu(form.persentase_kondisi), // Kategori langsung disimpan ke DB
       luas_rehabilitasi_ha: parseFloat(form.luas_rehabilitasi_ha) || 0,
     };
     onSubmit(payload);
@@ -167,47 +186,98 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           />
           {errors.luas_rehabilitasi_ha && <p className="text-xs text-destructive mt-1">{errors.luas_rehabilitasi_ha}</p>}
         </div>
-      </div>
 
-      {/* ── KOTAK KONDISI TERUMBU KARANG (SLIDER INTERAKTIF) ── */}
-      <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
-        <label className="block text-xs font-medium text-muted-foreground">Persentase Tutupan Terumbu Karang (%)</label>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={form.persentase_tutupan === '' ? 0 : form.persentase_tutupan}
-            onChange={(e) => handleChange('persentase_tutupan', e.target.value)}
-            className="flex-1 accent-cyan-500 cursor-pointer"
-          />
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Persentase Tutupan (%)</label>
           <input
             type="number"
+            step="0.01"
             min="0"
             max="100"
-            step="0.1"
             value={form.persentase_tutupan}
             onChange={(e) => handleChange('persentase_tutupan', e.target.value)}
-            className={`${inputCls('persentase_tutupan')} w-24`}
-            placeholder="0-100"
+            className={inputCls('persentase_tutupan')}
+            placeholder="0.00"
           />
-          <span className="text-sm text-muted-foreground font-bold">%</span>
+          {errors.persentase_tutupan && <p className="text-xs text-destructive mt-1">{errors.persentase_tutupan}</p>}
         </div>
-        {errors.persentase_tutupan && <p className="text-xs text-destructive">{errors.persentase_tutupan}</p>}
 
-        <div className="flex items-center gap-3 pt-2">
-          <span className="text-xs text-muted-foreground font-medium">Kategori otomatis:</span>
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${kondisiTerumbuStyle(kondisiPreview)}`}>
-            {kondisiPreview}
-          </span>
+        {/* Kotak Kondisi */}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Persentase Kondisi (%)</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={form.persentase_kondisi === '' ? 0 : form.persentase_kondisi}
+              onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+              className="flex-1 accent-cyan-500"
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={form.persentase_kondisi}
+              onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+              className={`${inputCls('persentase_kondisi')} w-20`}
+              placeholder="0-100"
+            />
+            <span className="text-sm text-muted-foreground font-bold">%</span>
+            <span className={`px-4 py-2.5 rounded-xl text-xs font-bold border shrink-0 ${kondisiTerumbuStyle(kondisiPreview)}`}>
+              {kondisiPreview}
+            </span>
+          </div>
+          {errors.persentase_kondisi && <p className="text-xs text-destructive mt-1">{errors.persentase_kondisi}</p>}
         </div>
-        
-        {/* LEGENDA WARNA */}
-        <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground pt-2 border-t border-border mt-2">
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-400 shadow-sm" /> Rusak (0-50%)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm" /> Baik (50-75%)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm" /> Sangat Baik (75-100%)</span>
+      </div>
+
+      {/* Kategori Lahan */}
+      <div className="bg-muted/30 border border-border rounded-xl p-4 mt-4">
+        <h3 className="text-sm font-bold text-foreground mb-4">Kondisi Berdasarkan Lahan Terumbu Karang</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sangat Baik</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_sangat_baik}
+              onChange={(e) => handleChange('luas_sangat_baik', e.target.value)}
+              className={inputCls('luas_sangat_baik')}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Baik</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_baik}
+              onChange={(e) => handleChange('luas_baik', e.target.value)}
+              className={inputCls('luas_baik')}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sedang</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_sedang}
+              onChange={(e) => handleChange('luas_sedang', e.target.value)}
+              className={inputCls('luas_sedang')}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Rusak</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_rusak}
+              onChange={(e) => handleChange('luas_rusak', e.target.value)}
+              className={inputCls('luas_rusak')}
+              placeholder="0.00"
+            />
+          </div>
         </div>
       </div>
 

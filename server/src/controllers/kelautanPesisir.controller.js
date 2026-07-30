@@ -276,6 +276,9 @@ const createMangroveData = async (req, res) => {
   try {
     const payload = req.body;
     payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.luas_sangat_padat = Number(payload.luas_sangat_padat) || 0;
+    payload.luas_sedang = Number(payload.luas_sedang) || 0;
+    payload.luas_jarang = Number(payload.luas_jarang) || 0;
     payload.kondisi = getKondisiMangrove(payload.persentase_kondisi);
 
     const newData = await prisma.mangrove.create({ data: payload });
@@ -301,6 +304,9 @@ const updateMangroveData = async (req, res) => {
       payload.alasan_penolakan = null;
     }
     payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.luas_sangat_padat = Number(payload.luas_sangat_padat) || 0;
+    payload.luas_sedang = Number(payload.luas_sedang) || 0;
+    payload.luas_jarang = Number(payload.luas_jarang) || 0;
     payload.kondisi = getKondisiMangrove(payload.persentase_kondisi);
 
     const updatedData = await prisma.mangrove.update({
@@ -415,7 +421,11 @@ const createLamunData = async (req, res) => {
   try {
     const payload = req.body;
     payload.persentase_tutupan = Number(payload.persentase_tutupan) || 0;
-    payload.kondisi = getKondisiLamun(payload.persentase_tutupan);
+    payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.luas_kaya = Number(payload.luas_kaya) || 0;
+    payload.luas_kurang_kaya = Number(payload.luas_kurang_kaya) || 0;
+    payload.luas_miskin = Number(payload.luas_miskin) || 0;
+    payload.kondisi = getKondisiLamun(payload.persentase_kondisi);
 
     const newData = await prisma.lamun.create({ data: payload });
     res.json({ success: true, data: newData });
@@ -440,7 +450,11 @@ const updateLamunData = async (req, res) => {
       payload.alasan_penolakan = null;
     }
     payload.persentase_tutupan = Number(payload.persentase_tutupan) || 0;
-    payload.kondisi = getKondisiLamun(payload.persentase_tutupan);
+    payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
+    payload.luas_kaya = Number(payload.luas_kaya) || 0;
+    payload.luas_kurang_kaya = Number(payload.luas_kurang_kaya) || 0;
+    payload.luas_miskin = Number(payload.luas_miskin) || 0;
+    payload.kondisi = getKondisiLamun(payload.persentase_kondisi);
 
     const updatedData = await prisma.lamun.update({
       where: { id: parseInt(id) },
@@ -635,7 +649,7 @@ const getKelautanPesisirStats = async (req, res) => {
 
       lamunPerKota[k].luas_eksisting += luasEksisting;
       lamunPerKota[k].luas_rehabilitasi += luasRehab;
-      lamunPerKota[k].sumPersentase += item.persentase_tutupan || 0;
+      lamunPerKota[k].sumPersentase += item.persentase_kondisi || 0;
       lamunPerKota[k].count += 1;
 
       total_luas_eksisting_lamun += luasEksisting;
@@ -666,7 +680,7 @@ const getKelautanPesisirStats = async (req, res) => {
 
       terumbuPerKota[k].luas_eksisting += luasEksisting;
       terumbuPerKota[k].luas_rehabilitasi += luasRehab;
-      terumbuPerKota[k].sumPersentase += item.persentase_tutupan || 0;
+      terumbuPerKota[k].sumPersentase += item.persentase_kondisi || 0;
       terumbuPerKota[k].count += 1;
 
       total_luas_eksisting_terumbu += luasEksisting;
@@ -812,14 +826,20 @@ const getTerumbuKarangPublicData = async (req, res) => {
 
 const createTerumbuKarangData = async (req, res) => {
   try {
-    const { tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, kondisi, luas_rehabilitasi_ha } = req.body;
+    const { 
+      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi, 
+      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak 
+    } = req.body;
+    
     await prisma.$executeRawUnsafe(`
       INSERT INTO "terumbu_karang" (
-        "tahun", "kabupaten_kota", "luas_eksisting_ha", "persentase_tutupan", 
-        "kondisi", "luas_rehabilitasi_ha", "status", "created_at", "updated_at"
+        "tahun", "kabupaten_kota", "luas_eksisting_ha", "persentase_tutupan", "persentase_kondisi",
+        "kondisi", "luas_rehabilitasi_ha", "luas_sangat_baik", "luas_baik", "luas_sedang", "luas_rusak",
+        "status", "created_at", "updated_at"
       ) VALUES (
-        ${tahun}, '${kabupaten_kota}', ${luas_eksisting_ha || 0}, ${persentase_tutupan || 0}, 
-        '${kondisi}', ${luas_rehabilitasi_ha || 0}, 'PENDING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        ${tahun}, '${kabupaten_kota}', ${luas_eksisting_ha || 0}, ${persentase_tutupan || 0}, ${persentase_kondisi || 0},
+        '${kondisi}', ${luas_rehabilitasi_ha || 0}, ${luas_sangat_baik || 0}, ${luas_baik || 0}, ${luas_sedang || 0}, ${luas_rusak || 0},
+        'PENDING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
     `);
     res.json({ success: true, message: 'Berhasil membuat data terumbu karang' });
@@ -832,7 +852,11 @@ const createTerumbuKarangData = async (req, res) => {
 const updateTerumbuKarangData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, kondisi, luas_rehabilitasi_ha } = req.body;
+    const { 
+      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi, 
+      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak 
+    } = req.body;
+    
     const existingArr = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" WHERE "id" = ${parseInt(id)}`);
     if (!existingArr || existingArr.length === 0) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     const existing = existingArr[0];
@@ -853,8 +877,13 @@ const updateTerumbuKarangData = async (req, res) => {
         "kabupaten_kota" = '${kabupaten_kota}',
         "luas_eksisting_ha" = ${luas_eksisting_ha || 0},
         "persentase_tutupan" = ${persentase_tutupan || 0},
+        "persentase_kondisi" = ${persentase_kondisi || 0},
         "kondisi" = '${kondisi}',
         "luas_rehabilitasi_ha" = ${luas_rehabilitasi_ha || 0},
+        "luas_sangat_baik" = ${luas_sangat_baik || 0},
+        "luas_baik" = ${luas_baik || 0},
+        "luas_sedang" = ${luas_sedang || 0},
+        "luas_rusak" = ${luas_rusak || 0},
         "updated_at" = CURRENT_TIMESTAMP
         ${statusUpdate}
       WHERE "id" = ${parseInt(id)}

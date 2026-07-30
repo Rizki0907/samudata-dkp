@@ -167,7 +167,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
           {errors.luas_rehabilitasi_ha && <p className="text-xs text-destructive mt-1">{errors.luas_rehabilitasi_ha}</p>}
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-1">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Spesies</label>
           <textarea
             value={form.spesies}
@@ -178,45 +178,77 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
           />
           {errors.spesies && <p className="text-xs text-destructive mt-1">{errors.spesies}</p>}
         </div>
+
+        {/* Kondisi Mangrove */}
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Persentase Kondisi Mangrove (%)</label>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={form.persentase_kondisi === '' ? 0 : form.persentase_kondisi}
+                onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+                className="flex-1 accent-emerald-500"
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={form.persentase_kondisi}
+                onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+                className={`${inputCls('persentase_kondisi')} w-20`}
+                placeholder="0-100"
+              />
+              <span className="text-sm text-muted-foreground font-bold">%</span>
+            </div>
+            <div className="flex justify-start">
+              <span className={`px-4 py-1.5 rounded-xl text-xs font-bold border shrink-0 ${kondisiStyle(kondisiPreview)}`}>
+                {kondisiPreview}
+              </span>
+            </div>
+          </div>
+          {errors.persentase_kondisi && <p className="text-xs text-destructive mt-1">{errors.persentase_kondisi}</p>}
+        </div>
       </div>
 
-      {/* Kondisi Mangrove */}
-      <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
-        <label className="block text-xs font-medium text-muted-foreground">Persentase Kondisi Tutupan Mangrove</label>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={form.persentase_kondisi === '' ? 0 : form.persentase_kondisi}
-            onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
-            className="flex-1 accent-emerald-500"
-          />
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={form.persentase_kondisi}
-            onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
-            className={`${inputCls('persentase_kondisi')} w-24`}
-            placeholder="0-100"
-          />
-          <span className="text-sm text-muted-foreground">%</span>
-        </div>
-        {errors.persentase_kondisi && <p className="text-xs text-destructive">{errors.persentase_kondisi}</p>}
-
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-xs text-muted-foreground">Kategori otomatis:</span>
-          <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${kondisiStyle(kondisiPreview)}`}>
-            {kondisiPreview}
-          </span>
-        </div>
-        <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400 inline-block" /> Jarang (0-30%)</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Sedang (30-70%)</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> Sangat Padat (70-100%)</span>
+      {/* Kategori Lahan */}
+      <div className="bg-muted/30 border border-border rounded-xl p-4 mt-4">
+        <h3 className="text-sm font-bold text-foreground mb-4">Kondisi Berdasarkan Lahan Mangrove</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sangat Padat</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_sangat_padat}
+              onChange={(e) => handleChange('luas_sangat_padat', e.target.value)}
+              className={inputCls('luas_sangat_padat')}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sedang</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_sedang}
+              onChange={(e) => handleChange('luas_sedang', e.target.value)}
+              className={inputCls('luas_sedang')}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Jarang</label>
+            <input
+              type="number" step="0.01" min="0"
+              value={form.luas_jarang}
+              onChange={(e) => handleChange('luas_jarang', e.target.value)}
+              className={inputCls('luas_jarang')}
+              placeholder="0.00"
+            />
+          </div>
         </div>
       </div>
 
