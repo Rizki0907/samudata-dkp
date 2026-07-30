@@ -528,3 +528,22 @@ enum DataStatus {
   REJECTED
   VERIFIED
 }
+
+model TangkapTahunan {
+  id              String   @id @default(uuid())
+  tahun           String
+  sumber_data     String   // PELABUHAN, PUD, KAB_KOTA
+  pelabuhan       String?
+  kabupaten_kota  String?
+  jenis_perairan  String?
+  status          DataStatus @default(PENDING) 
+  alasan_penolakan String?
+
+  rtp             Json
+  nelayan         Json
+  kapal           Json
+  alat_tangkap    Json
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}

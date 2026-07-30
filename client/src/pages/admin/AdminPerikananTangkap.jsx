@@ -4,6 +4,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PerikananTangkapForm } from '@/components/admin/PerikananTangkapForm';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
+import { TangkapTahunanForm } from '@/components/admin/TangkapTahunanForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import {  
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah } from '@/utils/formatRupiah';
+import { exportTahunan } from '@/utils/exportTahunan';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
 import { useAuthStore } from '@/store/authStore';
@@ -56,6 +58,7 @@ export default function AdminPerikananTangkap() {
   const isDark = theme === 'dark';
   const [data, setData] = useState([]);
   const [publikData, setPublikData] = useState([]);
+  const [tahunanData, setTahunanData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
@@ -96,13 +99,15 @@ export default function AdminPerikananTangkap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [dataRes, publikRes] = await Promise.all([
+      const [dataRes, publikRes, tahunanRes] = await Promise.allSettled([
         api.get(`/perikanan-tangkap/admin`),
-        api.get(`/bulanan-tangkap/admin`)
+        api.get(`/bulanan-tangkap/admin`),
+        api.get(`/tangkap-tahunan`)
       ]);
 
-      setData(dataRes.data.data || []);
-      setPublikData(publikRes.data.data || []);
+      if (dataRes.status === 'fulfilled') setData(dataRes.value.data.data || []);
+      if (publikRes.status === 'fulfilled') setPublikData(publikRes.value.data.data || []);
+      if (tahunanRes.status === 'fulfilled') setTahunanData(tahunanRes.value.data.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -133,6 +138,25 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  const handleCreateOrUpdateTahunan = async (formData) => {
+    try {
+      setSubmitLoading(true);
+      if (editingData) {
+        await api.put(`/tangkap-tahunan/${editingData.id}`, formData);
+      } else {
+        await api.post('/tangkap-tahunan', formData);
+      }
+      setIsFormOpen(false);
+      setEditingData(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error saving data tahunan:', error);
+      alert('Gagal menyimpan data tahunan');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   const handleDelete = async (row) => {
     if (window.confirm(`Yakin ingin menghapus data kapal ${row.nama_kapal}?`)) {
       try {
@@ -141,6 +165,18 @@ export default function AdminPerikananTangkap() {
       } catch (error) {
         console.error('Error deleting data:', error);
         alert('Gagal menghapus data');
+      }
+    }
+  };
+
+  const handleDeleteTahunan = async (row) => {
+    if (window.confirm(`Yakin ingin menghapus data tahunan ${row.tahun} ini?`)) {
+      try {
+        await api.delete(`/tangkap-tahunan/${row.id}`);
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting data tahunan:', error);
+        alert('Gagal menghapus data tahunan');
       }
     }
   };
@@ -210,6 +246,67 @@ export default function AdminPerikananTangkap() {
       fetchData();
     } catch (error) {
       console.error('Error rejecting data:', error);
+      alert('Gagal menolak data');
+    }
+  };
+
+  const handleApproveTahunan = async (row) => {
+    let promptMsg = '';
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+
+    if (row.status === 'PENDING' || row.status === 'REJECTED') {
+      promptMsg = 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:';
+      const jenis = window.prompt(promptMsg);
+      if (jenis !== '1') {
+         if (jenis === '2') alert('Validasi Program ditolak! Data harus divalidasi Bidang terlebih dahulu.');
+         else if (jenis) alert('Pilihan tidak valid.');
+         return;
+      }
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+    } else if (row.status === 'APPROVED') {
+      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:';
+      const jenis = window.prompt(promptMsg);
+      if (jenis !== '2') {
+         if (jenis) alert('Pilihan tidak valid.');
+         return;
+      }
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC';
+    }
+
+    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    if (confirmText !== expectedKeyword) {
+      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
+      return;
+    }
+
+    try {
+      await api.patch(`/tangkap-tahunan/${row.id}/status`, { status: targetStatus });
+      fetchData();
+    } catch (error) {
+      console.error('Error approving data tahunan:', error);
+      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleRejectTahunan = async (row) => {
+    const alasan = window.prompt('Masukkan alasan penolakan:');
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan wajib diisi!');
+      return;
+    }
+    
+    try {
+      await api.patch(`/tangkap-tahunan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
+      fetchData();
+    } catch (error) {
+      console.error('Error rejecting data tahunan:', error);
       alert('Gagal menolak data');
     }
   };
@@ -1419,8 +1516,18 @@ export default function AdminPerikananTangkap() {
     XLSX.writeFile(wb, `Laporan_${pelabuhanName}_${dateStr.replace('/', '-')}.xlsx`);
   };
 
-  
   const handleModalExport = () => {
+    if (activeTab === 'tahunan') {
+      let dataToExport = tahunanData;
+      if (exportModalTahun) dataToExport = dataToExport.filter(d => d.tahun === exportModalTahun);
+      if (exportModalPerairan) dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
+      if (exportModalWilayah) dataToExport = dataToExport.filter(d => (d.pelabuhan || d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase());
+      
+      exportTahunan(dataToExport, exportModalTahun, exportModalPerairan);
+      setIsExportModalOpen(false);
+      return;
+    }
+
     // Filter by status if selected, otherwise all
     let dataToExport = data;
     if (filterStatus && filterStatus.length > 0) {
@@ -1673,31 +1780,45 @@ const columns = useMemo(() => [
                 Ekspor Laporan
               </button>
             )}
-          <button
-            onClick={() => {
-              setEditingData(null);
-              setIsFormOpen(true);
-            }}
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-5 h-5" />
-            Tambah Data Baru
-          </button>
+          {activeTab !== 'publik' && activeTab !== 'visual' && (
+            <button
+              onClick={() => {
+                setEditingData(null);
+                setIsFormOpen(true);
+              }}
+              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              <Plus className="w-5 h-5" />
+              {activeTab === 'tahunan' ? 'Input Data Tahunan' : 'Tambah Data Baru'}
+            </button>
+          )}
         </div>
         )}
       </div>
 
       {isFormOpen && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-          <PerikananTangkapForm
-            initialData={editingData}
-            isLoading={submitLoading}
-            onSubmit={handleCreateOrUpdate}
-            onCancel={() => {
-              setIsFormOpen(false);
-              setEditingData(null);
-            }}
-          />
+          {activeTab === 'tahunan' ? (
+            <TangkapTahunanForm
+              initialData={editingData}
+              isLoading={submitLoading}
+              onSubmit={handleCreateOrUpdateTahunan}
+              onCancel={() => {
+                setIsFormOpen(false);
+                setEditingData(null);
+              }}
+            />
+          ) : (
+            <PerikananTangkapForm
+              initialData={editingData}
+              isLoading={submitLoading}
+              onSubmit={handleCreateOrUpdate}
+              onCancel={() => {
+                setIsFormOpen(false);
+                setEditingData(null);
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -1716,6 +1837,12 @@ const columns = useMemo(() => [
               className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'publik' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
             >
               Data Validasi Publik
+            </button>
+            <button 
+              onClick={() => setActiveTab('tahunan')}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'tahunan' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+              Data Tahunan
             </button>
             <button 
               onClick={() => setActiveTab('visual')}
@@ -1832,6 +1959,7 @@ const columns = useMemo(() => [
                       onChange={setFilterStatus} 
                       options={[
                         { label: 'Verified', value: 'VERIFIED' },
+                        { label: 'Approved', value: 'APPROVED' },
                         { label: 'Pending', value: 'PENDING' },
                         { label: 'Rejected', value: 'REJECTED' }
                       ]}
@@ -2071,6 +2199,32 @@ const columns = useMemo(() => [
                filterWilayah={filterWilayah}
                filterKomoditas={filterKomoditas}
             />
+          ) : activeTab === 'tahunan' ? (
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-muted/30 border-b border-border">
+                <h3 className="font-semibold text-lg">Data Tahunan</h3>
+                <p className="text-sm text-muted-foreground">Tabel rekapan RTP, Nelayan, Kapal, dan API tahunan.</p>
+              </div>
+              <DataTable
+                columns={[
+                  { accessorKey: 'tahun', header: 'Tahun' },
+                  { accessorKey: 'sumber_data', header: 'Sumber' },
+                  { accessorKey: 'wilayah', header: 'Wilayah / Pelabuhan', cell: (info) => { const row = info.row.original; return row.pelabuhan || row.kabupaten_kota || row.jenis_perairan || '-'; } },
+                  { accessorKey: 'status', header: 'Status', cell: (info) => <StatusBadge row={info.row.original} /> },
+                ]}
+                data={tahunanData.filter(item => {
+                  const matchTahun = filterTahun.length === 0 || filterTahun.includes(item.tahun);
+                  const matchStatus = filterStatus.length === 0 || filterStatus.includes(item.status);
+                  return matchTahun && matchStatus;
+                })}
+                onEdit={handleEdit}
+                onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? handleDeleteTahunan : undefined}
+                exportable={user?.role === 'admin_pusat' || user?.role === 'admin_bidang'}
+                onCustomExport={() => setIsExportModalOpen(true)}
+                onApprove={handleApproveTahunan}
+                onReject={handleRejectTahunan}
+              />
+            </div>
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
@@ -2286,7 +2440,7 @@ const columns = useMemo(() => [
               </div>
 
               {/* Jenis Laporan */}
-              {exportModalPerairan === 'PELABUHAN' && (
+              {exportModalPerairan === 'PELABUHAN' && activeTab !== 'tahunan' && (
                 <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
                   <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                     <Layers className="w-4 h-4 text-indigo-500" />
@@ -2313,7 +2467,7 @@ const columns = useMemo(() => [
               )}
 
               {/* Jenis Perairan (Khusus PUD) */}
-              {exportModalPerairan === 'PUD' && (
+              {exportModalPerairan === 'PUD' && activeTab !== 'tahunan' && (
                 <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
                   <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                     <Droplet className="w-4 h-4 text-cyan-500" />
@@ -2332,9 +2486,9 @@ const columns = useMemo(() => [
               )}
 
               {/* Tahun & Bulan */}
-              {((exportModalPerairan === 'PELABUHAN' && exportModalJenis) || 
+              {((exportModalPerairan === 'PELABUHAN' && (activeTab === 'tahunan' || exportModalJenis)) || 
                 (exportModalPerairan && exportModalPerairan !== 'PELABUHAN')) && (
-                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className={`grid ${activeTab === 'tahunan' ? 'grid-cols-1' : 'grid-cols-2'} gap-4 animate-in fade-in slide-in-from-top-4 duration-500`}>
                   <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                     <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                       <Calendar className="w-4 h-4 text-emerald-500" />
@@ -2353,29 +2507,31 @@ const columns = useMemo(() => [
                         />
                       </div>
                   </div>
-                  <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-                      <Calendar className="w-4 h-4 text-emerald-500" />
-                      Bulan
-                    </label>
-                    <div className="relative">
-                      <SearchableSelect 
-                        placement="top"
-                        value={exportModalBulan} 
-                        onChange={(e) => {
-                          setExportModalBulan(e.target.value);
-                          setExportModalWilayah('');
-                        }} 
-                        options={BULAN_OPTIONS.map((opt, i) => ({ value: String(i+1), label: opt }))}
-                        placeholder="Bulan..."
-                      />
+                  {activeTab !== 'tahunan' && (
+                    <div className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                        <Calendar className="w-4 h-4 text-emerald-500" />
+                        Bulan
+                      </label>
+                      <div className="relative">
+                        <SearchableSelect 
+                          placement="top"
+                          value={exportModalBulan} 
+                          onChange={(e) => {
+                            setExportModalBulan(e.target.value);
+                            setExportModalWilayah('');
+                          }} 
+                          options={BULAN_OPTIONS.map((opt, i) => ({ value: String(i+1), label: opt }))}
+                          placeholder="Bulan..."
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
               {/* Wilayah */}
-              {exportModalTahun && exportModalBulan && (
+              {exportModalTahun && (activeTab === 'tahunan' || exportModalBulan) && activeTab !== 'tahunan' && (
                 <div className="bg-card border border-border p-4 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-shadow">
                   <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
                     <MapPin className="w-4 h-4 text-rose-500" />

@@ -113,7 +113,7 @@ export default function Overview() {
             <div className="p-3 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
               <Ship className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Potensi Perikanan Tangkap</h2>
+            <h2 className="text-2xl font-bold text-foreground">Perikanan Tangkap</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
@@ -141,7 +141,7 @@ export default function Overview() {
             <div className="p-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
               <Fish className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Potensi Perikanan Budidaya</h2>
+            <h2 className="text-2xl font-bold text-foreground">Perikanan Budidaya</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">

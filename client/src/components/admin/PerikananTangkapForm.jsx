@@ -567,7 +567,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   </button>
                 )}
                 
-                <div className="md:col-span-4">
+                <div className={isPelabuhan ? "md:col-span-2" : "md:col-span-4"}>
                   <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Komoditas</label>
                   <SearchableSelect
                     name="komoditas"
@@ -577,6 +577,20 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     placeholder="Pilih Komoditas Ikan..."
                   />
                 </div>
+
+                {isPelabuhan && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Bentuk Ikan</label>
+                    <select
+                      value={item.bentuk_ikan || 'Segar'}
+                      onChange={(e) => handleTangkapanChange(index, 'bentuk_ikan', e.target.value)}
+                      className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input text-sm"
+                    >
+                      <option value="Segar">Segar</option>
+                      <option value="Beku">Beku</option>
+                    </select>
+                  </div>
+                )}
 
                 {isPUD ? (
                   <div className="md:col-span-4">

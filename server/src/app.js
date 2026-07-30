@@ -13,6 +13,7 @@ const pengolahanPemasaranRoutes = require('./routes/pengolahanpemasaran.routes')
 const kelautanPesisirRoutes = require('./routes/kelautanPesisir.routes');
 const masterDataRoutes = require('./routes/masterData.routes');
 const budidayaTahunanRoutes = require('./routes/budidayaTahunan.routes');
+const tangkapTahunanRoutes = require('./routes/tangkapTahunan.routes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/pengolahan-pemasaran', pengolahanPemasaranRoutes);
 app.use('/api/kelautan-pesisir', kelautanPesisirRoutes);
 app.use('/api/master-data', masterDataRoutes);
 app.use('/api/budidaya-tahunan', budidayaTahunanRoutes);
+app.use('/api/tangkap-tahunan', tangkapTahunanRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -58,3 +60,5 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
+// trigger restart
