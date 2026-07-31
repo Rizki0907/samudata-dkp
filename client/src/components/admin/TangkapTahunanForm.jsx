@@ -23,7 +23,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
     tanpa_perahu: 0,
     perahu_tanpa_motor: { jukung: 0, papan_kecil: 0, papan_sedang: 0, papan_besar: 0 },
     motor_tempel: { lt_5: 0, gt_5_10: 0, gt_10_20: 0, gt_20_30: 0, gt_30: 0, total_pud: 0 },
-    kapal_motor: { lt_5: 0, gt_5_10: 0, gt_10_20: 0, gt_20_30: 0, gt_30_50: 0, gt_50_100: 0, gt_100_200: 0, total_pud: 0 }
+    kapal_motor: { lt_5: 0, gt_5_10: 0, gt_10_20: 0, gt_20_30: 0, gt_30_50: 0, gt_50_100: 0, gt_100_200: 0, gt_200_300: 0, gt_300_500: 0, gt_500: 0, total_pud: 0 }
   };
 
   const defaultNelayan = { penuh: 0, sambilan_utama: 0, sambilan_tambahan: 0 };
@@ -263,7 +263,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
                 <div>
                   <h3 className="font-semibold text-lg border-b pb-2 mb-4">Kapal Motor (Berdasarkan GT)</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries({lt_5: '< 5', gt_5_10: '5-10', gt_10_20: '10-20', gt_20_30: '20-30', gt_30_50: '30-50', gt_50_100: '50-100', gt_100_200: '100-200'}).map(([key, label]) => (
+                    {Object.entries({lt_5: '< 5', gt_5_10: '5-10', gt_10_20: '10-20', gt_20_30: '20-30', gt_30_50: '30-50', gt_50_100: '50-100', gt_100_200: '100-200', gt_200_300: '200-300', gt_300_500: '300-500', gt_500: '>500'}).map(([key, label]) => (
                       <div key={key}>
                         <label className="block text-sm font-medium mb-1.5">{label} GT</label>
                         <input type="number" min="0" value={formData.rtp.kapal_motor[key] || 0} onChange={e => handleNestedChange('rtp', 'kapal_motor', key, e.target.value)} className="w-full rounded-lg border border-border bg-background text-foreground px-3 py-2 focus:ring-2 focus:ring-primary/50 outline-none transition-all" />

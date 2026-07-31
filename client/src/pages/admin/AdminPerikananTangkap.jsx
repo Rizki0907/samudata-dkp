@@ -388,6 +388,62 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  const handleBatchApproveTahunan = async (ids) => {
+    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
+    const tipeValidasi = window.prompt(promptMsg);
+    
+    if (tipeValidasi === null) return;
+    if (tipeValidasi !== '1' && tipeValidasi !== '2') {
+      alert('Pilihan tidak valid');
+      return;
+    }
+    const targetStatus = tipeValidasi === '1' ? 'VERIFIED' : 'APPROVED';
+
+    try {
+      await api.post(`/tangkap-tahunan/batch-status`, { 
+        ids, 
+        status: targetStatus 
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch approve tahunan:', error);
+      alert('Gagal menyetujui data secara massal');
+    }
+  };
+
+  const handleBatchRejectTahunan = async (ids) => {
+    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data tahunan:`);
+    if (alasan === null) return;
+    if (!alasan.trim()) {
+      alert('Alasan penolakan harus diisi');
+      return;
+    }
+
+    try {
+      await api.post(`/tangkap-tahunan/batch-status`, { 
+        ids, 
+        status: 'REJECTED',
+        alasan_penolakan: alasan 
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error batch reject tahunan:', error);
+      alert('Gagal menolak data secara massal');
+    }
+  };
+
+  const handleBatchDeleteTahunan = async (ids) => {
+    if (window.confirm(`Yakin ingin menghapus ${ids.length} data tahunan ini?`)) {
+      try {
+        await api.post(`/tangkap-tahunan/batch-delete`, { ids });
+        fetchData();
+      } catch (error) {
+        console.error('Error batch delete tahunan:', error);
+        alert('Gagal menghapus data secara massal');
+      }
+    }
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
       const itemTahun = item.tanggal ? item.tanggal.substring(0, 4) : '';
@@ -2200,8 +2256,8 @@ const columns = useMemo(() => [
                filterKomoditas={filterKomoditas}
             />
           ) : activeTab === 'tahunan' ? (
-            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-4 bg-muted/30 border-b border-border">
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+              <div className="mb-6">
                 <h3 className="font-semibold text-lg">Data Tahunan</h3>
                 <p className="text-sm text-muted-foreground">Tabel rekapan RTP, Nelayan, Kapal, dan API tahunan.</p>
               </div>
@@ -2215,7 +2271,8 @@ const columns = useMemo(() => [
                 data={tahunanData.filter(item => {
                   const matchTahun = filterTahun.length === 0 || filterTahun.includes(item.tahun);
                   const matchStatus = filterStatus.length === 0 || filterStatus.includes(item.status);
-                  return matchTahun && matchStatus;
+                  const matchCabang = filterCabang.length === 0 || filterCabang.includes(item.sumber_data);
+                  return matchTahun && matchStatus && matchCabang;
                 })}
                 onEdit={handleEdit}
                 onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? handleDeleteTahunan : undefined}
@@ -2223,6 +2280,18 @@ const columns = useMemo(() => [
                 onCustomExport={() => setIsExportModalOpen(true)}
                 onApprove={handleApproveTahunan}
                 onReject={handleRejectTahunan}
+                onBatchApprove={handleBatchApproveTahunan}
+                onBatchReject={handleBatchRejectTahunan}
+                onBatchDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? handleBatchDeleteTahunan : undefined}
+                canBatchApprove={(selectedRows) => selectedRows.some(row => 
+                  (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED'].includes(row.status)) || 
+                  (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
+                  (user?.role === 'admin_pusat' && row.status === 'PENDING')
+                )}
+                canBatchReject={(selectedRows) => selectedRows.some(row => 
+                    (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED', 'PENDING'].includes(row.status)) || 
+                    (user?.role === 'admin_bidang' && row.status === 'PENDING')
+                  )}
               />
             </div>
           ) : (

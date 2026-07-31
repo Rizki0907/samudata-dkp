@@ -113,3 +113,36 @@ exports.updateStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+exports.batchUpdateStatus = async (req, res) => {
+  try {
+    const { ids, status, alasan_penolakan } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data yang dipilih' });
+    }
+    await prisma.tangkapTahunan.updateMany({
+      where: { id: { in: ids } },
+      data: { status, alasan_penolakan: alasan_penolakan || null }
+    });
+    res.status(200).json({ success: true, message: 'Status berhasil diupdate' });
+  } catch (error) {
+    console.error('Error in batchUpdateStatus:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.batchDelete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data yang dipilih' });
+    }
+    await prisma.tangkapTahunan.deleteMany({
+      where: { id: { in: ids } }
+    });
+    res.status(200).json({ success: true, message: 'Data berhasil dihapus' });
+  } catch (error) {
+    console.error('Error in batchDelete:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

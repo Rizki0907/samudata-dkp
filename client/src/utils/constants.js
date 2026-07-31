@@ -374,11 +374,7 @@ export const KOMODITAS_PUD_OPTIONS = [
   "Tawes", "Tontong tebu", "Betutu", "Tambakan", "Sili", "Belida", "Gurame", "Siluk", "Patin jambal", "Udang grago", "Udang galah", "Buaya", "Katak benggala",];
 
 export const ALAT_TANGKAP_PUD_OPTIONS = [
-  "Jaring tarik berkantong", "Penggaruk berkapal", "Penggaruk tanpa kapal", "Anco", 
-  "Bagan berperahu atau bagan apung", "Bagan tancap", "Jala jatuh berkapal", "Jala Tebar", 
-  "Jaring insang tetap", "Jaring Insang hanyut", "Jaring insang lingkar", "Jaring insang berpancang", 
-  "Jaring insang berlapis", "Jaring insang kombinasi", "Set net", "Bubu", "Pancing ulur", 
-  "Pancing berjoran", "Rawai", "Tombak", "Ladung", "Panah", "Pukat dorong", "Seser", "Pocongan"
+  "Hanyut", "Tetap", "Jala", "Serok", "Anco", "Bagan Perahu", "Rawai", "Pancing", "Sero", "Bubu", "Perangkap lain"
 ];
 
 export const PUD_JENIS_PERAHU_OPTIONS = [
@@ -392,56 +388,17 @@ export const PUD_JENIS_PERAHU_OPTIONS = [
 ];
 
 export const ALAT_TANGKAP_LAUT_OPTIONS = [
-  "Pukat cincin pelagis kecil dengan satu kapal",
-  "Pukat cincin pelagis besar dengan satu kapal",
-  "Pukat cincin teri dengan satu kapal",
-  "Pukat cincin pelagis kecil dengan dua kapal",
-  "Jaring lingkar tanpa tali kerut",
-  "Jaring tarik pantai",
-  "Payang",
-  "Jaring tarik berkantong",
-  "Jaring hela udang berkantong",
-  "Jaring hela ikan berkantong",
-  "Penggaruk berkapal",
-  "Penggaruk tanpa kapal",
-  "Anco",
-  "Bagan berperahu atau bagan apung",
-  "Bouke ami",
-  "Bagan tancap",
-  "Jala jatuh berkapal",
-  "Jala tebar",
-  "Jaring insang tetap",
-  "Jaring insang hanyut",
-  "Jaring insang lingkar",
-  "Jaring insang berpancang",
-  "Jaring insang berlapis",
-  "Jaring insang kombinasi",
-  "Set net",
-  "Bubu",
-  "Bubu bersayap",
-  "Pukat labuh",
-  "Togo",
-  "Ambai",
-  "Jermal",
-  "Pengerih",
-  "Sero",
-  "Pancing ulur",
-  "Pancing ulur tuna",
-  "Pancing berjoran",
-  "Pancing cumi",
-  "Pancing cumi mekanis",
-  "Pancing layang- layang",
-  "Huhate",
-  "Huhate mekanis",
-  "Rawai dasar",
-  "Rawai tuna",
-  "Tonda",
-  "Tombak",
-  "Ladung",
-  "Panah",
-  "Pukat dorong",
-  "Seser",
-  "Pocongan"
+  "Pukat cincin pelagis kecil dengan satu kapal", "Pukat cincin pelagis besar dengan satu kapal", "Pukat cincin teri dengan satu kapal", "Pukat cincin pelagis kecil dengan dua kapal",
+  "Jaring lingkar tanpa tali kerut", "Jaring tarik pantai", "Payang", "Dogol", "Jaring tarik berkantong",
+  "Jaring hela udang berkantong", "Jaring hela ikan berkantong",
+  "Penggaruk berkapal", "Penggaruk tanpa kapal",
+  "Anco", "Bagan berperahu atau bagan apung", "Bouke ami", "Bagan tancap",
+  "Jala jatuh berkapal", "Jala tebar",
+  "Jaring insang tetap", "Jaring insang hanyut", "Jaring insang lingkar", "Jaring insang berpancang", "Jaring insang berlapis", "Jaring insang kombinasi",
+  "Set net", "Bubu", "Bubu bersayap", "Pukat labuh", "Togo", "Ambai", "Jermal", "Pengerih", "Sero", "Perangkap Lainnya",
+  "Pancing ulur", "Pancing ulur tuna", "Pancing berjoran", "Pancing cumi", "Pancing cumi mekanis", "pancing layang-layang", "Huhate", "Huhate mekanis", "Rawai dasar", "Rawai tuna", "Tonda",
+  "Tombak", "Ladung", "Panah", "Pukat dorong", "Seser", "Pocongan",
+  "Alat Tangkap Lainnya"
 ];
 
 export const KOMODITAS_LAUT_OPTIONS = [
