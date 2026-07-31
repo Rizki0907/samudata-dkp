@@ -14,7 +14,7 @@ const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i)
 
 export default function Overview() {
   const [loading, setLoading] = useState(true);
-  const [selectedTahun, setSelectedTahun] = useState('Semua');
+  const [selectedTahun, setSelectedTahun] = useState(currentYear.toString());
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
     budidaya: { produksi: 0, pembudidaya: null, top_komoditas: '-', luas_lahan: null },
@@ -96,7 +96,6 @@ export default function Overview() {
             onChange={(e) => setSelectedTahun(e.target.value)}
             className="px-4 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px]"
           >
-            <option value="Semua">Semua Tahun</option>
             {TAHUN_OPTIONS.map((th) => (
               <option key={th} value={th}>{th}</option>
             ))}
@@ -122,15 +121,21 @@ export default function Overview() {
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Kapal Perikanan (Unit)</p>
-              <p className="text-2xl font-bold text-blue-600">52.211</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {stats.tangkap.kapal !== undefined && stats.tangkap.kapal !== null ? Number(stats.tangkap.kapal).toLocaleString('id-ID') : '52.211'}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Pelabuhan (Unit)</p>
-              <p className="text-2xl font-bold text-blue-600">22</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {stats.tangkap.pelabuhan !== undefined && stats.tangkap.pelabuhan !== null ? Number(stats.tangkap.pelabuhan).toLocaleString('id-ID') : '22'}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Nelayan (Orang)</p>
-              <p className="text-2xl font-bold text-blue-600">217.209</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {stats.tangkap.nelayan !== undefined && stats.tangkap.nelayan !== null ? Number(stats.tangkap.nelayan).toLocaleString('id-ID') : '217.209'}
+              </p>
             </div>
           </div>
         </div>

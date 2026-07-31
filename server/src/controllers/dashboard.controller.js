@@ -20,22 +20,20 @@ const getOverviewStats = async (req, res) => {
       _sum: { volume: true }
     });
 
-    const tangkapTrip = await prisma.perikananTangkap.aggregate({
-      _count: { id: true },
-      where: tangkapWhere
-    });
-
-    const pelabuhanDistinct = await prisma.perikananTangkap.findMany({
-      where: tangkapWhere,
-      select: { pelabuhan: true },
-      distinct: ['pelabuhan']
+    const tangkapOverviewWhere = { category: 'OVERVIEW_TANGKAP' };
+    if (tahun && tahun !== 'Semua') {
+      tangkapOverviewWhere.value = String(tahun);
+    }
+    const tangkapOverview = await prisma.masterData.findFirst({
+      where: tangkapOverviewWhere,
+      orderBy: { value: 'desc' }
     });
 
     const tangkap = {
       produksi: tangkapVolume._sum.volume || 0,
-      kapal: tangkapTrip._count.id || 0,
-      pelabuhan: pelabuhanDistinct.length || 0,
-      nelayan: 0
+      kapal: tangkapOverview?.metadata?.kapal_perikanan !== undefined && tangkapOverview?.metadata?.kapal_perikanan !== '' ? Number(tangkapOverview.metadata.kapal_perikanan) : null,
+      pelabuhan: tangkapOverview?.metadata?.pelabuhan !== undefined && tangkapOverview?.metadata?.pelabuhan !== '' ? Number(tangkapOverview.metadata.pelabuhan) : null,
+      nelayan: tangkapOverview?.metadata?.nelayan !== undefined && tangkapOverview?.metadata?.nelayan !== '' ? Number(tangkapOverview.metadata.nelayan) : null
     };
 
     // === 2. PERIKANAN BUDIDAYA ===

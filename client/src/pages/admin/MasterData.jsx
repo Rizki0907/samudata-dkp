@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import InputOverviewBudidaya from '@/components/admin/InputOverviewBudidaya';
+import InputOverviewTangkap from '@/components/admin/InputOverviewTangkap';
 
 const CATEGORY_MAP = {
   'Perikanan Tangkap Laut': [
@@ -59,7 +60,8 @@ const OVERVIEW_BIDANG_LIST = [
   'Perikanan Budidaya',
   'Pengolahan & Pemasaran',
   'Kelautan dan Pesisir',
-  'Konsumsi Ikan Masyarakat (KIM)'
+  'Konsumsi Ikan Masyarakat (KIM)',
+  'Ekspor'
 ];
 
 // Modal Component
@@ -447,7 +449,9 @@ export default function MasterData() {
           </div>
             </>
           ) : (
-            activeOverviewBidang === 'Perikanan Budidaya' ? (
+            activeOverviewBidang === 'Perikanan Tangkap' ? (
+              <InputOverviewTangkap showToast={showToast} onDataChange={fetchData} />
+            ) : activeOverviewBidang === 'Perikanan Budidaya' ? (
               <InputOverviewBudidaya showToast={showToast} onDataChange={fetchData} />
             ) : (
               <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-sm">
