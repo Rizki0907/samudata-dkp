@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import InputOverviewBudidaya from '@/components/admin/InputOverviewBudidaya';
 import InputOverviewTangkap from '@/components/admin/InputOverviewTangkap';
+import InputOverviewPemasaran from '@/components/admin/InputOverviewPemasaran';
+import InputOverviewKim from '@/components/admin/InputOverviewKim';
 
 const CATEGORY_MAP = {
   'Perikanan Tangkap Laut': [
@@ -453,6 +455,10 @@ export default function MasterData() {
               <InputOverviewTangkap showToast={showToast} onDataChange={fetchData} />
             ) : activeOverviewBidang === 'Perikanan Budidaya' ? (
               <InputOverviewBudidaya showToast={showToast} onDataChange={fetchData} />
+            ) : activeOverviewBidang === 'Pengolahan & Pemasaran' ? (
+              <InputOverviewPemasaran showToast={showToast} onDataChange={fetchData} />
+            ) : activeOverviewBidang === 'Konsumsi Ikan Masyarakat (KIM)' ? (
+              <InputOverviewKim showToast={showToast} onDataChange={fetchData} />
             ) : (
               <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-sm">
                 <Database className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />

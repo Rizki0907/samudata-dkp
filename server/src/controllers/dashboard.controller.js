@@ -2,10 +2,33 @@ const prisma = require('../utils/prisma');
 
 const getOverviewStats = async (req, res) => {
   try {
-    const { tahun } = req.query;
+    const { tahun, admin } = req.query;
+
+    let isAdmin = false;
+    if (admin === 'true') {
+      isAdmin = true;
+    } else if (admin === 'false') {
+      isAdmin = false;
+    } else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          if (decoded && (decoded.role === 'admin_pusat' || decoded.role === 'admin' || decoded.role)) {
+            isAdmin = true;
+          }
+        } catch (err) {
+          // Abaikan jika token tidak valid
+        }
+      }
+    }
+
+    const statusFilter = isAdmin ? {} : { status: 'VERIFIED' };
 
     // === 1. PERIKANAN TANGKAP ===
-    const tangkapWhere = { status: 'VERIFIED' };
+    const tangkapWhere = { ...statusFilter };
     if (tahun && tahun !== 'Semua') {
       tangkapWhere.tanggal = {
         gte: new Date(`${tahun}-01-01T00:00:00.000Z`),
@@ -37,7 +60,7 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 2. PERIKANAN BUDIDAYA ===
-    const budidayaWhere = { status: 'VERIFIED' };
+    const budidayaWhere = { ...statusFilter };
     if (tahun && tahun !== 'Semua') {
       budidayaWhere.tahun = String(tahun);
     }
@@ -67,30 +90,30 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 3. PENGOLAHAN & PEMASARAN ===
-    const pemasaranWhere = { status: 'VERIFIED' };
+    const pemasaranOverviewWhere = { category: 'OVERVIEW_PEMASARAN' };
     if (tahun && tahun !== 'Semua') {
-      pemasaranWhere.tahun = Number(tahun);
+      pemasaranOverviewWhere.value = String(tahun);
     }
-
-    const pengolahanAgg = await prisma.pengolahanPemasaran.aggregate({
-      where: pemasaranWhere,
-      _count: { id: true },
-      _sum: {
-        hasil_produksi_per_tahun_kg: true,
-        nilai_hasil_produksi_per_tahun_rp: true,
-        total_pemasaran_per_tahun_kg: true
-      }
+    const pemasaranOverview = await prisma.masterData.findFirst({
+      where: pemasaranOverviewWhere,
+      orderBy: { value: 'desc' }
     });
 
     const pemasaran = {
-      total_unit_usaha: pengolahanAgg._count.id || 0,
-      total_produksi_kg: pengolahanAgg._sum.hasil_produksi_per_tahun_kg || 0,
-      total_nilai_produksi_rp: pengolahanAgg._sum.nilai_hasil_produksi_per_tahun_rp || 0,
-      total_pemasaran_kg: pengolahanAgg._sum.total_pemasaran_per_tahun_kg || 0
+      unit_pengolahan: (pemasaranOverview && pemasaranOverview.metadata && pemasaranOverview.metadata.unit_pengolahan !== undefined && pemasaranOverview.metadata.unit_pengolahan !== "") ? Number(pemasaranOverview.metadata.unit_pengolahan) : null,
+      unit_pemasaran: (pemasaranOverview && pemasaranOverview.metadata && pemasaranOverview.metadata.unit_pemasaran !== undefined && pemasaranOverview.metadata.unit_pemasaran !== "") ? Number(pemasaranOverview.metadata.unit_pemasaran) : null,
+      produk_pengolahan_ton: (pemasaranOverview && pemasaranOverview.metadata && pemasaranOverview.metadata.produk_pengolahan_ton !== undefined && pemasaranOverview.metadata.produk_pengolahan_ton !== "") ? Number(pemasaranOverview.metadata.produk_pengolahan_ton) : null,
+      produk_pemasaran_ton: (pemasaranOverview && pemasaranOverview.metadata && pemasaranOverview.metadata.produk_pemasaran_ton !== undefined && pemasaranOverview.metadata.produk_pemasaran_ton !== "") ? Number(pemasaranOverview.metadata.produk_pemasaran_ton) : null,
+      tahun_overview: pemasaranOverview ? pemasaranOverview.value : null,
+      // fallback lama
+      total_unit_usaha: 0,
+      total_produksi_kg: 0,
+      total_nilai_produksi_rp: 0,
+      total_pemasaran_kg: 0,
     };
 
     // === 4. GARAM (Kelautan & Pesisir) ===
-    const garamWhere = { status: 'VERIFIED' };
+    const garamWhere = { ...statusFilter };
     if (tahun && tahun !== 'Semua') {
       garamWhere.tahun = Number(tahun);
     }
@@ -122,7 +145,7 @@ const getOverviewStats = async (req, res) => {
 
     // === 5. EKSPOR PERIKANAN ===
     const eksporWhere = {
-      status: 'VERIFIED',
+      ...statusFilter,
       satuan_volume: {
         in: ['Kilogram', 'KG', 'kg', 'Kg', 'KILOGRAM', 'kilogram']
       }
@@ -150,8 +173,17 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 6. KONSUMSI IKAN MASYARAKAT (KIM) ===
+    const kimOverviewWhere = { category: 'OVERVIEW_KIM' };
+    if (tahun && tahun !== 'Semua') {
+      kimOverviewWhere.value = String(tahun);
+    }
+    const kimOverview = await prisma.masterData.findFirst({
+      where: kimOverviewWhere,
+      orderBy: { value: 'desc' }
+    });
+
     const kim = {
-      total_konsumsi: '-'
+      total_konsumsi: (kimOverview && kimOverview.metadata && kimOverview.metadata.total_konsumsi !== undefined && kimOverview.metadata.total_konsumsi !== "") ? Number(kimOverview.metadata.total_konsumsi) : null
     };
 
     res.status(200).json({
