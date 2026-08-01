@@ -4,14 +4,14 @@ import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { 
   Waves, Sprout, Fish, Package, Database, Globe, 
-  LayoutDashboard, LogOut, ChevronLeft
+  LayoutDashboard, LogOut, ChevronLeft, Ship
 } from 'lucide-react';
 
 const USER_MENUS = [
   { title: 'Overview', path: '/user', icon: LayoutDashboard },
-  { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Fish },
-  { title: 'Perikanan Budidaya', path: '/user/budidaya', icon: Waves },
-  { title: 'Kelautan dan Pesisir', path: '/user/kelautan-pesisir', icon: Sprout },
+  { title: 'Perikanan Tangkap', path: '/user/perikanan-tangkap', icon: Ship },
+  { title: 'Perikanan Budidaya', path: '/user/budidaya', icon: Fish },
+  { title: 'Kelautan dan Pesisir', path: '/user/kelautan-pesisir', icon: Waves },
   { title: 'Pengolahan dan Pemasaran', path: '/user/pengolahan-pemasaran', icon: Package },
 
   { title: 'Ekspor', path: '/user/ekspor', icon: Globe },
@@ -19,9 +19,9 @@ const USER_MENUS = [
 
 const ADMIN_MENUS = [
   { title: 'Overview Admin', path: '/admin', icon: LayoutDashboard },
-  { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Fish },
-  { title: 'Perikanan Budidaya', path: '/admin/budidaya', icon: Waves },  
-  { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Sprout, reqPusat: true },
+  { title: 'Perikanan Tangkap', path: '/admin/perikanan-tangkap', icon: Ship },
+  { title: 'Perikanan Budidaya', path: '/admin/budidaya', icon: Fish },  
+  { title: 'Kelautan dan Pesisir', path: '/admin/kelautan-pesisir', icon: Waves, reqPusat: true },
   { title: 'Pengolahan dan Pemasaran', path: '/admin/pengolahan-pemasaran', icon: Package, reqPusat: true },
 
   { title: 'Ekspor', path: '/admin/ekspor', icon: Globe, reqPusat: true },

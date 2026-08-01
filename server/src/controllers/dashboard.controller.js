@@ -124,17 +124,40 @@ const getOverviewStats = async (req, res) => {
     });
 
     let totalGaramProduksi = 0;
-    let totalGaramPetambak = 0;
-    let totalGaramLuas = 0;
-    const seenGaramKabKota = new Set();
+    
+    // Mapping bulan ke angka untuk mencari bulan terakhir
+    const monthOrder = {
+      'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+      'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+      'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+    };
+
+    const latestDataPerKabKota = {};
 
     for (const g of allGaram) {
+      // Produksi selalu diakumulasi (total setahun)
       totalGaramProduksi += g.total_produksi_ton || 0;
-      if (!seenGaramKabKota.has(g.kabupaten_kota)) {
-        seenGaramKabKota.add(g.kabupaten_kota);
-        totalGaramPetambak += g.jumlah_petambak || 0;
-        totalGaramLuas += g.luas_total_ha || 0;
+      
+      const mName = (g.bulan || '').toLowerCase();
+      const mIndex = monthOrder[mName] || 0;
+
+      // Ambil petambak dan luas lahan dari bulan terakhir (tertinggi)
+      if (!latestDataPerKabKota[g.kabupaten_kota]) {
+        latestDataPerKabKota[g.kabupaten_kota] = { monthIndex: mIndex, petambak: g.jumlah_petambak || 0, luas: g.luas_total_ha || 0 };
+      } else {
+        if (mIndex > latestDataPerKabKota[g.kabupaten_kota].monthIndex) {
+          latestDataPerKabKota[g.kabupaten_kota].monthIndex = mIndex;
+          latestDataPerKabKota[g.kabupaten_kota].petambak = g.jumlah_petambak || 0;
+          latestDataPerKabKota[g.kabupaten_kota].luas = g.luas_total_ha || 0;
+        }
       }
+    }
+
+    let totalGaramPetambak = 0;
+    let totalGaramLuas = 0;
+    for (const kab in latestDataPerKabKota) {
+      totalGaramPetambak += latestDataPerKabKota[kab].petambak;
+      totalGaramLuas += latestDataPerKabKota[kab].luas;
     }
 
     const garam = {

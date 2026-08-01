@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
-import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter } from 'lucide-react';
+import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter, Waves } from 'lucide-react';
 
 // Import Assets
 import oceanBg from '@/assets/ocean_bg.png';
@@ -220,7 +220,7 @@ export default function Overview() {
         <div className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 border border-slate-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-slate-500 text-white rounded-xl shadow-lg shadow-slate-500/30 group-hover:scale-110 transition-transform">
-              <Droplets className="w-8 h-8" />
+              <Waves className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Garam</h2>
           </div>
@@ -230,7 +230,7 @@ export default function Overview() {
               <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Petambak (Orang)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Petambak (Orang)</p>
               <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak?.toLocaleString('id-ID')}</p>
             </div>
             <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
