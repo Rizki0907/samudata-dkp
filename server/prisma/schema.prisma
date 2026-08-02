@@ -291,13 +291,8 @@ model PotensiPerairan {
   tahun_data                    Int
   luas_wilayah_laut_km2         Float      @default(0)
   total_panjang_garis_pantai_km Float      @default(0)
-  luas_perairan_km2             Float      @default(0)
   jumlah_pulau_kecil            Int        @default(0)
-  pulau_berpenghuni             Int        @default(0)
-  pulau_tidak_berpenghuni       Int        @default(0)
   desa_pesisir                  Int        @default(0)
-  luas_kawasan_konservasi_ha    Float      @default(0)
-  potensi_perikanan_ton_th      Float      @default(0)
   keterangan                    String?
   created_at                    DateTime   @default(now())
   updated_at                    DateTime   @updatedAt

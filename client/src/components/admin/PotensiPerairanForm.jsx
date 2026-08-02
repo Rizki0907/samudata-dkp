@@ -19,7 +19,6 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     tahun_data: CURRENT_YEAR,
     luas_wilayah_laut_km2: '',
     total_panjang_garis_pantai_km: '',
-    luas_perairan_km2: '',
     jumlah_pulau_kecil: '',
     desa_pesisir: '',
     keterangan: '',
@@ -37,7 +36,6 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
       tahun_data: parseInt(formData.tahun_data),
       luas_wilayah_laut_km2: parseFloat(formData.luas_wilayah_laut_km2) || 0,
       total_panjang_garis_pantai_km: parseFloat(formData.total_panjang_garis_pantai_km) || 0,
-      luas_perairan_km2: parseFloat(formData.luas_perairan_km2) || 0,
       jumlah_pulau_kecil: parseInt(formData.jumlah_pulau_kecil) || 0,
       desa_pesisir: parseInt(formData.desa_pesisir) || 0,
     });
