@@ -15,7 +15,6 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState(initialData || {
-    kabupaten_kota: 'Jawa Timur',
     tahun_data: CURRENT_YEAR,
     luas_wilayah_laut_km2: '',
     total_panjang_garis_pantai_km: '',

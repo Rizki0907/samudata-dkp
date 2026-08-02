@@ -414,9 +414,9 @@ const exportPotensiExcel = (dataRaw) => {
   }
 
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
+  const h1 = ['No', 'Status', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
   const dataRows = data.map((row, i) => {
-    return [i + 1, row.status || '-', row.kabupaten_kota, row.tahun_data,
+    return [i + 1, row.status || '-', row.tahun_data,
       fmtExcel(row.luas_wilayah_laut_km2),
       fmtExcel(row.total_panjang_garis_pantai_km),
       fmtExcel(row.jumlah_pulau_kecil),
@@ -1042,12 +1042,12 @@ export default function AdminKelautanPesisir() {
       />;
     } },
     { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-foreground">{formatBulan(info.getValue())}</span> },
-    { header: 'TW', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
+    { header: 'Tw', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
-    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
-    { header: 'Total Produksi', accessorKey: 'total_produksi_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
-    { header: 'Total Stok', accessorKey: 'total_stok_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
-    { header: 'Produktivitas', accessorKey: 'produktivitas', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
+    { header: 'Wilayah', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
+    { header: 'Prod.', accessorKey: 'total_produksi_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
+    { header: 'Stok', accessorKey: 'total_stok_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
+    { header: 'Prodv.', accessorKey: 'produktivitas', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
   ], []);
 
   const columnsPotensi = useMemo(() => [
@@ -1057,13 +1057,12 @@ export default function AdminKelautanPesisir() {
         row={row} 
         onEdit={() => setEditingPotensi(row)} 
         contextFields={[
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
           { label: 'Tahun', value: row.tahun_data }
         ]} 
       />;
     } },
     { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-foreground">{info.getValue()}</span> },
-    { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
+    { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
     {
       header: 'Total Panjang Garis Pantai (Km)', accessorKey: 'total_panjang_garis_pantai_km',
       cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
@@ -1139,8 +1138,8 @@ export default function AdminKelautanPesisir() {
           {[
             { label: 'Luas Total', value: `${(d.luas_total_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
             { label: 'Luas Produksi', value: `${(d.luas_produksi_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
-            { label: 'Produktivitas Lahan', value: `${(d.produktivitas || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha`, cls: 'text-emerald-300', border: 'border-emerald-500/30' },
-            { label: 'Jml Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-foreground', border: 'border-border' },
+            { label: 'Jumlah Kelompok', value: `${d.jumlah_kelompok || 0} Kelompok`, cls: 'text-foreground', border: 'border-border' },
+            { label: 'Jumlah Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-foreground', border: 'border-border' },
           ].map(s => (
             <div key={s.label} className={`bg-card p-3.5 rounded-xl border ${s.border}`}>
               <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">{s.label}</span>
@@ -1180,6 +1179,10 @@ export default function AdminKelautanPesisir() {
           <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2">
             <span className="text-xs text-amber-400/70 uppercase tracking-wider">Total Stok</span>
             <span className="font-bold text-amber-400">{(d.total_stok_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span>
+          </div>
+          <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-4 py-2">
+            <span className="text-xs text-cyan-400/70 uppercase tracking-wider">Produktivitas Lahan</span>
+            <span className="font-bold text-cyan-400">{(d.produktivitas || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span>
           </div>
         </div>
       </div>
@@ -1371,7 +1374,7 @@ export default function AdminKelautanPesisir() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Jml. Pulau-Pulau Kecil</p></div>
+              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Pulau-Pulau Kecil</p></div>
               <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
             </div>
             <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">

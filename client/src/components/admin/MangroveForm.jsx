@@ -10,7 +10,7 @@ const KABUPATEN_KOTA_LIST = [
   'Ponorogo', 'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep',
   'Trenggalek', 'Tuban', 'Tulungagung',
   'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang',
-  'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya', 'PT.Garam'
+  'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya'
 ];
 
 // ── HELPER KATEGORI KONDISI (0-100%) ───────────────────────────────────────

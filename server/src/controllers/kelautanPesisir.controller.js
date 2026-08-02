@@ -36,7 +36,7 @@ const getKondisiLamun = (persentase) => {
 const getGaramData = async (req, res) => {
   try {
     const data = await prisma.garam.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -53,7 +53,7 @@ const getGaramPublicData = async (req, res) => {
     
     const data = await prisma.garam.findMany({
       where,
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -146,7 +146,7 @@ const updateGaramStatus = async (req, res) => {
 const getPotensiPerairanData = async (req, res) => {
   try {
     const data = await prisma.potensiPerairan.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -163,7 +163,7 @@ const getPotensiPerairanPublicData = async (req, res) => {
     
     const data = await prisma.potensiPerairan.findMany({
       where,
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -174,7 +174,9 @@ const getPotensiPerairanPublicData = async (req, res) => {
 
 const createPotensiPerairanData = async (req, res) => {
   try {
-    const newData = await prisma.potensiPerairan.create({ data: req.body });
+    const payload = req.body;
+    if (!payload.kabupaten_kota) payload.kabupaten_kota = 'Jawa Timur';
+    const newData = await prisma.potensiPerairan.create({ data: payload });
     res.json({ success: true, data: newData });
   } catch (error) {
     console.error('Error creating potensi perairan data:', error);
@@ -196,6 +198,7 @@ const updatePotensiPerairanData = async (req, res) => {
       payload.status = 'PENDING';
       payload.alasan_penolakan = null;
     }
+    if (!payload.kabupaten_kota) payload.kabupaten_kota = 'Jawa Timur';
     
     const updatedData = await prisma.potensiPerairan.update({
       where: { id: parseInt(id) },
@@ -246,7 +249,7 @@ const updatePotensiPerairanStatus = async (req, res) => {
 const getMangroveData = async (req, res) => {
   try {
     const data = await prisma.mangrove.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -263,7 +266,7 @@ const getMangrovePublicData = async (req, res) => {
 
     const data = await prisma.mangrove.findMany({
       where,
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -391,7 +394,7 @@ const batchDeleteMangrove = async (req, res) => {
 const getLamunData = async (req, res) => {
   try {
     const data = await prisma.lamun.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -408,7 +411,7 @@ const getLamunPublicData = async (req, res) => {
 
     const data = await prisma.lamun.findMany({
       where,
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -546,7 +549,7 @@ const getKelautanPesisirStats = async (req, res) => {
     
     const garamData = await prisma.garam.findMany({ 
       where: garamWhere,
-      orderBy: { created_at: 'desc' }
+      orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
 
     let total_produksi_garam = 0;
