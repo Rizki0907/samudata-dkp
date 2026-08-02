@@ -344,40 +344,87 @@ const fmtExcel = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined
 const exportMangroveExcel = (data) => {
   if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA MANGROVE JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
+  const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Padat (Ha)', 'Sedang (Ha)', 'Jarang (Ha)', ''];
+  const merges = [
+    { s: {r:2, c:0}, e: {r:3, c:0} },
+    { s: {r:2, c:1}, e: {r:3, c:1} },
+    { s: {r:2, c:2}, e: {r:3, c:2} },
+    { s: {r:2, c:3}, e: {r:3, c:3} },
+    { s: {r:2, c:4}, e: {r:3, c:4} },
+    { s: {r:2, c:5}, e: {r:3, c:5} },
+    { s: {r:2, c:6}, e: {r:3, c:6} },
+    { s: {r:2, c:7}, e: {r:3, c:7} },
+    { s: {r:2, c:8}, e: {r:2, c:10} },
+    { s: {r:2, c:11}, e: {r:3, c:11} }
+  ];
   const dataRows = data.map((row, i) => [
     i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
     fmtExcel(row.luas_eksisting_ha),
     row.spesies || '-', fmtExcel(row.persentase_kondisi),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    fmtExcel(row.luas_sangat_padat), fmtExcel(row.luas_sedang), fmtExcel(row.luas_jarang),
+    fmtExcel(row.luas_rehabilitasi_ha)
   ]);
-  buildStandardSheet(title, h1, dataRows, 'Data_Mangrove');
+  buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Mangrove');
 };
 
 const exportLamunExcel = (data) => {
   if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA LAMUN JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
+  const h1Sub = ['', '', '', '', '', '', '', '', 'Kaya (Ha)', 'Kurang Kaya (Ha)', 'Miskin (Ha)', ''];
+  const merges = [
+    { s: {r:2, c:0}, e: {r:3, c:0} },
+    { s: {r:2, c:1}, e: {r:3, c:1} },
+    { s: {r:2, c:2}, e: {r:3, c:2} },
+    { s: {r:2, c:3}, e: {r:3, c:3} },
+    { s: {r:2, c:4}, e: {r:3, c:4} },
+    { s: {r:2, c:5}, e: {r:3, c:5} },
+    { s: {r:2, c:6}, e: {r:3, c:6} },
+    { s: {r:2, c:7}, e: {r:3, c:7} },
+    { s: {r:2, c:8}, e: {r:2, c:10} },
+    { s: {r:2, c:11}, e: {r:3, c:11} }
+  ];
   const dataRows = data.map((row, i) => [
     i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
     fmtExcel(row.luas_eksisting_ha),
     fmtExcel(row.persentase_tutupan),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+    fmtExcel(row.persentase_kondisi),
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    fmtExcel(row.luas_kaya), fmtExcel(row.luas_kurang_kaya), fmtExcel(row.luas_miskin),
+    fmtExcel(row.luas_rehabilitasi_ha)
   ]);
-  buildStandardSheet(title, h1, dataRows, 'Data_Lamun');
+  buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Lamun');
 };
 
 const exportTerumbuKarangExcel = (data) => {
   if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA TERUMBU KARANG JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', 'Kondisi', 'Luas Rehabilitasi (Ha)'];
+  const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', '', 'Luas Rehabilitasi (Ha)'];
+  const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Baik (Ha)', 'Baik (Ha)', 'Sedang (Ha)', 'Rusak (Ha)', ''];
+  const merges = [
+    { s: {r:2, c:0}, e: {r:3, c:0} },
+    { s: {r:2, c:1}, e: {r:3, c:1} },
+    { s: {r:2, c:2}, e: {r:3, c:2} },
+    { s: {r:2, c:3}, e: {r:3, c:3} },
+    { s: {r:2, c:4}, e: {r:3, c:4} },
+    { s: {r:2, c:5}, e: {r:3, c:5} },
+    { s: {r:2, c:6}, e: {r:3, c:6} },
+    { s: {r:2, c:7}, e: {r:3, c:7} },
+    { s: {r:2, c:8}, e: {r:2, c:11} },
+    { s: {r:2, c:12}, e: {r:3, c:12} }
+  ];
   const dataRows = data.map((row, i) => [
     i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
     fmtExcel(row.luas_eksisting_ha),
     fmtExcel(row.persentase_tutupan),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', fmtExcel(row.luas_rehabilitasi_ha)
+    fmtExcel(row.persentase_kondisi),
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    fmtExcel(row.luas_sangat_baik), fmtExcel(row.luas_baik), fmtExcel(row.luas_sedang), fmtExcel(row.luas_rusak),
+    fmtExcel(row.luas_rehabilitasi_ha)
   ]);
-  buildStandardSheet(title, h1, dataRows, 'Data_Terumbu_Karang');
+  buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Terumbu_Karang');
 };
 
 const buildStandardSheet = (title, h1, dataRows, filenamePrefix) => {
@@ -401,6 +448,38 @@ const buildStandardSheet = (title, h1, dataRows, filenamePrefix) => {
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: h1.length - 1 } }];
   const cols = h1.map((_, i) => ({ wch: i === 0 ? 5 : i === 2 ? 18 : 15 }));
   ws['!cols'] = cols;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
+};
+
+const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix) => {
+  const aoa = [[title], [], h1Top, h1Sub, ...dataRows];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const hStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF' });
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  ws[XLSX.utils.encode_cell({ c: 0, r: 0 })].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
+  
+  for (let R = 2; R <= 3; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const ref = XLSX.utils.encode_cell({ c: C, r: R });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = { ...hStyle, alignment: { horizontal: 'center', vertical: 'center' } };
+    }
+  }
+  
+  for (let R = 4; R <= range.e.r; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const ref = XLSX.utils.encode_cell({ c: C, r: R });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = cellStyle({ align: C <= 2 ? 'left' : 'center' });
+    }
+  }
+  
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: h1Top.length - 1 } }, ...merges];
+  const cols = h1Top.map((_, i) => ({ wch: i === 0 ? 5 : i === 2 ? 18 : 15 }));
+  ws['!cols'] = cols;
+  
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Data');
   XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
