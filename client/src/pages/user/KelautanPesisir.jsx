@@ -239,7 +239,7 @@ export default function KelautanPesisir() {
   const kpiPotensi = useMemo(() => {
     return {
       pulau_kecil: potensiPerKotaFrontend.reduce((s, d) => s + (d.jumlah_pulau_kecil || 0), 0),
-      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.panjang_pantai_utara_km || 0) + (d.panjang_pantai_selatan_km || 0) + (d.panjang_pantai_timur_km || 0) + (d.panjang_pantai_barat_km || 0), 0),
+      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.total_panjang_garis_pantai_km || 0), 0),
       luas_laut: potensiPerKotaFrontend.reduce((s, d) => s + (d.luas_wilayah_laut_km2 || 0), 0),
       desa_pesisir: potensiPerKotaFrontend.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
     };
@@ -444,13 +444,12 @@ export default function KelautanPesisir() {
 
   const columnsPotensi = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun_data' },
-    { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
+    { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="font-semibold text-blue-600">{numFmt(info.getValue())}</span> },
     {
-      header: 'Total Garis Pantai (km)',
-      accessorFn: (row) => (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) + (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0),
-      cell: info => <span className="font-semibold text-cyan-600">{numFmt(info.getValue())}</span>,
+      header: 'Total Panjang Garis Pantai (Km)', accessorKey: 'total_panjang_garis_pantai_km',
+      cell: info => <span className="font-semibold text-cyan-600">{numFmt(info.getValue() || 0)}</span>,
     },
-    { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil' },
+    { header: 'Jumlah Pulau-Pulau Kecil', accessorKey: 'jumlah_pulau_kecil' },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir' },
   ], []);
 

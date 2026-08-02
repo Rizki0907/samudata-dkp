@@ -414,7 +414,7 @@ const exportPotensiExcel = (dataRaw) => {
   }
 
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
+  const h1 = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
   const dataRows = data.map((row, i) => {
     return [i + 1, row.status || '-', row.kabupaten_kota, row.tahun_data,
       fmtExcel(row.luas_wilayah_laut_km2),
@@ -1068,7 +1068,7 @@ export default function AdminKelautanPesisir() {
       header: 'Total Panjang Garis Pantai (Km)', accessorKey: 'total_panjang_garis_pantai_km',
       cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
     },
-    { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="text-foreground">{info.getValue()} pulau</span> },
+    { header: 'Jumlah Pulau-Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="text-foreground">{info.getValue()} pulau</span> },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-foreground">{info.getValue() || 0}</span> },
   ], []);
 
