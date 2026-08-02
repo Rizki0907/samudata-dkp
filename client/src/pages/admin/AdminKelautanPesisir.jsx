@@ -1065,9 +1065,8 @@ export default function AdminKelautanPesisir() {
     { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'L. Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
     {
-      header: 'Total Pantai (km)', accessorKey: 'total_garis_pantai',
-      accessorFn: row => (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) + (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0),
-      cell: info => <span className="text-foreground">{info.getValue().toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
+      header: 'Total Panjang Garis Pantai (Km)', accessorKey: 'total_panjang_garis_pantai_km',
+      cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} km</span>
     },
     { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil', cell: info => <span className="text-foreground">{info.getValue()} pulau</span> },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir', cell: info => <span className="text-foreground">{info.getValue() || 0}</span> },
@@ -1807,7 +1806,7 @@ export default function AdminKelautanPesisir() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center gap-3 mb-4 text-destructive"><Trash2 className="w-5 h-5" /><h3 className="text-lg font-bold">Konfirmasi Hapus</h3></div>
-            <p className="text-muted-foreground text-sm mb-6">Yakin ingin menghapus data <strong className="text-foreground">{itemToDelete.kabupaten_kota}</strong>?</p>
+            <p className="text-muted-foreground text-sm mb-6">Yakin ingin menghapus data <strong className="text-foreground">{activeTab === 'potensi_perairan' ? `Tahun ${itemToDelete.tahun_data}` : itemToDelete.kabupaten_kota}</strong>?</p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-muted text-muted-foreground hover:bg-muted/80 text-sm transition-colors">Batal</button>
               <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm transition-colors">Ya, Hapus</button>
@@ -1865,8 +1864,8 @@ export default function AdminKelautanPesisir() {
               </div>
 
               {(activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun' || activeTab === 'terumbu_karang') && (
-                <div className={activeTab === 'garam' ? "grid grid-cols-1 md:grid-cols-5 gap-4" : "grid grid-cols-1 md:grid-cols-3 gap-4"}>
-                  <div>
+                <div className="flex flex-col md:flex-row md:flex-wrap gap-4 items-end">
+                  <div className="w-full md:flex-1 md:min-w-[180px]">
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
                     <SearchableMultiSelect
                       value={filterStatus}
@@ -1880,28 +1879,30 @@ export default function AdminKelautanPesisir() {
                       ]}
                     />
                   </div>
-                  <div>
+                  <div className="w-full md:flex-1 md:min-w-[180px]">
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                     <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
                   </div>
+                  {activeTab !== 'potensi_perairan' && (
+                    <div className="w-full md:flex-1 md:min-w-[180px]">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
+                      <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+                    </div>
+                  )}
                   {activeTab === 'garam' && (
                     <>
-                      <div>
+                      <div className="w-full md:flex-1 md:min-w-[180px]">
                         <label className="block text-xs font-medium text-muted-foreground mb-1.5">Triwulan</label>
                         <SearchableMultiSelect value={filterTw} onChange={setFilterTw} placeholder="Semua Triwulan" options={['TW 1', 'TW 2', 'TW 3', 'TW 4']} />
                       </div>
-                      <div>
+                      <div className="w-full md:flex-1 md:min-w-[180px]">
                         <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
                         <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={NAMA_BULAN_LIST} />
                       </div>
                     </>
                   )}
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                    <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
-                  </div>
                   {(filterTahun.length > 0 || filterKab.length > 0 || filterTw.length > 0 || filterBulan.length > 0 || filterStatus.length > 0) && (
-                    <div className={activeTab === 'garam' ? "md:col-span-5 flex justify-end mt-1" : "md:col-span-3 flex justify-end mt-1"}>
+                    <div className="w-full flex justify-end mt-1">
                       <button
                         type="button"
                         onClick={() => { setFilterTahun([]); setFilterKab([]); setFilterTw([]); setFilterBulan([]); setFilterStatus([]); }}
