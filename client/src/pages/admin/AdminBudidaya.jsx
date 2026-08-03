@@ -1009,12 +1009,16 @@ export default function AdminBudidaya() {
                     { header: 'Terakhir Diubah', accessorKey: 'updated_at', cell: info => new Date(info.getValue()).toLocaleDateString('id-ID') }
                   ]}
                   onEdit={handleEditTahunan}
-                  onDelete={handleDeleteTahunan}
+                  canEditRow={(row) => {
+                    if (user?.role === 'admin_pusat' || user?.role === 'admin_bidang') return true;
+                    return row.status === 'REJECTED';
+                  }}
+                  onDelete={user?.role === 'admin_pusat' ? handleDeleteTahunan : undefined}
                   onApprove={handleApproveTahunan}
                   onReject={handleRejectTahunan}
                   onBatchApprove={handleBatchApproveTahunan}
                   onBatchReject={handleBatchRejectTahunan}
-                  onBatchDelete={handleBatchDeleteTahunan}
+                  onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDeleteTahunan : undefined}
                   exportName={`Data_Tahunan_Budidaya_${new Date().toISOString().split('T')[0]}`}
                   customExportButton={
                     <button

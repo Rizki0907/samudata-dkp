@@ -2275,14 +2275,18 @@ const columns = useMemo(() => [
                   return matchTahun && matchStatus && matchCabang;
                 })}
                 onEdit={handleEdit}
-                onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? handleDeleteTahunan : undefined}
+                canEditRow={(row) => {
+                  if (user?.role === 'admin_pusat' || user?.role === 'admin_bidang') return true;
+                  return row.status === 'REJECTED';
+                }}
+                onDelete={user?.role === 'admin_pusat' ? handleDeleteTahunan : undefined}
                 exportable={user?.role === 'admin_pusat' || user?.role === 'admin_bidang'}
                 onCustomExport={() => setIsExportModalOpen(true)}
                 onApprove={handleApproveTahunan}
                 onReject={handleRejectTahunan}
                 onBatchApprove={handleBatchApproveTahunan}
                 onBatchReject={handleBatchRejectTahunan}
-                onBatchDelete={user?.role === 'admin_pusat' || user?.role === 'admin_cabang' ? handleBatchDeleteTahunan : undefined}
+                onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDeleteTahunan : undefined}
                 canBatchApprove={(selectedRows) => selectedRows.some(row => 
                   (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED'].includes(row.status)) || 
                   (user?.role === 'admin_bidang' && row.status === 'PENDING') ||
@@ -2300,33 +2304,33 @@ const columns = useMemo(() => [
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
-                    <p className="text-2xl font-bold text-foreground">{(computedStats.kpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground truncate">Total Volume</p>
+                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${(computedStats.kpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ton`}>{(computedStats.kpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Ton</span></p>
                   </div>
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500"><TrendingUp className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p>
-                    <p className="text-2xl font-bold text-foreground">{formatRupiah(computedStats.kpi.total_nilai)}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
+                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={formatRupiah(computedStats.kpi.total_nilai)}>{formatRupiah(computedStats.kpi.total_nilai)}</p>
                   </div>
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500"><Ship className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Pendaratan</p>
-                    <p className="text-2xl font-bold text-foreground">{computedStats.kpi.total_trip.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Trip</span></p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground truncate">Total Pendaratan</p>
+                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${computedStats.kpi.total_trip.toLocaleString('id-ID')} Trip`}>{computedStats.kpi.total_trip.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Trip</span></p>
                   </div>
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500"><Anchor className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Rata-rata Volume</p>
-                    <p className="text-2xl font-bold text-foreground">{computedStats.kpi.avg_volume_per_trip.toLocaleString('id-ID', { maximumFractionDigits: 1 })} <span className="text-sm font-normal text-muted-foreground">Kg/Trip</span></p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-muted-foreground truncate">Rata-rata Volume</p>
+                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${computedStats.kpi.avg_volume_per_trip.toLocaleString('id-ID', { maximumFractionDigits: 1 })} Kg/Trip`}>{computedStats.kpi.avg_volume_per_trip.toLocaleString('id-ID', { maximumFractionDigits: 1 })} <span className="text-sm font-normal text-muted-foreground">Kg/Trip</span></p>
                   </div>
                 </div>
               </div>
