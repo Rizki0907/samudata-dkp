@@ -6,7 +6,7 @@ import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { formatRupiah } from '@/utils/formatRupiah';
+import { formatRupiah, formatRupiahSingkat } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatDate } from '@/utils/dateHelper';
@@ -635,7 +635,7 @@ export default function PerikananTangkap() {
           <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
           <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p></div>
           <p className="text-3xl font-bold text-foreground">
-            Rp {(localKpi.total_nilai / 1000000000).toFixed(1)} <span className="text-sm text-muted-foreground font-normal">Milyar</span>
+            Rp {formatRupiahSingkat(localKpi.total_nilai).value} <span className="text-sm text-muted-foreground font-normal">{formatRupiahSingkat(localKpi.total_nilai).unit}</span>
           </p>
         </div>
         <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">

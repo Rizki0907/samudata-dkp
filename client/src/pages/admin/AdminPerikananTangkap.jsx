@@ -13,7 +13,7 @@ import {
   Clock, Download, Calendar, Map, Layers, ChevronDown, Droplet, Search, Trash2, Edit, Save, X, Eye, CheckCircle, XCircle, Scale, FileSpreadsheet
 } from 'lucide-react';
 import { formatDate } from '@/utils/dateHelper';
-import { formatRupiah } from '@/utils/formatRupiah';
+import { formatRupiah, formatRupiahSingkat } from '@/utils/formatRupiah';
 import { exportTahunan } from '@/utils/exportTahunan';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -2314,7 +2314,9 @@ const columns = useMemo(() => [
                   <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500"><TrendingUp className="w-6 h-6" /></div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
-                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={formatRupiah(computedStats.kpi.total_nilai)}>{formatRupiah(computedStats.kpi.total_nilai)}</p>
+                    <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={formatRupiah(computedStats.kpi.total_nilai)}>
+                      Rp {formatRupiahSingkat(computedStats.kpi.total_nilai).value} <span className="text-sm font-normal text-muted-foreground">{formatRupiahSingkat(computedStats.kpi.total_nilai).unit}</span>
+                    </p>
                   </div>
                 </div>
 
