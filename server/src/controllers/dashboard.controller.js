@@ -28,18 +28,12 @@ const getOverviewStats = async (req, res) => {
     const statusFilter = isAdmin ? {} : { status: 'VERIFIED' };
 
     // === 1. PERIKANAN TANGKAP ===
-    const tangkapWhere = { ...statusFilter };
+    const bulananWhere = {};
     if (tahun && tahun !== 'Semua') {
-      tangkapWhere.tanggal = {
-        gte: new Date(`${tahun}-01-01T00:00:00.000Z`),
-        lte: new Date(`${tahun}-12-31T23:59:59.999Z`)
-      };
+      bulananWhere.bulan = { startsWith: String(tahun) };
     }
-
-    const tangkapVolume = await prisma.detailTangkapan.aggregate({
-      where: {
-        perikananTangkap: tangkapWhere
-      },
+    const tangkapVolume = await prisma.dataBulananTangkap.aggregate({
+      where: bulananWhere,
       _sum: { volume: true }
     });
 
@@ -53,7 +47,7 @@ const getOverviewStats = async (req, res) => {
     });
 
     const tangkap = {
-      produksi: tangkapVolume._sum.volume || 0,
+      produksi: Number(((tangkapVolume._sum.volume || 0) / 1000).toFixed(2)),
       kapal: tangkapOverview?.metadata?.kapal_perikanan !== undefined && tangkapOverview?.metadata?.kapal_perikanan !== '' ? Number(tangkapOverview.metadata.kapal_perikanan) : null,
       pelabuhan: tangkapOverview?.metadata?.pelabuhan !== undefined && tangkapOverview?.metadata?.pelabuhan !== '' ? Number(tangkapOverview.metadata.pelabuhan) : null,
       nelayan: tangkapOverview?.metadata?.nelayan !== undefined && tangkapOverview?.metadata?.nelayan !== '' ? Number(tangkapOverview.metadata.nelayan) : null
