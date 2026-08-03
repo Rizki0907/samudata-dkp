@@ -236,7 +236,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
 
       {/* Kategori Lahan */}
       <div className="bg-muted/30 border border-border rounded-xl p-4 mt-4">
-        <h3 className="text-sm font-bold text-foreground mb-4">Kondisi Berdasarkan Lahan Terumbu Karang</h3>
+        <h3 className="text-sm font-bold text-foreground mb-4">Luas Lahan per Kategori</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sangat Baik</label>
