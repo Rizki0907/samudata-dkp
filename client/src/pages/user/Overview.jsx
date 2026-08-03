@@ -70,9 +70,9 @@ export default function Overview() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/90 to-cyan-900/80" />
         
         <div className="relative z-10 p-8 md:p-14 flex flex-col items-center text-center">
-          <div className="flex items-center justify-center gap-6 mb-8">
-            <img src={iconDKP} alt="Icon DKP" className="h-16 md:h-20 drop-shadow-lg" />
-            <div className="h-12 w-px bg-white/30" />
+          <div className="flex items-center justify-center gap-1 mb-5">
+            <img src={iconDKP} alt="Icon DKP" className="h-22 md:h-32 drop-shadow-lg" />
+            <div className="h-18 w-px bg-white/30" />
             <img src={logoDKP} alt="Logo DKP Jatim" className="h-16 md:h-20 drop-shadow-lg" />
           </div>
           <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-white mb-6 tracking-tight">
@@ -80,8 +80,8 @@ export default function Overview() {
             <span className="text-cyan-300">Provinsi Jawa Timur</span>
           </h1>
           <p className="text-blue-100 max-w-4xl text-base md:text-lg leading-relaxed">
-            Provinsi Jawa Timur dengan <b>panjang garis pantai 3.543,54 km</b> (No. 10 di Indonesia) 
-            dan <b>luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
+            Provinsi Jawa Timur dengan <b>panjang garis pantai 3.543,54 km
+            luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
             yang tersebar di <b>38 kabupaten/kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
           </p>
         </div>
@@ -120,7 +120,7 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap (Kg)</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap (Ton)</p>
               <p className="text-2xl font-bold text-blue-600">{stats.tangkap.produksi?.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
@@ -209,7 +209,7 @@ export default function Overview() {
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pemasaran (Ton)</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p classNfame="text-2xl font-bold text-orange-600">
                 {stats.pemasaran?.produk_pemasaran_ton !== null && stats.pemasaran?.produk_pemasaran_ton !== undefined && stats.pemasaran?.produk_pemasaran_ton !== '' ? Number(stats.pemasaran.produk_pemasaran_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
               </p>
             </div>

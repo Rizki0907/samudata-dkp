@@ -32,7 +32,7 @@ const CATEGORY_MAP = {
     { value: 'KOMODITAS_BUDIDAYA', label: 'Komoditas Budidaya', icon: Package },
     { value: 'JENIS_WADAH', label: 'Jenis Wadah', icon: Database }
   ],
-  'Pengolahan & Pemasaran': [
+  'Pengolahan dan Pemasaran': [
     { value: 'JENIS_PENGOLAHAN', label: 'Jenis Pengolahan', icon: Database },
     { value: 'JENIS_PEMASARAN', label: 'Jenis Pemasaran', icon: Database },
     { value: 'KOMODITAS_SEGAR_OLAHAN', label: 'Komoditas Segar / Olahan', icon: Package },
@@ -60,7 +60,7 @@ const SATUAN_OPTIONS = ['Kilogram', 'Liter', 'Tabung', 'Ton', 'Kuintal', 'Gram',
 const OVERVIEW_BIDANG_LIST = [
   'Perikanan Tangkap',
   'Perikanan Budidaya',
-  'Pengolahan & Pemasaran',
+  'Pengolahan dan Pemasaran',
   'Kelautan dan Pesisir',
   'Konsumsi Ikan Masyarakat (KIM)',
   'Ekspor'
@@ -455,7 +455,7 @@ export default function MasterData() {
               <InputOverviewTangkap showToast={showToast} onDataChange={fetchData} />
             ) : activeOverviewBidang === 'Perikanan Budidaya' ? (
               <InputOverviewBudidaya showToast={showToast} onDataChange={fetchData} />
-            ) : activeOverviewBidang === 'Pengolahan & Pemasaran' ? (
+            ) : activeOverviewBidang === 'Pengolahan dan Pemasaran' ? (
               <InputOverviewPemasaran showToast={showToast} onDataChange={fetchData} />
             ) : activeOverviewBidang === 'Konsumsi Ikan Masyarakat (KIM)' ? (
               <InputOverviewKim showToast={showToast} onDataChange={fetchData} />
