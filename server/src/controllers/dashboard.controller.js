@@ -160,10 +160,25 @@ const getOverviewStats = async (req, res) => {
       totalGaramLuas += latestDataPerKabKota[kab].luas;
     }
 
+    const kelautanOverviewWhere = { category: 'OVERVIEW_KELAUTAN' };
+    if (tahun && tahun !== 'Semua') {
+      kelautanOverviewWhere.value = String(tahun);
+    }
+    const kelautanOverview = await prisma.masterData.findFirst({
+      where: kelautanOverviewWhere,
+      orderBy: { value: 'desc' }
+    });
+
     const garam = {
-      produksi: totalGaramProduksi,
-      petambak: totalGaramPetambak,
-      luas_lahan: totalGaramLuas
+      produksi: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.produksi_garam !== undefined && kelautanOverview.metadata.produksi_garam !== "") 
+        ? Number(kelautanOverview.metadata.produksi_garam) 
+        : totalGaramProduksi,
+      petambak: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.jumlah_petambak !== undefined && kelautanOverview.metadata.jumlah_petambak !== "") 
+        ? Number(kelautanOverview.metadata.jumlah_petambak) 
+        : totalGaramPetambak,
+      luas_lahan: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.luas_lahan_garam !== undefined && kelautanOverview.metadata.luas_lahan_garam !== "") 
+        ? Number(kelautanOverview.metadata.luas_lahan_garam) 
+        : totalGaramLuas
     };
 
     // === 5. EKSPOR PERIKANAN ===
@@ -190,9 +205,22 @@ const getOverviewStats = async (req, res) => {
     const eksporVolumeTon = Number((eksporVolumeKg / 1000).toFixed(2));
     const eksporNilaiUsd = Number((eksporAgg._sum.nilai_usd || 0).toFixed(2));
 
+    const eksporOverviewWhere = { category: 'OVERVIEW_EKSPOR' };
+    if (tahun && tahun !== 'Semua') {
+      eksporOverviewWhere.value = String(tahun);
+    }
+    const eksporOverview = await prisma.masterData.findFirst({
+      where: eksporOverviewWhere,
+      orderBy: { value: 'desc' }
+    });
+
     const ekspor = {
-      volume_ton: eksporVolumeTon,
-      nilai_usd: eksporNilaiUsd
+      volume_ton: (eksporOverview && eksporOverview.metadata && eksporOverview.metadata.volume_ton !== undefined && eksporOverview.metadata.volume_ton !== "") 
+        ? Number(eksporOverview.metadata.volume_ton) 
+        : eksporVolumeTon,
+      nilai_usd: (eksporOverview && eksporOverview.metadata && eksporOverview.metadata.nilai_usd !== undefined && eksporOverview.metadata.nilai_usd !== "") 
+        ? Number(eksporOverview.metadata.nilai_usd) 
+        : eksporNilaiUsd
     };
 
     // === 6. KONSUMSI IKAN MASYARAKAT (KIM) ===

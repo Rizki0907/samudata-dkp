@@ -12,6 +12,8 @@ import InputOverviewBudidaya from '@/components/admin/InputOverviewBudidaya';
 import InputOverviewTangkap from '@/components/admin/InputOverviewTangkap';
 import InputOverviewPemasaran from '@/components/admin/InputOverviewPemasaran';
 import InputOverviewKim from '@/components/admin/InputOverviewKim';
+import InputOverviewKelautan from '@/components/admin/InputOverviewKelautan';
+import InputOverviewEkspor from '@/components/admin/InputOverviewEkspor';
 
 const CATEGORY_MAP = {
   'Perikanan Tangkap Laut': [
@@ -459,6 +461,10 @@ export default function MasterData() {
               <InputOverviewPemasaran showToast={showToast} onDataChange={fetchData} />
             ) : activeOverviewBidang === 'Konsumsi Ikan Masyarakat (KIM)' ? (
               <InputOverviewKim showToast={showToast} onDataChange={fetchData} />
+            ) : activeOverviewBidang === 'Kelautan dan Pesisir' ? (
+              <InputOverviewKelautan showToast={showToast} onDataChange={fetchData} />
+            ) : activeOverviewBidang === 'Ekspor' ? (
+              <InputOverviewEkspor showToast={showToast} onDataChange={fetchData} />
             ) : (
               <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-sm">
                 <Database className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
