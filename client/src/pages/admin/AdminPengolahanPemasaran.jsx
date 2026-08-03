@@ -2771,7 +2771,7 @@ export default function AdminPengolahanPemasaran() {
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">
-            Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
+            Kelola Data Pengolahan dan Pemasaran Produk Kelautan dan Perikanan
           </h1>
         </div>
 
@@ -2797,7 +2797,7 @@ export default function AdminPengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">
-            Kelola Data Pengolahan dan Pemasaran Produk Kelautan Perikanan
+            Kelola Data Pengolahan dan Pemasaran Produk Kelautan dan Perikanan
           </h1>
         </div>
 
