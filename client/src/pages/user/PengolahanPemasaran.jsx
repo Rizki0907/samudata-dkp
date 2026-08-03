@@ -1183,7 +1183,7 @@ export default function PengolahanPemasaran() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">
-            Statistik Pengolahan dan Pemasaran Produk Kelautan Perikanan
+            Statistik Pengolahan dan Pemasaran Produk Kelautan dan Perikanan
           </h1>
         </div>
 
