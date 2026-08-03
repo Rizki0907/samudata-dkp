@@ -1314,11 +1314,17 @@ export default function AdminKelautanPesisir() {
 
     const visGaramPerKota = Object.values(filteredVisGaram.reduce((agg, d) => {
       const kab = d.kabupaten_kota || 'Unknown';
-      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0 };
+      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0, _tahun: -1, _bulanIdx: -1 };
       agg[kab].produksi += (d.total_produksi_ton || 0);
-      agg[kab].kelompok = Math.max(agg[kab].kelompok, d.jumlah_kelompok || 0);
-      agg[kab].luas_lahan = Math.max(agg[kab].luas_lahan, d.luas_total_ha || 0);
-      agg[kab].petambak = Math.max(agg[kab].petambak, d.jumlah_petambak || 0);
+      const bulanIdx = NAMA_BULAN_LIST.indexOf(formatBulan(d.bulan));
+      const isTerbaru = (d.tahun || 0) > agg[kab]._tahun || ((d.tahun || 0) === agg[kab]._tahun && bulanIdx > agg[kab]._bulanIdx);
+      if (isTerbaru) {
+        agg[kab].kelompok = d.jumlah_kelompok || 0;
+        agg[kab].luas_lahan = d.luas_total_ha || 0;
+        agg[kab].petambak = d.jumlah_petambak || 0;
+        agg[kab]._tahun = d.tahun || 0;
+        agg[kab]._bulanIdx = bulanIdx;
+      }
       return agg;
     }, {})).sort((a, b) => b.produksi - a.produksi);
 
