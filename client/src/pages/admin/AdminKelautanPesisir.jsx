@@ -1332,6 +1332,44 @@ export default function AdminKelautanPesisir() {
     const garamProduksi = visGaramPerKota.map(d => parseFloat(d.produksi.toFixed(2)));
     const garamKelompok = visGaramPerKota.map(d => d.kelompok);
 
+    // ── TREN BULANAN PRODUKSI GARAM ──
+    const garamTrenMap = filteredVisGaram.reduce((acc, d) => {
+      const bulanIdx = NAMA_BULAN_LIST.indexOf(formatBulan(d.bulan));
+      if (bulanIdx === -1) return acc;
+      const thn = d.tahun;
+      const key = `${thn}-${bulanIdx}`;
+      if (!acc[key]) acc[key] = { tahun: thn, bulanIdx, produksi: 0 };
+      acc[key].produksi += (d.total_produksi_ton || 0);
+      return acc;
+    }, {});
+    const garamTren = Object.values(garamTrenMap).sort((a, b) => a.tahun - b.tahun || a.bulanIdx - b.bulanIdx);
+    const garamTrenLabels = garamTren.map(t => `${NAMA_BULAN_LIST[t.bulanIdx].slice(0, 3)} ${t.tahun}`);
+    const garamTrenValues = garamTren.map(t => parseFloat(t.produksi.toFixed(2)));
+
+    const garamTrenOption = {
+      tooltip: { trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: isDark ? '#ffffff' : '#0f172a', fontWeight: 'bold' } },
+      yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: isDark ? '#ffffff' : '#0f172a' }, axisLabel: { color: isDark ? '#ffffff' : '#0f172a' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : '#cbd5e1' } } },
+      dataZoom: garamTrenLabels.length > 8 ? [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }] : [],
+      series: [{
+        name: 'Produksi',
+        type: 'line',
+        data: garamTrenValues,
+        smooth: true,
+        symbolSize: 8,
+        itemStyle: { color: isDark ? '#3b82f6' : '#0077b6' },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: isDark
+              ? [{ offset: 0, color: 'rgba(59, 130, 246, 0.5)' }, { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }]
+              : [{ offset: 0, color: 'rgba(0, 119, 182, 0.5)' }, { offset: 1, color: 'rgba(0, 119, 182, 0.05)' }]
+          }
+        }
+      }]
+    };
+
     const numFmt = (v) => (Number(v) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
     // ── VISUALISASI MANGROVE (only VERIFIED data) ──
@@ -1503,7 +1541,7 @@ export default function AdminKelautanPesisir() {
               {garamKota.length > 0
                 ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1513,7 +1551,7 @@ export default function AdminKelautanPesisir() {
               {garamKota.length > 0
                 ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#023e8a', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1528,6 +1566,12 @@ export default function AdminKelautanPesisir() {
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Petambak per Kab/Kota</h3>
               {garamKota.length > 0
                 ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
+                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Tren Bulanan Produksi Garam (Ton)</h3>
+              {garamTrenLabels.length > 0
+                ? <ReactECharts option={garamTrenOption} style={{ height: '320px' }} />
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
           </div>
@@ -1569,7 +1613,7 @@ export default function AdminKelautanPesisir() {
               {mangroveKota.length > 0
                 ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1579,7 +1623,7 @@ export default function AdminKelautanPesisir() {
               {mangroveKota.length > 0
                 ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#023e8a', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1623,7 +1667,7 @@ export default function AdminKelautanPesisir() {
               {terumbuKota.length > 0
                 ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1633,7 +1677,7 @@ export default function AdminKelautanPesisir() {
               {terumbuKota.length > 0
                 ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#ec4899', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1677,7 +1721,7 @@ export default function AdminKelautanPesisir() {
               {lamunKota.length > 0
                 ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#10b981', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1687,7 +1731,7 @@ export default function AdminKelautanPesisir() {
               {lamunKota.length > 0
                 ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#8b5cf6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                     </div>
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1870,7 +1914,7 @@ export default function AdminKelautanPesisir() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Kelautan dan Pesisir</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Data Kelautan dan Pesisir</h1>
         </div>
         {mainTab === 'tabel' && !isFormOpen && (activeTab === 'garam' || activeTab === 'potensi_perairan' || activeTab === 'mangrove' || activeTab === 'lamun' || activeTab === 'terumbu_karang') && (
           <button
@@ -2006,9 +2050,28 @@ export default function AdminKelautanPesisir() {
                   <Filter className="w-5 h-5 text-muted-foreground" />
                   <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
                 </div>
-                <div className="inline-flex items-center gap-2 self-start rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 shadow-sm dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-400 sm:self-auto">
-                  <Clock className="h-4 w-4 animate-pulse" />
-                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                <div 
+                  className="
+                    inline-flex item-center gap-2
+                    whitespace-nowrap
+                    px-4 py-2
+                    bg-cyan-50 text-cyan-700
+                    dark:bg-cyan-500/10 dark:text-cyan-300
+                    rounded-full
+                    text-sm 
+                    font-medium
+                    border border-cyan-200
+                    dark:border-cyan-500/20
+                    shadow-sm"
+                >
+                  <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
+                  
+                  <span className="opacity-80">
+                    Terakhir Diperbarui:
+                  </span>
+                  <span className="font-semibold">
+                    {lastUpdated}
+                  </span>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
