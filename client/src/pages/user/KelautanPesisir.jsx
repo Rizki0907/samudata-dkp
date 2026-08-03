@@ -239,7 +239,7 @@ export default function KelautanPesisir() {
   const kpiPotensi = useMemo(() => {
     return {
       pulau_kecil: potensiPerKotaFrontend.reduce((s, d) => s + (d.jumlah_pulau_kecil || 0), 0),
-      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.panjang_pantai_utara_km || 0) + (d.panjang_pantai_selatan_km || 0) + (d.panjang_pantai_timur_km || 0) + (d.panjang_pantai_barat_km || 0), 0),
+      garis_pantai: potensiPerKotaFrontend.reduce((s, d) => s + (d.total_panjang_garis_pantai_km || 0), 0),
       luas_laut: potensiPerKotaFrontend.reduce((s, d) => s + (d.luas_wilayah_laut_km2 || 0), 0),
       desa_pesisir: potensiPerKotaFrontend.reduce((s, d) => s + (d.desa_pesisir || 0), 0),
     };
@@ -256,11 +256,17 @@ export default function KelautanPesisir() {
     const agg = {};
     filteredVisGaram.forEach(d => {
       const kab = d.kabupaten_kota || 'Unknown';
-      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0 };
+      if (!agg[kab]) agg[kab] = { name: kab, produksi: 0, kelompok: 0, luas_lahan: 0, petambak: 0, _tahun: -1, _bulanIdx: -1 };
       agg[kab].produksi += (d.total_produksi_ton || 0);
-      agg[kab].kelompok = Math.max(agg[kab].kelompok, d.jumlah_kelompok || 0);
-      agg[kab].luas_lahan = Math.max(agg[kab].luas_lahan, d.luas_total_ha || 0);
-      agg[kab].petambak = Math.max(agg[kab].petambak, d.jumlah_petambak || 0);
+      const bulanIdx = NAMA_BULAN_LIST.indexOf(formatBulan(d.bulan));
+      const isTerbaru = (d.tahun || 0) > agg[kab]._tahun || ((d.tahun || 0) === agg[kab]._tahun && bulanIdx > agg[kab]._bulanIdx);
+      if (isTerbaru) {
+        agg[kab].kelompok = d.jumlah_kelompok || 0;
+        agg[kab].luas_lahan = d.luas_total_ha || 0;
+        agg[kab].petambak = d.jumlah_petambak || 0;
+        agg[kab]._tahun = d.tahun || 0;
+        agg[kab]._bulanIdx = bulanIdx;
+      }
     });
     return Object.values(agg).sort((a, b) => b.produksi - a.produksi);
   }, [filteredVisGaram]);
@@ -278,6 +284,51 @@ export default function KelautanPesisir() {
   const garamLahan = visGaramPerKota.map(d => parseFloat(d.luas_lahan.toFixed(2)));
   const garamPetambak = visGaramPerKota.map(d => d.petambak);
   const garamKelompok = visGaramPerKota.map(d => d.kelompok);
+
+  // ── TREN BULANAN PRODUKSI GARAM ──
+  const garamTren = useMemo(() => {
+    const agg = {};
+    filteredVisGaram.forEach(d => {
+      const bulanIdx = NAMA_BULAN_LIST.indexOf(formatBulan(d.bulan));
+      if (bulanIdx === -1) return;
+      const thn = d.tahun;
+      const key = `${thn}-${bulanIdx}`;
+      if (!agg[key]) agg[key] = { tahun: thn, bulanIdx, produksi: 0 };
+      agg[key].produksi += (d.total_produksi_ton || 0);
+    });
+    return Object.values(agg).sort((a, b) => a.tahun - b.tahun || a.bulanIdx - b.bulanIdx);
+  }, [filteredVisGaram]);
+
+  const garamTrenLabels = garamTren.map(t => `${NAMA_BULAN_LIST[t.bulanIdx].slice(0, 3)} ${t.tahun}`);
+  const garamTrenValues = garamTren.map(t => parseFloat(t.produksi.toFixed(2)));
+
+  const garamTrenOption = useMemo(() => {
+    const textColor = isDark ? '#ffffff' : '#0f172a';
+    const gridColor = isDark ? '#334155' : '#cbd5e1';
+    return {
+      tooltip: { trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: textColor, fontWeight: 'bold' } },
+      yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: textColor }, axisLabel: { color: textColor }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
+      dataZoom: garamTrenLabels.length > 8 ? [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }] : [],
+      series: [{
+        name: 'Produksi',
+        type: 'line',
+        data: garamTrenValues,
+        smooth: true,
+        symbolSize: 8,
+        itemStyle: { color: isDark ? '#3b82f6' : '#0077b6' },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: isDark
+              ? [{ offset: 0, color: 'rgba(59, 130, 246, 0.5)' }, { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }]
+              : [{ offset: 0, color: 'rgba(0, 119, 182, 0.5)' }, { offset: 1, color: 'rgba(0, 119, 182, 0.05)' }]
+          }
+        }
+      }]
+    };
+  }, [garamTrenLabels, garamTrenValues, isDark]);
 
   // ── VISUALISASI MANGROVE ──
   const filteredVisMangrove = useMemo(() => dataMangrove.filter(d =>
@@ -676,7 +727,7 @@ export default function KelautanPesisir() {
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Total Garis Pantai</p></div>
+            <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Panjang Total Garis Pantai</p></div>
             <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
           </div>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
@@ -722,7 +773,7 @@ export default function KelautanPesisir() {
             {garamKota.length > 0
               ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -732,7 +783,7 @@ export default function KelautanPesisir() {
             {garamKota.length > 0
               ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -747,6 +798,12 @@ export default function KelautanPesisir() {
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Petambak per Kab/Kota</h3>
             {garamKota.length > 0
               ? <ReactECharts option={pieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
+              : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Tren Bulanan Produksi Garam (Ton)</h3>
+            {garamTrenLabels.length > 0
+              ? <ReactECharts option={garamTrenOption} style={{ height: '320px' }} />
               : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
           </div>
         </div>
@@ -788,7 +845,7 @@ export default function KelautanPesisir() {
             {mangroveKota.length > 0
               ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -798,7 +855,7 @@ export default function KelautanPesisir() {
             {mangroveKota.length > 0
               ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#023e8a', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -842,7 +899,7 @@ export default function KelautanPesisir() {
             {terumbuKota.length > 0
               ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -852,7 +909,7 @@ export default function KelautanPesisir() {
             {terumbuKota.length > 0
               ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#ec4899', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -896,7 +953,7 @@ export default function KelautanPesisir() {
             {lamunKota.length > 0
               ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#10b981', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -906,7 +963,7 @@ export default function KelautanPesisir() {
             {lamunKota.length > 0
               ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
                   <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                    <ReactECharts option={hBarOption(s.categories, s.values, '#8b5cf6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                    <ReactECharts option={hBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
                   </div>
                 ); })()
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
