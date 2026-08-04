@@ -80,9 +80,9 @@ export default function Overview() {
             <span className="text-cyan-300">Provinsi Jawa Timur</span>
           </h1>
           <p className="text-blue-100 max-w-4xl text-base md:text-lg leading-relaxed">
-            Provinsi Jawa Timur dengan <b>panjang garis pantai 3.543,54 km
+            Provinsi Jawa Timur dengan <b className="text-white">panjang garis pantai 3.543,54 km
             luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
-            yang tersebar di <b>38 kabupaten/kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
+            yang tersebar di <b className="text-white">38 kabupaten/kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
           </p>
         </div>
       </div>
@@ -227,15 +227,21 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Garam (Ton)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.produksi?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold text-slate-600">
+                {stats.garam?.produksi !== null && stats.garam?.produksi !== undefined ? Number(stats.garam.produksi).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+              </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Jumlah Petambak (Orang)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.petambak?.toLocaleString('id-ID')}</p>
+              <p className="text-2xl font-bold text-slate-600">
+                {stats.garam?.petambak !== null && stats.garam?.petambak !== undefined ? Number(stats.garam.petambak).toLocaleString('id-ID') : '-'}
+              </p>
             </div>
             <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam (Ha)</p>
-              <p className="text-2xl font-bold text-slate-600">{stats.garam.luas_lahan?.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold text-slate-600">
+                {stats.garam?.luas_lahan !== null && stats.garam?.luas_lahan !== undefined ? Number(stats.garam.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+              </p>
             </div>
           </div>
         </div>
