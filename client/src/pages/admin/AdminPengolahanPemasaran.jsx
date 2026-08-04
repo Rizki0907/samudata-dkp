@@ -795,12 +795,6 @@ export default function AdminPengolahanPemasaran() {
     [isDark],
   );
 
-  // Modal input alasan penolakan (saat Pusat menolak data)
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectLoading, setRejectLoading] = useState(false);
-
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -996,60 +990,59 @@ export default function AdminPengolahanPemasaran() {
   }
 };
 
-  const handleReject = row => {
-  if (!isAdminPusat) {
-    alert('Hanya Pusat yang dapat menolak data.');
-    return;
-  }
+  // Penolakan data menggunakan dialog bawaan browser (localhost),
+  // sama seperti proses konfirmasi approval dan verifikasi.
+  const handleReject = async row => {
+    if (!isAdminPusat) {
+      window.alert('Hanya Pusat yang dapat menolak data.');
+      return false;
+    }
 
-  if (row.status === 'REJECTED') {
-    alert('Data ini sudah ditolak.');
-    return;
-  }
+    if (row.status === 'REJECTED') {
+      window.alert('Data ini sudah ditolak.');
+      return false;
+    }
 
-  setRejectTarget(row);
-  setRejectReason('');
-  setRejectModalOpen(true);
-};
-  const submitReject = async () => {
-  if (!rejectTarget) return;
-
-  if (!rejectReason.trim()) {
-    alert('Alasan penolakan wajib diisi.');
-    return;
-  }
-
-  try {
-    setRejectLoading(true);
-
-    await api.put(`/pengolahan-pemasaran/${rejectTarget.id}/status`, {
-      status: 'REJECTED',
-      alasan_penolakan: rejectReason.trim(),
-    });
-
-    // Tutup modal
-    setRejectModalOpen(false);
-    setRejectTarget(null);
-    setRejectReason('');
-
-    // Refresh data
-    await fetchData();
-
-    alert('Data berhasil ditolak.');
-  } catch (error) {
-    console.error('Error rejecting data:', error.response?.data || error);
-
-    alert(
-      `Gagal menolak data: ${
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error.message
-      }`
+    const alasan = window.prompt(
+      `Masukkan alasan penolakan untuk ${row.jenis_kegiatan || '-'} - ${row.kabupaten_kota || '-'} (${row.tahun || '-'}):`,
     );
-  } finally {
-    setRejectLoading(false);
-  }
-};
+
+    // Pengguna menekan Batal.
+    if (alasan === null) return false;
+
+    if (!alasan.trim()) {
+      window.alert('Alasan penolakan wajib diisi.');
+      return false;
+    }
+
+    const konfirmasi = window.confirm(
+      'Yakin ingin menolak data ini? Alasan penolakan akan disimpan.',
+    );
+
+    if (!konfirmasi) return false;
+
+    try {
+      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
+        status: 'REJECTED',
+        alasan_penolakan: alasan.trim(),
+      });
+
+      await fetchData();
+      window.alert('Data berhasil ditolak.');
+      return true;
+    } catch (error) {
+      console.error('Error rejecting data:', error.response?.data || error);
+
+      window.alert(
+        `Gagal menolak data: ${
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error.message
+        }`,
+      );
+      return false;
+    }
+  };
 
   const handleBatchApprove = async ids => {
   if (!isAdminPusat) {
@@ -2295,55 +2288,6 @@ export default function AdminPengolahanPemasaran() {
     [],
   );
 
-  // Modal input alasan penolakan. Dulunya state ini ada tapi modalnya
-  // belum pernah dirender, jadi klik tombol Tolak tidak menampilkan apa-apa.
-  const rejectModal =
-    rejectModalOpen && rejectTarget ? (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-foreground">Tolak Data</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {rejectTarget.jenis_kegiatan || '-'} &middot; {rejectTarget.kabupaten_kota} &middot; Tahun {rejectTarget.tahun}
-          </p>
-
-          <label className="mb-1.5 mt-4 block text-xs font-medium text-muted-foreground">
-            Alasan Penolakan
-          </label>
-          <textarea
-            value={rejectReason}
-            onChange={event => setRejectReason(event.target.value)}
-            rows={3}
-            placeholder="Tuliskan alasan penolakan..."
-            className={INPUT_CLASS}
-          />
-
-          <div className="mt-5 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setRejectModalOpen(false);
-                setRejectTarget(null);
-                setRejectReason('');
-              }}
-              disabled={rejectLoading}
-              className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              onClick={submitReject}
-              disabled={rejectLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {rejectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Tolak Data
-            </button>
-          </div>
-        </div>
-      </div>
-    ) : null;
-    
   const dataPreview = (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <DataTable
@@ -2787,7 +2731,6 @@ export default function AdminPengolahanPemasaran() {
           />
         </div>
 
-        {rejectModal}
       </div>
     );
   }
@@ -2815,7 +2758,6 @@ export default function AdminPengolahanPemasaran() {
         </button>
       </div>
 
-      {rejectModal}
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
