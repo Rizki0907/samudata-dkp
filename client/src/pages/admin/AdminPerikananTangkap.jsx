@@ -2051,8 +2051,8 @@ const columns = useMemo(() => [
                 onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
                 onApprove={handleApprove}
                 onReject={handleReject}
-                onBatchApprove={handleBatchApprove}
-                onBatchReject={handleBatchReject}
+                onBatchApprove={user?.role !== 'admin_cabang' ? handleBatchApprove : undefined}
+                onBatchReject={user?.role !== 'admin_cabang' ? handleBatchReject : undefined}
                 onBatchDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleBatchDelete : undefined}
                 canBatchApprove={(selectedRows) => selectedRows.some(row => 
                   (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED'].includes(row.status)) || 
@@ -2284,8 +2284,8 @@ const columns = useMemo(() => [
                 onCustomExport={() => setIsExportModalOpen(true)}
                 onApprove={handleApproveTahunan}
                 onReject={handleRejectTahunan}
-                onBatchApprove={handleBatchApproveTahunan}
-                onBatchReject={handleBatchRejectTahunan}
+                onBatchApprove={user?.role !== 'admin_cabang' ? handleBatchApproveTahunan : undefined}
+                onBatchReject={user?.role !== 'admin_cabang' ? handleBatchRejectTahunan : undefined}
                 onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDeleteTahunan : undefined}
                 canBatchApprove={(selectedRows) => selectedRows.some(row => 
                   (user?.role === 'admin_pusat' && ['APPROVED', 'VERIFIED'].includes(row.status)) || 

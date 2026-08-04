@@ -381,30 +381,29 @@ export default function Budidaya() {
 
   // 3. Line Chart Tren Bulanan
   const lineOption = useMemo(() => {
+    const wadahColors = ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#dc2626', '#0891b2', '#4f46e5'];
     const seriesData = stats.top5Wadah.map(wadah => ({
       name: wadah,
       type: 'line',
       smooth: true,
       symbolSize: 6,
+      lineStyle: { width: 2.5 },
+      emphasis: { focus: 'series' },
       data: stats.trenBulanan.map(m => m[wadah] || 0)
     }));
-
-    // Add Lainnya
     seriesData.push({
       name: 'Lainnya',
       type: 'line',
       smooth: true,
-      lineStyle: { type: 'dashed', width: 2, color: chartAxisLabel },
-      itemStyle: { color: chartAxisLabel },
-      symbol: 'none',
+      symbolSize: 6,
+      lineStyle: { type: 'dashed', width: 2.5 },
+      emphasis: { focus: 'series' },
       data: stats.trenBulanan.map(m => m.Lainnya || 0)
     });
 
     return {
-      color: isDark
-        ? undefined
-        : ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#64748b'],
-      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      color: wadahColors,
+      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' : '0' },
       legend: {
         data: [...stats.top5Wadah, 'Lainnya'],
         textStyle: { color: chartSubText },
@@ -420,7 +419,7 @@ export default function Budidaya() {
       yAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } },
-        axisLabel: { color: chartAxisLabel }
+        axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } }
       },
       series: seriesData
     };

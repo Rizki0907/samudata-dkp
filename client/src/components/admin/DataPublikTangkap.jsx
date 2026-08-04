@@ -717,7 +717,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         hideUpdatedAt={true}
         exportName={`Data_Validasi_Bidang_${filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All'}`}
         defaultPageSize={50}
-        customBatchActions={renderCustomBatchActions}
+        customBatchActions={isPusat ? renderCustomBatchActions : undefined}
         renderSubComponent={renderSubComponent}
         hideDefaultExport={true}
         customExportButton={

@@ -10,6 +10,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 import { useThemeStore } from '@/store/themeStore';
+import { useAuthStore } from '@/store/authStore';
 
 echarts.registerMap('jawa_timur', geoJsonData);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -28,6 +29,7 @@ const TwBadge = ({ tw }) => {
 
 export default function AdminBudidaya() {
   const { theme } = useThemeStore();
+  const user = useAuthStore(state => state.user);
   const isDark = theme === 'dark';
   const chartText = isDark ? '#e2e8f0' : '#0f172a';
   const chartSubText = isDark ? '#cbd5e1' : '#1e293b';
@@ -556,6 +558,7 @@ export default function AdminBudidaya() {
     });
 
     filteredData.forEach(item => {
+      if (item.status === 'REJECTED') return;
       const bIndex = MONTHS.indexOf(item.bulan);
       if (bIndex === -1) return;
 
@@ -627,15 +630,32 @@ export default function AdminBudidaya() {
   }, [computedStats.produksiPerKabupaten, barFilter, chartGridLine, chartAxisLabel, chartSubText, isDark]);
 
   const lineOption = useMemo(() => {
-    const seriesData = computedStats.top5Wadah.map(wadah => ({ name: wadah, type: 'line', smooth: true, symbolSize: 6, data: computedStats.trenBulanan.map(m => m[wadah] || 0) }));
-    seriesData.push({ name: 'Lainnya', type: 'line', smooth: true, lineStyle: { type: 'dashed', width: 2, color: chartAxisLabel }, itemStyle: { color: chartAxisLabel }, symbol: 'none', data: computedStats.trenBulanan.map(m => m.Lainnya || 0) });
+    const wadahColors = ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#dc2626', '#0891b2', '#4f46e5'];
+    const seriesData = computedStats.top5Wadah.map(wadah => ({
+      name: wadah,
+      type: 'line',
+      smooth: true,
+      symbolSize: 6,
+      lineStyle: { width: 2.5 },
+      emphasis: { focus: 'series' },
+      data: computedStats.trenBulanan.map(m => m[wadah] || 0)
+    }));
+    seriesData.push({
+      name: 'Lainnya',
+      type: 'line',
+      smooth: true,
+      symbolSize: 6,
+      lineStyle: { type: 'dashed', width: 2.5 },
+      emphasis: { focus: 'series' },
+      data: computedStats.trenBulanan.map(m => m.Lainnya || 0)
+    });
     return {
-      color: isDark ? undefined : ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#64748b'],
-      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      color: wadahColors,
+      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' : '0' },
       legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: chartSubText }, top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisLabel, fontSize: 11, rotate: 30 } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       series: seriesData
     };
   }, [computedStats.trenBulanan, computedStats.top5Wadah, chartAxisLabel, chartSubText, chartGridLine, isDark]);
@@ -1016,8 +1036,8 @@ export default function AdminBudidaya() {
                   onDelete={user?.role === 'admin_pusat' ? handleDeleteTahunan : undefined}
                   onApprove={handleApproveTahunan}
                   onReject={handleRejectTahunan}
-                  onBatchApprove={handleBatchApproveTahunan}
-                  onBatchReject={handleBatchRejectTahunan}
+                  onBatchApprove={user?.role !== 'admin_cabang' ? handleBatchApproveTahunan : undefined}
+                  onBatchReject={user?.role !== 'admin_cabang' ? handleBatchRejectTahunan : undefined}
                   onBatchDelete={user?.role === 'admin_pusat' ? handleBatchDeleteTahunan : undefined}
                   exportName={`Data_Tahunan_Budidaya_${new Date().toISOString().split('T')[0]}`}
                   customExportButton={
@@ -1099,12 +1119,16 @@ export default function AdminBudidaya() {
                   columns={columns}
                   data={filteredData}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  canEditRow={(row) => {
+                    if (user?.role === 'admin_pusat' || user?.role === 'admin_bidang') return true;
+                    return row.status === 'REJECTED';
+                  }}
+                  onDelete={user?.role === 'admin_pusat' || user?.role === 'admin_bidang' ? handleDelete : undefined}
                   onApprove={handleApprove}
                   onReject={handleReject}
-                  onBatchApprove={handleBatchApprove}
-                  onBatchReject={handleBatchReject}
-                  onBatchDelete={handleBatchDelete}
+                  onBatchApprove={user?.role !== 'admin_cabang' ? handleBatchApprove : undefined}
+                  onBatchReject={user?.role !== 'admin_cabang' ? handleBatchReject : undefined}
+                  onBatchDelete={user?.role !== 'admin_cabang' ? handleBatchDelete : undefined}
                   exportName={`Budidaya_Samudera_${new Date().toISOString().split('T')[0]}`}
                   customExportButton={
                     <button
