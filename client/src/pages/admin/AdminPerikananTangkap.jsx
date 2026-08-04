@@ -2264,7 +2264,7 @@ const columns = useMemo(() => [
               <DataTable
                 columns={[
                   { accessorKey: 'tahun', header: 'Tahun' },
-                  { accessorKey: 'sumber_data', header: 'Sumber' },
+                  { accessorKey: 'sumber_data', header: 'Sumber', cell: info => info.getValue() === 'KAB_KOTA' ? 'Non Pelabuhan' : info.getValue() },
                   { accessorKey: 'wilayah', header: 'Wilayah / Pelabuhan', cell: (info) => { const row = info.row.original; return row.pelabuhan || row.kabupaten_kota || row.jenis_perairan || '-'; } },
                   { accessorKey: 'status', header: 'Status', cell: (info) => <StatusBadge row={info.row.original} /> },
                 ]}
@@ -2635,7 +2635,12 @@ const columns = useMemo(() => [
               </button>
               <button 
                 onClick={handleModalExport}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:shadow-indigo-500/20 flex items-center gap-2 group"
+                disabled={activeTab === 'tahunan' && (!exportModalTahun || !exportModalPerairan)}
+                className={`px-6 py-2.5 font-semibold rounded-xl transition-all flex items-center gap-2 group ${
+                  activeTab === 'tahunan' && (!exportModalTahun || !exportModalPerairan)
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg hover:shadow-indigo-500/20'
+                }`}
               >
                 <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
                 Unduh Laporan
