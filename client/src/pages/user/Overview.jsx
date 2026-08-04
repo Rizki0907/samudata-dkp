@@ -209,7 +209,7 @@ export default function Overview() {
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pemasaran (Ton)</p>
-              <p classNfame="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-orange-600">
                 {stats.pemasaran?.produk_pemasaran_ton !== null && stats.pemasaran?.produk_pemasaran_ton !== undefined && stats.pemasaran?.produk_pemasaran_ton !== '' ? Number(stats.pemasaran.produk_pemasaran_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
               </p>
             </div>
