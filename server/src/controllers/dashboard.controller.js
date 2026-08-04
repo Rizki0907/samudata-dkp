@@ -28,12 +28,17 @@ const getOverviewStats = async (req, res) => {
     const statusFilter = isAdmin ? {} : { status: 'VERIFIED' };
 
     // === 1. PERIKANAN TANGKAP ===
-    const bulananWhere = {};
+    const tangkapWhere = { status: 'VERIFIED' };
     if (tahun && tahun !== 'Semua') {
-      bulananWhere.bulan = { startsWith: String(tahun) };
+      tangkapWhere.tanggal = {
+        gte: new Date(`${tahun}-01-01T00:00:00.000Z`),
+        lte: new Date(`${tahun}-12-31T23:59:59.999Z`)
+      };
     }
-    const tangkapVolume = await prisma.dataBulananTangkap.aggregate({
-      where: bulananWhere,
+    const tangkapVolume = await prisma.detailTangkapan.aggregate({
+      where: {
+        perikananTangkap: tangkapWhere
+      },
       _sum: { volume: true }
     });
 
