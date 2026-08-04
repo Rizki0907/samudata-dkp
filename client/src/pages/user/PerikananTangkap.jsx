@@ -573,7 +573,7 @@ export default function PerikananTangkap() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 mb-1">
           <Filter className="w-5 h-5 text-slate-500" />
-          <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
+          <h3 className="text-lg font-semibold text-foreground">Filter</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <SearchableMultiSelect 
@@ -605,8 +605,8 @@ export default function PerikananTangkap() {
             placeholder="Semua Pelabuhan"
           />
         </div>
-        {(chartGlobalTahun.length > 0 || filterKabKotaChart.length > 0 || chartKomoditasWilayah.length > 0 || chartCabang.length > 0) && (
-          <div className="flex justify-end">
+        {(chartGlobalTahun.length > 0 || chartCabang.length > 0 || filterKabKotaChart.length > 0 || chartKomoditasWilayah.length > 0) && (
+          <div className="flex justify-end mt-1">
             <button
               type="button"
               onClick={() => {
@@ -615,9 +615,9 @@ export default function PerikananTangkap() {
                 setFilterKabKotaChart([]);
                 setChartKomoditasWilayah([]);
               }}
-              className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+              className="text-xs text-primary hover:underline font-medium"
             >
-              Reset Filter
+              Reset Semua Filter
             </button>
           </div>
         )}
@@ -758,7 +758,7 @@ export default function PerikananTangkap() {
         <div className="mb-6 border-b border-border pb-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-slate-500" />
-            <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
+            <h3 className="text-lg font-semibold text-foreground">Filter</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -830,6 +830,23 @@ export default function PerikananTangkap() {
               </>
             )}
           </div>
+          {(filterCabang.length > 0 || filterJenisPerairan.length > 0 || filterTahun.length > 0 || filterWilayah.length > 0 || filterKomoditas.length > 0) && (
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterCabang([]);
+                  setFilterJenisPerairan([]);
+                  setFilterTahun([]);
+                  setFilterWilayah([]);
+                  setFilterKomoditas([]);
+                }}
+                className="text-xs text-primary hover:underline font-medium"
+              >
+                Reset Semua Filter
+              </button>
+            </div>
+          )}
         </div>
 
       <div className="mb-4 flex items-center justify-between">
