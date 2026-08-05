@@ -659,7 +659,6 @@ export default function PerikananTangkap() {
             </div>
             <div>
               <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
-              <p className="text-sm text-muted-foreground">Berdasarkan Jenis Perairan</p>
             </div>
           </div>
           
@@ -679,7 +678,6 @@ export default function PerikananTangkap() {
             </div>
             <div>
               <h3 className="text-xl font-bold text-foreground">Komoditas Terbanyak</h3>
-              <p className="text-sm text-muted-foreground">Total Keseluruhan</p>
             </div>
           </div>
           {localKomoditas.length > 0 ? <ReactECharts option={komoditasChartOption} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}

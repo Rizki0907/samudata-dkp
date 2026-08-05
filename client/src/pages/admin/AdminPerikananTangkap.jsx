@@ -2348,7 +2348,6 @@ const columns = useMemo(() => [
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-foreground">Perbandingan Produksi</h3>
-                          <p className="text-sm text-muted-foreground">Berdasarkan Jenis Perairan</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2380,7 +2379,6 @@ const columns = useMemo(() => [
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-foreground">Komoditas Terbanyak</h3>
-                          <p className="text-sm text-muted-foreground">Total Keseluruhan</p>
                         </div>
                       </div>
                     </div>

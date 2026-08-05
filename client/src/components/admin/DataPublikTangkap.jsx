@@ -748,7 +748,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
               title="Unduh data yang sudah divalidasi admin"
             >
               <Download className="w-4 h-4" />
-              Unduh Data Verified
+              Ekspor Excel
             </button>
           </div>
         }

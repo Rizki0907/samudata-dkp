@@ -27,7 +27,7 @@ api.interceptors.response.use(
       // Token is invalid or expired
       useAuthStore.getState().logout();
       if (window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/user';
+        window.location.href = import.meta.env.BASE_URL + 'user';
       }
     }
     return Promise.reject(error);

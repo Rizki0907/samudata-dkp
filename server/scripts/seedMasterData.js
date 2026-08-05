@@ -53,7 +53,7 @@ const KOMODITAS_PUD_OPTIONS = [
 ];
 
 const PERBEKALAN_OPTIONS = [
-  { nama: 'Es', satuan: 'Kilogram' }, { nama: 'Air', satuan: 'Liter' }, { nama: 'Solar', satuan: 'Liter' }, { nama: 'Oli', satuan: 'Liter' }, { nama: 'Bensin', satuan: 'Liter' }, { nama: 'Umpan', satuan: 'Kilogram' }, { nama: 'Garam', satuan: 'Kilogram' }, { nama: 'Beras', satuan: 'Kilogram' }, { nama: 'Gula', satuan: 'Kilogram' }, { nama: 'Minyak Goreng', satuan: 'Liter' }, { nama: 'Rokok', satuan: 'Kilogram' }, { nama: 'Freon', satuan: 'Tabung' }, { nama: 'Gas LPG', satuan: 'Kilogram' }
+  { nama: 'Es', satuan: 'Kilogram' }, { nama: 'Air', satuan: 'Liter' }, { nama: 'Solar', satuan: 'Liter' }, { nama: 'Oli', satuan: 'Liter' }, { nama: 'Bensin', satuan: 'Liter' }, { nama: 'Umpan', satuan: 'Kilogram' }, { nama: 'Garam', satuan: 'Kilogram' }, { nama: 'Beras', satuan: 'Kilogram' }, { nama: 'Gula', satuan: 'Kilogram' }, { nama: 'Minyak Goreng', satuan: 'Liter' }, { nama: 'Rokok', satuan: 'Press' }, { nama: 'Freon', satuan: 'Tabung' }, { nama: 'Gas LPG 3 Kg', satuan: 'Tabung' }, { nama: 'Gas LPG 12 Kg', satuan: 'Tabung' }
 ];
 
 async function seed() {

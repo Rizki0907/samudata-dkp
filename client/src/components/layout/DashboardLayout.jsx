@@ -6,14 +6,20 @@ import Header from './Header';
 
 export default function DashboardLayout({ role }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (role === 'admin') {
     return (
-      <div className="flex h-screen bg-background overflow-hidden font-sans">
-        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <div className="flex h-screen bg-background overflow-hidden font-sans relative">
+        <Sidebar 
+          collapsed={collapsed} 
+          setCollapsed={setCollapsed} 
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
         
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          <Header />
+        <div className="flex-1 flex flex-col overflow-hidden relative w-full">
+          <Header setMobileMenuOpen={setMobileMenuOpen} />
           
           <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             <div className="max-w-7xl mx-auto w-full">

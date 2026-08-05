@@ -450,7 +450,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jumlah Satuan</label>
+                            <label className="block text-xs font-medium mb-1 text-muted-foreground">Jumlah</label>
                             <input 
                               type="number" 
                               step="0.01" min="0"
@@ -668,7 +668,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {initialData ? 'Simpan Perubahan' : 'Kirim Data'}
+            {initialData ? 'Simpan Perubahan' : 'Simpan Data'}
           </button>
         </div>
       </form>

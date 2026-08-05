@@ -123,4 +123,4 @@ export const router = createBrowserRouter([
     element: <Navigate to="/user" replace />,
     errorElement: <ErrorPage />,
   }
-]);
+], { basename: '/samudera' });

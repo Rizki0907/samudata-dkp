@@ -261,7 +261,7 @@ export const KOMODITAS_OPTIONS = [
   "Lencam (Lethrinus lentjan)",
   "Lencam (Lethrinus spp)",
   "Lolosi biru (Caesio caerulaurea)",
-  "Madidihang (Thunnus albacares)",
+  "Madidihang (YFT)",
   "Mala (Gymnocranius elongatus)",
   "Mala (Lutjanus vitta)",
   "Manyung (Arius spp)",
@@ -578,8 +578,9 @@ export const PERBEKALAN_OPTIONS = [
   { nama: 'Beras', satuan: 'Kilogram' },
   { nama: 'Gula', satuan: 'Kilogram' },
   { nama: 'Minyak Goreng', satuan: 'Liter' },
-  { nama: 'Rokok', satuan: 'Kilogram' },
+  { nama: 'Rokok', satuan: 'Press' },
   { nama: 'Freon', satuan: 'Tabung' },
-  { nama: 'Gas LPG', satuan: 'Kilogram' }
+  { nama: 'Gas LPG 3 Kg', satuan: 'Tabung' },
+  { nama: 'Gas LPG 12 Kg', satuan: 'Tabung' }
 ];
 

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { 
   Waves, Sprout, Fish, Package, Database, Globe, 
-  LayoutDashboard, LogOut, ChevronLeft, Ship
+  LayoutDashboard, LogOut, ChevronLeft, Ship, X
 } from 'lucide-react';
 
 const USER_MENUS = [
@@ -28,19 +28,29 @@ const ADMIN_MENUS = [
   { title: 'Master Data', path: '/admin/master-data', icon: Database, reqPusat: true },
 ];
 
-export default function Sidebar({ collapsed, setCollapsed }) {
+export default function Sidebar({ collapsed, setCollapsed, mobileMenuOpen, setMobileMenuOpen }) {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const isAdmin = user?.role === 'admin_cabang' || user?.role === 'admin_pusat';
   const menus = isAdmin ? ADMIN_MENUS.filter(m => !m.reqPusat || user?.role === 'admin_pusat') : USER_MENUS;
 
   return (
-    <aside 
-      className={cn(
-        "bg-card border-r border-border h-screen sticky top-0 transition-all duration-300 flex flex-col z-40",
-        collapsed ? "w-20" : "w-72"
+    <>
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
-    >
+      <aside 
+        className={cn(
+          "bg-card border-r border-border h-screen flex flex-col z-50 transition-all duration-300",
+          "fixed inset-y-0 left-0 md:sticky md:top-0",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          collapsed ? "w-72 md:w-20" : "w-72"
+        )}
+      >
       {/* Logo Area */}
       <div className="h-16 flex items-center px-4 border-b border-border relative">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -55,9 +65,17 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           )}
         </div>
         
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setMobileMenuOpen(false)}
+          className="md:hidden ml-auto p-1.5 rounded-lg text-muted-foreground hover:bg-muted"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-muted rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card transition-colors z-50"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-muted rounded-full border border-border hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card transition-colors z-50"
         >
           <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
         </button>
@@ -96,7 +114,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           <button
             onClick={() => {
               logout();
-              window.location.href = '/';
+              window.location.href = import.meta.env.BASE_URL;
             }}
             className={cn(
               "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-destructive hover:bg-destructive/10 transition-colors",
@@ -130,5 +148,6 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         )}
       </div>
     </aside>
+    </>
   );
 }

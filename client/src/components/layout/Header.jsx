@@ -1,18 +1,24 @@
 import React from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { ShieldAlert, User as UserIcon } from 'lucide-react';
+import { ShieldAlert, User as UserIcon, Menu } from 'lucide-react';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 
-export default function Header() {
+export default function Header({ setMobileMenuOpen }) {
   const { user } = useAuthStore();
   const isAdminPusat = user?.role === 'admin_pusat';
   const isAdminCabang = user?.role === 'admin_cabang';
   const isAdmin = isAdminPusat || isAdminCabang;
 
   return (
-    <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
+    <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-4 md:px-6">
       <div className="flex items-center gap-4">
-        {/* We can put breadcrumbs or page title here dynamically if needed */}
+        {/* Hamburger Menu for Mobile */}
+        <button 
+          onClick={() => setMobileMenuOpen(true)}
+          className="md:hidden p-2 -ml-2 rounded-lg text-muted-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
 
       <div className="flex items-center gap-4">
