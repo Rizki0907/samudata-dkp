@@ -235,7 +235,7 @@ export default function KelautanPesisir() {
       else if ((d.tahun_data || 0) > (agg[kab].tahun_data || 0)) agg[kab] = { ...d };
     });
     return Object.values(agg);
-  }, [dataPotensi]);
+  }, [filteredVisPotensi]);
 
   const kpiPotensi = useMemo(() => {
     return {
@@ -492,18 +492,18 @@ export default function KelautanPesisir() {
     { header: 'Luas Lahan (Ha)', accessorKey: 'luas_total_ha', cell: info => numFmt(info.getValue()) },
     { header: 'Petambak', accessorKey: 'jumlah_petambak' },
     { header: 'Kelompok', accessorKey: 'jumlah_kelompok' },
-    { header: 'Total Produksi (Ton)', accessorKey: 'total_produksi_ton', cell: info => <span className="font-semibold text-emerald-600">{numFmt(info.getValue())}</span> },
+    { header: 'Total Produksi (Ton)', accessorKey: 'total_produksi_ton', cell: info => <span className="font-semibold">{numFmt(info.getValue())}</span> },
   ], []);
 
   const columnsPotensi = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun_data' },
     { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
     {
-      header: 'Total Garis Pantai (km)',
-      accessorFn: (row) => (row.panjang_pantai_utara_km || 0) + (row.panjang_pantai_selatan_km || 0) + (row.panjang_pantai_timur_km || 0) + (row.panjang_pantai_barat_km || 0),
-      cell: info => <span className="font-semibold text-cyan-600">{numFmt(info.getValue())}</span>,
+      header: 'Total Panjang Garis Pantai (Km)',
+      accessorKey: 'total_panjang_garis_pantai_km',
+      cell: info => <span className="font-semibold">{numFmt(info.getValue())}</span>,
     },
-    { header: 'Pulau Kecil', accessorKey: 'jumlah_pulau_kecil' },
+    { header: 'Jumlah Pulau-Pulau Kecil', accessorKey: 'jumlah_pulau_kecil' },
     { header: 'Desa Pesisir', accessorKey: 'desa_pesisir' },
   ], []);
 
@@ -654,7 +654,7 @@ export default function KelautanPesisir() {
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
   const lastUpdated = latestDate 
-    ? format(latestDate, "dd MMMM yyyy 'pukul' HH:mm", { locale: idLocale })
+    ? format(latestDate, "dd MMM yyyy HH:mm", { locale: idLocale })
     : '-';
 
   return (
@@ -823,7 +823,7 @@ export default function KelautanPesisir() {
         {/* Mangrove Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Mangrove</h3>
             {kpiMangrove.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -877,7 +877,7 @@ export default function KelautanPesisir() {
         {/* Terumbu Karang Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Terumbu Karang</h3>
             {kpiTerumbu.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -931,7 +931,7 @@ export default function KelautanPesisir() {
         {/* Lamun Charts & KPIs */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Lamun</h3>
             {kpiLamun.jumlah_lokasi > 0
               ? <ReactECharts option={kondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
               : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}

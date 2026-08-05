@@ -1598,7 +1598,7 @@ export default function AdminKelautanPesisir() {
           {/* Mangrove Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
             <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Mangrove</h3>
               {kpiMangrove.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1652,7 +1652,7 @@ export default function AdminKelautanPesisir() {
           {/* Terumbu Karang Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
             <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Terumbu Karang</h3>
               {kpiTerumbu.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1706,7 +1706,7 @@ export default function AdminKelautanPesisir() {
           {/* Lamun Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
             <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Tutupan</h3>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Lamun</h3>
               {kpiLamun.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1855,7 +1855,7 @@ export default function AdminKelautanPesisir() {
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
   const lastUpdated = latestDate 
-    ? format(latestDate, "dd MMMM yyyy 'pukul' HH:mm", { locale: idLocale })
+    ? format(latestDate, "dd MMM yyyy HH:mm", { locale: idLocale })
     : '-';
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
