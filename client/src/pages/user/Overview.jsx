@@ -11,13 +11,15 @@ import imgFisherman from '@/assets/fisherman.png';
 import imgTambak from '@/assets/tambak.png';
 
 const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+const maxYear = currentYear - 1;
+// Generate 10 years ending at maxYear
+const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (maxYear - 9 + i).toString());
 
 export default function Overview() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [loading, setLoading] = useState(true);
-  const [selectedTahun, setSelectedTahun] = useState(currentYear.toString());
+  const [selectedTahun, setSelectedTahun] = useState(maxYear.toString());
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
     budidaya: { produksi: 0, pembudidaya: null, top_komoditas: '-', luas_lahan: null },

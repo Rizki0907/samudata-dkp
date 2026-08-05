@@ -182,16 +182,18 @@ const getOverviewStats = async (req, res) => {
       orderBy: { value: 'desc' }
     });
 
+    const hasGaramData = allGaram.length > 0;
+
     const garam = {
       produksi: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.produksi_garam !== undefined && kelautanOverview.metadata.produksi_garam !== "") 
         ? Number(kelautanOverview.metadata.produksi_garam) 
         : totalGaramProduksi,
       petambak: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.jumlah_petambak !== undefined && kelautanOverview.metadata.jumlah_petambak !== "") 
         ? Number(kelautanOverview.metadata.jumlah_petambak) 
-        : totalGaramPetambak,
+        : (hasGaramData ? totalGaramPetambak : null),
       luas_lahan: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.luas_lahan_garam !== undefined && kelautanOverview.metadata.luas_lahan_garam !== "") 
         ? Number(kelautanOverview.metadata.luas_lahan_garam) 
-        : totalGaramLuas
+        : (hasGaramData ? totalGaramLuas : null)
     };
 
     // === 5. EKSPOR PERIKANAN ===
