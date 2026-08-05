@@ -123,8 +123,9 @@ const kondisiPieOption = (data, isDark = false) => {
 
 const KONDISI_TERUMBU_COLOR_MAP = {
   'Sangat Baik (75-100%)': '#10b981',
-  'Baik (50-75%)': '#f59e0b',
-  'Rusak (0-50%)': '#f43f5e',
+  'Baik (50-75%)': '#3b82f6',
+  'Sedang (25-50%)': '#f59e0b',
+  'Rusak (0-25%)': '#f43f5e',
 };
 const kondisiTerumbuPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
@@ -452,7 +453,8 @@ export default function KelautanPesisir() {
     return [
       { name: 'Sangat Baik (75-100%)', value: agg['Sangat Baik (75-100%)'] || 0 },
       { name: 'Baik (50-75%)', value: agg['Baik (50-75%)'] || 0 },
-      { name: 'Rusak (0-50%)', value: agg['Rusak (0-50%)'] || 0 },
+      { name: 'Sedang (25-50%)', value: agg['Sedang (25-50%)'] || 0 },
+      { name: 'Rusak (0-25%)', value: agg['Rusak (0-25%)'] || 0 },
     ];
   }, [filteredVisTerumbu]);
 

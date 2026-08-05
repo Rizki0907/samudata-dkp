@@ -89,7 +89,8 @@ const getKondisiTerumbu = (persentase) => {
   const p = Number(persentase) || 0;
   if (p >= 75) return 'Sangat Baik (75-100%)';
   if (p >= 50) return 'Baik (50-75%)';
-  return 'Rusak (0-50%)';
+  if (p >= 25) return 'Sedang (25-50%)';
+  return 'Rusak (0-25%)';
 };
 
 const KondisiTerumbuBadge = ({ kondisi }) => {
@@ -631,8 +632,9 @@ const makeKondisiLamunPieOption = (data, isDark = false) => {
 // Warna kategori kondisi Terumbu Karang
 const KONDISI_TERUMBU_COLOR_MAP = {
   'Sangat Baik (75-100%)': '#10b981',
-  'Baik (50-75%)': '#f59e0b',
-  'Rusak (0-50%)': '#f43f5e',
+  'Baik (50-75%)': '#3b82f6',
+  'Sedang (25-50%)': '#f59e0b',
+  'Rusak (0-25%)': '#f43f5e',
 };
 
 const makeKondisiTerumbuPieOption = (data, isDark = false) => {
@@ -1483,7 +1485,8 @@ export default function AdminKelautanPesisir() {
     const kondisiTerumbuChartData = [
       { name: 'Sangat Baik (75-100%)', value: kondisiTerumbuCountMap['Sangat Baik (75-100%)'] || 0 },
       { name: 'Baik (50-75%)', value: kondisiTerumbuCountMap['Baik (50-75%)'] || 0 },
-      { name: 'Rusak (0-50%)', value: kondisiTerumbuCountMap['Rusak (0-50%)'] || 0 },
+      { name: 'Sedang (25-50%)', value: kondisiTerumbuCountMap['Sedang (25-50%)'] || 0 },
+      { name: 'Rusak (0-25%)', value: kondisiTerumbuCountMap['Rusak (0-25%)'] || 0 },
     ];
 
     return (

@@ -18,7 +18,8 @@ const getKondisiTerumbu = (persentase) => {
   const p = Number(persentase) || 0;
   if (p >= 75) return 'Sangat Baik (75-100%)';
   if (p >= 50) return 'Baik (50-75%)';
-  return 'Rusak (0-50%)';
+  if (p >= 25) return 'Sedang (25-50%)';
+  return 'Rusak (0-25%)';
 };
 
 const kondisiTerumbuStyle = (kondisi) => {
