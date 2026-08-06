@@ -597,13 +597,17 @@ export default function KelautanPesisir() {
 
       const processForYear = (yrData, yr) => {
         const yrSuffix = isMultiYear ? ` ${yr}` : '';
-        
-        if (filterKab && !filterBulan) {
-          buildSheet(`KAB ${filterKab.substring(0, 15)}${yrSuffix}`, yrData);
+        const hasKab = Array.isArray(filterKab) ? filterKab.length > 0 : !!filterKab;
+        const hasBulan = Array.isArray(filterBulan) ? filterBulan.length > 0 : !!filterBulan;
+
+        if (hasKab && !hasBulan) {
+          const kabLabel = Array.isArray(filterKab) ? filterKab.join(', ') : filterKab;
+          buildSheet(`KAB ${kabLabel.substring(0, 15)}${yrSuffix}`, yrData);
           return;
         }
-        if (filterBulan) {
-          buildSheet(`${filterBulan.substring(0, 3)}${yrSuffix}`, yrData);
+        if (hasBulan) {
+          const bulanLabel = Array.isArray(filterBulan) ? filterBulan.join('_') : filterBulan;
+          buildSheet(`${bulanLabel.substring(0, 3)}${yrSuffix}`, yrData);
           return;
         }
 
@@ -627,10 +631,16 @@ export default function KelautanPesisir() {
       }
     }
 
-    const yearString = filterTahun ? filterTahun : (isMultiYear ? 'MultiTahun' : (availableYears[0] || new Date().getFullYear()));
+    const hasTahunFilter = Array.isArray(filterTahun) ? filterTahun.length > 0 : !!filterTahun;
+    const hasKabFilter = Array.isArray(filterKab) ? filterKab.length > 0 : !!filterKab;
+    const hasBulanFilter = Array.isArray(filterBulan) ? filterBulan.length > 0 : !!filterBulan;
+
+    const yearString = hasTahunFilter
+      ? (Array.isArray(filterTahun) ? filterTahun.join('-') : filterTahun)
+      : (isMultiYear ? 'MultiTahun' : (availableYears[0] || new Date().getFullYear()));
     let filename = `Data_${activeTable}_${yearString}`;
-    if (filterKab) filename += `_${filterKab}`;
-    if (filterBulan && isGaram) filename += `_${filterBulan}`;
+    if (hasKabFilter) filename += `_${Array.isArray(filterKab) ? filterKab.join('-') : filterKab}`;
+    if (hasBulanFilter && isGaram) filename += `_${Array.isArray(filterBulan) ? filterBulan.join('-') : filterBulan}`;
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `${filename.replace(/\s+/g, '_')}.xlsx`);
