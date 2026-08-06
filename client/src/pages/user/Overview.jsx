@@ -7,8 +7,8 @@ import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter, Waves 
 import oceanBg from '@/assets/ocean_bg.png';
 import logoDKP from '@/assets/logo_DKP.png';
 import iconDKP from '@/assets/icon_DKP.png';
-import imgFisherman from '@/assets/fisherman.png';
-import imgTambak from '@/assets/tambak.png';
+import imgLaut from '@/assets/laut.jpg';
+import imgKapal from '@/assets/kapal.jpg';
 
 const currentYear = new Date().getFullYear();
 const maxYear = currentYear - 1;
@@ -300,23 +300,17 @@ export default function Overview() {
 
       {/* Visual / Highlights Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-border/50">
-        {/* Special Card 1: Fisherman Illustration */}
-        <div className="rounded-3xl overflow-hidden relative group border border-border min-h-[300px] shadow-lg">
-          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${imgFisherman})` }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-900/40 to-transparent" />
+        {/* Special Card 1: Laut Jatim */}
+        <div className="rounded-3xl overflow-hidden relative group border border-border min-h-[350px] shadow-lg">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${imgLaut})` }} />
           <div className="absolute bottom-0 left-0 p-8">
-            <h3 className="text-white font-bold text-2xl mb-2">Mengoptimalkan Kekayaan Nusantara</h3>
-            <p className="text-blue-200 text-base opacity-90 max-w-sm">Sinergi nelayan dan modernisasi data untuk memastikan hasil tangkapan yang maksimal.</p>
           </div>
         </div>
 
-        {/* Special Card 2: Tambak Illustration */}
-        <div className="rounded-3xl overflow-hidden relative group border border-border min-h-[300px] shadow-lg">
-          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${imgTambak})` }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-900/40 to-transparent" />
+        {/* Special Card 2: Kapal */}
+        <div className="rounded-3xl overflow-hidden relative group border border-border min-h-[350px] shadow-lg">
+          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${imgKapal})` }} />
           <div className="absolute bottom-0 left-0 p-8">
-            <h3 className="text-white font-bold text-2xl mb-2">Budidaya Berkelanjutan</h3>
-            <p className="text-emerald-200 text-base opacity-90 max-w-sm">Menjaga keseimbangan ekosistem pesisir demi ekonomi perikanan masa depan.</p>
           </div>
         </div>
       </div>
