@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
@@ -6,7 +6,7 @@ import ThemeToggle from '@/components/shared/ThemeToggle';
 import { 
   Waves, Sprout, Fish, Package, Database, Globe, 
   LayoutDashboard, LogOut, Lock, User as UserIcon, 
-  ShieldAlert, Menu, X, Loader2 
+  ShieldAlert, Menu, X, Loader2, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import api from '@/services/api';
 import iconDKP from '@/assets/icon_DKP.png';
@@ -32,6 +32,40 @@ export default function Navbar() {
   const [error, setError] = useState(false);
 
   const menus = USER_MENUS;
+
+  // 👇 LOGIKA SMART SCROLL BARU 👇
+  const scrollContainerRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      // Math.ceil untuk jaga-jaga pembulatan pixel di browser
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  };
+
+  // Cek butuh scroll atau tidak saat pertama kali load dan tiap kali layar di-resize
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
+
+  const scroll = (direction) => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      // Beri sedikit jeda agar deteksi panahnya pas setelah animasi geser selesai
+      setTimeout(checkScroll, 350);
+    }
+  };
+  // 👆 ---------------------- 👆
 
   const handleAdminSubmit = async (e) => {
     e.preventDefault();
@@ -77,30 +111,59 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Center Navbar (Desktop - Pure / Tanpa Kotakan) */}
-          <nav className="hidden md:flex items-center justify-center gap-2 lg:gap-4 xl:gap-6">
-            {menus.map((menu) => {
-              const isActive = location.pathname === menu.path;
-              
-              return (
-                <NavLink
-                  key={menu.path}
-                  to={menu.path}
-                  className={cn(
-                    "px-4 lg:px-5 py-2 rounded-full text-sm lg:text-[15px] font-medium transition-all duration-200 whitespace-nowrap",
-                    isActive 
-                      ? "bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/25 scale-[1.02]" 
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  )}
-                >
-                  <span>{menu.title}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
+          {/* Center Navbar (Desktop - Dengan Smart Scroll) */}
+          <div className="hidden md:flex relative flex-1 mx-4 lg:mx-8 items-center overflow-hidden">
+            
+            {/* Tombol Kiri (Hanya muncul kalau bisa digeser ke kiri) */}
+            {canScrollLeft && (
+              <button 
+                onClick={() => scroll('left')} 
+                className="absolute left-0 z-10 h-full px-2 flex items-center bg-gradient-to-r from-card via-card/90 to-transparent text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5 drop-shadow-md" />
+              </button>
+            )}
+
+            {/* Area Menu */}
+            <nav 
+              ref={scrollContainerRef}
+              onScroll={checkScroll} // Supaya kalau digeser pakai trackpad manual, panahnya tetap update
+              className="flex items-center gap-2 lg:gap-4 xl:gap-6 overflow-x-auto flex-nowrap w-max max-w-full mx-auto px-4 py-1 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+            >
+              {menus.map((menu) => {
+                const isActive = location.pathname === menu.path;
+                
+                return (
+                  <NavLink
+                    key={menu.path}
+                    to={menu.path}
+                    className={cn(
+                      "shrink-0 px-4 lg:px-5 py-2 rounded-full text-sm lg:text-[15px] font-medium transition-all duration-200",
+                      isActive 
+                        ? "bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/25 scale-[1.02]" 
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    )}
+                  >
+                    <span>{menu.title}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+
+            {/* Tombol Kanan (Hanya muncul kalau masih ada sisa untuk digeser ke kanan) */}
+            {canScrollRight && (
+              <button 
+                onClick={() => scroll('right')} 
+                className="absolute right-0 z-10 h-full px-2 flex items-center bg-gradient-to-l from-card via-card/90 to-transparent text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-5 h-5 drop-shadow-md" />
+              </button>
+            )}
+            
+          </div>
 
           {/* Right Section: Role Badge / Login Admin */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <ThemeToggle />
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
@@ -159,7 +222,7 @@ export default function Navbar() {
         )}
       </header>
 
-      {/* Admin Login Modal (Original Design from LandingPage) */}
+      {/* Admin Login Modal */}
       {showAdminModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div

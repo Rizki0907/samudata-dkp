@@ -1223,12 +1223,12 @@ export default function AdminKelautanPesisir() {
             { label: 'Jumlah Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-foreground', border: 'border-border' },
           ].map(s => (
             <div key={s.label} className={`bg-card p-3.5 rounded-xl border ${s.border}`}>
-              <span className="text-muted-foreground text-xs font-semibold block mb-1 uppercase tracking-wider">{s.label}</span>
+              <span className="text-muted-foreground text-xs font-semibold block mb-1 tracking-wider">{s.label}</span>
               <span className={`font-bold text-xl ${s.cls}`}>{s.value}</span>
             </div>
           ))}
         </div>
-        <h4 className="text-xs font-bold text-muted-foreground mb-4 tracking-widest uppercase flex items-center gap-2">
+        <h4 className="text-xs font-bold text-muted-foreground mb-4 tracking-widest flex items-center gap-2">
           <Layers className="w-3.5 h-3.5" /> Rincian per Kualitas
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -1254,15 +1254,15 @@ export default function AdminKelautanPesisir() {
         </div>
         <div className="mt-4 flex flex-wrap gap-3 pt-4 border-t border-border">
           <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2">
-            <span className="text-xs text-emerald-400/70 uppercase tracking-wider">Total Produksi</span>
+            <span className="text-xs text-emerald-400/70 tracking-wider">Total Produksi</span>
             <span className="font-bold text-emerald-400">{(d.total_produksi_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span>
           </div>
           <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2">
-            <span className="text-xs text-amber-400/70 uppercase tracking-wider">Total Stok</span>
+            <span className="text-xs text-amber-400/70 tracking-wider">Total Stok</span>
             <span className="font-bold text-amber-400">{(d.total_stok_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span>
           </div>
           <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-4 py-2">
-            <span className="text-xs text-cyan-400/70 uppercase tracking-wider">Produktivitas Lahan</span>
+            <span className="text-xs text-cyan-400/70 tracking-wider">Produktivitas Lahan</span>
             <span className="font-bold text-cyan-400">{(d.produktivitas || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span>
           </div>
         </div>
