@@ -300,14 +300,14 @@ export default function MasterData() {
                       setSearchQuery('');
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left group",
                       activeMode === 'BIDANG' && activeBidang === bidang 
                         ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
-                    {bidang}
-                    {activeMode === 'BIDANG' && activeBidang === bidang && <ChevronRight className="w-4 h-4 opacity-70" />}
+                    <span className="leading-tight">{bidang}</span>
+                    {activeMode === 'BIDANG' && activeBidang === bidang && <ChevronRight className="w-4 h-4 opacity-70 shrink-0 ml-2" />}
                   </button>
                 ))}
               </div>
