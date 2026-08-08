@@ -41,9 +41,10 @@ const formatLogistikText = (val) => {
 };
 
 // Static imports for master data have been replaced with dynamic store.
+import { PERBEKALAN_OPTIONS as FALLBACK_PERBEKALAN } from '@/utils/constants';
 
 export default function AdminPerikananTangkap() {
-  const { getKabKotaByPelabuhan, getOptions } = useMasterDataStore();
+  const { getKabKotaByPelabuhan, getOptions, getItemsByCategory } = useMasterDataStore();
 
   const KOMODITAS_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
   const KOMODITAS_LAUT_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
@@ -51,7 +52,15 @@ export default function AdminPerikananTangkap() {
   const PELABUHAN_OPTIONS = getOptions('PELABUHAN');
   const KAB_KOTA_OPTIONS = getOptions('KAB_KOTA');
   const PERAIRAN_OPTIONS = getOptions('JENIS_PERAIRAN');
-  const PERBEKALAN_OPTIONS = getOptions('PERBEKALAN');
+  
+  // Perbekalan requires {nama, satuan} structure for Excel export headers
+  const rawPerbekalan = getItemsByCategory('PERBEKALAN');
+  const PERBEKALAN_OPTIONS = rawPerbekalan.length > 0 
+    ? rawPerbekalan.map(item => ({ 
+        nama: item.value, 
+        satuan: item.metadata?.satuan || 'Pcs' 
+      }))
+    : FALLBACK_PERBEKALAN;
 
   const user = useAuthStore(state => state.user);
   const { theme } = useThemeStore();
