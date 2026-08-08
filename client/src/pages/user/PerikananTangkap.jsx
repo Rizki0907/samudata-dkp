@@ -17,10 +17,15 @@ const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-import { PELABUHAN_TO_KABKOTA, KOMODITAS_OPTIONS, KOMODITAS_PUD_OPTIONS, PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS } from '@/utils/constants';
+import { PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
 export default function PerikananTangkap() {
-  const { getKabKotaByPelabuhan } = useMasterDataStore();
+  const { getKabKotaByPelabuhan, getOptions } = useMasterDataStore();
+  const KOMODITAS_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
+  const KOMODITAS_PUD_OPTIONS = getOptions('KOMODITAS_TANGKAP_PUD');
+  const PELABUHAN_OPTIONS = getOptions('PELABUHAN');
+  const KAB_KOTA_OPTIONS = getOptions('KAB_KOTA');
+  const PERAIRAN_OPTIONS = getOptions('JENIS_PERAIRAN');
 
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
@@ -51,6 +56,12 @@ export default function PerikananTangkap() {
     pelabuhan: [],
     tren: []
   });
+
+  useEffect(() => {
+    if (!chartHargaKomoditas && KOMODITAS_OPTIONS.length > 0) {
+      setChartHargaKomoditas(KOMODITAS_OPTIONS[0]);
+    }
+  }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
   useEffect(() => {
     const fetchData = async () => {

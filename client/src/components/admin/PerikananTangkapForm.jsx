@@ -2,13 +2,30 @@ import { useState, useEffect } from 'react';
 import { Loader2, Plus, Trash2, Anchor, Droplets, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SearchableSelect from '@/components/shared/SearchableSelect';
-import { PELABUHAN_OPTIONS, KAB_KOTA_OPTIONS, KOMODITAS_LAUT_OPTIONS, KOMODITAS_PUD_OPTIONS, PERAIRAN_OPTIONS, ALAT_TANGKAP_LAUT_OPTIONS as ALAT_TANGKAP_LAUT, ALAT_TANGKAP_PUD_OPTIONS as ALAT_TANGKAP_PUD, PUD_JENIS_PERAHU_OPTIONS as JENIS_PERAHU_PUD, GT_KAPAL_OPTIONS as GT_KAPAL_LAUT, PERBEKALAN_OPTIONS } from '@/utils/constants';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, isLoading }) {
-  // Hardcoded for WPP since it's missing in constants or we just provide default
-  const WPP_OPTIONS = ["711", "712", "713", "714", "715", "716", "717", "718", "571", "572", "573"];
-
+  const getOptions = useMasterDataStore((state) => state.getOptions);
+  
   const [sumberData, setSumberData] = useState(null); // null, 'PELABUHAN', 'PUD', 'KAB_KOTA'
+  
+  const isPelabuhan = sumberData === 'PELABUHAN';
+  const isPUD = sumberData === 'PUD';
+  const isKabKota = sumberData === 'KAB_KOTA';
+
+  const PELABUHAN_OPTIONS = getOptions('PELABUHAN');
+  const KAB_KOTA_OPTIONS = getOptions('KAB_KOTA');
+  const WPP_OPTIONS = getOptions(isKabKota ? 'WPP_NON_PELABUHAN' : 'WPP');
+  const PERBEKALAN_OPTIONS = getOptions(isKabKota ? 'PERBEKALAN_NON_PELABUHAN' : 'PERBEKALAN');
+  const PERAIRAN_OPTIONS = getOptions('JENIS_PERAIRAN');
+  
+  const ALAT_TANGKAP_LAUT = getOptions(isKabKota ? 'ALAT_TANGKAP_NON_PELABUHAN' : 'ALAT_TANGKAP_LAUT');
+  const KOMODITAS_LAUT_OPTIONS = getOptions(isKabKota ? 'KOMODITAS_TANGKAP_NON_PELABUHAN' : 'KOMODITAS_TANGKAP_LAUT');
+  const GT_KAPAL_LAUT = getOptions(isKabKota ? 'GT_KAPAL_NON_PELABUHAN' : 'GT_KAPAL_LAUT');
+
+  const KOMODITAS_PUD_OPTIONS = getOptions('KOMODITAS_TANGKAP_PUD');
+  const ALAT_TANGKAP_PUD = getOptions('ALAT_TANGKAP_PUD');
+  const JENIS_PERAHU_PUD = getOptions('JENIS_PERAHU_PUD');
   
   const [formData, setFormData] = useState({
     tanggal: '',
@@ -169,10 +186,6 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
       onSubmit(dataToSubmit);
     }
   };
-
-  const isPelabuhan = sumberData === 'PELABUHAN';
-  const isPUD = sumberData === 'PUD';
-  const isKabKota = sumberData === 'KAB_KOTA';
 
   const handleCabangSelect = (cabang) => {
     setSumberData(cabang);

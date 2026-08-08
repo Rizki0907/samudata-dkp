@@ -74,15 +74,19 @@ async function seed() {
     await insertIfNotExist('JENIS_PERAIRAN', p);
   }
 
-  // 4. ALAT_TANGKAP (gabungan laut & PUD untuk simpelnya, atau dipisah)
-  const alatTangkap = new Set([...ALAT_TANGKAP_LAUT_OPTIONS, ...ALAT_TANGKAP_PUD_OPTIONS]);
-  for (const at of Array.from(alatTangkap)) {
-    await insertIfNotExist('ALAT_TANGKAP', at);
+  // 4. ALAT_TANGKAP
+  for (const at of ALAT_TANGKAP_LAUT_OPTIONS) {
+    await insertIfNotExist('ALAT_TANGKAP_LAUT', at);
+    await insertIfNotExist('ALAT_TANGKAP_NON_PELABUHAN', at);
+  }
+  for (const at of ALAT_TANGKAP_PUD_OPTIONS) {
+    await insertIfNotExist('ALAT_TANGKAP_PUD', at);
   }
 
   // 5. KOMODITAS_TANGKAP_LAUT
   for (const kl of KOMODITAS_LAUT_OPTIONS) {
     await insertIfNotExist('KOMODITAS_TANGKAP_LAUT', kl);
+    await insertIfNotExist('KOMODITAS_TANGKAP_NON_PELABUHAN', kl);
   }
 
   // 6. KOMODITAS_TANGKAP_PUD
@@ -93,6 +97,25 @@ async function seed() {
   // 7. PERBEKALAN
   for (const perb of PERBEKALAN_OPTIONS) {
     await insertIfNotExist('PERBEKALAN', perb.nama, { satuan: perb.satuan });
+    await insertIfNotExist('PERBEKALAN_NON_PELABUHAN', perb.nama, { satuan: perb.satuan });
+  }
+
+  // 8. GT KAPAL & WPP & LAINNYA
+  const GT_KAPAL_LAUT = ["GT < 5", "GT 6 - 10", "GT 11 - 20", "GT 21 - 30", "GT > 30"];
+  for (const gt of GT_KAPAL_LAUT) {
+    await insertIfNotExist('GT_KAPAL_LAUT', gt);
+    await insertIfNotExist('GT_KAPAL_NON_PELABUHAN', gt);
+  }
+  
+  const JENIS_PERAHU_PUD = ["Tanpa Perahu", "Jukung", "Perahu Papan Kecil", "Perahu Papan Sedang", "Perahu Papan Besar"];
+  for (const jp of JENIS_PERAHU_PUD) {
+    await insertIfNotExist('JENIS_PERAHU_PUD', jp);
+  }
+
+  const WPP_OPTIONS = ["711", "712", "713", "714", "715", "716", "717", "718", "571", "572", "573"];
+  for (const wpp of WPP_OPTIONS) {
+    await insertIfNotExist('WPP', wpp);
+    await insertIfNotExist('WPP_NON_PELABUHAN', wpp);
   }
 
   console.log('Seeding selesai!');

@@ -40,18 +40,18 @@ const formatLogistikText = (val) => {
   }
 };
 
-import {
-  KOMODITAS_OPTIONS,
-  KOMODITAS_PUD_OPTIONS,
-  KOMODITAS_LAUT_OPTIONS,
-  PELABUHAN_OPTIONS,
-  KAB_KOTA_OPTIONS,
-  PERAIRAN_OPTIONS,
-  PERBEKALAN_OPTIONS
-} from '@/utils/constants';
+// Static imports for master data have been replaced with dynamic store.
 
 export default function AdminPerikananTangkap() {
-  const { getKabKotaByPelabuhan } = useMasterDataStore();
+  const { getKabKotaByPelabuhan, getOptions } = useMasterDataStore();
+
+  const KOMODITAS_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
+  const KOMODITAS_LAUT_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
+  const KOMODITAS_PUD_OPTIONS = getOptions('KOMODITAS_TANGKAP_PUD');
+  const PELABUHAN_OPTIONS = getOptions('PELABUHAN');
+  const KAB_KOTA_OPTIONS = getOptions('KAB_KOTA');
+  const PERAIRAN_OPTIONS = getOptions('JENIS_PERAIRAN');
+  const PERBEKALAN_OPTIONS = getOptions('PERBEKALAN');
 
   const user = useAuthStore(state => state.user);
   const { theme } = useThemeStore();
@@ -95,6 +95,12 @@ export default function AdminPerikananTangkap() {
     pelabuhan: [],
     tren: []
   });
+
+  useEffect(() => {
+    if (!chartHargaKomoditas && KOMODITAS_OPTIONS.length > 0) {
+      setChartHargaKomoditas(KOMODITAS_OPTIONS[0]);
+    }
+  }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
   const fetchData = async () => {
     try {

@@ -16,16 +16,22 @@ import InputOverviewKelautan from '@/components/admin/InputOverviewKelautan';
 import InputOverviewEkspor from '@/components/admin/InputOverviewEkspor';
 
 const CATEGORY_MAP = {
-  'Perikanan Tangkap Laut': [
+  'Perikanan Tangkap Pelabuhan': [
     { value: 'PELABUHAN', label: 'Pelabuhan', icon: MapPin, hasMetadata: 'kab_kota' },
-    { value: 'KOMODITAS_TANGKAP_LAUT', label: 'Komoditas Laut', icon: Package },
-    { value: 'ALAT_TANGKAP_LAUT', label: 'Alat Tangkap Laut', icon: Anchor },
+    { value: 'KOMODITAS_TANGKAP_LAUT', label: 'Komoditas', icon: Package },
+    { value: 'ALAT_TANGKAP_LAUT', label: 'Alat Tangkap', icon: Anchor },
     { value: 'GT_KAPAL_LAUT', label: 'GT / Ukuran Kapal', icon: Ship },
     { value: 'PERBEKALAN', label: 'Logistik / Perbekalan', icon: Package, hasMetadata: 'satuan' },
     { value: 'WPP', label: 'WPP', icon: Database }
   ],
+  'Perikanan Tangkap Non Pelabuhan': [
+    { value: 'KOMODITAS_TANGKAP_NON_PELABUHAN', label: 'Komoditas', icon: Package },
+    { value: 'ALAT_TANGKAP_NON_PELABUHAN', label: 'Alat Tangkap', icon: Anchor },
+    { value: 'GT_KAPAL_NON_PELABUHAN', label: 'GT / Ukuran Kapal', icon: Ship },
+    { value: 'PERBEKALAN_NON_PELABUHAN', label: 'Logistik / Perbekalan', icon: Package, hasMetadata: 'satuan' },
+    { value: 'WPP_NON_PELABUHAN', label: 'WPP', icon: Database }
+  ],
   'Perikanan Tangkap PUD': [
-    { value: 'JENIS_PERAIRAN', label: 'Jenis Perairan PUD', icon: Database },
     { value: 'KOMODITAS_TANGKAP_PUD', label: 'Komoditas PUD', icon: Package },
     { value: 'ALAT_TANGKAP_PUD', label: 'Alat Tangkap PUD', icon: Anchor },
     { value: 'JENIS_PERAHU_PUD', label: 'GT / Jenis Perahu', icon: Ship }
@@ -105,8 +111,8 @@ export default function MasterData() {
   
   const [activeMode, setActiveMode] = useState('BIDANG');
   const [activeOverviewBidang, setActiveOverviewBidang] = useState('Perikanan Budidaya');
-  const [activeBidang, setActiveBidang] = useState('Perikanan Tangkap Laut');
-  const [activeCategory, setActiveCategory] = useState(CATEGORY_MAP['Perikanan Tangkap Laut'][0].value);
+  const [activeBidang, setActiveBidang] = useState('Perikanan Tangkap Pelabuhan');
+  const [activeCategory, setActiveCategory] = useState(CATEGORY_MAP['Perikanan Tangkap Pelabuhan'][0].value);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Form State
