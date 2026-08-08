@@ -28,7 +28,6 @@ const CATEGORY_MAP = {
     { value: 'KOMODITAS_TANGKAP_NON_PELABUHAN', label: 'Komoditas', icon: Package },
     { value: 'ALAT_TANGKAP_NON_PELABUHAN', label: 'Alat Tangkap', icon: Anchor },
     { value: 'GT_KAPAL_NON_PELABUHAN', label: 'GT / Ukuran Kapal', icon: Ship },
-    { value: 'PERBEKALAN_NON_PELABUHAN', label: 'Logistik / Perbekalan', icon: Package, hasMetadata: 'satuan' },
     { value: 'WPP_NON_PELABUHAN', label: 'WPP', icon: Database }
   ],
   'Perikanan Tangkap PUD': [
