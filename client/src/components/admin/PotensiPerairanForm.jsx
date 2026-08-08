@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Save, Loader2, Anchor, X } from 'lucide-react';
 
 const KAB_KOTA_JATIM = [
@@ -13,7 +13,101 @@ const KAB_KOTA_JATIM = [
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+// ==========================================
+// ARROW NAVIGATION HELPERS
+// ==========================================
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+
+const isElementVisible = (element) => {
+  if (!(element instanceof HTMLElement)) return false;
+  const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  return (
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+};
+
+const getElementCenter = (element) => {
+  const rect = element.getBoundingClientRect();
+  return {
+    element,
+    rect,
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+};
+
+const findDirectionalTarget = (formElement, currentElement, direction) => {
+  if (!formElement || !currentElement) return null;
+  const current = getElementCenter(currentElement);
+  const candidates = Array.from(formElement.querySelectorAll(FORM_NAV_SELECTOR))
+    .filter((element) => element !== currentElement && isElementVisible(element))
+    .map(getElementCenter);
+
+  const horizontalDirection = direction === 'left' || direction === 'right';
+  const sign = direction === 'left' || direction === 'up' ? -1 : 1;
+
+  const directionalCandidates = candidates.filter((candidate) => {
+    const primaryDelta = horizontalDirection
+      ? candidate.x - current.x
+      : candidate.y - current.y;
+    return primaryDelta * sign > 4;
+  });
+
+  if (!directionalCandidates.length) return null;
+
+  const sameLineTolerance = horizontalDirection
+    ? Math.max(current.rect.height * 1.5, 48)
+    : Math.max(current.rect.width * 0.6, 110);
+
+  const sameLineCandidates = directionalCandidates.filter((candidate) => {
+    const secondaryDelta = horizontalDirection
+      ? Math.abs(candidate.y - current.y)
+      : Math.abs(candidate.x - current.x);
+    return secondaryDelta <= sameLineTolerance;
+  });
+
+  const pool = sameLineCandidates.length ? sameLineCandidates : directionalCandidates;
+
+  return pool
+    .map((candidate) => {
+      const primaryDistance = horizontalDirection
+        ? Math.abs(candidate.x - current.x)
+        : Math.abs(candidate.y - current.y);
+      const secondaryDistance = horizontalDirection
+        ? Math.abs(candidate.y - current.y)
+        : Math.abs(candidate.x - current.x);
+      return { ...candidate, score: primaryDistance + secondaryDistance * 3 };
+    })
+    .sort((a, b) => a.score - b.score)[0]?.element ?? null;
+};
+// ==========================================
+
 export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+  const formRef = useRef(null);
+
+  const handleArrowNavigation = (event) => {
+    const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+    const direction = directionByKey[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+    
+    const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
+    if (!currentElement || !formRef.current?.contains(currentElement)) return;
+    
+    const targetElement = findDirectionalTarget(formRef.current, currentElement, direction);
+    if (!targetElement) return;
+    
+    event.preventDefault();
+    targetElement.focus({ preventScroll: true });
+    targetElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    
+    if (targetElement instanceof HTMLInputElement && targetElement.type === 'text') {
+      requestAnimationFrame(() => targetElement.select());
+    }
+  };
   const [formData, setFormData] = useState(initialData || {
     tahun_data: CURRENT_YEAR,
     luas_wilayah_laut_km2: '',
@@ -57,7 +151,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form ref={formRef} onKeyDown={handleArrowNavigation} onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Identitas */}
         <section>
           <h3 className="text-lg font-medium flex items-center gap-2 mb-4">

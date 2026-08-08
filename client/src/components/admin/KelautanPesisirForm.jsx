@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Save, Loader2, FlaskConical, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
@@ -23,7 +23,101 @@ const KAB_KOTA_JATIM = [
   'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya', 'PT.Garam'
 ];
 
+// ==========================================
+// ARROW NAVIGATION HELPERS
+// ==========================================
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+
+const isElementVisible = (element) => {
+  if (!(element instanceof HTMLElement)) return false;
+  const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  return (
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+};
+
+const getElementCenter = (element) => {
+  const rect = element.getBoundingClientRect();
+  return {
+    element,
+    rect,
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+};
+
+const findDirectionalTarget = (formElement, currentElement, direction) => {
+  if (!formElement || !currentElement) return null;
+  const current = getElementCenter(currentElement);
+  const candidates = Array.from(formElement.querySelectorAll(FORM_NAV_SELECTOR))
+    .filter((element) => element !== currentElement && isElementVisible(element))
+    .map(getElementCenter);
+
+  const horizontalDirection = direction === 'left' || direction === 'right';
+  const sign = direction === 'left' || direction === 'up' ? -1 : 1;
+
+  const directionalCandidates = candidates.filter((candidate) => {
+    const primaryDelta = horizontalDirection
+      ? candidate.x - current.x
+      : candidate.y - current.y;
+    return primaryDelta * sign > 4;
+  });
+
+  if (!directionalCandidates.length) return null;
+
+  const sameLineTolerance = horizontalDirection
+    ? Math.max(current.rect.height * 1.5, 48)
+    : Math.max(current.rect.width * 0.6, 110);
+
+  const sameLineCandidates = directionalCandidates.filter((candidate) => {
+    const secondaryDelta = horizontalDirection
+      ? Math.abs(candidate.y - current.y)
+      : Math.abs(candidate.x - current.x);
+    return secondaryDelta <= sameLineTolerance;
+  });
+
+  const pool = sameLineCandidates.length ? sameLineCandidates : directionalCandidates;
+
+  return pool
+    .map((candidate) => {
+      const primaryDistance = horizontalDirection
+        ? Math.abs(candidate.x - current.x)
+        : Math.abs(candidate.y - current.y);
+      const secondaryDistance = horizontalDirection
+        ? Math.abs(candidate.y - current.y)
+        : Math.abs(candidate.x - current.x);
+      return { ...candidate, score: primaryDistance + secondaryDistance * 3 };
+    })
+    .sort((a, b) => a.score - b.score)[0]?.element ?? null;
+};
+// ==========================================
+
 export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+  const formRef = useRef(null);
+
+  const handleArrowNavigation = (event) => {
+    const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+    const direction = directionByKey[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+    
+    const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
+    if (!currentElement || !formRef.current?.contains(currentElement)) return;
+    
+    const targetElement = findDirectionalTarget(formRef.current, currentElement, direction);
+    if (!targetElement) return;
+    
+    event.preventDefault();
+    targetElement.focus({ preventScroll: true });
+    targetElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    
+    if (targetElement instanceof HTMLInputElement && targetElement.type === 'text') {
+      requestAnimationFrame(() => targetElement.select());
+    }
+  };
   const [formData, setFormData] = useState(initialData || {
     bulan: 'Januari',
     tahun: new Date().getFullYear(),
@@ -85,25 +179,39 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
   const metaLabelClass = "text-xs text-muted-foreground tracking-wide mb-1";
 
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden text-card-foreground">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+    <div className="bg-card rounded-2xl border border-border shadow-sm max-w-4xl mx-auto overflow-hidden">
+      <div className="bg-muted/35 px-6 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-primary" />
+          <div className="bg-primary/10 text-primary p-2 rounded-xl">
+            <FlaskConical className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-bold">{initialData ? 'Edit' : 'Tambah'} Data Garam</h2>
+          <h2 className="font-semibold text-lg text-foreground">
+            {initialData ? 'Edit Data Garam' : 'Tambah Data Garam'}
+          </h2>
         </div>
-        <button onClick={onCancel} className="p-2 hover:bg-muted rounded-full transition-colors">
+        <button type="button" onClick={onCancel} className="p-2 text-muted-foreground hover:bg-muted rounded-xl transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form ref={formRef} onKeyDown={handleArrowNavigation} onSubmit={handleSubmit} className="p-6 space-y-6">
         <section>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
             <div>
               <label className={labelClass}>Bulan</label>
-              <SearchableSelect name="bulan" value={formData.bulan} onChange={handleChange} className={inputClass} options={NAMA_BULAN_LIST} placeholder="-- Pilih Bulan --" />
+              <div
+                data-form-nav="true"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.currentTarget.firstElementChild?.firstElementChild?.click();
+                  }
+                }}
+                className="outline-none focus:ring-2 focus:ring-primary/20 rounded-lg"
+              >
+                <SearchableSelect name="bulan" value={formData.bulan} onChange={handleChange} className={inputClass} options={NAMA_BULAN_LIST} placeholder="-- Pilih Bulan --" />
+              </div>
             </div>
             <div>
               <label className={labelClass}>Triwulan</label>
@@ -117,14 +225,26 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             </div>
             <div>
               <label className={labelClass}>Kabupaten / Kota</label>
-              <SearchableSelect
-                name="kabupaten_kota"
-                value={formData.kabupaten_kota}
-                onChange={handleChange}
-                className={inputClass}
-                options={KAB_KOTA_JATIM}
-                placeholder="-- Pilih Kab/Kota --"
-              />
+              <div
+                data-form-nav="true"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.currentTarget.firstElementChild?.firstElementChild?.click();
+                  }
+                }}
+                className="outline-none focus:ring-2 focus:ring-primary/20 rounded-lg"
+              >
+                <SearchableSelect
+                  name="kabupaten_kota"
+                  value={formData.kabupaten_kota}
+                  onChange={handleChange}
+                  className={inputClass}
+                  options={KAB_KOTA_JATIM}
+                  placeholder="-- Pilih Kab/Kota --"
+                />
+              </div>
             </div>
           </div>
         </section>

@@ -889,7 +889,7 @@ export default function AdminKelautanPesisir() {
       }
       targetStatus = 'APPROVED'; // Approve Bidang -> APPROVED
       namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU_PESISIR_BIDANG';
+      expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
       if (row.status !== 'APPROVED') {
         alert('Validasi Program ditolak! Pastikan data ini sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
@@ -897,7 +897,7 @@ export default function AdminKelautanPesisir() {
       }
       targetStatus = 'VERIFIED'; // Approve Program -> VERIFIED
       namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC_PESISIR_PROGRAM';
+      expectedKeyword = 'ACC';
     } else {
       alert('Pilihan tidak valid. Proses dibatalkan.');
       return;
@@ -987,7 +987,7 @@ export default function AdminKelautanPesisir() {
       }
       targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU_PESISIR_BIDANG';
+      expectedKeyword = 'SETUJU';
     } else if (jenis === '2') {
       const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED');
       if (invalidRows.length > 0) {
@@ -996,7 +996,7 @@ export default function AdminKelautanPesisir() {
       }
       targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC_PESISIR_PROGRAM';
+      expectedKeyword = 'ACC';
     } else {
       alert('Pilihan tidak valid.');
       return;

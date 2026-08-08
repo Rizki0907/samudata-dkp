@@ -3,13 +3,13 @@ const prisma = require('../utils/prisma');
 const getTriwulan = (bulan) => {
   if (!bulan) return '-';
   // Ubah paksa jadi string agar tidak crash saat menerima angka 1-12
-  const b = String(bulan).toLowerCase().trim(); 
-  
+  const b = String(bulan).toLowerCase().trim();
+
   if (['januari', 'februari', 'maret', '1', '2', '3'].includes(b)) return 'TW 1';
   if (['april', 'mei', 'juni', '4', '5', '6'].includes(b)) return 'TW 2';
   if (['juli', 'agustus', 'september', '7', '8', '9'].includes(b)) return 'TW 3';
   if (['oktober', 'november', 'desember', '10', '11', '12'].includes(b)) return 'TW 4';
-  
+
   return '-';
 };
 
@@ -50,7 +50,7 @@ const getGaramPublicData = async (req, res) => {
     const { tahun } = req.query;
     const where = { status: 'VERIFIED' };
     if (tahun) where.tahun = parseInt(tahun);
-    
+
     const data = await prisma.garam.findMany({
       where,
       orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
@@ -69,7 +69,9 @@ const createGaramData = async (req, res) => {
     payload.total_produksi_ton = (payload.produksi_k1_ton || 0) + (payload.produksi_k2_ton || 0) + (payload.produksi_k3_ton || 0);
     payload.total_stok_ton = (payload.stok_k1_ton || 0) + (payload.stok_k2_ton || 0) + (payload.stok_k3_ton || 0);
     payload.produktivitas = payload.luas_produksi_ha > 0 ? (payload.total_produksi_ton / payload.luas_produksi_ha) : 0;
-    
+
+    payload.status = 'APPROVED';
+
     const newData = await prisma.garam.create({ data: payload });
     res.json({ success: true, data: newData });
   } catch (error) {
@@ -96,7 +98,7 @@ const updateGaramData = async (req, res) => {
     payload.total_produksi_ton = (payload.produksi_k1_ton || 0) + (payload.produksi_k2_ton || 0) + (payload.produksi_k3_ton || 0);
     payload.total_stok_ton = (payload.stok_k1_ton || 0) + (payload.stok_k2_ton || 0) + (payload.stok_k3_ton || 0);
     payload.produktivitas = payload.luas_produksi_ha > 0 ? (payload.total_produksi_ton / payload.luas_produksi_ha) : 0;
-    
+
     const updatedData = await prisma.garam.update({
       where: { id: parseInt(id) },
       data: payload
@@ -160,7 +162,7 @@ const getPotensiPerairanPublicData = async (req, res) => {
     const { tahun } = req.query;
     const where = { status: 'VERIFIED' };
     if (tahun) where.tahun_data = parseInt(tahun);
-    
+
     const data = await prisma.potensiPerairan.findMany({
       where,
       orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
@@ -176,6 +178,9 @@ const createPotensiPerairanData = async (req, res) => {
   try {
     const payload = req.body;
     if (!payload.kabupaten_kota) payload.kabupaten_kota = 'Jawa Timur';
+
+    payload.status = 'APPROVED';
+
     const newData = await prisma.potensiPerairan.create({ data: payload });
     res.json({ success: true, data: newData });
   } catch (error) {
@@ -199,7 +204,7 @@ const updatePotensiPerairanData = async (req, res) => {
       payload.alasan_penolakan = null;
     }
     if (!payload.kabupaten_kota) payload.kabupaten_kota = 'Jawa Timur';
-    
+
     const updatedData = await prisma.potensiPerairan.update({
       where: { id: parseInt(id) },
       data: payload
@@ -283,6 +288,9 @@ const createMangroveData = async (req, res) => {
     payload.luas_sedang = Number(payload.luas_sedang) || 0;
     payload.luas_jarang = Number(payload.luas_jarang) || 0;
     payload.kondisi = getKondisiMangrove(payload.persentase_kondisi);
+    payload.luas_rehabilitasi_ha = Number(payload.luas_rehabilitasi_ha) || 0;
+
+    payload.status = 'APPROVED';
 
     const newData = await prisma.mangrove.create({ data: payload });
     res.json({ success: true, data: newData });
@@ -429,6 +437,10 @@ const createLamunData = async (req, res) => {
     payload.luas_kurang_kaya = Number(payload.luas_kurang_kaya) || 0;
     payload.luas_miskin = Number(payload.luas_miskin) || 0;
     payload.kondisi = getKondisiLamun(payload.persentase_kondisi);
+    payload.luas_rehabilitasi_ha = Number(payload.luas_rehabilitasi_ha) || 0;
+
+    payload.status = 'APPROVED';
+    payload.updated_at = new Date();
 
     const newData = await prisma.lamun.create({ data: payload });
     res.json({ success: true, data: newData });
@@ -541,19 +553,19 @@ const batchDeleteLamun = async (req, res) => {
 const getKelautanPesisirStats = async (req, res) => {
   try {
     const { tahun, bulan } = req.query;
-    
+
     // --- GARAM STATS ---
     const garamWhere = { status: 'VERIFIED' };
     if (tahun) garamWhere.tahun = parseInt(tahun);
     if (bulan) garamWhere.bulan = bulan;
-    
-    const garamData = await prisma.garam.findMany({ 
+
+    const garamData = await prisma.garam.findMany({
       where: garamWhere,
       orderBy: [{ created_at: 'desc' }, { id: 'asc' }]
     });
 
     let total_produksi_garam = 0;
-    
+
     const garamPerKota = {};
 
     garamData.forEach(item => {
@@ -561,7 +573,7 @@ const getKelautanPesisirStats = async (req, res) => {
       if (!garamPerKota[k]) {
         garamPerKota[k] = { produksi: 0, luas_lahan: 0, petambak: 0, kelompok: 0 };
       }
-      
+
       // Hasil Panen selalu dijumlahkan (+)
       const produksi = item.total_produksi_ton || 0;
       total_produksi_garam += produksi;
@@ -581,7 +593,7 @@ const getKelautanPesisirStats = async (req, res) => {
     const potensiWhere = { status: 'VERIFIED' };
     if (tahun) potensiWhere.tahun_data = parseInt(tahun);
     const potensiData = await prisma.potensiPerairan.findMany({ where: potensiWhere });
-    
+
     const potensiPerKota = {};
     potensiData.forEach(item => {
       const k = item.kabupaten_kota || 'Tidak Diketahui';
@@ -829,11 +841,11 @@ const getTerumbuKarangPublicData = async (req, res) => {
 
 const createTerumbuKarangData = async (req, res) => {
   try {
-    const { 
-      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi, 
-      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak 
+    const {
+      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi,
+      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak
     } = req.body;
-    
+
     await prisma.$executeRawUnsafe(`
       INSERT INTO "terumbu_karang" (
         "tahun", "kabupaten_kota", "luas_eksisting_ha", "persentase_tutupan", "persentase_kondisi",
@@ -842,7 +854,7 @@ const createTerumbuKarangData = async (req, res) => {
       ) VALUES (
         ${tahun}, '${kabupaten_kota}', ${luas_eksisting_ha || 0}, ${persentase_tutupan || 0}, ${persentase_kondisi || 0},
         '${kondisi}', ${luas_rehabilitasi_ha || 0}, ${luas_sangat_baik || 0}, ${luas_baik || 0}, ${luas_sedang || 0}, ${luas_rusak || 0},
-        'PENDING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        'APPROVED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
     `);
     res.json({ success: true, message: 'Berhasil membuat data terumbu karang' });
@@ -855,15 +867,15 @@ const createTerumbuKarangData = async (req, res) => {
 const updateTerumbuKarangData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi, 
-      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak 
+    const {
+      tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi,
+      luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak
     } = req.body;
-    
+
     const existingArr = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" WHERE "id" = ${parseInt(id)}`);
     if (!existingArr || existingArr.length === 0) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     const existing = existingArr[0];
-    
+
     if (['APPROVED', 'VERIFIED'].includes(existing.status) && req.user?.role === 'admin_cabang') {
       return res.status(403).json({ success: false, message: 'Admin Cabang tidak dapat mengubah data yang sudah disetujui' });
     }

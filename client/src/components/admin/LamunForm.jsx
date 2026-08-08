@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Leaf, Loader2, Save, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
@@ -33,7 +33,101 @@ const KATEGORI_LUAS_LAHAN_LIST = ['Luas', 'Sedang', 'Sempit'];
 
 const currentYear = new Date().getFullYear();
 
+// ==========================================
+// ARROW NAVIGATION HELPERS
+// ==========================================
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+
+const isElementVisible = (element) => {
+  if (!(element instanceof HTMLElement)) return false;
+  const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
+  return (
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+};
+
+const getElementCenter = (element) => {
+  const rect = element.getBoundingClientRect();
+  return {
+    element,
+    rect,
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+};
+
+const findDirectionalTarget = (formElement, currentElement, direction) => {
+  if (!formElement || !currentElement) return null;
+  const current = getElementCenter(currentElement);
+  const candidates = Array.from(formElement.querySelectorAll(FORM_NAV_SELECTOR))
+    .filter((element) => element !== currentElement && isElementVisible(element))
+    .map(getElementCenter);
+
+  const horizontalDirection = direction === 'left' || direction === 'right';
+  const sign = direction === 'left' || direction === 'up' ? -1 : 1;
+
+  const directionalCandidates = candidates.filter((candidate) => {
+    const primaryDelta = horizontalDirection
+      ? candidate.x - current.x
+      : candidate.y - current.y;
+    return primaryDelta * sign > 4;
+  });
+
+  if (!directionalCandidates.length) return null;
+
+  const sameLineTolerance = horizontalDirection
+    ? Math.max(current.rect.height * 1.5, 48)
+    : Math.max(current.rect.width * 0.6, 110);
+
+  const sameLineCandidates = directionalCandidates.filter((candidate) => {
+    const secondaryDelta = horizontalDirection
+      ? Math.abs(candidate.y - current.y)
+      : Math.abs(candidate.x - current.x);
+    return secondaryDelta <= sameLineTolerance;
+  });
+
+  const pool = sameLineCandidates.length ? sameLineCandidates : directionalCandidates;
+
+  return pool
+    .map((candidate) => {
+      const primaryDistance = horizontalDirection
+        ? Math.abs(candidate.x - current.x)
+        : Math.abs(candidate.y - current.y);
+      const secondaryDistance = horizontalDirection
+        ? Math.abs(candidate.y - current.y)
+        : Math.abs(candidate.x - current.x);
+      return { ...candidate, score: primaryDistance + secondaryDistance * 3 };
+    })
+    .sort((a, b) => a.score - b.score)[0]?.element ?? null;
+};
+// ==========================================
+
 export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
+  const formRef = useRef(null);
+
+  const handleArrowNavigation = (event) => {
+    const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+    const direction = directionByKey[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
+    
+    const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
+    if (!currentElement || !formRef.current?.contains(currentElement)) return;
+    
+    const targetElement = findDirectionalTarget(formRef.current, currentElement, direction);
+    if (!targetElement) return;
+    
+    event.preventDefault();
+    targetElement.focus({ preventScroll: true });
+    targetElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    
+    if (targetElement instanceof HTMLInputElement && targetElement.type === 'text') {
+      requestAnimationFrame(() => targetElement.select());
+    }
+  };
   const [form, setForm] = useState({
     tahun: currentYear,
     kabupaten_kota: '',
@@ -113,7 +207,7 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
     `w-full bg-background border ${errors[field] ? 'border-destructive hover:border-destructive' : 'border-border hover:border-border'} rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none`;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onKeyDown={handleArrowNavigation} onSubmit={handleSubmit} className="space-y-6">
       {/* ── HEADER ── */}
       <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
         <div className="flex items-center gap-3">
@@ -145,18 +239,30 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
           {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
-          <SearchableSelect
-            name="kabupaten_kota"
-            value={form.kabupaten_kota}
-            onChange={(e) => handleChange('kabupaten_kota', e.target.value)}
-            className={inputCls('kabupaten_kota')}
-            options={KABUPATEN_KOTA_LIST}
-            placeholder="-- Pilih Kab/Kota --"
-          />
-          {errors.kabupaten_kota && <p className="text-xs text-destructive mt-1">{errors.kabupaten_kota}</p>}
-        </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
+            <div
+              data-form-nav="true"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.currentTarget.firstElementChild?.firstElementChild?.click();
+                }
+              }}
+              className="outline-none focus:ring-2 focus:ring-primary/20 rounded-lg"
+            >
+              <SearchableSelect
+                name="kabupaten_kota"
+                value={form.kabupaten_kota}
+                onChange={(e) => handleChange('kabupaten_kota', e.target.value)}
+                className={inputCls('kabupaten_kota')}
+                options={KABUPATEN_KOTA_LIST}
+                placeholder="-- Pilih Kab/Kota --"
+              />
+            </div>
+            {errors.kabupaten_kota && <p className="text-xs text-destructive mt-1">{errors.kabupaten_kota}</p>}
+          </div>
 
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Luas Eksisting (Ha)</label>
