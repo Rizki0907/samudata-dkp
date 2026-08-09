@@ -627,7 +627,7 @@ export default function PengolahanPemasaran() {
           return [
             `<b>${regionName}</b>`,
             `Jumlah UPI: <b>${upi.toLocaleString('id-ID')}</b>`,
-            `Hasil: <b>${produksi.toLocaleString('id-ID')} KG</b>`,
+            `Hasil: <b>${produksi.toLocaleString('id-ID')} Kg</b>`,
             `Nilai: <b>${new Intl.NumberFormat('id-ID', {
               style: 'currency',
               currency: 'IDR',
@@ -781,7 +781,7 @@ export default function PengolahanPemasaran() {
 
           return `${params[0]?.name}<br/>${
             isProduksi
-              ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
+              ? `Hasil: <b>${value.toLocaleString('id-ID')} Kg</b>`
               : `Nilai: <b>${formatRupiah(value)}</b>`
           }`;
         },
@@ -824,7 +824,7 @@ export default function PengolahanPemasaran() {
       },
       series: [
         {
-          name: isProduksi ? 'Hasil Produksi (KG)' : 'Nilai Hasil (Rp)',
+          name: isProduksi ? 'Hasil Produksi (Kg)' : 'Nilai Hasil (Rp)',
           type: 'bar',
           data: top10.map((item) => item[topKabFilter]),
           barMaxWidth: 28,
@@ -839,7 +839,7 @@ export default function PengolahanPemasaran() {
               const value = toNumber(params.value);
 
               return isProduksi
-                ? `${value.toLocaleString('id-ID')} KG`
+                ? `${value.toLocaleString('id-ID')} Kg`
                 : formatRupiah(value);
             },
           },
@@ -1063,7 +1063,7 @@ export default function PengolahanPemasaran() {
               `<b>${category}</b>`,
               `Tahun: <b>${item?.name || '-'}</b>`,
               isProduksi
-                ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
+                ? `Hasil: <b>${value.toLocaleString('id-ID')} Kg</b>`
                 : `Nilai: <b>${formatRupiah(value)}</b>`,
             ].join('<br/>');
           },
@@ -1284,10 +1284,11 @@ export default function PengolahanPemasaran() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Total Unit Usaha (UPI)
+                  Total Unit Usaha 
                 </p>
                 <p className="text-2xl font-bold text-foreground">
                   {stats.kpi.total_upi.toLocaleString('id-ID')}
+                  <span className="text-sm font-normal text-muted-foreground"> Unit </span>
                 </p>
               </div>
             </div>
@@ -1300,7 +1301,7 @@ export default function PengolahanPemasaran() {
                 <p className="text-sm font-medium text-muted-foreground">Total Hasil</p>
                 <p className="text-2xl font-bold text-foreground">
                   {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
-                  <span className="text-sm font-normal text-muted-foreground">KG</span>
+                  <span className="text-sm font-normal text-muted-foreground">Kg</span>
                 </p>
               </div>
             </div>
@@ -1357,7 +1358,7 @@ export default function PengolahanPemasaran() {
                     }}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
                   >
-                    <option value="produksi">Hasil (KG)</option>
+                    <option value="produksi">Hasil (Kg)</option>
                     <option value="nilai">Nilai (Rp)</option>
                   </select>
 
@@ -1440,7 +1441,7 @@ export default function PengolahanPemasaran() {
                       <p className="text-xs text-muted-foreground">Hasil Produksi</p>
 
                       <p className="mt-1 font-bold text-foreground">
-                        {selectedMapRegion.produksi.toLocaleString('id-ID')} KG
+                        {selectedMapRegion.produksi.toLocaleString('id-ID')} Kg
                       </p>
                     </div>
 
@@ -1476,7 +1477,7 @@ export default function PengolahanPemasaran() {
                   onChange={(event) => setTopKabFilter(event.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary sm:w-auto"
                 >
-                  <option value="produksi">Hasil (KG)</option>
+                  <option value="produksi">Hasil (Kg)</option>
                   <option value="nilai">Nilai (Rp)</option>
                 </select>
               </div>
@@ -1622,7 +1623,7 @@ export default function PengolahanPemasaran() {
                     onChange={(event) => setTrendFilter(event.target.value)}
                     className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="produksi">Hasil (KG)</option>
+                    <option value="produksi">Hasil (Kg)</option>
                     <option value="nilai">Nilai (Rp)</option>
                   </select>
                 </div>

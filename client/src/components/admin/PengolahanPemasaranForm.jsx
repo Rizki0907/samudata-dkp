@@ -1155,9 +1155,6 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
                   ? 'Tambahkan rincian ke daftar'
                   : 'Perbarui rincian yang sedang diedit'}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Tahun dan Kabupaten/Kota akan digunakan untuk seluruh rincian.
-              </p>
             </div>
 
             <button
@@ -1184,9 +1181,6 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
                 <h2 className="font-heading text-base font-semibold text-foreground">
                   Daftar Rincian Sementara
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {batchItems.length} rincian siap disimpan
-                </p>
               </div>
 
               {batchItems.length > 0 ? (

@@ -1725,7 +1725,7 @@ export default function AdminPengolahanPemasaran() {
 
     const isProduksi = topKabFilter === 'produksi';
     const seriesName = isProduksi
-      ? 'Hasil Produksi (KG)'
+      ? 'Hasil Produksi (Kg)'
       : 'Nilai Hasil (Rp)';
 
     return {
@@ -1742,7 +1742,7 @@ export default function AdminPengolahanPemasaran() {
 
           return `${params[0]?.name}<br/>${
             isProduksi
-              ? `Hasil: <b>${value.toLocaleString('id-ID')} KG</b>`
+              ? `Hasil: <b>${value.toLocaleString('id-ID')} Kg</b>`
               : `Nilai: <b>${formatRupiah(value)}</b>`
           }`;
         },
@@ -1799,7 +1799,7 @@ export default function AdminPengolahanPemasaran() {
               const value = toNumber(params.value);
 
               return isProduksi
-                ? `${value.toLocaleString('id-ID')} KG`
+                ? `${value.toLocaleString('id-ID')} Kg`
                 : formatRupiah(value);
             },
           },
@@ -2349,7 +2349,7 @@ export default function AdminPengolahanPemasaran() {
             <p className="text-2xl font-bold text-foreground">
               {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
               <span className="text-sm font-normal text-muted-foreground">
-                KG
+                Kg
               </span>
             </p>
           </div>
@@ -2409,7 +2409,7 @@ export default function AdminPengolahanPemasaran() {
                 }}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
               >
-                <option value="produksi">Hasil (KG)</option>
+                <option value="produksi">Hasil (Kg)</option>
                 <option value="nilai">Nilai (Rp)</option>
               </select>
 
@@ -2487,7 +2487,7 @@ export default function AdminPengolahanPemasaran() {
                     Hasil Produksi
                   </p>
                   <p className="mt-1 font-bold text-foreground">
-                    {selectedMapRegion.produksi.toLocaleString('id-ID')} KG
+                    {selectedMapRegion.produksi.toLocaleString('id-ID')} Kg
                   </p>
                 </div>
 
@@ -2520,7 +2520,7 @@ export default function AdminPengolahanPemasaran() {
               onChange={event => setTopKabFilter(event.target.value)}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary sm:w-auto"
             >
-              <option value="produksi">Hasil (KG)</option>
+              <option value="produksi">Hasil (Kg)</option>
               <option value="nilai">Nilai (Rp)</option>
             </select>
           </div>
@@ -2685,7 +2685,7 @@ export default function AdminPengolahanPemasaran() {
                     }
                     className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option value="produksi">Hasil (KG)</option>
+                    <option value="produksi">Hasil (Kg)</option>
                     <option value="nilai">Nilai (Rp)</option>
                   </select>
                 </div>
