@@ -15,6 +15,14 @@ const maxYear = currentYear - 1;
 // Generate 10 years ending at maxYear
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (maxYear - 9 + i).toString());
 
+// Format angka: kosong/null/undefined/0 (angka atau string "0") -> "-"
+const fmt = (value, opts = {}) => {
+  if (value === null || value === undefined || value === '' || Number(value) === 0 || Number.isNaN(Number(value))) {
+    return '-';
+  }
+  return Number(value).toLocaleString('id-ID', opts);
+};
+
 export default function Overview() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -122,25 +130,31 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap (Ton)</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.tangkap.produksi?.toLocaleString('id-ID')}</p>
-            </div>
-            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Kapal Perikanan (Unit)</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Tangkap</p>
               <p className="text-2xl font-bold text-blue-600">
-                {stats.tangkap.kapal !== undefined && stats.tangkap.kapal !== null ? Number(stats.tangkap.kapal).toLocaleString('id-ID') : '52.211'}
+                {fmt(stats.tangkap.produksi)}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Pelabuhan (Unit)</p>
+              <p className="text-sm text-muted-foreground mb-1">Kapal Perikanan</p>
               <p className="text-2xl font-bold text-blue-600">
-                {stats.tangkap.pelabuhan !== undefined && stats.tangkap.pelabuhan !== null ? Number(stats.tangkap.pelabuhan).toLocaleString('id-ID') : '22'}
+                {fmt(stats.tangkap.kapal)}
+                <span className="text-sm font-normal text-muted-foreground"> Unit</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Nelayan (Orang)</p>
+              <p className="text-sm text-muted-foreground mb-1">Pelabuhan</p>
               <p className="text-2xl font-bold text-blue-600">
-                {stats.tangkap.nelayan !== undefined && stats.tangkap.nelayan !== null ? Number(stats.tangkap.nelayan).toLocaleString('id-ID') : '217.209'}
+                {fmt(stats.tangkap.pelabuhan)}
+                <span className="text-sm font-normal text-muted-foreground"> Unit</span>
+              </p>
+            </div>
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
+              <p className="text-sm text-muted-foreground mb-1">Nelayan</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {fmt(stats.tangkap.nelayan)}
+                <span className="text-sm font-normal text-muted-foreground"> Orang</span>
               </p>
             </div>
           </div>
@@ -156,9 +170,10 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya (Ton)</p>
-              <p className="text-2xl font-bold text-emerald-600 truncate" title={((stats.budidaya.produksi || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })}>
-                {((stats.budidaya.produksi || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+              <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya</p>
+              <p className="text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}>
+                {fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
@@ -169,14 +184,16 @@ export default function Overview() {
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Jumlah Pembudidaya</p>
-              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.pembudidaya !== null && stats.budidaya.pembudidaya !== undefined ? Number(stats.budidaya.pembudidaya).toLocaleString('id-ID') : '-'}>
-                {stats.budidaya.pembudidaya !== null && stats.budidaya.pembudidaya !== undefined ? Number(stats.budidaya.pembudidaya).toLocaleString('id-ID') : '-'}
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.pembudidaya)}>
+                {fmt(stats.budidaya.pembudidaya)}
+                <span className="text-sm font-normal text-muted-foreground"> Orang</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Luas Lahan (Ha)</p>
-              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={stats.budidaya.luas_lahan !== null && stats.budidaya.luas_lahan !== undefined ? Number(stats.budidaya.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}>
-                {stats.budidaya.luas_lahan !== null && stats.budidaya.luas_lahan !== undefined ? Number(stats.budidaya.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+              <p className="text-sm text-muted-foreground mb-1">Luas Lahan</p>
+              <p className="text-xl md:text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.luas_lahan, { maximumFractionDigits: 2 })}>
+                {fmt(stats.budidaya.luas_lahan, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ha</span>
               </p>
             </div>
           </div>
@@ -192,27 +209,31 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Unit Pengolahan (Unit)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Unit Pengolahan</p>
               <p className="text-2xl font-bold text-orange-600">
-                {stats.pemasaran?.unit_pengolahan !== null && stats.pemasaran?.unit_pengolahan !== undefined && stats.pemasaran?.unit_pengolahan !== '' ? Number(stats.pemasaran.unit_pengolahan).toLocaleString('id-ID') : '-'}
+                {fmt(stats.pemasaran?.unit_pengolahan)}
+                <span className="text-sm font-normal text-muted-foreground"> Unit</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Unit Pemasaran (Unit)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Unit Pemasaran</p>
               <p className="text-2xl font-bold text-orange-600">
-                {stats.pemasaran?.unit_pemasaran !== null && stats.pemasaran?.unit_pemasaran !== undefined && stats.pemasaran?.unit_pemasaran !== '' ? Number(stats.pemasaran.unit_pemasaran).toLocaleString('id-ID') : '-'}
+                {fmt(stats.pemasaran?.unit_pemasaran)}
+                <span className="text-sm font-normal text-muted-foreground"> Unit</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pengolahan (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pengolahan</p>
               <p className="text-2xl font-bold text-orange-600">
-                {stats.pemasaran?.produk_pengolahan_ton !== null && stats.pemasaran?.produk_pengolahan_ton !== undefined && stats.pemasaran?.produk_pengolahan_ton !== '' ? Number(stats.pemasaran.produk_pengolahan_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+                {fmt(stats.pemasaran?.produk_pengolahan_ton, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pemasaran (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Produk Pemasaran</p>
               <p className="text-2xl font-bold text-orange-600">
-                {stats.pemasaran?.produk_pemasaran_ton !== null && stats.pemasaran?.produk_pemasaran_ton !== undefined && stats.pemasaran?.produk_pemasaran_ton !== '' ? Number(stats.pemasaran.produk_pemasaran_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+                {fmt(stats.pemasaran?.produk_pemasaran_ton, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
           </div>
@@ -228,21 +249,24 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Produksi Garam (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Produksi Garam</p>
               <p className="text-2xl font-bold text-red-600 truncate">
-                {stats.garam?.produksi !== null && stats.garam?.produksi !== undefined ? Number(stats.garam.produksi).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+                {fmt(stats.garam?.produksi, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Jumlah Petambak (Orang)</p>
+              <p className="text-sm text-muted-foreground mb-1">Jumlah Petambak</p>
               <p className="text-2xl font-bold text-red-600 truncate">
-                {stats.garam?.petambak !== null && stats.garam?.petambak !== undefined ? Number(stats.garam.petambak).toLocaleString('id-ID') : '-'}
+                {fmt(stats.garam?.petambak)}
+                <span className="text-sm font-normal text-muted-foreground"> Orang</span>
               </p>
             </div>
             <div className="col-span-2 bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
-              <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam (Ha)</p>
+              <p className="text-sm text-muted-foreground mb-1">Luas Lahan Garam</p>
               <p className="text-2xl font-bold text-red-600 truncate">
-                {stats.garam?.luas_lahan !== null && stats.garam?.luas_lahan !== undefined ? Number(stats.garam.luas_lahan).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}
+                {fmt(stats.garam?.luas_lahan, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ha</span>
               </p>
             </div>
           </div>
@@ -260,15 +284,17 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
-              <p className="text-sm text-muted-foreground mb-1">Volume Ekspor (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Volume Ekspor</p>
               <p className="text-2xl font-bold text-purple-600">
-                {stats.ekspor?.volume_ton ? Number(stats.ekspor.volume_ton).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0'}
+                {fmt(stats.ekspor?.volume_ton, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
-              <p className="text-sm text-muted-foreground mb-1">Nilai Ekspor (USD)</p>
+              <p className="text-sm text-muted-foreground mb-1">Nilai Ekspor</p>
               <p className="text-2xl font-bold text-purple-600">
-                ${stats.ekspor?.nilai_usd ? Number(stats.ekspor.nilai_usd).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0'}
+                {stats.ekspor?.nilai_usd && Number(stats.ekspor.nilai_usd) !== 0 ? `$${fmt(stats.ekspor.nilai_usd, { maximumFractionDigits: 2 })}` : '-'}
+                <span className="text-sm font-normal text-muted-foreground"> USD</span>
               </p>
             </div>
           </div>
@@ -286,11 +312,10 @@ export default function Overview() {
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
-              <p className="text-sm text-muted-foreground mb-1">Total Konsumsi Ikan (Ton)</p>
+              <p className="text-sm text-muted-foreground mb-1">Total Konsumsi Ikan</p>
               <p className="text-2xl font-bold text-amber-600">
-                {stats.kim?.total_konsumsi !== null && stats.kim?.total_konsumsi !== undefined && stats.kim?.total_konsumsi !== '' && stats.kim?.total_konsumsi !== '-'
-                  ? Number(stats.kim.total_konsumsi).toLocaleString('id-ID', { maximumFractionDigits: 2 })
-                  : '-'}
+                {fmt(stats.kim?.total_konsumsi, { maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
           </div>
