@@ -1974,7 +1974,7 @@ export default function AdminKelautanPesisir() {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="w-5 h-5 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
                 </div>
               </div>
 

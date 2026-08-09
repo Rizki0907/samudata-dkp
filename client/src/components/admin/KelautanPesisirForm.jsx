@@ -254,7 +254,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
         <section>
           <h3 className={sectionTitleClass}>
             <span className={sectionBadgeClass}>1</span>
-            Lahan & SDM
+            Lahan dan SDM
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
             <div>

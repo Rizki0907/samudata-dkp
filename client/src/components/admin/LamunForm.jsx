@@ -170,7 +170,7 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
   const validate = () => {
     const err = {};
     if (!form.tahun) err.tahun = 'Tahun wajib diisi';
-    if (!form.kabupaten_kota) err.kabupaten_kota = 'Kabupaten/Kota wajib dipilih';
+    if (!form.kabupaten_kota) err.kabupaten_kota = 'Kab/Kota wajib dipilih';
     if (form.luas_eksisting_ha === '' || Number(form.luas_eksisting_ha) < 0) err.luas_eksisting_ha = 'Luas eksisting wajib diisi';
     if (form.persentase_tutupan === '' || Number(form.persentase_tutupan) < 0 || Number(form.persentase_tutupan) > 100) {
       err.persentase_tutupan = 'Persentase tutupan harus di antara 0 - 100';

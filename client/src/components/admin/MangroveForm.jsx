@@ -157,7 +157,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
   const validate = () => {
     const err = {};
     if (!form.tahun) err.tahun = 'Tahun wajib diisi';
-    if (!form.kabupaten_kota) err.kabupaten_kota = 'Kabupaten/Kota wajib dipilih';
+    if (!form.kabupaten_kota) err.kabupaten_kota = 'Kab/Kota wajib dipilih';
     if (form.luas_eksisting_ha === '' || Number(form.luas_eksisting_ha) < 0) err.luas_eksisting_ha = 'Luas eksisting wajib diisi';
     if (!form.spesies.trim()) err.spesies = 'Spesies wajib diisi';
     if (form.persentase_kondisi === '' || Number(form.persentase_kondisi) < 0 || Number(form.persentase_kondisi) > 100) {
@@ -221,7 +221,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
           <div
             data-form-nav="true"
             tabIndex={0}
