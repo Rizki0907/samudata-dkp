@@ -54,6 +54,7 @@ export default function Budidaya() {
   const [filterTableTahun, setFilterTableTahun] = useState([]);
 
   const [barFilter, setBarFilter] = useState('produksi');
+  const [treemapFilter, setTreemapFilter] = useState('produksi');
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
@@ -165,7 +166,9 @@ export default function Budidaya() {
       kabMap[kab].nilai += nilai;
 
       if (item.jenis_wadah) {
-        wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + vol;
+        if (!wadahMap[item.jenis_wadah]) wadahMap[item.jenis_wadah] = { produksi: 0, nilai: 0 };
+          wadahMap[item.jenis_wadah].produksi += vol;
+          wadahMap[item.jenis_wadah].nilai += nilai;
       }
 
       if (!heatmapRaw[kab]) {
@@ -491,7 +494,7 @@ export default function Budidaya() {
         }
       }]
     };
-  }, [stats.komposisiWadah, isDark]);
+  }, [stats.komposisiWadah, treemapFilter, isDark]);
 
   // 5. Heatmap Kabupaten x Bulan
   const heatmapOption = useMemo(() => {
@@ -729,10 +732,20 @@ export default function Budidaya() {
             </div>
 
             <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                <Fish className="w-5 h-5 text-cyan-500" />
-                <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
-              </div>
+              <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                    <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
+                  </div>
+                  <select
+                    value={barFilter}
+                    onChange={(e) => setBarFilter(e.target.value)}
+                    className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
+                  >
+                    <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (Kg)</option>
+                    <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
+                  </select>
+                </div>
               <div className="h-[450px]">
                 {hasBarData ? (
                   <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
@@ -764,9 +777,19 @@ export default function Budidaya() {
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                  <Fish className="w-5 h-5 text-cyan-500" />
-                  <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+              <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Fish className="w-5 h-5 text-cyan-500" />
+                    <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+                  </div>
+                  <select
+                    value={treemapFilter}
+                    onChange={(e) => setTreemapFilter(e.target.value)}
+                    className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
+                  >
+                    <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (Kg)</option>
+                    <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
+                  </select>
                 </div>
               <div className="h-[350px]">
                 {hasTreemapData ? (
