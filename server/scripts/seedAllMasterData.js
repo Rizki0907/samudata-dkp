@@ -92,11 +92,6 @@ const DATA_MAP = {
     "Keramba Jaring Apung (KJA)", "Keramba Jaring Tancap (KJT)", "Minapadi", "Rumput Laut / Laut"
   ],
 
-  // ================== BIDANG: PENGOLAHAN DAN PEMASARAN ==================
-  // Kategori berikut HARUS sama persis (value-nya) dengan CATEGORY_MAP
-  // di MasterData.jsx pada key 'Pengolahan dan Pemasaran', supaya form
-  // input & tampilan otomatis sinkron saat master data ditambah/diedit.
-
   KABUPATEN_KOTA: [
     'KAB. PACITAN', 'KAB. PONOROGO', 'KAB. TRENGGALEK', 'KAB. TULUNGAGUNG',
     'KAB. BLITAR', 'KAB. KEDIRI', 'KAB. MALANG', 'KAB. LUMAJANG', 'KAB. JEMBER',
@@ -137,12 +132,7 @@ const DATA_MAP = {
   SERTIFIKAT_LAHAN_BANGUNAN: [
     'Sertifikat Hak Milik (SHM)', 'Non SHM (Sewa / Girik / HGB / DLL)'
   ],
-  // ========================================================================
-
-  BENTUK_PRODUK: [
-    "Utuh / Whole", "Siap Masak / Ready to Cook", "Siap Saji / Ready to Eat", 
-    "Fillet / Loin", "Surimi / Lumat", "Kering / Bubuk", "Cair / Minyak"
-  ],
+  
   KOMODITAS_EKSPOR: [
     "Udang (Shrimp)", "Tuna, Cakalang, Tongkol", "Rajungan dan Kepiting", 
     "Cumi-cumi, Sotong, Gurita", "Rumput Laut (Seaweed)", "Ikan Karang (Kerapu, Kakap)", 

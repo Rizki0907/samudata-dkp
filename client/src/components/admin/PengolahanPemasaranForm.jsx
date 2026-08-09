@@ -1,10 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 // ============================================================================
 // MASTER DATA & OPTIONS
 // ============================================================================
-export const KabupatenKotaOptions = [
+//
+// PENTING (dibaca dulu sebelum edit):
+// - Kabupaten/Kota, Jenis Pengolahan, Jenis Pemasaran, dan Skala Usaha SEKARANG
+//   diambil otomatis dari Master Data lewat useMasterDataStore().getOptions(...).
+//   Kalau admin nambah/edit/hapus data lewat halaman Master Data, form ini
+//   otomatis ikut berubah -- TIDAK PERLU edit kode lagi.
+// - Array *_FALLBACK di bawah ini HANYA dipakai kalau data dari Master Data
+//   belum termuat / API gagal / masterDataStore kosong (misal koneksi lambat
+//   saat pertama buka halaman). Begitu data dari store tersedia, itu yang dipakai.
+// - Sertifikat Produk dan Izin Usaha TIDAK disambungkan ke Master Data, karena
+//   di database tiap item itu adalah KOLOM TERPISAH (sertifikat_haccp,
+//   sertifikat_sni, izin_nib, izin_npwp, dst -- lihat buildApiPayload di bawah).
+//   Kalau mau menambah jenis sertifikat/izin baru, harus tambah entri di
+//   SERTIFIKAT_PRODUK_LIST / IZIN_USAHA_LIST di bawah INI, DAN tambah kolom baru
+//   + migrasi di schema.prisma (server). Ini bukan bug, tapi konsekuensi dari
+//   desain skema database yang fixed-column untuk kedua kategori tersebut.
+
+export const KabupatenKotaOptions_FALLBACK = [
   'KAB. PACITAN', 'KAB. PONOROGO', 'KAB. TRENGGALEK', 'KAB. TULUNGAGUNG',
   'KAB. BLITAR', 'KAB. KEDIRI', 'KAB. MALANG', 'KAB. LUMAJANG', 'KAB. JEMBER',
   'KAB. BANYUWANGI', 'KAB. BONDOWOSO', 'KAB. SITUBONDO', 'KAB. PROBOLINGGO',
@@ -16,11 +34,15 @@ export const KabupatenKotaOptions = [
   'KOTA SURABAYA', 'KOTA BATU',
 ];
 
+// Tetap diekspor dengan nama lama supaya file lain yang mungkin masih
+// mengimpor KabupatenKotaOptions tidak error (backward compatible).
+export const KabupatenKotaOptions = KabupatenKotaOptions_FALLBACK;
+
 // Dropdown Tahun: 1 tahun ke depan s.d. 6 tahun ke belakang, dihitung otomatis dari tahun berjalan.
 const CURRENT_YEAR = new Date().getFullYear();
 export const TAHUN_OPTIONS = Array.from({ length: 8 }, (_, i) => String(CURRENT_YEAR + 1 - i));
 
-export const JENIS_KEGIATAN_PENGOLAHAN = [
+export const JENIS_KEGIATAN_PENGOLAHAN_FALLBACK = [
   'Fermentasi',
   'Pelumatan Daging Ikan',
   'Pembekuan',
@@ -32,14 +54,18 @@ export const JENIS_KEGIATAN_PENGOLAHAN = [
   'Penggaraman/ Pengeringan',
   'Pengolahan Lainnya',
 ];
+export const JENIS_KEGIATAN_PENGOLAHAN = JENIS_KEGIATAN_PENGOLAHAN_FALLBACK;
 
-export const JENIS_KEGIATAN_PEMASARAN = [
+export const JENIS_KEGIATAN_PEMASARAN_FALLBACK = [
   'Pengecer',
   'Pengumpul/ Pedagang Besar/ Distributor',
 ];
+export const JENIS_KEGIATAN_PEMASARAN = JENIS_KEGIATAN_PEMASARAN_FALLBACK;
 
-export const SKALA_USAHA_OPTIONS = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
+export const SKALA_USAHA_OPTIONS_FALLBACK = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
+export const SKALA_USAHA_OPTIONS = SKALA_USAHA_OPTIONS_FALLBACK;
 
+// Sertifikat Produk & Izin Usaha SENGAJA tetap hardcode -- lihat catatan di atas.
 export const SERTIFIKAT_PRODUK_LIST = [
   { key: 'haccp', label: 'HACCP' },
   { key: 'sni', label: 'SNI' },
@@ -211,14 +237,16 @@ const createEmptyFormData = () => ({
   izin_usaha: { ...INITIAL_FORM_DATA.izin_usaha },
 });
 
-const createFormData = (initialData) => {
+// jenisPengolahanOptions & jenisPemasaranOptions sekarang dikirim dari
+// komponen (hasil getOptions() dari Master Data), bukan konstanta module-level lagi.
+const createFormData = (initialData, jenisPengolahanOptions, jenisPemasaranOptions) => {
   if (!initialData) return createEmptyFormData();
 
   const kategori = normalizeKategori(initialData.kategori_kegiatan);
   const jenisOptions =
     kategori === 'Pengolahan'
-      ? JENIS_KEGIATAN_PENGOLAHAN
-      : JENIS_KEGIATAN_PEMASARAN;
+      ? jenisPengolahanOptions
+      : jenisPemasaranOptions;
 
   return {
     tahun: String(initialData.tahun ?? CURRENT_YEAR),
@@ -705,21 +733,48 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
   const formRef = useRef(null);
   const isBatchMode = !initialData;
 
-  const [formData, setFormData] = useState(() => createFormData(initialData));
+  // Ambil pilihan dropdown dari Master Data. Kalau store belum termuat / kosong,
+  // pakai array fallback yang di-hardcode di atas supaya form tetap bisa dipakai.
+  const getOptions = useMasterDataStore((state) => state.getOptions);
+
+  const kabupatenKotaOptions = useMemo(() => {
+    const fromStore = getOptions('KABUPATEN_KOTA');
+    return fromStore?.length ? fromStore : KabupatenKotaOptions_FALLBACK;
+  }, [getOptions]);
+
+  const jenisPengolahanOptions = useMemo(() => {
+    const fromStore = getOptions('JENIS_PENGOLAHAN');
+    return fromStore?.length ? fromStore : JENIS_KEGIATAN_PENGOLAHAN_FALLBACK;
+  }, [getOptions]);
+
+  const jenisPemasaranOptions = useMemo(() => {
+    const fromStore = getOptions('JENIS_PEMASARAN');
+    return fromStore?.length ? fromStore : JENIS_KEGIATAN_PEMASARAN_FALLBACK;
+  }, [getOptions]);
+
+  const skalaUsahaOptions = useMemo(() => {
+    const fromStore = getOptions('KATEGORI_SKALA_USAHA');
+    return fromStore?.length ? fromStore : SKALA_USAHA_OPTIONS_FALLBACK;
+  }, [getOptions]);
+
+  const [formData, setFormData] = useState(() =>
+    createFormData(initialData, jenisPengolahanOptions, jenisPemasaranOptions),
+  );
   const [batchItems, setBatchItems] = useState([]);
   const [editingBatchIndex, setEditingBatchIndex] = useState(null);
   const [batchError, setBatchError] = useState('');
 
   useEffect(() => {
-    setFormData(createFormData(initialData));
+    setFormData(createFormData(initialData, jenisPengolahanOptions, jenisPemasaranOptions));
     setBatchItems([]);
     setEditingBatchIndex(null);
     setBatchError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   const subJenisOptions = useMemo(
-    () => (formData.kategori_kegiatan === 'Pengolahan' ? JENIS_KEGIATAN_PENGOLAHAN : JENIS_KEGIATAN_PEMASARAN),
-    [formData.kategori_kegiatan],
+    () => (formData.kategori_kegiatan === 'Pengolahan' ? jenisPengolahanOptions : jenisPemasaranOptions),
+    [formData.kategori_kegiatan, jenisPengolahanOptions, jenisPemasaranOptions],
   );
 
   const setField = (key, value) => {
@@ -841,7 +896,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
     if (!item) return;
 
     setFormData((previous) => ({
-      ...createFormData(item),
+      ...createFormData(item, jenisPengolahanOptions, jenisPemasaranOptions),
       tahun: previous.tahun,
       kabupaten_kota: previous.kabupaten_kota,
     }));
@@ -1002,7 +1057,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             label="Kab/Kota"
             value={formData.kabupaten_kota}
             onChange={(value) => setField('kabupaten_kota', value)}
-            options={KabupatenKotaOptions}
+            options={kabupatenKotaOptions}
             placeholder="Cari atau pilih kabupaten/kota"
             searchPlaceholder="Ketik nama kabupaten/kota..."
           />
@@ -1052,7 +1107,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
               label="Skala Usaha"
               value={formData.skala_usaha}
               onChange={(value) => setField('skala_usaha', value)}
-              options={SKALA_USAHA_OPTIONS}
+              options={skalaUsahaOptions}
               placeholder="Pilih skala usaha"
               searchPlaceholder="Ketik skala usaha..."
             />
