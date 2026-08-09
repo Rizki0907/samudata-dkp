@@ -162,12 +162,15 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1.5">Tahun</label>
-                <SearchableSelect
+                <input
+                  type="number"
                   name="tahun"
                   value={formData.tahun}
                   onChange={(e) => setFormData({...formData, tahun: e.target.value})}
-                  options={TAHUN_OPTIONS}
+                  min="2000"
+                  max={new Date().getFullYear()}
                   required
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               

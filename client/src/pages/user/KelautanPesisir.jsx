@@ -46,7 +46,11 @@ const hBarOption = (categories, values, color, unit, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
     grid: { left: 95, right: 85, top: 15, bottom: 20 },
     xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
     yAxis: { type: 'category', data: categories, axisLabel: { color: textColor, fontSize: 13, fontWeight: 'bold' }, axisTick: { show: false }, inverse: true },
@@ -78,7 +82,11 @@ const comboHBarOption = (categories, series, unit, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { bottom: 0, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 12 } },
     grid: { left: 95, right: 50, top: 15, bottom: 40 },
     xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
@@ -91,7 +99,11 @@ const pieOption = (title, data, nameField, valueField, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
     color: CHART_PALETTE,
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -110,7 +122,11 @@ const KONDISI_COLOR_MAP = {
 const kondisiPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -130,7 +146,11 @@ const KONDISI_TERUMBU_COLOR_MAP = {
 const kondisiTerumbuPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -149,7 +169,11 @@ const KONDISI_LAMUN_COLOR_MAP = {
 const kondisiLamunPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -307,7 +331,11 @@ export default function KelautanPesisir() {
     const textColor = isDark ? '#ffffff' : '#0f172a';
     const gridColor = isDark ? '#334155' : '#cbd5e1';
     return {
-      tooltip: { trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
       grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: textColor, fontWeight: 'bold' } },
       yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: textColor }, axisLabel: { color: textColor }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },

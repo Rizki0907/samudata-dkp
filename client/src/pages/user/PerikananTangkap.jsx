@@ -6,7 +6,7 @@ import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { formatRupiah, formatRupiahSingkat } from '@/utils/formatRupiah';
+import { formatRupiah, formatUangPendek } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatDate } from '@/utils/dateHelper';
@@ -291,6 +291,10 @@ export default function PerikananTangkap() {
   const lautVsPudChartOption = useMemo(() => {
     return {
       tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
         formatter: (params) => { return params.map(p => `${p.marker} <b>${p.name}</b>: ${p.value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton`).join('<br/>'); }
@@ -374,7 +378,11 @@ export default function PerikananTangkap() {
     const values = localKomoditas.map(item => item.volume / 1000);
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '15%', bottom: '8%', containLabel: true },
       xAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
       yAxis: { type: 'category', data: categories, axisLabel: { color: '#64748b', fontWeight: 'bold', interval: 0, width: 120, overflow: 'truncate' } },
@@ -447,7 +455,11 @@ export default function PerikananTangkap() {
 
     return {
       volume: {
-        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
+        tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Volume: ${params[0].value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Ton` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
         yAxis: { type: 'value', name: 'Volume (Ton)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
@@ -455,7 +467,11 @@ export default function PerikananTangkap() {
         series: [{ name: 'Volume', type: 'line', data: localVolumes, smooth: true, symbolSize: 8, itemStyle: { color: isDark ? '#8b5cf6' : '#023E8A' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: isDark ? [{ offset: 0, color: 'rgba(139, 92, 246, 0.5)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.05)' }] : [{ offset: 0, color: 'rgba(2, 62, 138, 0.5)' }, { offset: 1, color: 'rgba(2, 62, 138, 0.05)' }] } } }]
       },
       nilai: {
-        tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
+        tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (params) => `<b>${params[0].name}</b><br/>Nilai: Rp ${params[0].value.toLocaleString('id-ID')}` },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', boundaryGap: false, data: formattedDates, axisLabel: { color: '#64748b' } },
         yAxis: { type: 'value', name: 'Nilai Produksi (Rp)', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#64748b', formatter: (v) => 'Rp ' + (v/1000000) + 'M' }, splitLine: { lineStyle: { color: isDark ? '#334155' : 'rgba(148, 163, 184, 0.2)' } } },
@@ -520,7 +536,11 @@ export default function PerikananTangkap() {
 
   const hargaChartOption = useMemo(() => {
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' } },
       legend: { show: false },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
       xAxis: { 
@@ -645,8 +665,8 @@ export default function PerikananTangkap() {
           <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500"><TrendingUp className="w-6 h-6" /></div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
-            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`Rp ${formatRupiahSingkat(localKpi.total_nilai).value} ${formatRupiahSingkat(localKpi.total_nilai).unit}`}>
-              Rp {formatRupiahSingkat(localKpi.total_nilai).value} <span className="text-sm text-muted-foreground font-normal">{formatRupiahSingkat(localKpi.total_nilai).unit}</span>
+            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`Rp ${formatUangPendek(localKpi.total_nilai)}`}>
+              Rp {formatUangPendek(localKpi.total_nilai)}
             </p>
           </div>
         </div>
@@ -750,7 +770,7 @@ export default function PerikananTangkap() {
             </div>
           ))}
           {topKomoditasUnggulan.length === 0 && (
-             <div className="col-span-3 text-center py-8 text-muted-foreground">Belum ada data komoditas</div>
+             <div className="col-span-3 text-center py-8 text-muted-foreground">Belum ada data</div>
           )}
         </div>
       </div>

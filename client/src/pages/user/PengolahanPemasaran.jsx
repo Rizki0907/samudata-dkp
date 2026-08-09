@@ -654,10 +654,7 @@ export default function PengolahanPemasaran() {
         backgroundColor: chartColors.tooltipBg,
         borderColor: chartColors.tooltipBorder,
         borderWidth: 1,
-        textStyle: {
-          color: chartColors.tooltipText,
-          fontSize: 12,
-        },
+        
 
         formatter: (params) => {
           const item = params.data || {};

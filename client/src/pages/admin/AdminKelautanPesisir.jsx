@@ -126,7 +126,7 @@ const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, fil
 
     // KASUS 1: Filter Kab/Kota
     if (filterKab && !filterBulan && !filterTw) {
-      const ws = buildGaramSheet(yrData, title, `KABUPATEN/KOTA: ${filterKab.toUpperCase()}`, 'bulan');
+      const ws = buildGaramSheet(yrData, title, `Kab/Kota: ${filterKab.toUpperCase()}`, 'bulan');
       XLSX.utils.book_append_sheet(wb, ws, (filterKab.substring(0, 20) + yrSuffix));
       return;
     }
@@ -528,6 +528,10 @@ const makeHBarOption = (categories, values, color = '#0891b2', unit = '', isDark
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
     tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')}${unit ? ' ' + unit : ''}`,
@@ -563,7 +567,11 @@ const makeComboHBarOption = (categories, series, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { bottom: 0, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 12 } },
     grid: { left: 95, right: 50, top: 15, bottom: 40 },
     xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
@@ -576,7 +584,11 @@ const makePieOption = (title, data, nameField, valueField, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
     color: CHART_PALETTE,
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -597,7 +609,11 @@ const KONDISI_COLOR_MAP = {
 const makeKondisiPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -618,7 +634,11 @@ const KONDISI_LAMUN_COLOR_MAP = {
 const makeKondisiLamunPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -640,7 +660,11 @@ const KONDISI_TERUMBU_COLOR_MAP = {
 const makeKondisiTerumbuPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+    tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -1100,9 +1124,9 @@ export default function AdminKelautanPesisir() {
   const handleExport = (data, type) => {
     if (activeTab === 'garam') {
       if (type === 'tahunan') {
-        exportGaramExcelTahunan(data, filterTahun);
+        exportGaramExcelPintar(data, filterTahun?.length ? filterTahun.join(', ') : '', '', '', '');
       } else {
-        exportGaramExcel(data);
+        exportGaramExcelPintar(data, '', '', '', '');
       }
     } else {
       exportPotensiExcel(data);
@@ -1115,9 +1139,9 @@ export default function AdminKelautanPesisir() {
       const row = info.row.original;
       return <StatusBadge 
         row={row} 
-        onEdit={() => setEditingGaram(row)} 
+        onEdit={() => setEditingData(row)} 
         contextFields={[
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Kab/Kota', value: row.kabupaten_kota },
           { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
         ]} 
       />;
@@ -1136,7 +1160,7 @@ export default function AdminKelautanPesisir() {
       const row = info.row.original;
       return <StatusBadge 
         row={row} 
-        onEdit={() => setEditingPotensi(row)} 
+        onEdit={() => setEditingData(row)} 
         contextFields={[
           { label: 'Tahun', value: row.tahun_data }
         ]} 
@@ -1158,7 +1182,7 @@ export default function AdminKelautanPesisir() {
       return <StatusBadge
         row={row}
         contextFields={[
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Kab/Kota', value: row.kabupaten_kota },
           { label: 'Tahun', value: row.tahun }
         ]}
       />;
@@ -1178,7 +1202,7 @@ export default function AdminKelautanPesisir() {
       return <StatusBadge
         row={row}
         contextFields={[
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Kab/Kota', value: row.kabupaten_kota },
           { label: 'Tahun', value: row.tahun }
         ]}
       />;
@@ -1197,7 +1221,7 @@ export default function AdminKelautanPesisir() {
       return <StatusBadge
         row={row}
         contextFields={[
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Kab/Kota', value: row.kabupaten_kota },
           { label: 'Tahun', value: row.tahun }
         ]}
       />;
@@ -1355,7 +1379,11 @@ export default function AdminKelautanPesisir() {
     const garamTrenValues = garamTren.map(t => parseFloat(t.produksi.toFixed(2)));
 
     const garamTrenOption = {
-      tooltip: { trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
       grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: isDark ? '#ffffff' : '#0f172a', fontWeight: 'bold' } },
       yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: isDark ? '#ffffff' : '#0f172a' }, axisLabel: { color: isDark ? '#ffffff' : '#0f172a' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : '#cbd5e1' } } },
@@ -2057,7 +2085,7 @@ export default function AdminKelautanPesisir() {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Filter className="w-5 h-5 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
                 </div>
                 <div 
                   className="
@@ -2165,7 +2193,7 @@ export default function AdminKelautanPesisir() {
               onCustomExport={handleCustomExport}
               hideDefaultExport={true}
               customExportButton={
-                <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
+                <button onClick={() => handleCustomExport(filteredData)} className="flex items-center gap-2 px-4 py-2 bg-secondary text-white dark:text-black rounded-xl hover:opacity-90 transition-opacity text-sm font-medium">
                   <Download className="w-6 h-6" />
                   Ekspor Excel
                 </button>

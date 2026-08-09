@@ -335,7 +335,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     value={formData.kabupaten_kota}
                     onChange={handleChange}
                     options={KAB_KOTA_OPTIONS}
-                    placeholder="Pilih Kabupaten/Kota..."
+                    placeholder="Pilih Kab/Kota..."
                   />
                 </div>
                 

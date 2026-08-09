@@ -158,7 +158,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
     setSuccessMsg('');
 
     if (!kabupaten) {
-      setErrorMsg('Pilih Kabupaten/Kota terlebih dahulu.');
+      setErrorMsg('Pilih Kab/Kota terlebih dahulu.');
       return;
     }
 
@@ -211,13 +211,15 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
           
           <div className="flex gap-4 items-center">
             <div className="w-32">
-              <SearchableSelect
+              <input
+                type="number"
                 name="tahun"
                 value={tahun}
                 onChange={(e) => setTahun(e.target.value)}
-                options={TAHUN_OPTIONS}
                 placeholder="Tahun"
-                className="py-2 h-[42px]"
+                min="2000"
+                max={new Date().getFullYear()}
+                className="flex h-[42px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             
@@ -227,7 +229,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
                 value={kabupaten}
                 onChange={(e) => setKabupaten(e.target.value)}
                 options={KAB_KOTA_OPTIONS}
-                placeholder="Pilih Kabupaten/Kota"
+                placeholder="Pilih Kab/Kota"
                 className="py-2 h-[42px]"
               />
             </div>
@@ -246,8 +248,8 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
           {!kabupaten && (
             <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center">
               <AlertCircle className="w-12 h-12 text-blue-500 mb-4" />
-              <h3 className="text-xl font-semibold text-foreground">Pilih Kabupaten/Kota</h3>
-              <p className="text-muted-foreground">Silakan pilih Kabupaten/Kota di kanan atas untuk mulai mengisi data.</p>
+              <h3 className="text-xl font-semibold text-foreground">Pilih Kab/Kota</h3>
+              <p className="text-muted-foreground">Silakan pilih Kab/Kota di kanan atas untuk mulai mengisi data.</p>
             </div>
           )}
 

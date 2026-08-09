@@ -86,7 +86,7 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.kabupaten_kota) newErrors.kabupaten_kota = 'Kabupaten/Kota wajib diisi';
+    if (!formData.kabupaten_kota) newErrors.kabupaten_kota = 'Kab/Kota wajib diisi';
     if (!formData.tahun) newErrors.tahun = 'Tahun wajib diisi';
     if (!formData.bulan) newErrors.bulan = 'Bulan wajib diisi';
     if (!formData.kategori_komoditas) newErrors.kategori_komoditas = 'Kategori komoditas wajib diisi';
@@ -142,13 +142,13 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-10">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Kabupaten/Kota</label>
+              <label className="block text-sm font-medium mb-2">Kab/Kota</label>
               <SearchableSelect
                 name="kabupaten_kota"
                 value={formData.kabupaten_kota}
                 onChange={handleChange}
                 options={KABUPATEN_KOTA_OPTIONS}
-                placeholder="Pilih Kabupaten/Kota"
+                placeholder="Pilih Kab/Kota"
                 className={errors.kabupaten_kota ? "border-destructive" : "border-input"}
               />
               {errors.kabupaten_kota && <p className="text-xs text-destructive mt-1">{errors.kabupaten_kota}</p>}
@@ -169,13 +169,15 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <SearchableSelect
+              <input
+                type="number"
                 name="tahun"
                 value={formData.tahun}
                 onChange={handleChange}
-                options={TAHUN_OPTIONS}
-                placeholder="Pilih Tahun"
-                className={errors.tahun ? "border-destructive" : "border-input"}
+                placeholder="Ketik tahun"
+                min="2000"
+                max={new Date().getFullYear()}
+                className={`w-full px-4 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${errors.tahun ? "border-destructive" : "border-input"}`}
               />
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
             </div>
@@ -234,14 +236,14 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               <div>
-                <label className="block text-sm font-medium mb-2">Produksi (KG)</label>
+                <label className="block text-sm font-medium mb-2">Produksi (Kg)</label>
                 <input
                   type="number"
                   step="0.01"
                   name="produksi_kg"
                   value={formData.produksi_kg}
                   onChange={handleChange}
-                  placeholder="Misal: 15.5"
+                  placeholder="15.5"
                   className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.produksi_kg ? "border-destructive" : "border-input")}
                 />
                 {errors.produksi_kg && <p className="text-xs text-destructive mt-1">{errors.produksi_kg}</p>}
@@ -254,7 +256,7 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
                   name="harga_rp"
                   value={formData.harga_rp}
                   onChange={handleChange}
-                  placeholder="Misal: 15000"
+                  placeholder="15000"
                   className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.harga_rp ? "border-destructive" : "border-input")}
                 />
                 {errors.harga_rp && <p className="text-xs text-destructive mt-1">{errors.harga_rp}</p>}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Loader2, MapPin, TrendingUp, Box, LineChart, Fish, Filter, X, Download, FileText, Clock } from 'lucide-react';
+import { FileText, Map as MapIcon, Layers, Package, TrendingUp, DollarSign, Download, Filter, BarChart3, Clock, AlertCircle, Plus, Edit, Trash2, Save, X, Search, ChevronDown, CheckCircle, XCircle, Loader2, Box, LineChart, MapPin, Fish } from 'lucide-react';
+import { formatUangPendek } from '@/utils/formatRupiah';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -46,7 +47,6 @@ export default function AdminBudidaya() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('data');
   const [barFilter, setBarFilter] = useState('produksi');
-
   const [filterKomoditas, setFilterKomoditas] = useState([]);
   const [filterKabupaten, setFilterKabupaten] = useState([]);
   const [filterWadah, setFilterWadah] = useState([]);
@@ -607,8 +607,12 @@ export default function AdminBudidaya() {
     const mapData = computedStats.produksiPerKabupaten.map(item => ({ name: item.name, value: item.produksi }));
     const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
     return {
-      title: { text: 'Produksi Budidaya per Kabupaten/Kota', textStyle: { color: chartText, fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
-      tooltip: { trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG</b>` },
+      title: { text: 'Produksi Budidaya per Kab/Kota', textStyle: { color: chartText, fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg</b>` },
       visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: isDark ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: chartSubText }, calculable: false },
       series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }, data: mapData }]
     };
@@ -618,10 +622,14 @@ export default function AdminBudidaya() {
     const sortedData = [...computedStats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
     const top10 = sortedData.slice(0, 10).reverse();
     const isProduksi = barFilter === 'produksi';
-    const seriesName = isProduksi ? 'Produksi (KG)' : 'Nilai Total (Rp)';
-    const formatter = isProduksi ? val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+    const seriesName = isProduksi ? 'Produksi (Kg)' : 'Nilai Total (Rp)';
+    const formatter = isProduksi ? val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => `${params[0].name}<br/>${seriesName}: <b>${formatter(params[0].value || 0)}</b>` },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => `${params[0].name}<br/>${seriesName}: <b>${formatter(params[0].value || 0)}</b>` },
       grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
       xAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: chartSubText, fontSize: 11 } },
@@ -651,7 +659,11 @@ export default function AdminBudidaya() {
     });
     return {
       color: wadahColors,
-      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' KG' : '0' },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' : '0' },
       legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: chartSubText }, top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisLabel, fontSize: 11, rotate: 30 } },
@@ -663,8 +675,12 @@ export default function AdminBudidaya() {
   const treemapOption = useMemo(() => {
     const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w.value }));
     return {
-      tooltip: { formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG` },
-      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`, color: '#fff', fontWeight: 'bold' }, itemStyle: { borderColor: isDark ? '#0f172a' : '#ffffff', gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg` },
+      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`, color: '#fff', fontWeight: 'bold' }, itemStyle: {  gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
     };
   }, [computedStats.komposisiWadah, isDark]);
 
@@ -682,7 +698,14 @@ export default function AdminBudidaya() {
       }
     });
     return {
-      tooltip: { position: 'top', formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} KG`; } },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', position: 'top', 
+        
+        
+        formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`; } },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, rotate: 45 } },
       yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, fontSize: 10 } },
@@ -699,7 +722,7 @@ export default function AdminBudidaya() {
         const row = info.row.original;
 
         const contextFields = [
-          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+          { label: 'Kab/Kota', value: row.kabupaten_kota },
           { label: 'Komoditas', value: row.komoditas },
           { label: 'Kategori', value: row.kategori_komoditas },
           { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
@@ -717,11 +740,11 @@ export default function AdminBudidaya() {
     { header: 'Tahun', accessorKey: 'tahun' },
     { header: 'Bulan', accessorKey: 'bulan' },
     { header: 'Triwulan', accessorKey: 'triwulan' },
-    { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
+    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
     { header: 'Kategori Komoditas', accessorKey: 'kategori_komoditas' },
     { header: 'Komoditas', accessorKey: 'komoditas' },
     { header: 'Jenis Wadah', accessorKey: 'jenis_wadah' },
-    { header: 'Produksi (KG)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
+    { header: 'Produksi (Kg)', accessorKey: 'produksi_kg', cell: info => (info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }) },
     { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
     { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
   ], []);
@@ -872,7 +895,7 @@ export default function AdminBudidaya() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Filter className="w-5 h-5 text-slate-500" />
-                    <h3 className="text-lg font-semibold text-foreground">Filter Multi-Dimensi</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
                   </div>
                   {activeTab === 'visual' && lastUpdated ? (
                     <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
@@ -1011,7 +1034,7 @@ export default function AdminBudidaya() {
                       cell: info => {
                         const row = info.row.original;
                         const contextFields = [
-                          { label: 'Kabupaten/Kota', value: row.kabupaten_kota },
+                          { label: 'Kab/Kota', value: row.kabupaten_kota },
                           { label: 'Modul', value: row.modul_id },
                           { label: 'Tahun', value: row.tahun }
                         ];
@@ -1025,7 +1048,7 @@ export default function AdminBudidaya() {
                       }
                     },
                     { header: 'Tahun', accessorKey: 'tahun' },
-                    { header: 'Kabupaten/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
+                    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="font-medium text-foreground">{info.getValue()}</p> },
                     { header: 'Modul', accessorKey: 'modul_id' },
                     { header: 'Terakhir Diubah', accessorKey: 'updated_at', cell: info => new Date(info.getValue()).toLocaleDateString('id-ID') }
                   ]}
@@ -1044,7 +1067,7 @@ export default function AdminBudidaya() {
                   customExportButton={
                     <button
                       onClick={() => setIsExportModalOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:text-black rounded-xl transition-colors text-sm font-medium"
                     >
                       <Download className="w-4 h-4" />
                       Rekap Statistik
@@ -1145,11 +1168,11 @@ export default function AdminBudidaya() {
                     'Tahun': row.tahun || '-',
                     'Bulan': row.bulan || '-',
                     'Triwulan': row.triwulan || '-',
-                    'Kabupaten/Kota': row.kabupaten_kota || '-',
+                    'Kab/Kota': row.kabupaten_kota || '-',
                     'Kategori Komoditas': row.kategori_komoditas || '-',
                     'Komoditas': row.komoditas || '-',
                     'Jenis Wadah': row.jenis_wadah || '-',
-                    'Produksi (KG)': row.produksi_kg || '-',
+                    'Produksi (Kg)': row.produksi_kg || '-',
                     'Harga (Rp)': row.harga_rp || '-',
                     'Nilai Total (Rp)': row.nilai_rp || '-'
                   }))}
@@ -1165,7 +1188,7 @@ export default function AdminBudidaya() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
                       <p className="text-2xl font-bold text-foreground">
-                        {computedStats.kpi.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">KG</span>
+                        {computedStats.kpi.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">Kg</span>
                       </p>
                     </div>
                   </div>
@@ -1185,7 +1208,7 @@ export default function AdminBudidaya() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
                       <p className="text-2xl font-bold text-foreground">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(computedStats.kpi.total_nilai)}
+                        Rp {formatUangPendek(computedStats.kpi.total_nilai)}
                       </p>
                     </div>
                   </div>
@@ -1207,24 +1230,14 @@ export default function AdminBudidaya() {
                       )}
                     </div>
                     <p className="mt-3 text-center text-xs text-muted-foreground">
-                      Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
+                      Ketuk salah satu Kab/Kota pada peta untuk melihat rinciannya.
                     </p>
                   </div>
                   <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-500" />
-                        <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
-                      </div>
-                      <select
-                        value={barFilter}
-                        onChange={(e) => setBarFilter(e.target.value)}
-                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
-                      >
-                        <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (KG)</option>
-                        <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
-                      </select>
-                    </div>
+                    <div className="flex items-center gap-2 mb-6">
+                <Fish className="w-5 h-5 text-cyan-500" />
+                <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+              </div>
                     <div className="h-[450px]">
                       {hasBarData ? (
                         <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
@@ -1255,9 +1268,9 @@ export default function AdminBudidaya() {
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <div className="flex items-center gap-2 mb-6">
-                      <Fish className="w-5 h-5 text-cyan-500" />
-                      <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
-                    </div>
+                  <Fish className="w-5 h-5 text-cyan-500" />
+                  <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+                </div>
                     <div className="h-[350px]">
                       {hasTreemapData ? (
                         <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />

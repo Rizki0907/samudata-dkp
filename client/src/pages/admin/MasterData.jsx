@@ -57,7 +57,7 @@ const CATEGORY_MAP = {
     { value: 'KATEGORI_PETAMBAK', label: 'Kategori Petambak', icon: Database }
   ],
   'Global / Umum': [
-    { value: 'KAB_KOTA', label: 'Kabupaten/Kota', icon: MapPin },
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin },
     { value: 'PROVINSI', label: 'Provinsi', icon: MapPin }
   ]
 };
@@ -511,7 +511,7 @@ export default function MasterData() {
               {activeCategoryObj?.hasMetadata === 'kab_kota' && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Terletak di Kabupaten/Kota <span className="text-rose-500">*</span>
+                    Terletak di Kab/Kota <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.kab_kota}
@@ -519,7 +519,7 @@ export default function MasterData() {
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     required
                   >
-                    <option value="">-- Pilih Kabupaten/Kota --</option>
+                    <option value="">-- Pilih Kab/Kota --</option>
                     {KAB_KOTA_GLOBAL.map(kk => (
                       <option key={kk} value={kk}>{kk}</option>
                     ))}

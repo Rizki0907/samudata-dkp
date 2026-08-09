@@ -47,7 +47,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   let rtpCols = [];
   
   if (isPUD) {
-    rtpData.push(['Kabupaten/Kota', 'Jumlah', 'Tanpa perahu', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', 'Kapal Motor']);
+    rtpData.push(['Kab/Kota', 'Jumlah', 'Tanpa perahu', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', 'Kapal Motor']);
     rtpData.push([null, null, null, 'Sub Jumlah', 'Jukung', 'Papan Kecil', 'Papan Sedang', 'Papan Besar', null, null]);
     rtpMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -59,7 +59,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
     ];
     rtpCols = [{ wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 15 }];
   } else {
-    rtpData.push(['Kabupaten/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Tanpa perahu', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', null, null, null, null, null, 'Kapal Motor', null, null, null, null, null, null, null, null, null, null]);
+    rtpData.push(['Kab/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Tanpa perahu', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', null, null, null, null, null, 'Kapal Motor', null, null, null, null, null, null, null, null, null, null]);
     rtpData.push([null, null, null, null, 'Sub Jumlah', 'Jukung', 'Papan Kecil', 'Papan Sedang', 'Papan Besar', 'Sub Jumlah', '< 5 GT', '5-10 GT', '10-20 GT', '20-30 GT', '>30 GT', 'Sub Jumlah', '< 5 GT', '5-10 GT', '10-20 GT', '20-30 GT', '30-50 GT', '50-100 GT', '100-200 GT', '200-300 GT', '300-500 GT', '>500 GT']);
     rtpMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -83,7 +83,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   let nelayanCols = [];
   
   if (isPUD) {
-    nelayanData.push(['Kabupaten/Kota', 'Jumlah', 'Kategori Nelayan', null, null, 'Keterangan']);
+    nelayanData.push(['Kab/Kota', 'Jumlah', 'Kategori Nelayan', null, null, 'Keterangan']);
     nelayanData.push([null, null, 'Nelayan Penuh', 'Nelayan Sambilan Utama', 'Nelayan Sambilan Tambahan', null]);
     nelayanMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -93,7 +93,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
     ];
     nelayanCols = [{ wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 20 }];
   } else {
-    nelayanData.push(['Kabupaten/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Kategori Nelayan', null, null, 'Keterangan']);
+    nelayanData.push(['Kab/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Kategori Nelayan', null, null, 'Keterangan']);
     nelayanData.push([null, null, null, 'Nelayan Penuh', 'Nelayan Sambilan Utama', 'Nelayan Sambilan Tambahan', null]);
     nelayanMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -115,7 +115,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   let kapalCols = [];
 
   if (isPUD) {
-    kapalData.push(['Kabupaten/Kota', 'Jumlah', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', 'Kapal Motor', 'Keterangan']);
+    kapalData.push(['Kab/Kota', 'Jumlah', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', 'Kapal Motor', 'Keterangan']);
     kapalData.push([null, null, 'Sub Jumlah', 'Jukung', 'Papan Kecil', 'Papan Sedang', 'Papan Besar', null, null, null]);
     kapalMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -127,7 +127,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
     ];
     kapalCols = [{ wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
   } else {
-    kapalData.push(['Kabupaten/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', null, null, null, null, null, 'Kapal Motor', null, null, null, null, null, null, null, null, null, null, 'Keterangan']);
+    kapalData.push(['Kab/Kota', 'PERAIRAN PANTAI', 'Jumlah', 'Perahu Tanpa Motor', null, null, null, null, 'Motor Tempel', null, null, null, null, null, 'Kapal Motor', null, null, null, null, null, null, null, null, null, null, 'Keterangan']);
     kapalData.push([null, null, null, 'Sub Jumlah', 'Jukung', 'Papan Kecil', 'Papan Sedang', 'Papan Besar', 'Sub Jumlah', '< 5 GT', '5-10 GT', '10-20 GT', '20-30 GT', '>30 GT', 'Sub Jumlah', '< 5 GT', '5-10 GT', '10-20 GT', '20-30 GT', '30-50 GT', '50-100 GT', '100-200 GT', '200-300 GT', '300-500 GT', '>500 GT', null]);
     kapalMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -179,7 +179,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   let apiCols = [];
   
   if (isPUD) {
-    apiHeaderRow1 = ['Kabupaten/Kota', 'TOTAL'];
+    apiHeaderRow1 = ['Kab/Kota', 'TOTAL'];
     apiHeaderRow2 = [null, null];
     apiMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -207,7 +207,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
     apiDataArray.push(apiHeaderRow1);
     apiDataArray.push(apiHeaderRow2); 
   } else {
-    apiHeaderRow1 = ['Kabupaten/Kota', 'PERAIRAN PANTAI', 'TOTAL'];
+    apiHeaderRow1 = ['Kab/Kota', 'PERAIRAN PANTAI', 'TOTAL'];
     apiHeaderRow2 = [null, null, null];
     apiMerges = [
       { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
@@ -254,7 +254,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
     return "Utara Jawa";
   };
 
-  // LOOP OVER ALL 38 KABUPATEN/KOTA TO GUARANTEE ROWS
+  // LOOP OVER ALL 38 Kab/Kota TO GUARANTEE ROWS
   KAB_KOTA_OPTIONS.forEach(kab => {
     // Find matching row for this kab/kota (we assume data is pre-filtered by Perairan & Tahun)
     const row = data.find(d => (d.pelabuhan || d.kabupaten_kota) === kab) || {};

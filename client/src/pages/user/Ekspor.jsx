@@ -5,6 +5,7 @@ import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText, Clock } f
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 import { useThemeStore } from '@/store/themeStore';
+import { formatUangPendek } from '@/utils/formatRupiah';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -35,7 +36,7 @@ export default function Ekspor() {
 
   const [agregatFilter, setAgregatFilter] = useState('Segar dan Olahan');
   const [satuanFilter, setSatuanFilter] = useState('KG');
-  const [mataUangFilter, setMataUangFilter] = useState('USD');
+  const [mataUangFilter, setMataUangFilter] = useState('');
   const mataUangKey = mataUangFilter === 'RP' ? 'nilai_rp' : 'nilai_usd';
   const mataUangPrefix = mataUangFilter === 'RP' ? 'Rp' : '$';
 
@@ -329,6 +330,13 @@ export default function Ekspor() {
 
     return {
       tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
+        
+        
+        
         formatter: (info) => {
           const value = info.value;
           const treePath = info.treePathInfo;
@@ -361,12 +369,7 @@ export default function Ekspor() {
           { name: 'Segar dan Olahan', itemStyle: { color: 'transparent' }, children: segarOlahan },
           { name: 'Hidup', itemStyle: { color: 'transparent' }, children: hidup }
         ]
-      }],
-      tooltip: {
-        formatter: function (info) {
-          return info.name + '<br/>' + (info.value ? Number(info.value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0');
-        }
-      }
+      }]
     };
   }, [stats.treemap, mataUangKey, mataUangPrefix, isDark]);
 
@@ -400,7 +403,11 @@ export default function Ekspor() {
     });
 
     return {
-      tooltip: { trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       legend: { data: legendData, bottom: 0, textStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' } },
@@ -423,7 +430,11 @@ export default function Ekspor() {
     });
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       legend: { data: [volumeLabel, `Nilai (${mataUangFilter})`], top: 0, right: '4%', textStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' } },
       grid: { left: '3%', right: '4%', top: '15%', bottom: '2%', containLabel: true },
       xAxis: [{ type: 'category', data: MONTHS, axisPointer: { type: 'shadow' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' } }],
@@ -436,7 +447,7 @@ export default function Ekspor() {
         { name: `Nilai (${mataUangFilter})`, type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
-  }, [stats.monthly_aggregate, stats.monthly_data_raw, agregatFilter, satuanFilter, mataUangFilter, mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
+  }, [stats.monthly_aggregate, stats.monthly_data_raw, stats.monthlyAgg, agregatFilter, satuanFilter, mataUangFilter, mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const rankingOption = useMemo(() => {
     const sorted = [...stats.ranking_komoditas]
@@ -446,7 +457,11 @@ export default function Ekspor() {
     const values = sorted.map(i => i._sum.nilai_usd || 0);
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
@@ -481,7 +496,11 @@ export default function Ekspor() {
     const values = sorted.map(i => i._sum.nilai_usd || 0);
 
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0' },
       grid: { left: '3%', right: '20%', bottom: '8%', top: '2%', containLabel: true },
       xAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500', formatter: (val) => {
         if (val >= 1000000000) return `${mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
@@ -588,7 +607,8 @@ export default function Ekspor() {
             placeholder="Semua Negara Tujuan"
           />
           <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer shadow-sm">
-            <option value="USD">USD ($)</option>
+                  <option value="" disabled hidden>Mata Uang</option>
+                  <option value="USD">USD ($)</option>
             <option value="RP">Rupiah (Rp)</option>
           </select>
         </div>
@@ -631,7 +651,7 @@ export default function Ekspor() {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Total Nilai Ekspor</p>
             <p className="text-2xl font-bold text-foreground">
-              {mataUangPrefix}{(stats.kpi[mataUangFilter === 'RP' ? 'total_nilai_rp' : 'total_nilai'] || stats.kpi.total_nilai || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+              {mataUangPrefix}{formatUangPendek(stats.kpi[mataUangFilter === 'RP' ? 'total_nilai_rp' : 'total_nilai'] || stats.kpi.total_nilai || 0)}
             </p>
           </div>
         </div>
@@ -641,7 +661,7 @@ export default function Ekspor() {
             <Globe className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Top Negara Tujuan</p>
+            <p className="text-sm font-medium text-muted-foreground">Top 10 Negara Tujuan</p>
             <p className="text-2xl font-bold text-foreground break-words line-clamp-2">
               {stats.negara_tujuan && stats.negara_tujuan.length > 0 ? stats.negara_tujuan[0].negara_tujuan : '-'}
             </p>
@@ -653,9 +673,9 @@ export default function Ekspor() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Box className="w-5 h-5 text-blue-500" />
-            <h3 className="text-lg font-semibold text-foreground">Komposisi Nilai Ekspor per Komoditas</h3>
-          </div>
+                <Box className="w-5 h-5 text-blue-500" />
+                <h3 className="text-lg font-semibold text-foreground">Komposisi Ekspor per Komoditas</h3>
+              </div>
           {hasTreemapData ? (
             <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
           ) : (
@@ -668,7 +688,7 @@ export default function Ekspor() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-5 h-5 text-pink-500" />
-            <h3 className="text-lg font-semibold text-foreground">Ranking Komoditas Berdasarkan Nilai</h3>
+            <h3 className="text-lg font-semibold text-foreground">Top 10 Komoditas Berdasarkan Nilai</h3>
           </div>
           {hasRankingData ? (
             <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
@@ -722,7 +742,7 @@ export default function Ekspor() {
                   onChange={(e) => setSatuanFilter(e.target.value)}
                   className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                 >
-                  <option value="KG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">KG</option>
+                  <option value="KG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Kg</option>
                   <option value="LITER" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Liter</option>
                 </select>
               )}
@@ -732,7 +752,7 @@ export default function Ekspor() {
                   onChange={(e) => setSatuanFilter(e.target.value)}
                   className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
                 >
-                  <option value="PCS" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">PCS</option>
+                  <option value="PCS" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Pcs</option>
                   <option value="EKOR" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Ekor</option>
                   <option value="BATANG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Batang</option>
                 </select>
@@ -751,7 +771,7 @@ export default function Ekspor() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="w-5 h-5 text-teal-500" />
-            <h3 className="text-lg font-semibold text-foreground">Ranking Negara Tujuan</h3>
+            <h3 className="text-lg font-semibold text-foreground">Top 10 Negara Tujuan</h3>
           </div>
           {hasNegaraData ? (
             <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />

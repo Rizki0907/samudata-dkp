@@ -92,7 +92,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     kategori_komoditas: 'Segar dan Olahan',
     nama_komoditas: '',
     volume: '',
-    satuan_volume: 'KG', // default for Segar dan Olahan
+    satuan_volume: 'Kg', // default for Segar dan Olahan
     nilai_usd: '',
     nilai_rp: '',
     negara_tujuan: '',
@@ -112,7 +112,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         kategori_komoditas: initialData.kategori_komoditas || 'Segar dan Olahan',
         nama_komoditas: initialData.nama_komoditas || '',
         volume: initialData.volume || '',
-        satuan_volume: initialData.satuan_volume || 'KG',
+        satuan_volume: initialData.satuan_volume || 'Kg',
         nilai_usd: initialData.nilai_usd || '',
         nilai_rp: initialData.nilai_rp || '',
         negara_tujuan: isNegaraPredefined ? initialData.negara_tujuan : 'Lainnya',
@@ -125,11 +125,11 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
   useEffect(() => {
     // Determine possible units based on category
     if (formData.kategori_komoditas === 'Segar dan Olahan') {
-      if (!['KG', 'Liter'].includes(formData.satuan_volume)) {
-        setFormData(prev => ({ ...prev, satuan_volume: 'KG', nama_komoditas: '' }));
+      if (!['Kg', 'Liter'].includes(formData.satuan_volume)) {
+        setFormData(prev => ({ ...prev, satuan_volume: 'Kg', nama_komoditas: '' }));
       }
     } else {
-      if (!['Ekor', 'PCS', 'Batang'].includes(formData.satuan_volume)) {
+      if (!['Ekor', 'Pcs', 'Batang'].includes(formData.satuan_volume)) {
         setFormData(prev => ({ ...prev, satuan_volume: 'Ekor', nama_komoditas: '' }));
       }
     }
@@ -238,13 +238,15 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <SearchableSelect 
-                name="tahun" 
-                value={formData.tahun} 
+              <input
+                type="number"
+                name="tahun"
+                value={formData.tahun}
                 onChange={handleChange}
-                options={TAHUN_OPTIONS}
-                placeholder="Pilih Tahun"
-                className={errors.tahun ? "border-destructive" : "border-input"}
+                placeholder="Ketik tahun"
+                min="2000"
+                max={new Date().getFullYear()}
+                className={`w-full px-4 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${errors.tahun ? "border-destructive" : "border-input"}`}
               />
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
             </div>
@@ -310,7 +312,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                     name="volume" 
                     value={formData.volume} 
                     onChange={handleChange}
-                    placeholder="Misal: 1500.5"
+                    placeholder="1500.5"
                     className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.volume ? "border-destructive" : "border-input")}
                   />
                   {errors.volume && <p className="text-xs text-destructive mt-1">{errors.volume}</p>}
@@ -324,13 +326,13 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                   >
                     {formData.kategori_komoditas === 'Segar dan Olahan' ? (
                       <>
-                        <option value="KG">KG</option>
+                        <option value="KG">Kg</option>
                         <option value="Liter">Liter</option>
                       </>
                     ) : (
                       <>
                         <option value="Ekor">Ekor</option>
-                        <option value="PCS">PCS</option>
+                        <option value="PCS">Pcs</option>
                         <option value="Batang">Batang</option>
                       </>
                     )}
@@ -348,7 +350,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                   name="nilai_usd" 
                   value={formData.nilai_usd} 
                   onChange={handleChange}
-                  placeholder="Misal: 45000.50"
+                  placeholder="45000.50"
                   className={cn("w-full rounded-lg border bg-background pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_usd ? "border-destructive" : "border-input")}
                 />
               </div>
@@ -364,7 +366,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
                   name="nilai_rp" 
                   value={formData.nilai_rp} 
                   onChange={handleChange}
-                  placeholder="Misal: 15000000.50"
+                  placeholder="15000000.50"
                   className={cn("w-full rounded-lg border bg-background pl-10 pr-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.nilai_rp ? "border-destructive" : "border-input")}
                 />
               </div>

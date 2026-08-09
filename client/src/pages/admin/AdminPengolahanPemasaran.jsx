@@ -1466,13 +1466,10 @@ export default function AdminPengolahanPemasaran() {
 
         confine: true,
 
-        backgroundColor: chartTheme.tooltipBackground,
-        borderColor: chartTheme.tooltipBorder,
+        
+        
         borderWidth: 1,
-        textStyle: {
-          color: chartTheme.tooltipText,
-          fontSize: 12,
-        },
+        
         
         formatter: params => {
           const item = params.data || {};
@@ -1664,11 +1661,9 @@ export default function AdminPengolahanPemasaran() {
     return {
       tooltip: {
         trigger: 'axis',
-        backgroundColor: chartTheme.tooltipBackground,
-        borderColor: chartTheme.tooltipBorder,
-        textStyle: {
-          color: chartTheme.tooltipText,
-        },
+        
+        
+        
         axisPointer: { type: 'shadow' },
         formatter: params => {
           const value = toNumber(params[0]?.value);
@@ -1779,11 +1774,9 @@ export default function AdminPengolahanPemasaran() {
       },
       tooltip: {
         trigger: 'item',
-        backgroundColor: chartTheme.tooltipBackground,
-        borderColor: chartTheme.tooltipBorder,
-        textStyle: {
-          color: chartTheme.tooltipText,
-        },
+        
+        
+        
         formatter: params => {
           const pct = total > 0
             ? ((params.value / total) * 100).toFixed(1)
@@ -1867,11 +1860,9 @@ export default function AdminPengolahanPemasaran() {
 
       tooltip: {
         trigger: 'axis',
-        backgroundColor: chartTheme.tooltipBackground,
-        borderColor: chartTheme.tooltipBorder,
-        textStyle: {
-          color: chartTheme.tooltipText,
-        },
+        
+        
+        
         axisPointer: {
           type: 'shadow',
         },
@@ -2012,11 +2003,9 @@ export default function AdminPengolahanPemasaran() {
     }) => ({
       tooltip: {
         trigger: 'axis',
-        backgroundColor: chartTheme.tooltipBackground,
-        borderColor: chartTheme.tooltipBorder,
-        textStyle: {
-          color: chartTheme.tooltipText,
-        },
+        
+        
+        
         axisPointer: {
           type: 'line',
         },

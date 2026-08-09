@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
 import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter, Waves } from 'lucide-react';
+import { formatUangPendek } from '@/utils/formatRupiah';
 
 // Import Assets
 import oceanBg from '@/assets/ocean_bg.png';
@@ -92,7 +93,7 @@ export default function Overview() {
           <p className="text-blue-100 max-w-4xl text-base md:text-lg leading-relaxed">
             Provinsi Jawa Timur dengan <b className="text-white">panjang garis pantai 3.543,54 km
             luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
-            yang tersebar di <b className="text-white">38 kabupaten/kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
+            yang tersebar di <b className="text-white">38 Kab/Kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
           </p>
         </div>
       </div>
@@ -293,7 +294,7 @@ export default function Overview() {
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
               <p className="text-sm text-muted-foreground mb-1">Nilai Ekspor</p>
               <p className="text-2xl font-bold text-purple-600">
-                {stats.ekspor?.nilai_usd && Number(stats.ekspor.nilai_usd) !== 0 ? `$${fmt(stats.ekspor.nilai_usd, { maximumFractionDigits: 2 })}` : '-'}
+                {stats.ekspor?.nilai_usd && Number(stats.ekspor.nilai_usd) !== 0 ? `$${formatUangPendek(stats.ekspor.nilai_usd)}` : '-'}
                 <span className="text-sm font-normal text-muted-foreground"> USD</span>
               </p>
             </div>
