@@ -443,9 +443,9 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                       <button 
                         type="button" 
                         onClick={addLogistik}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary font-medium rounded-md hover:bg-primary/20 transition-colors text-xs"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary font-medium rounded-lg hover:bg-primary/20 transition-colors text-sm"
                       >
-                        <Plus className="w-3 h-3" /> Tambah Perbekalan
+                        <Plus className="w-4 h-4" /> Tambah Perbekalan
                       </button>
                     </div>
                     
@@ -560,18 +560,20 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
               <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">3</span>
               Detail Tangkapan
             </h3>
-            <button 
-              type="button" 
-              onClick={addTangkapan}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary font-medium rounded-lg hover:bg-primary/20 transition-colors text-sm"
-            >
-              <Plus className="w-4 h-4" /> Tambah Jenis Ikan
-            </button>
           </div>
           
-          <div className="space-y-4 pl-10">
+          <div className="space-y-4 pl-10 pr-2">
+            <div className="flex justify-end mb-2">
+              <button 
+                type="button" 
+                onClick={addTangkapan}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary font-medium rounded-lg hover:bg-primary/20 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4" /> Tambah Jenis Ikan
+              </button>
+            </div>
             {formData.tangkapan.map((item, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end p-4 bg-muted/30 rounded-xl border border-border/50 relative">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start p-4 bg-muted/30 rounded-xl border border-border/50 relative">
                 {formData.tangkapan.length > 1 && (
                   <button 
                     type="button" 
@@ -668,7 +670,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
         <div className="h-px bg-border my-8"></div>
 
-        <div className="flex justify-end gap-3 sticky bottom-4 bg-card/80 backdrop-blur-sm p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex justify-end gap-3 pt-6">
           <button 
             type="button" 
             onClick={onCancel}

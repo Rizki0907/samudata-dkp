@@ -1689,9 +1689,9 @@ const columns = useMemo(() => [
       accessorKey: 'sumber_data',
       cell: info => {
         const val = info.getValue() || 'PELABUHAN';
-        if (val === 'PUD') return <span className="text-emerald-500 font-medium">PUD</span>;
-        if (val === 'KAB_KOTA') return <span className="text-orange-500 font-medium">Non Pelabuhan</span>;
-        return <span className="text-blue-500 font-medium">Pelabuhan</span>;
+        if (val === 'PUD') return 'PUD';
+        if (val === 'KAB_KOTA') return 'Non Pelabuhan';
+        return 'Pelabuhan';
       }
     },
     {
@@ -1715,8 +1715,7 @@ const columns = useMemo(() => [
       cell: info => {
         const row = info.row.original;
         if (row.sumber_data === 'PUD' || row.sumber_data === 'KAB_KOTA') {
-          const color = row.sumber_data === 'PUD' ? 'text-emerald-600' : 'text-orange-600';
-          return <span className={`${color} font-medium`}>{row.pud_populasi_alat || '-'} Unit</span>;
+          return `${row.pud_populasi_alat || '-'} Unit`;
         }
         return row.nama_kapal || '-';
       }
@@ -1830,7 +1829,7 @@ const columns = useMemo(() => [
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Perikanan Tangkap</h1>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Kelola Data Perikanan Tangkap</h1>
         </div>
         
         {!isFormOpen && (
@@ -1845,7 +1844,7 @@ const columns = useMemo(() => [
                     setExportModalWilayah('');
                     setIsExportModalOpen(true);
                   }}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                className="px-5 py-2.5 bg-emerald-600 text-white dark:text-slate-900 rounded-xl font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
               >
                 <FileText className="w-5 h-5" />
                 Ekspor Laporan
@@ -1933,7 +1932,8 @@ const columns = useMemo(() => [
               {activeTab === 'visual' && lastUpdated ? (
                 <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
                   <Clock className="h-4 w-4 animate-pulse" />
-                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                  <span className="opacity-80">Terakhir Diperbarui:</span>
+                  <span className="font-semibold">{lastUpdated}</span>
                 </div>
               ) : null}
             </div>
@@ -2408,7 +2408,7 @@ const columns = useMemo(() => [
                       <TrendingUp className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-sky-600'}`} />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
+                      <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan dan Top 5 Wilayah Penghasil</h3>
                     </div>
                   </div>
 

@@ -2805,7 +2805,8 @@ export default function AdminPengolahanPemasaran() {
                 {activeTab !== 'table' ? (
                   <div className="inline-flex items-center gap-2 self-start whitespace-nowrap rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 sm:self-auto">
                     <Clock className="h-4 w-4 animate-pulse" />
-                    <span>Terakhir Diperbarui: {lastUpdated}</span>
+                    <span className="opacity-80">Terakhir Diperbarui:</span>
+                    <span className="font-semibold">{lastUpdated}</span>
                   </div>
                 ) : null}
               </div>
