@@ -6,6 +6,7 @@ import {
   Waves, Sprout, Fish, Package, Database, Globe, 
   LayoutDashboard, LogOut, ChevronLeft, Ship, X
 } from 'lucide-react';
+import iconDKP from '@/assets/icon_DKP.png';
 
 const USER_MENUS = [
   { title: 'Overview', path: '/user', icon: LayoutDashboard },
@@ -55,7 +56,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileMenuOpen, setMo
       <div className="h-16 flex items-center px-4 border-b border-border relative">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex-shrink-0 flex items-center justify-center border border-primary/20">
-            <Waves className="w-6 h-6 text-primary" />
+            <img src={iconDKP} alt="Logo DKP Jatim" className="w-6 h-6 text-primary" />
           </div>
           {!collapsed && (
             <div className="flex flex-col whitespace-nowrap">
