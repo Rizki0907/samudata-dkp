@@ -15,7 +15,7 @@ import {
   PERBEKALAN_OPTIONS
 } from '@/utils/constants';
 
-export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null, publicLogistik = null }) {
+export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null, publicLogistik = null, filterNode }) {
 
   const [data, setData] = useState([]);
   const [logistikBulanan, setLogistikBulanan] = useState({});
@@ -360,9 +360,9 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       accessorKey: 'sumber_data',
       cell: ({ row }) => {
         const val = row.original.sumber_data;
-        if (val === 'KAB_KOTA') return <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">Non Pelabuhan</span>;
-        if (val === 'PELABUHAN') return <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pelabuhan</span>;
-        return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">Perairan PUD</span>;
+        if (val === 'KAB_KOTA') return 'Non Pelabuhan';
+        if (val === 'PELABUHAN') return 'Pelabuhan';
+        return 'Perairan PUD';
       }
     },
     { header: 'Wilayah / Lokasi', accessorKey: 'pelabuhan' },
@@ -374,7 +374,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     {
       header: 'Total Nilai Produksi (Rp)',
       accessorKey: 'nilai',
-      cell: ({ row }) => <span className="font-medium text-emerald-600 dark:text-emerald-400">{formatRupiah(row.original.nilai)}</span>
+      cell: ({ row }) => <span className="font-medium">{formatRupiah(row.original.nilai)}</span>
     }
   ], []);
 
@@ -692,9 +692,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             Data Tervalidasi Publik
-            <span className="text-xs font-normal px-2 py-1 bg-primary/10 text-primary rounded-full">Total {aggregatedData.length} Data Bulanan</span>
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">Data pada tabel inilah yang akan ditampilkan ke Halaman Publik pengguna.</p>
+          <p className="text-sm text-primary mt-1 font-medium">Total {aggregatedData.length} Data Bulanan</p>
         </div>
         
         {/* Ringkasan Inline */}
@@ -710,6 +709,12 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
           </div>
         </div>
       </div>
+      
+      {filterNode && (
+        <div className="my-4">
+          {filterNode}
+        </div>
+      )}
       
       <DataTable 
         columns={columns} 
@@ -744,11 +749,11 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
             )}
             <button
               onClick={() => handleExport(false)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white dark:text-slate-900 hover:bg-primary/90 rounded-lg text-sm font-medium transition shadow-sm"
               title="Unduh data yang sudah divalidasi admin"
             >
               <Download className="w-4 h-4" />
-              Ekspor Excel
+              {isPublic ? 'Ekspor Excel' : 'Unduh Data Verified'}
             </button>
           </div>
         }

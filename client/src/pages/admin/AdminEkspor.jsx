@@ -718,7 +718,8 @@ export default function AdminEkspor() {
               {activeTab === 'visual' && lastUpdated ? (
                 <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
                   <Clock className="h-4 w-4 animate-pulse" />
-                  <span>Terakhir Diperbarui: {lastUpdated}</span>
+                  <span className="opacity-80">Terakhir Diperbarui:</span>
+                  <span className="font-semibold">{lastUpdated}</span>
                 </div>
               ) : null}
             </div>
@@ -878,7 +879,7 @@ export default function AdminEkspor() {
                   <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
                 ) : (
                   <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -891,7 +892,7 @@ export default function AdminEkspor() {
                   <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
                 ) : (
                   <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -906,7 +907,7 @@ export default function AdminEkspor() {
                 <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
               ) : (
                 <div className="h-[450px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                  Tidak ada data
+                  Belum ada data
                 </div>
               )}
             </div>
@@ -958,7 +959,7 @@ export default function AdminEkspor() {
                   <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
                 ) : (
                   <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -971,7 +972,7 @@ export default function AdminEkspor() {
                   <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
                 ) : (
                   <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>

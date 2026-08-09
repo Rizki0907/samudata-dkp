@@ -660,7 +660,7 @@ export default function Ekspor() {
             <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
           ) : (
             <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-              Tidak ada data
+              Belum ada data
             </div>
           )}
         </div>
@@ -674,7 +674,7 @@ export default function Ekspor() {
             <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
           ) : (
             <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-              Tidak ada data
+              Belum ada data
             </div>
           )}
         </div>
@@ -690,7 +690,7 @@ export default function Ekspor() {
           <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
         ) : (
           <div className="h-[450px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-            Tidak ada data
+            Belum ada data
           </div>
         )}
       </div>
@@ -743,7 +743,7 @@ export default function Ekspor() {
             <ReactECharts option={groupedBarOption} style={{ height: '500px', width: '100%' }} />
           ) : (
             <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-              Tidak ada data
+              Belum ada data
             </div>
           )}
         </div>
@@ -757,7 +757,7 @@ export default function Ekspor() {
             <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
           ) : (
             <div className="h-[500px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-              Tidak ada data
+              Belum ada data
             </div>
           )}
         </div>

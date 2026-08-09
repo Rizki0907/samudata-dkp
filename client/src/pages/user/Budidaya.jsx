@@ -693,7 +693,7 @@ export default function Budidaya() {
                   <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -722,7 +722,7 @@ export default function Budidaya() {
                   <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -741,7 +741,7 @@ export default function Budidaya() {
                   <ReactECharts option={lineOption} style={{ height: '100%', width: '100%' }} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -757,7 +757,7 @@ export default function Budidaya() {
                   <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                    Tidak ada data
+                    Belum ada data
                   </div>
                 )}
               </div>
@@ -775,7 +775,7 @@ export default function Budidaya() {
                 <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
-                  Tidak ada data
+                  Belum ada data
                 </div>
               )}
             </div>

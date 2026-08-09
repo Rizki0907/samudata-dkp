@@ -709,7 +709,7 @@ export default function PerikananTangkap() {
             <TrendingUp className={`w-6 h-6 ${isDark ? 'text-amber-500' : 'text-sky-600'}`} />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
+            <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan dan Top 5 Wilayah Penghasil</h3>
           </div>
         </div>
 
@@ -782,106 +782,14 @@ export default function PerikananTangkap() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="mb-6 border-b border-border pb-6">
-
-          
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <SearchableMultiSelect 
-                value={filterCabang} 
-                onChange={(val) => {
-                  setFilterCabang(val);
-                  setFilterWilayah([]);
-                  setFilterKomoditas([]);
-                  setFilterJenisPerairan([]);
-                }} 
-                options={[
-                  { label: 'Pelabuhan', value: 'PELABUHAN' },
-                  { label: 'PUD', value: 'PUD' },
-                  { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
-                ]}
-                placeholder="Semua Sumber"
-              />
-            </div>
-            
-            {filterCabang.includes('PUD') && (
-              <div>
-                <SearchableMultiSelect 
-                  value={filterJenisPerairan} 
-                  onChange={setFilterJenisPerairan} 
-                  options={[{label: "Sungai", value: "Sungai"}, {label: "Danau", value: "Danau"}, {label: "Waduk", value: "Waduk"}, {label: "Rawa", value: "Rawa"}, {label: "Genangan Air", value: "Genangan Air"}]}
-                  placeholder="Semua Perairan"
-                />
-              </div>
-            )}
-            
-            <div>
-              <SearchableMultiSelect 
-                value={filterTahun} 
-                onChange={setFilterTahun} 
-                options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
-                placeholder="Semua Tahun"
-              />
-            </div>
-            {filterCabang.length > 0 && (
-              <>
-                <div>
-                  <SearchableMultiSelect 
-                    value={filterWilayah} 
-                    onChange={setFilterWilayah} 
-                    options={
-                      [...new Set([
-                        ...(filterCabang.includes('PELABUHAN') ? PELABUHAN_OPTIONS : []),
-                        ...(filterCabang.includes('PUD') || filterCabang.includes('KAB_KOTA') ? KAB_KOTA_OPTIONS : [])
-                      ])]
-                    }
-                    placeholder="Semua Wilayah"
-                  />
-                </div>
-                <div>
-                  <SearchableMultiSelect 
-                    value={filterKomoditas} 
-                    onChange={setFilterKomoditas} 
-                    options={
-                      [...new Set([
-                        ...(filterCabang.includes('PELABUHAN') || filterCabang.includes('KAB_KOTA') ? KOMODITAS_OPTIONS : []),
-                        ...(filterCabang.includes('PUD') ? KOMODITAS_PUD_OPTIONS : [])
-                      ])]
-                    }
-                    placeholder="Semua Komoditas"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          {(filterCabang.length > 0 || filterJenisPerairan.length > 0 || filterTahun.length > 0 || filterWilayah.length > 0 || filterKomoditas.length > 0) && (
-            <div className="flex justify-end mt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterCabang([]);
-                  setFilterJenisPerairan([]);
-                  setFilterTahun([]);
-                  setFilterWilayah([]);
-                  setFilterKomoditas([]);
-                }}
-                className="text-xs text-primary hover:underline font-medium"
-              >
-                Reset Semua Filter
-              </button>
-            </div>
-          )}
-        </div>
-
-      <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-500" />
             <h3 className="text-lg font-semibold text-foreground">Rincian Data Pendaratan</h3>
           </div>
-          <p className="text-sm text-muted-foreground">Tabel & Unduhan di bawah otomatis menyesuaikan Filter di atas.</p>
         </div>
-        
-                <div className="mt-8">
+
+        <div className="mt-8">
           <DataPublikTangkap 
             filterTahun={filterTahun}
             filterCabang={filterCabang}
@@ -890,6 +798,96 @@ export default function PerikananTangkap() {
             isPublic={true}
             publicData={data} 
             publicLogistik={logistikData}
+            filterNode={
+              <div className="mb-6 border-b border-border pb-6 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div>
+                    <SearchableMultiSelect 
+                      value={filterCabang} 
+                      onChange={(val) => {
+                        setFilterCabang(val);
+                        setFilterWilayah([]);
+                        setFilterKomoditas([]);
+                        setFilterJenisPerairan([]);
+                      }} 
+                      options={[
+                        { label: 'Pelabuhan', value: 'PELABUHAN' },
+                        { label: 'PUD', value: 'PUD' },
+                        { label: 'Non Pelabuhan', value: 'KAB_KOTA' }
+                      ]}
+                      placeholder="Semua Sumber"
+                    />
+                  </div>
+                  
+                  {filterCabang.includes('PUD') && (
+                    <div>
+                      <SearchableMultiSelect 
+                        value={filterJenisPerairan} 
+                        onChange={setFilterJenisPerairan} 
+                        options={[{label: "Sungai", value: "Sungai"}, {label: "Danau", value: "Danau"}, {label: "Waduk", value: "Waduk"}, {label: "Rawa", value: "Rawa"}, {label: "Genangan Air", value: "Genangan Air"}]}
+                        placeholder="Semua Perairan"
+                      />
+                    </div>
+                  )}
+                  
+                  <div>
+                    <SearchableMultiSelect 
+                      value={filterTahun} 
+                      onChange={setFilterTahun} 
+                      options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
+                      placeholder="Semua Tahun"
+                    />
+                  </div>
+                  {filterCabang.length > 0 && (
+                    <>
+                      <div>
+                        <SearchableMultiSelect 
+                          value={filterWilayah} 
+                          onChange={setFilterWilayah} 
+                          options={
+                            [...new Set([
+                              ...(filterCabang.includes('PELABUHAN') ? PELABUHAN_OPTIONS : []),
+                              ...(filterCabang.includes('PUD') || filterCabang.includes('KAB_KOTA') ? KAB_KOTA_OPTIONS : [])
+                            ])]
+                          }
+                          placeholder="Semua Wilayah"
+                        />
+                      </div>
+                      <div>
+                        <SearchableMultiSelect 
+                          value={filterKomoditas} 
+                          onChange={setFilterKomoditas} 
+                          options={
+                            [...new Set([
+                              ...(filterCabang.includes('PELABUHAN') || filterCabang.includes('KAB_KOTA') ? KOMODITAS_OPTIONS : []),
+                              ...(filterCabang.includes('PUD') ? KOMODITAS_PUD_OPTIONS : [])
+                            ])]
+                          }
+                          placeholder="Semua Komoditas"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                {(filterCabang.length > 0 || filterJenisPerairan.length > 0 || filterTahun.length > 0 || filterWilayah.length > 0 || filterKomoditas.length > 0) && (
+                  <div className="flex justify-end mt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterCabang([]);
+                        setFilterJenisPerairan([]);
+                        setFilterTahun([]);
+                        setFilterWilayah([]);
+                        setFilterKomoditas([]);
+                      }}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Reset Semua Filter
+                    </button>
+                  </div>
+                )}
+              </div>
+            }
           />
         </div>
       </div>
