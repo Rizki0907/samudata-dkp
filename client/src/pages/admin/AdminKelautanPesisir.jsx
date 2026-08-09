@@ -1220,7 +1220,7 @@ export default function AdminKelautanPesisir() {
             { label: 'Luas Total', value: `${(d.luas_total_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
             { label: 'Luas Produksi', value: `${(d.luas_produksi_ha || 0).toLocaleString('id-ID')} Ha`, cls: 'text-foreground', border: 'border-border' },
             { label: 'Jumlah Kelompok', value: `${d.jumlah_kelompok || 0} Kelompok`, cls: 'text-foreground', border: 'border-border' },
-            { label: 'Jumlah Petambak', value: `${d.jumlah_petambak || 0} Org`, cls: 'text-foreground', border: 'border-border' },
+            { label: 'Jumlah Petambak', value: `${d.jumlah_petambak || 0} Orang`, cls: 'text-foreground', border: 'border-border' },
           ].map(s => (
             <div key={s.label} className={`bg-card p-3.5 rounded-xl border ${s.border}`}>
               <span className="text-muted-foreground text-xs font-semibold block mb-1 tracking-wider">{s.label}</span>

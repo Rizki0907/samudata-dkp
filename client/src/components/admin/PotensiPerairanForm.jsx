@@ -156,7 +156,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
         <section>
           <h3 className="text-lg font-medium flex items-center gap-2 mb-4">
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
-            Identitas Wilayah
+            Waktu
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
             <div>
@@ -180,7 +180,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
               <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
             <div>
-              <label className={labelClass}>Luas Wilayah Laut (Km)</label>
+              <label className={labelClass}>Luas Wilayah Laut (Km2)</label>
               <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={inputClass} placeholder="0" />
             </div>
             <div>

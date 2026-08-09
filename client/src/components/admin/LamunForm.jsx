@@ -240,7 +240,7 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
         </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kabupaten/Kota</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
             <div
               data-form-nav="true"
               tabIndex={0}
