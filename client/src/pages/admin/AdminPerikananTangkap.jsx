@@ -2409,7 +2409,6 @@ const columns = useMemo(() => [
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Distribusi kabupaten/kota dengan produksi tertinggi untuk masing-masing komoditas.</p>
                     </div>
                   </div>
 
@@ -2457,12 +2456,26 @@ const columns = useMemo(() => [
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Volume Pendaratan</h3></div>
+                  <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg">
+                      <LineChart className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">Tren Volume Pendaratan</h3>
+                    </div>
+                  </div>
                   {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption.volume} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
                 </div>
                 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Nilai Produksi</h3></div>
+                  <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <LineChart className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">Tren Nilai Produksi</h3>
+                    </div>
+                  </div>
                   {computedStats.tren.length > 0 ? <ReactECharts option={trenChartOption.nilai} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
                 </div>
               </div>

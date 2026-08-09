@@ -631,34 +631,42 @@ export default function PerikananTangkap() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-primary/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Database className="w-5 h-5 text-blue-500" /><p className="text-sm font-medium text-muted-foreground">Total Volume</p></div>
-          <p className="text-3xl font-bold text-foreground">
-            {(localKpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm text-muted-foreground font-normal">Ton</span>
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500"><Database className="w-6 h-6" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-muted-foreground truncate">Total Volume</p>
+            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${(localKpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ton`}>
+              {(localKpi.total_volume / 1000).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm text-muted-foreground font-normal">Ton</span>
+            </p>
+          </div>
         </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-emerald-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-500" /><p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p></div>
-          <p className="text-3xl font-bold text-foreground">
-            Rp {formatRupiahSingkat(localKpi.total_nilai).value} <span className="text-sm text-muted-foreground font-normal">{formatRupiahSingkat(localKpi.total_nilai).unit}</span>
-          </p>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500"><TrendingUp className="w-6 h-6" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
+            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`Rp ${formatRupiahSingkat(localKpi.total_nilai).value} ${formatRupiahSingkat(localKpi.total_nilai).unit}`}>
+              Rp {formatRupiahSingkat(localKpi.total_nilai).value} <span className="text-sm text-muted-foreground font-normal">{formatRupiahSingkat(localKpi.total_nilai).unit}</span>
+            </p>
+          </div>
         </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-orange-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Ship className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Total Trip / Laporan</p></div>
-          <p className="text-3xl font-bold text-foreground">
-            {localKpi.total_trip.toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Trip</span>
-          </p>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-orange-500/10 rounded-xl text-orange-500"><Ship className="w-6 h-6" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-muted-foreground truncate">Total Trip / Laporan</p>
+            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${localKpi.total_trip.toLocaleString('id-ID')} Trip`}>
+              {localKpi.total_trip.toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Trip</span>
+            </p>
+          </div>
         </div>
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 bg-pink-500/5 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="flex items-center gap-3 mb-2"><Anchor className="w-5 h-5 text-pink-500" /><p className="text-sm font-medium text-muted-foreground">Rata-rata Volume/Trip</p></div>
-          <p className="text-3xl font-bold text-foreground">
-            {Math.round(localKpi.avg_volume_per_trip).toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Kg/Trip</span>
-          </p>
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500"><Anchor className="w-6 h-6" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-muted-foreground truncate">Rata-rata Volume/Trip</p>
+            <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`${Math.round(localKpi.avg_volume_per_trip).toLocaleString('id-ID')} Kg/Trip`}>
+              {Math.round(localKpi.avg_volume_per_trip).toLocaleString('id-ID')} <span className="text-sm text-muted-foreground font-normal">Kg/Trip</span>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -702,7 +710,6 @@ export default function PerikananTangkap() {
           </div>
           <div>
             <h3 className="text-2xl font-bold text-foreground">Komoditas Unggulan & Top 5 Wilayah Penghasil</h3>
-            <p className="text-sm text-muted-foreground mt-1">Distribusi kabupaten/kota dengan produksi tertinggi untuk masing-masing komoditas.</p>
           </div>
         </div>
 
@@ -750,12 +757,26 @@ export default function PerikananTangkap() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Volume Pendaratan</h3></div>
+          <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <LineChart className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Tren Volume Pendaratan</h3>
+            </div>
+          </div>
           {data.length > 0 ? <ReactECharts option={trenChartOption.volume} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
         </div>
         
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><LineChart className="w-5 h-5 text-emerald-500" /><h3 className="text-lg font-semibold">Tren Nilai Produksi</h3></div>
+          <div className="flex items-center gap-3 mb-4 border-b border-border pb-4">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <LineChart className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Tren Nilai Produksi</h3>
+            </div>
+          </div>
           {data.length > 0 ? <ReactECharts option={trenChartOption.nilai} style={{ height: '350px', width: '100%' }} /> : <div className="h-[350px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
         </div>
       </div>
