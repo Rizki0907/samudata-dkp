@@ -1148,9 +1148,9 @@ export default function AdminKelautanPesisir() {
       />;
     } },
     { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-foreground">{formatBulan(info.getValue())}</span> },
-    { header: 'Tw', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
+    { header: 'Triwulan', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
-    { header: 'Wilayah', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
+    { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
     { header: 'Prod.', accessorKey: 'total_produksi_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Stok', accessorKey: 'total_stok_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Prodv.', accessorKey: 'produktivitas', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },

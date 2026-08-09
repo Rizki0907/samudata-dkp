@@ -224,7 +224,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
               <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} required />
             </div>
             <div>
-              <label className={labelClass}>Kabupaten / Kota</label>
+              <label className={labelClass}>Kab/Kota</label>
               <div
                 data-form-nav="true"
                 tabIndex={0}
