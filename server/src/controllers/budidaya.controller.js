@@ -86,10 +86,12 @@ const getStats = async (req, res) => {
     // 2. Komposisi Wadah
     const wadahMap = {};
     data.forEach(item => {
-      wadahMap[item.jenis_wadah] = (wadahMap[item.jenis_wadah] || 0) + item.produksi_kg;
+      if (!wadahMap[item.jenis_wadah]) wadahMap[item.jenis_wadah] = { produksi: 0, nilai: 0 };
+      wadahMap[item.jenis_wadah].produksi += item.produksi_kg;
+      wadahMap[item.jenis_wadah].nilai += item.nilai_rp;
     });
     const komposisiWadah = Object.entries(wadahMap)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, stats]) => ({ name, value: stats.produksi, produksi: stats.produksi, nilai: stats.nilai }))
       .sort((a, b) => b.value - a.value);
 
     // Get Top 5 Wadah for Tren Bulanan
@@ -213,7 +215,9 @@ const updateData = async (req, res) => {
     }
 
     let newStatus = existing.status;
-    if (existing.status === 'REJECTED') {
+    if (req.user && req.user.role === 'admin_pusat') {
+      newStatus = 'APPROVED';
+    } else if (existing.status === 'REJECTED') {
       newStatus = 'PENDING';
     }
 

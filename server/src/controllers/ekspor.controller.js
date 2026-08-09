@@ -80,7 +80,9 @@ const updateData = async (req, res) => {
     }
 
     let newStatus = existing.status;
-    if (existing.status === 'REJECTED') {
+    if (req.user && req.user.role === 'admin_pusat') {
+      newStatus = 'APPROVED';
+    } else if (existing.status === 'REJECTED') {
       newStatus = 'PENDING';
     }
 
@@ -139,7 +141,7 @@ const getStats = async (req, res) => {
     // 1. Treemap (komoditas by kategori)
     const komoditasGroup = await prisma.ekspor.groupBy({
       by: ['kategori_komoditas', 'nama_komoditas'],
-      _sum: { nilai_usd: true, nilai_rp: true },
+      _sum: { volume: true, nilai_usd: true, nilai_rp: true },
       where
     });
 
