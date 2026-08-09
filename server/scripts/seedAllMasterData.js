@@ -91,24 +91,57 @@ const DATA_MAP = {
     "Kolam Tanah", "Kolam Beton", "Kolam Terpal", "Tambak", 
     "Keramba Jaring Apung (KJA)", "Keramba Jaring Tancap (KJT)", "Minapadi", "Rumput Laut / Laut"
   ],
+
+  // ================== BIDANG: PENGOLAHAN DAN PEMASARAN ==================
+  // Kategori berikut HARUS sama persis (value-nya) dengan CATEGORY_MAP
+  // di MasterData.jsx pada key 'Pengolahan dan Pemasaran', supaya form
+  // input & tampilan otomatis sinkron saat master data ditambah/diedit.
+
+  KABUPATEN_KOTA: [
+    'KAB. PACITAN', 'KAB. PONOROGO', 'KAB. TRENGGALEK', 'KAB. TULUNGAGUNG',
+    'KAB. BLITAR', 'KAB. KEDIRI', 'KAB. MALANG', 'KAB. LUMAJANG', 'KAB. JEMBER',
+    'KAB. BANYUWANGI', 'KAB. BONDOWOSO', 'KAB. SITUBONDO', 'KAB. PROBOLINGGO',
+    'KAB. PASURUAN', 'KAB. SIDOARJO', 'KAB. MOJOKERTO', 'KAB. JOMBANG',
+    'KAB. NGANJUK', 'KAB. MADIUN', 'KAB. MAGETAN', 'KAB. NGAWI', 'KAB. BOJONEGORO',
+    'KAB. TUBAN', 'KAB. LAMONGAN', 'KAB. GRESIK', 'KAB. BANGKALAN', 'KAB. SAMPANG',
+    'KAB. PAMEKASAN', 'KAB. SUMENEP', 'KOTA KEDIRI', 'KOTA BLITAR', 'KOTA MALANG',
+    'KOTA PROBOLINGGO', 'KOTA PASURUAN', 'KOTA MOJOKERTO', 'KOTA MADIUN',
+    'KOTA SURABAYA', 'KOTA BATU',
+  ],
   JENIS_PENGOLAHAN: [
-    "Penggaraman / Pengeringan", "Pemindangan", "Pengasapan", "Pembekuan", 
-    "Pengalengan", "Fermentasi", "Pengolahan Modern / Surimi", "Tepung Ikan / Minyak Ikan", "Kerupuk / Amplang / Bakso Ikan"
+    'Fermentasi',
+    'Pelumatan Daging Ikan',
+    'Pembekuan',
+    'Pemindangan',
+    'Penanganan Produk Segar',
+    'Pengalengan',
+    'Pengasapan/ Pemanggangan',
+    'Pereduksian/ Ekstraksi',
+    'Penggaraman/ Pengeringan',
+    'Pengolahan Lainnya',
   ],
   JENIS_PEMASARAN: [
-    "Pasar Lokal / Tradisional", "Pasar Modern / Supermarket", "Antar Pulau / Antar Provinsi", 
-    "Ekspor", "E-Commerce / Online", "Restoran / Hotel / Katering"
+    'Pengecer',
+    'Pengumpul/ Pedagang Besar/ Distributor',
   ],
-  KOMODITAS_SEGAR_OLAHAN: [
-    "Ikan Segar", "Ikan Beku", "Ikan Asin / Kering", "Ikan Pindang", "Ikan Asap", 
-    "Ikan Kaleng", "Baso / Nugget / Sosis Ikan", "Kerupuk / Amplang Ikan", "Petis / Terasi", "Tepung Ikan"
+  KATEGORI_SKALA_USAHA: [
+    'Mikro', 'Kecil', 'Menengah', 'Besar'
   ],
+  SERTIFIKAT_PRODUK: [
+    'HACCP', 'SNI', 'HALAL', 'SKP', 'PIRT', 'MD', 'Lainnya'
+  ],
+  IZIN_USAHA: [
+    'NIB', 'NPWP', 'KUSUKA', 'Pengesahan MENHUKAM', 'Akta Pendirian Usaha',
+    'Lokasi / Domisili', 'IMB', 'SIUP Perikanan', 'SIUP Perdagangan', 'Lain-lain'
+  ],
+  SERTIFIKAT_LAHAN_BANGUNAN: [
+    'Sertifikat Hak Milik (SHM)', 'Non SHM (Sewa / Girik / HGB / DLL)'
+  ],
+  // ========================================================================
+
   BENTUK_PRODUK: [
     "Utuh / Whole", "Siap Masak / Ready to Cook", "Siap Saji / Ready to Eat", 
     "Fillet / Loin", "Surimi / Lumat", "Kering / Bubuk", "Cair / Minyak"
-  ],
-  KATEGORI_SKALA_USAHA: [
-    "Skala Mikro", "Skala Kecil", "Skala Menengah", "Skala Besar"
   ],
   KOMODITAS_EKSPOR: [
     "Udang (Shrimp)", "Tuna, Cakalang, Tongkol", "Rajungan dan Kepiting", 

@@ -82,9 +82,9 @@ export default function Overview() {
         
         <div className="relative z-10 p-8 md:p-14 flex flex-col items-center text-center">
           <div className="flex items-center justify-center gap-1 mb-5">
-            <img src={iconDKP} alt="Icon DKP" className="h-22 md:h-32 drop-shadow-lg" />
+            <img src={iconDKP} alt="Icon DKP" className="h-24 drop-shadow-lg" />
             <div className="h-18 w-px bg-white/30" />
-            <img src={logoDKP} alt="Logo DKP Jatim" className="h-16 md:h-20 drop-shadow-lg" />
+            <img src={logoDKP} alt="Logo DKP Jatim" className="h-16 drop-shadow-lg" />
           </div>
           <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-white mb-6 tracking-tight">
             Potensi Kelautan dan Perikanan<br/>

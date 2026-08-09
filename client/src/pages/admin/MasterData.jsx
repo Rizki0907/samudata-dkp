@@ -4,7 +4,8 @@ import { useMasterDataStore } from '@/store/masterDataStore';
 import api from '@/services/api';
 import { 
   Plus, Trash2, Edit2, Loader2, Save, X, Filter, 
-  Database, MapPin, Package, Anchor, Search, AlertCircle, CheckCircle2, ChevronRight, Ship
+  Database, MapPin, Package, Anchor, Search, AlertCircle, CheckCircle2, ChevronRight, Ship,
+  ShieldCheck, FileText, Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +16,10 @@ import InputOverviewKim from '@/components/admin/InputOverviewKim';
 import InputOverviewKelautan from '@/components/admin/InputOverviewKelautan';
 import InputOverviewEkspor from '@/components/admin/InputOverviewEkspor';
 
+// PENTING: setiap "value" di bawah ini HARUS SAMA PERSIS dengan key category
+// pada DATA_MAP di file seed-all.js, supaya data yang diseed otomatis muncul
+// di tab yang benar, dan data yang ditambah/diedit lewat halaman ini otomatis
+// tersedia di dropdown form input overview (lewat getOptions() di masterDataStore).
 const CATEGORY_MAP = {
   'Perikanan Tangkap Pelabuhan': [
     { value: 'PELABUHAN', label: 'Pelabuhan', icon: MapPin, hasMetadata: 'kab_kota' },
@@ -40,11 +45,13 @@ const CATEGORY_MAP = {
     { value: 'JENIS_WADAH', label: 'Jenis Wadah', icon: Database }
   ],
   'Pengolahan dan Pemasaran': [
+    { value: 'KABUPATEN_KOTA', label: 'Kabupaten/Kota', icon: MapPin },
     { value: 'JENIS_PENGOLAHAN', label: 'Jenis Pengolahan', icon: Database },
     { value: 'JENIS_PEMASARAN', label: 'Jenis Pemasaran', icon: Database },
-    { value: 'KOMODITAS_SEGAR_OLAHAN', label: 'Komoditas Segar / Olahan', icon: Package },
-    { value: 'BENTUK_PRODUK', label: 'Bentuk Produk', icon: Package },
-    { value: 'KATEGORI_SKALA_USAHA', label: 'Skala Usaha', icon: Database }
+    { value: 'KATEGORI_SKALA_USAHA', label: 'Skala Usaha', icon: Building2 },
+    { value: 'SERTIFIKAT_PRODUK', label: 'Sertifikat Produk', icon: ShieldCheck },
+    { value: 'IZIN_USAHA', label: 'Izin Usaha', icon: FileText },
+    { value: 'SERTIFIKAT_LAHAN_BANGUNAN', label: 'Sertifikat Lahan & Bangunan', icon: Building2 }
   ],
   'Ekspor': [
     { value: 'KOMODITAS_EKSPOR', label: 'Komoditas Ekspor', icon: Package },
