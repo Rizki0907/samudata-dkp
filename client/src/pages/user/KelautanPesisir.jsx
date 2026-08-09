@@ -7,7 +7,7 @@ import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import {
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
   TreePine, Landmark, Globe, Fish, Info, Clock, Leaf,
-  ChevronDown, Search, BarChart3, PieChart, TrendingUp
+  ChevronDown, Search, BarChart3, PieChart, TrendingUp, FileText
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { format } from 'date-fns';
@@ -1223,7 +1223,10 @@ export default function KelautanPesisir() {
 
       {/* ── Tabel Data + Filter ── */}
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-x-auto min-h-[600px] mt-6">
-        <h2 className="text-lg font-bold text-foreground mb-4">Rincian Data Kelautan dan Pesisir</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <FileText className="h-5 w-5 text-slate-500" />
+          <h2 className="text-lg font-bold text-foreground">Rincian Data Kelautan dan Pesisir</h2>
+        </div>
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-wrap items-center gap-2 bg-muted/40 p-1 rounded-lg w-fit">
             <button
