@@ -15,6 +15,7 @@ import {
   Download,
   ChevronDown,
   Search,
+  X,
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -229,7 +230,7 @@ const downloadExcelFromApi = async (endpoint, payload, fileName) => {
       message = responseData.message;
     }
 
-    window.alert(message);
+    throw new Error(message);
   }
 };
 
@@ -295,6 +296,11 @@ export default function PengolahanPemasaran() {
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
+
+  const [rekapDialogOpen, setRekapDialogOpen] = useState(false);
+  const [rekapTahun, setRekapTahun] = useState('');
+  const [rekapLoading, setRekapLoading] = useState(false);
+  const [rekapError, setRekapError] = useState('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -417,38 +423,37 @@ export default function PengolahanPemasaran() {
     );
   };
 
-  const handleExportRekap = async () => {
-    if (filterTahun.length !== 1) {
-      window.alert('Pilih tepat satu tahun sebelum mengekspor rekap statistik.');
-      return;
-    }
+  const openRekapDialog = () => {
+    setRekapTahun('');
+    setRekapError('');
+    setRekapDialogOpen(true);
+  };
 
-    const selectedYear = String(filterTahun[0]);
-
+  const exportRekapForYear = async (year, closeDialogAfterSuccess = false) => {
+    const selectedYear = String(year || '').trim();
+    if (!selectedYear) { setRekapError('Pilih tahun terlebih dahulu.'); return; }
     const selectedRegions = filterKabupaten.length
-      ? KABUPATEN_KOTA_OPTIONS.filter((region) => filterKabupaten.includes(region))
+      ? KABUPATEN_KOTA_OPTIONS.filter(region => filterKabupaten.includes(region))
       : KABUPATEN_KOTA_OPTIONS;
-
-    const reportRows = data.filter(
-      (row) =>
-        String(row.tahun) === selectedYear &&
-        selectedRegions.includes(row.kabupaten_kota),
-    );
-
+    const reportRows = data.filter(row => String(row.tahun) === selectedYear && selectedRegions.includes(row.kabupaten_kota));
     if (!reportRows.length) {
-      window.alert('Tidak ada data pada tahun dan wilayah yang dipilih.');
+      setRekapError(filterKabupaten.length ? 'Tidak ada data VERIFIED pada tahun dan wilayah yang sedang dipilih.' : 'Tidak ada data VERIFIED pada tahun tersebut.');
       return;
     }
+    try {
+      setRekapLoading(true); setRekapError('');
+      await downloadExcelFromApi('/pengolahan-pemasaran/export-rekap', { tahun: selectedYear, regions: selectedRegions, ids: reportRows.map(row => row.id).filter(Boolean) }, `Rekap_Statistik_Pengolahan_Pemasaran_${selectedYear}.xlsx`);
+      if (closeDialogAfterSuccess) setRekapDialogOpen(false);
+    } catch (error) {
+      setRekapError(error.message || 'Gagal mengunduh rekap statistik.');
+      if (!closeDialogAfterSuccess) { setRekapDialogOpen(true); setRekapTahun(selectedYear); }
+    } finally { setRekapLoading(false); }
+  };
 
-    await downloadExcelFromApi(
-      '/pengolahan-pemasaran/export-rekap',
-      {
-        tahun: selectedYear,
-        regions: selectedRegions,
-        ids: reportRows.map((row) => row.id).filter(Boolean),
-      },
-      `Rekap_Statistik_Pengolahan_Pemasaran_${selectedYear}.xlsx`,
-    );
+  const handleExportRekap = () => exportRekapForYear(rekapTahun, true);
+  const handleRekapButtonClick = () => {
+    if (filterTahun.length === 1) { exportRekapForYear(String(filterTahun[0]), false); return; }
+    openRekapDialog();
   };
 
   const stats = useMemo(() => {
@@ -1716,9 +1721,9 @@ export default function PengolahanPemasaran() {
               customExportButton={
                 <button
                   type="button"
-                  onClick={handleExportRekap}
+                  onClick={handleRekapButtonClick}
                   disabled={!filteredData.length}
-                  title="Pilih satu tahun. Rekap mengikuti wilayah yang dipilih."
+                  title="Jika tahun belum dipilih, tentukan tahun melalui pop-up."
                   className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
@@ -1732,6 +1737,40 @@ export default function PengolahanPemasaran() {
           </div>
         </div>
       )}
+      {rekapDialogOpen ? (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 px-4 py-8" onClick={() => !rekapLoading && setRekapDialogOpen(false)}>
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="border-b border-border p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Unduh Rekap Statistik</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Pilih tahun rekap.</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">Hanya untuk data yang berstatus VERIFIED.</p>
+                </div>
+                <button type="button" disabled={rekapLoading} onClick={() => setRekapDialogOpen(false)} className="rounded-lg p-1 text-muted-foreground hover:bg-muted"><X className="h-5 w-5" /></button>
+              </div>
+            </div>
+            <div className="space-y-4 p-6">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Tahun <span className="text-rose-500">*</span></label>
+                <select value={rekapTahun} onChange={event => { setRekapTahun(event.target.value); setRekapError(''); }} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground">
+                  <option value="">Pilih Tahun</option>
+                  {tahunOptions.map(option => <option key={String(option)} value={String(option)}>{option}</option>)}
+                </select>
+              </div>
+              {rekapError ? <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">{rekapError}</div> : null}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border p-5">
+              <button type="button" disabled={rekapLoading} onClick={() => setRekapDialogOpen(false)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium">Batal</button>
+              <button type="button" disabled={!rekapTahun || rekapLoading} onClick={handleExportRekap} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+                {rekapLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {rekapLoading ? 'Menyiapkan...' : 'Unduh Rekap Statistik'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }

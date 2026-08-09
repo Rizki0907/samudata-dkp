@@ -920,6 +920,90 @@ const KEGIATAN_EXPORT_OPTIONS = [
   ...JENIS_PEMASARAN_EXPORT_OPTIONS,
 ];
 
+
+// Sumber utama opsi rekap adalah Master Data. Konstanta di atas hanya fallback
+// agar ekspor tetap dapat berjalan bila tabel master_data belum terisi.
+const getMasterDataValues = async (category, fallback = []) => {
+  try {
+    const items = await prisma.masterData.findMany({
+      where: { category },
+      orderBy: { value: 'asc' },
+      select: { value: true },
+    });
+
+    const values = items
+      .map(item => normalizeText(item.value))
+      .filter(Boolean);
+
+    return values.length ? values : [...fallback];
+  } catch (error) {
+    console.warn(
+      `Master Data ${category} tidak dapat dibaca, menggunakan fallback.`,
+      error?.message || error,
+    );
+    return [...fallback];
+  }
+};
+
+const compareRegionIdValues = (a, b) => {
+  const aId = String(a?.id_wilayah ?? '').trim();
+  const bId = String(b?.id_wilayah ?? '').trim();
+  if (aId && bId) return aId.localeCompare(bId, 'id', { numeric: true, sensitivity: 'base' });
+  if (aId) return -1;
+  if (bId) return 1;
+  return String(a?.value ?? '').localeCompare(String(b?.value ?? ''), 'id', { numeric: true, sensitivity: 'base' });
+};
+
+const getPengolahanPemasaranExportConfig = async () => {
+  const [regionItems, pengolahan, pemasaran, scales] = await Promise.all([
+    prisma.masterData.findMany({
+      where: { category: 'KABUPATEN_KOTA' },
+      orderBy: { value: 'asc' },
+      select: { value: true, metadata: true },
+    }).catch(() => []),
+    getMasterDataValues('JENIS_PENGOLAHAN', JENIS_PENGOLAHAN_EXPORT_OPTIONS),
+    getMasterDataValues('JENIS_PEMASARAN', JENIS_PEMASARAN_EXPORT_OPTIONS),
+    getMasterDataValues('KATEGORI_SKALA_USAHA', SKALA_EXPORT_OPTIONS),
+  ]);
+
+  const regionItemsNormalized = regionItems
+    .map(item => ({
+      value: normalizeText(item.value),
+      id_wilayah: String(item.metadata?.id_wilayah ?? '').trim(),
+    }))
+    .filter(item => item.value)
+    .sort(compareRegionIdValues);
+
+  const regions = regionItemsNormalized.length
+    ? regionItemsNormalized.map(item => item.value)
+    : [...KABUPATEN_KOTA_EXPORT_OPTIONS];
+
+  const regionIds = new Map(
+    regionItemsNormalized.map(item => [
+      normalizeCategoryKey(item.value),
+      item.id_wilayah || getRegionExportId(item.value),
+    ]),
+  );
+
+  // Data lama yang belum memiliki metadata ID Wilayah tetap menggunakan
+  // mapping legacy agar ekspor tidak rusak saat migrasi bertahap.
+  regions.forEach(region => {
+    const key = normalizeCategoryKey(region);
+    if (!regionIds.get(key)) {
+      regionIds.set(key, getRegionExportId(region));
+    }
+  });
+
+  return {
+    regions,
+    regionIds,
+    pengolahan,
+    pemasaran,
+    kegiatan: [...pengolahan, ...pemasaran],
+    scales,
+  };
+};
+
 // Palet yang sama dengan file Excel sebelumnya.
 const EXPORT_THEME = {
   title: 'FFFFFF',
@@ -1077,15 +1161,19 @@ const getRegionExportId = region => {
   return regencyIds[key] || cityIds[key] || '';
 };
 
-const getRegionExportNumber = region => {
-  const regionId = getRegionExportId(region);
+const getRegionExportNumber = (region, regionIds) => {
+  const key = normalizeCategoryKey(region);
+  const regionId =
+    regionIds instanceof Map
+      ? regionIds.get(key) || getRegionExportId(region)
+      : getRegionExportId(region);
 
   if (!regionId) return '-';
 
   const numericId = Number(regionId);
   return Number.isFinite(numericId)
     ? numericId
-    : '-';
+    : String(regionId);
 };
 
 const sumField = (rows, field) =>
@@ -1380,11 +1468,12 @@ const getDetailExportHeaders = includeStatus => {
 const buildDetailExportRecords = (
   rows,
   includeStatus,
+  regionIds,
 ) =>
   rows.map((row, index) => {
     const record = {
       No: index + 1,
-      'ID Wilayah': getRegionExportNumber(row.kabupaten_kota),
+      'ID Wilayah': getRegionExportNumber(row.kabupaten_kota, regionIds),
     };
 
     if (includeStatus) {
@@ -1474,6 +1563,7 @@ const createDetailExportSheet = (
   rows,
   sheetName,
   includeStatus,
+  regionIds,
 ) => {
   const tabColor = SHEET_TAB_COLOR_MAP[sheetName];
 
@@ -1492,7 +1582,7 @@ const createDetailExportSheet = (
 
   const styles = makeWorkbookStyles(EXPORT_THEME);
   const headers = getDetailExportHeaders(includeStatus);
-  const records = buildDetailExportRecords(rows, includeStatus);
+  const records = buildDetailExportRecords(rows, includeStatus, regionIds);
   const title =
     `DATA PENGOLAHAN DAN PEMASARAN - ${sheetName.toUpperCase()}`;
 
@@ -2400,6 +2490,7 @@ const createFieldSummarySheet = (
 const buildDetailWorkbook = (
   rows,
   includeStatus,
+  exportConfig,
 ) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Dinas Kelautan dan Perikanan';
@@ -2429,86 +2520,407 @@ const buildDetailWorkbook = (
       sheetRows,
       sheetName,
       includeStatus,
+      exportConfig?.regionIds,
     );
   });
 
   return workbook;
 };
 
+const WHITE_TABLE_STYLE = {
+  title: { font: { bold: true, color: { argb: toArgb('000000') }, size: 11 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb('FFFFFF') } }, alignment: { horizontal: 'left', vertical: 'middle', wrapText: true } },
+  header: { font: { bold: true, color: { argb: toArgb(EXPORT_THEME.headerFont) }, size: 9 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(EXPORT_THEME.header) } }, alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: makeBorder(EXPORT_THEME.border) },
+  subHeader: { font: { bold: true, color: { argb: toArgb('FFFFFF') }, size: 9 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(EXPORT_THEME.subHeader) } }, alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: makeBorder(EXPORT_THEME.border) },
+  data: { font: { color: { argb: toArgb('000000') } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb('FFFFFF') } }, alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: makeBorder(EXPORT_THEME.border) },
+};
+
+const safeSheetNameForLink = name => String(name).replace(/'/g, "''");
+
+const writeWhiteAnalysisTable = ({ worksheet, startRow, startCol, title, headers, dataRows, groupLabel, numberFormat = INTEGER_NUMBER_FORMAT, numericStartIndex = 2 }) => {
+  const titleRow = startRow, headerRow = startRow + 1, subHeaderRow = startRow + 2, bodyStart = startRow + 3;
+  const lastCol = startCol + headers.length - 1, dynamicHeaders = headers.slice(2, -1), groupStartCol = startCol + 2, groupEndCol = lastCol - 1;
+  worksheet.getCell(titleRow, startCol).value = title; worksheet.mergeCells(titleRow, startCol, titleRow, lastCol); applyCellStyle(worksheet.getCell(titleRow, startCol), WHITE_TABLE_STYLE.title);
+  [[startCol,headers[0]],[startCol+1,headers[1]],[lastCol,headers[headers.length-1]]].forEach(([col,value]) => { worksheet.mergeCells(headerRow,col,subHeaderRow,col); const cell=worksheet.getCell(headerRow,col); cell.value=value; applyCellStyle(cell,WHITE_TABLE_STYLE.header); applyCellStyle(worksheet.getCell(subHeaderRow,col),WHITE_TABLE_STYLE.header); });
+  if (dynamicHeaders.length) { worksheet.mergeCells(headerRow,groupStartCol,headerRow,groupEndCol); const group=worksheet.getCell(headerRow,groupStartCol); group.value=groupLabel||'Rincian'; for(let col=groupStartCol;col<=groupEndCol;col++) applyCellStyle(worksheet.getCell(headerRow,col),WHITE_TABLE_STYLE.header); dynamicHeaders.forEach((header,index)=>{ const cell=worksheet.getCell(subHeaderRow,groupStartCol+index); cell.value=header; applyCellStyle(cell,WHITE_TABLE_STYLE.subHeader); }); }
+  dataRows.forEach((row,rowIndex)=>row.forEach((value,colIndex)=>{ const cell=worksheet.getCell(bodyStart+rowIndex,startCol+colIndex); cell.value=value; applyCellStyle(cell,WHITE_TABLE_STYLE.data); if(colIndex>=numericStartIndex && typeof value==='number') cell.numFmt=numberFormat; }));
+  for(let col=startCol;col<=lastCol;col++){ const relative=col-startCol; worksheet.getColumn(col).width=relative===0?7:relative===1?25:17; }
+  worksheet.getRow(titleRow).height=22; worksheet.getRow(headerRow).height=24; worksheet.getRow(subHeaderRow).height=42;
+  return { title, sheetName: worksheet.name, cell: worksheet.getCell(titleRow,startCol).address, width: headers.length, endRow: bodyStart+dataRows.length-1 };
+};
+
+const sumMetricField = (rows, field) =>
+  rows.reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+
+const sumMetricByKegiatan = (rows, detail, field) => {
+  const target = normalizeCategoryKey(detail);
+  return rows
+    .filter(row => normalizeCategoryKey(row.jenis_kegiatan) === target)
+    .reduce((sum, row) => sum + toNumber(row?.[field]), 0);
+};
+
+const buildRegionPivotRows = ({
+  rows,
+  regions,
+  columns,
+  field,
+  filterFn,
+  regionIds,
+}) => {
+  const source = typeof filterFn === 'function' ? rows.filter(filterFn) : rows;
+  const body = regions.map(region => {
+    const regionRows = source.filter(row => row.kabupaten_kota === region);
+    const values = columns.map(column =>
+      sumMetricByKegiatan(regionRows, column, field),
+    );
+    return [
+      getRegionExportNumber(region, regionIds),
+      region,
+      ...values,
+      values.reduce((sum, value) => sum + value, 0),
+    ];
+  });
+
+  const totalValues = columns.map((_, index) =>
+    body.reduce((sum, row) => sum + toNumber(row[index + 2]), 0),
+  );
+  body.push([
+    '',
+    'Grand Total',
+    ...totalValues,
+    totalValues.reduce((sum, value) => sum + value, 0),
+  ]);
+  return body;
+};
+
+const buildScalePivotRows = ({
+  rows,
+  regions,
+  scales,
+  field,
+  filterFn,
+  regionIds,
+}) => {
+  const source = typeof filterFn === 'function' ? rows.filter(filterFn) : rows;
+  const body = regions.map(region => {
+    const regionRows = source.filter(row => row.kabupaten_kota === region);
+    const values = scales.map(scale =>
+      sumMetricField(
+        regionRows.filter(
+          row => normalizeCategoryKey(row.skala_usaha) === normalizeCategoryKey(scale),
+        ),
+        field,
+      ),
+    );
+    return [
+      getRegionExportNumber(region, regionIds),
+      region,
+      ...values,
+      values.reduce((sum, value) => sum + value, 0),
+    ];
+  });
+
+  const totalValues = scales.map((_, index) =>
+    body.reduce((sum, row) => sum + toNumber(row[index + 2]), 0),
+  );
+  body.push([
+    '',
+    'Grand Total',
+    ...totalValues,
+    totalValues.reduce((sum, value) => sum + value, 0),
+  ]);
+  return body;
+};
+
+const createMetricAnalysisSheet = ({
+  workbook, rows, regions, config, sheetName, metricLabel, field, numberFormat, tableCounter, daftarIsi,
+}) => {
+  const worksheet = workbook.addWorksheet(sheetName);
+  let startCol = 1;
+  const addTable = (titleSuffix, headers, dataRows, groupLabel) => {
+    const tableNo = tableCounter.value++;
+    const meta = writeWhiteAnalysisTable({ worksheet, startRow: 1, startCol, title: `Tabel ${tableNo} ${metricLabel} ${titleSuffix}`, headers, dataRows, groupLabel, numberFormat });
+    daftarIsi.push(meta); startCol += meta.width + 2;
+  };
+  addTable('berdasarkan Jenis Kegiatan', ['No','Kabupaten/Kota',...config.kegiatan,'Jumlah Total'], buildRegionPivotRows({rows,regions,columns:config.kegiatan,field,regionIds:config.regionIds}), 'Jenis Kegiatan');
+  addTable('berdasarkan Jenis Kegiatan Pengolahan', ['No','Kabupaten/Kota',...config.pengolahan,'Jumlah Total'], buildRegionPivotRows({rows,regions,columns:config.pengolahan,field,regionIds:config.regionIds,filterFn:row=>normalizeKategori(row.kategori_kegiatan)==='Pengolahan'}), 'Jenis Kegiatan');
+  addTable('berdasarkan Jenis Kegiatan Pemasaran', ['No','Kabupaten/Kota',...config.pemasaran,'Jumlah Total'], buildRegionPivotRows({rows,regions,columns:config.pemasaran,field,regionIds:config.regionIds,filterFn:row=>normalizeKategori(row.kategori_kegiatan)==='Pemasaran'}), 'Jenis Kegiatan');
+  addTable('berdasarkan Skala Usaha', ['No','Kabupaten/Kota',...config.scales,'Jumlah Total'], buildScalePivotRows({rows,regions,scales:config.scales,field,regionIds:config.regionIds}), 'Skala Usaha');
+  addTable('berdasarkan Skala Usaha pada Kegiatan Pengolahan', ['No','Kabupaten/Kota',...config.scales,'Jumlah Total'], buildScalePivotRows({rows,regions,scales:config.scales,field,regionIds:config.regionIds,filterFn:row=>normalizeKategori(row.kategori_kegiatan)==='Pengolahan'}), 'Skala Usaha');
+  addTable('berdasarkan Skala Usaha pada Kegiatan Pemasaran', ['No','Kabupaten/Kota',...config.scales,'Jumlah Total'], buildScalePivotRows({rows,regions,scales:config.scales,field,regionIds:config.regionIds,filterFn:row=>normalizeKategori(row.kategori_kegiatan)==='Pemasaran'}), 'Skala Usaha');
+  config.kegiatan.forEach(kegiatan => addTable(`berdasarkan Skala Usaha pada Jenis Kegiatan ${kegiatan}`, ['No','Kabupaten/Kota',...config.scales,'Jumlah Total'], buildScalePivotRows({rows,regions,scales:config.scales,field,regionIds:config.regionIds,filterFn:row=>normalizeCategoryKey(row.jenis_kegiatan)===normalizeCategoryKey(kegiatan)}), 'Skala Usaha'));
+  worksheet.views=[{state:'frozen',xSplit:2,ySplit:3}]; return worksheet;
+};
+
+const createModalAnalysisSheet = ({
+  workbook,
+  rows,
+  regions,
+  config,
+  tableCounter,
+  daftarIsi,
+}) => {
+  const worksheet = workbook.addWorksheet('Modal');
+  let startCol = 1;
+
+  const activityMeta = writeWhiteAnalysisTable({
+    worksheet,
+    startRow: 1,
+    startCol,
+    title: `Tabel ${tableCounter.value++} Jumlah Investasi Modal (Rp) Berdasarkan Jenis Kegiatan`,
+    headers: ['No', 'Kabupaten/Kota', ...config.kegiatan, 'Jumlah Total'],
+    dataRows: buildRegionPivotRows({
+      rows,
+      regions,
+      columns: config.kegiatan,
+      field: 'modal_rp',
+      regionIds: config.regionIds,
+    }),
+    groupLabel: 'Jenis Kegiatan',
+    numberFormat: RUPIAH_NUMBER_FORMAT,
+  });
+  daftarIsi.push(activityMeta);
+  startCol += activityMeta.width + 2;
+
+  const scaleMeta = writeWhiteAnalysisTable({
+    worksheet,
+    startRow: 1,
+    startCol,
+    title: `Tabel ${tableCounter.value++} Jumlah Investasi Modal (Rp) Berdasarkan Skala Usaha`,
+    headers: ['No', 'Kabupaten/Kota', ...config.scales, 'Jumlah Total'],
+    dataRows: buildScalePivotRows({
+      rows,
+      regions,
+      scales: config.scales,
+      field: 'modal_rp',
+      regionIds: config.regionIds,
+    }),
+    groupLabel: 'Skala Usaha',
+    numberFormat: RUPIAH_NUMBER_FORMAT,
+  });
+  daftarIsi.push(scaleMeta);
+
+  worksheet.views = [{ state: 'frozen', xSplit: 2, ySplit: 3 }];
+};
+
+const buildDimensionSummaryRows = ({ rows, dimensions, fields, fieldMode }) => {
+  const body = dimensions.map((dimension, index) => {
+    let matchedRows = rows;
+    if (fieldMode === 'region') {
+      matchedRows = rows.filter(row => row.kabupaten_kota === dimension);
+    } else if (fieldMode === 'activity') {
+      matchedRows = rows.filter(
+        row => normalizeCategoryKey(row.jenis_kegiatan) === normalizeCategoryKey(dimension),
+      );
+    } else if (fieldMode === 'scale') {
+      matchedRows = rows.filter(
+        row => normalizeCategoryKey(row.skala_usaha) === normalizeCategoryKey(dimension),
+      );
+    }
+
+    return [
+      index + 1,
+      dimension,
+      ...fields.map(([, field]) => (field ? sumMetricField(matchedRows, field) : 0)),
+    ];
+  });
+
+  const totals = fields.map((_, fieldIndex) =>
+    body.reduce((sum, row) => sum + toNumber(row[fieldIndex + 2]), 0),
+  );
+  body.push(['', 'Grand Total', ...totals]);
+  return body;
+};
+
+const createDocumentAnalysisSheet = ({
+  workbook,
+  rows,
+  regions,
+  config,
+  sheetName,
+  titleLabel,
+  fields,
+  tableCounter,
+  daftarIsi,
+}) => {
+  const worksheet = workbook.addWorksheet(sheetName);
+  let startCol = 1;
+  const fieldHeaders = fields.map(([label]) => label);
+
+  const definitions = [
+    {
+      suffix: 'per Kabupaten',
+      dimensions: regions,
+      dimensionHeader: 'Kabupaten/Kota',
+      mode: 'region',
+    },
+    {
+      suffix: 'Berdasarkan Jenis Kegiatan',
+      dimensions: config.kegiatan,
+      dimensionHeader: 'Jenis Kegiatan',
+      mode: 'activity',
+    },
+    {
+      suffix: 'Berdasarkan Skala Usaha',
+      dimensions: config.scales,
+      dimensionHeader: 'Skala Usaha',
+      mode: 'scale',
+    },
+  ];
+
+  definitions.forEach(definition => {
+    const meta = writeWhiteAnalysisTable({
+      worksheet,
+      startRow: 1,
+      startCol,
+      title: `Tabel ${tableCounter.value++} ${titleLabel} ${definition.suffix}`,
+      headers: ['No', definition.dimensionHeader, ...fieldHeaders, 'Jumlah Total'],
+      groupLabel: 'Jenis Sertifikat',
+      dataRows: buildDimensionSummaryRows({
+        rows,
+        dimensions: definition.dimensions,
+        fields,
+        fieldMode: definition.mode,
+      }).map(row => [
+        ...row,
+        row.slice(2).reduce((sum, value) => sum + toNumber(value), 0),
+      ]),
+      numberFormat: INTEGER_NUMBER_FORMAT,
+    });
+    daftarIsi.push(meta);
+    startCol += meta.width + 2;
+  });
+
+  worksheet.views = [{ state: 'frozen', xSplit: 2, ySplit: 3 }];
+};
+
+const createDynamicDaftarIsiSheet = (worksheet, year, entries) => {
+  worksheet.getCell('A1').value = 'Daftar Tabel';
+  worksheet.getCell('B1').value = `Rekap Statistik Pengolahan dan Pemasaran Tahun ${year}`;
+  applyCellStyle(worksheet.getCell('A1'), WHITE_TABLE_STYLE.header);
+  applyCellStyle(worksheet.getCell('B1'), WHITE_TABLE_STYLE.header);
+
+  entries.forEach((entry, index) => {
+    const row = index + 3;
+    const linkCell = worksheet.getCell(row, 1);
+    linkCell.value = {
+      text: entry.title,
+      hyperlink: `#'${safeSheetNameForLink(entry.sheetName)}'!${entry.cell}`,
+      tooltip: `Buka ${entry.sheetName}`,
+    };
+    linkCell.font = { color: { argb: toArgb('0563C1') }, underline: true };
+    linkCell.alignment = { vertical: 'middle', wrapText: true };
+    linkCell.border = makeBorder('000000');
+
+    const sheetCell = worksheet.getCell(row, 2);
+    sheetCell.value = entry.sheetName;
+    applyCellStyle(sheetCell, WHITE_TABLE_STYLE.data);
+  });
+
+  worksheet.getColumn(1).width = 75;
+  worksheet.getColumn(2).width = 24;
+  worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+  return worksheet;
+};
+
 const buildRekapWorkbook = (
   rows,
   year,
   regions,
+  config,
 ) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Dinas Kelautan dan Perikanan';
   workbook.created = new Date();
 
-  createDaftarIsiSheet(workbook, year);
-  createUnitUsahaSheet(workbook, rows, year, regions);
+  const daftarIsiSheet = workbook.addWorksheet('Daftar Isi');
+  const daftarIsi = [];
+  const tableCounter = { value: 1 };
 
-  createActivityMetricSheet(
+  createMetricAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Hasil (Kg)',
-    'REKAP HASIL PRODUKSI / PENJUALAN (KG)',
-    'hasil_kg',
-    DECIMAL_NUMBER_FORMAT,
-  );
+    config,
+    sheetName: 'Unit Usaha',
+    metricLabel: 'Jumlah Unit Usaha Aktif',
+    field: 'jumlah_unit_usaha',
+    numberFormat: INTEGER_NUMBER_FORMAT,
+    tableCounter,
+    daftarIsi,
+  });
 
-  createActivityMetricSheet(
+  createMetricAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Hasil (Rp)',
-    'REKAP NILAI PRODUKSI / PENJUALAN (RP)',
-    'hasil_rp',
-    RUPIAH_NUMBER_FORMAT,
-  );
+    config,
+    sheetName: 'Hasil (Kg)',
+    metricLabel: 'Jumlah Hasil Produksi (Kg)',
+    field: 'hasil_kg',
+    numberFormat: DECIMAL_NUMBER_FORMAT,
+    tableCounter,
+    daftarIsi,
+  });
 
-  createActivityMetricSheet(
+  createMetricAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Modal',
-    'REKAP INVESTASI MODAL (RP)',
-    'modal_rp',
-    RUPIAH_NUMBER_FORMAT,
-  );
+    config,
+    sheetName: 'Hasil (Rp)',
+    metricLabel: 'Jumlah Hasil Produksi (Rp)',
+    field: 'hasil_rp',
+    numberFormat: RUPIAH_NUMBER_FORMAT,
+    tableCounter,
+    daftarIsi,
+  });
 
-  createFieldSummarySheet(
+  createModalAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Sertifikat Produk',
-    'REKAP SERTIFIKAT PRODUK',
-    SERTIFIKAT_PRODUK_FIELDS_EXPORT,
-  );
+    config,
+    tableCounter,
+    daftarIsi,
+  });
 
-  createFieldSummarySheet(
+  createDocumentAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Izin Usaha',
-    'REKAP IZIN USAHA',
-    IZIN_USAHA_FIELDS_EXPORT,
-  );
+    config,
+    sheetName: 'Sertifikat Produk',
+    titleLabel: 'Jumlah Kepemilikan Sertifikat Produk',
+    fields: SERTIFIKAT_PRODUK_FIELDS_EXPORT,
+    tableCounter,
+    daftarIsi,
+  });
 
-  createFieldSummarySheet(
+  createDocumentAnalysisSheet({
     workbook,
     rows,
-    year,
     regions,
-    'Sertifikat Bangunan',
-    'REKAP SERTIFIKAT LAHAN DAN BANGUNAN',
-    SERTIFIKAT_LB_FIELDS_EXPORT,
-  );
+    config,
+    sheetName: 'Ijin Usaha',
+    titleLabel: 'Jumlah Kepemilikan Ijin Usaha',
+    fields: IZIN_USAHA_FIELDS_EXPORT,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDocumentAnalysisSheet({
+    workbook,
+    rows,
+    regions,
+    config,
+    sheetName: 'Sertifikat LB',
+    titleLabel: 'Jumlah Kepemilikan Sertifikat Lahan dan Bangunan',
+    fields: SERTIFIKAT_LB_FIELDS_EXPORT,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDynamicDaftarIsiSheet(daftarIsiSheet, year, daftarIsi);
 
   return workbook;
 };
@@ -2523,7 +2935,7 @@ const parseIdList = value => {
     .filter(Number.isInteger);
 };
 
-const parseRegionList = value => {
+const parseRegionList = (value, regionOptions = KABUPATEN_KOTA_EXPORT_OPTIONS) => {
   const source = Array.isArray(value)
     ? value
     : String(value ?? '').split(',');
@@ -2533,14 +2945,15 @@ const parseRegionList = value => {
     .filter(Boolean);
 
   if (!requested.length) {
-    return KABUPATEN_KOTA_EXPORT_OPTIONS;
+    return [...regionOptions];
   }
 
-  const requestedSet = new Set(requested);
-
-  return KABUPATEN_KOTA_EXPORT_OPTIONS.filter(region =>
-    requestedSet.has(region),
+  const availableMap = new Map(
+    regionOptions.map(region => [normalizeCategoryKey(region), region]),
   );
+
+  const requestedKeys = new Set(requested.map(region => normalizeCategoryKey(region)));
+  return regionOptions.filter(region => requestedKeys.has(normalizeCategoryKey(region)));
 };
 
 const orderRowsByIds = (rows, ids) => {
@@ -2594,7 +3007,14 @@ const getRekapRows = async ({
     throw error;
   }
 
-  const selectedRegions = parseRegionList(regions);
+  const exportConfig = await getPengolahanPemasaranExportConfig();
+  const selectedRegions = parseRegionList(regions, exportConfig.regions);
+
+  if (!selectedRegions.length) {
+    const error = new Error('Wilayah yang dipilih tidak ditemukan di Master Data.');
+    error.statusCode = 400;
+    throw error;
+  }
 
   const rows = await pengolahanPemasaranDb.findMany({
     where: {
@@ -2614,6 +3034,7 @@ const getRekapRows = async ({
     rows,
     year: String(year),
     regions: selectedRegions,
+    exportConfig,
   };
 };
 
@@ -2649,7 +3070,8 @@ const exportDataAdmin = async (req, res) => {
       });
     }
 
-    const workbook = buildDetailWorkbook(rows, true);
+    const exportConfig = await getPengolahanPemasaranExportConfig();
+    const workbook = buildDetailWorkbook(rows, true, exportConfig);
 
     return sendExcelWorkbook(
       res,
@@ -2686,7 +3108,8 @@ const exportDataPublic = async (req, res) => {
       });
     }
 
-    const workbook = buildDetailWorkbook(rows, false);
+    const exportConfig = await getPengolahanPemasaranExportConfig();
+    const workbook = buildDetailWorkbook(rows, false, exportConfig);
 
     return sendExcelWorkbook(
       res,
@@ -2728,6 +3151,7 @@ const exportRekapAdmin = async (req, res) => {
       result.rows,
       result.year,
       result.regions,
+      result.exportConfig,
     );
 
     return sendExcelWorkbook(
@@ -2768,6 +3192,7 @@ const exportRekapPublic = async (req, res) => {
       result.rows,
       result.year,
       result.regions,
+      result.exportConfig,
     );
 
     return sendExcelWorkbook(

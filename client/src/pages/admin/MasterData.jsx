@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import api from '@/services/api';
 import { 
-  Plus, Trash2, Edit2, Loader2, Save, X, Filter, 
+  Plus, Trash2, Edit2, Loader2, X, Filter, 
   Database, MapPin, Package, Anchor, Search, AlertCircle, CheckCircle2, ChevronRight, Ship,
   ShieldCheck, FileText, Building2
 } from 'lucide-react';
@@ -45,7 +45,7 @@ const CATEGORY_MAP = {
     { value: 'JENIS_WADAH', label: 'Jenis Wadah', icon: Database }
   ],
   'Pengolahan dan Pemasaran': [
-    { value: 'KABUPATEN_KOTA', label: 'Kabupaten/Kota', icon: MapPin },
+    { value: 'KABUPATEN_KOTA', label: 'Kabupaten/Kota', icon: MapPin, hasMetadata: 'id_wilayah' },
     { value: 'JENIS_PENGOLAHAN', label: 'Jenis Pengolahan', icon: Database },
     { value: 'JENIS_PEMASARAN', label: 'Jenis Pemasaran', icon: Database },
     { value: 'KATEGORI_SKALA_USAHA', label: 'Skala Usaha', icon: Building2 },
@@ -125,8 +125,10 @@ export default function MasterData() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({ value: '', kab_kota: '', satuan: '' });
+  const [formData, setFormData] = useState({ value: '', kab_kota: '', satuan: '', id_wilayah: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -158,7 +160,7 @@ export default function MasterData() {
   const handleOpenAdd = () => {
     setIsEditing(false);
     setEditId(null);
-    setFormData({ value: '', kab_kota: '', satuan: '' });
+    setFormData({ value: '', kab_kota: '', satuan: '', id_wilayah: '' });
     setIsModalOpen(true);
   };
 
@@ -168,7 +170,8 @@ export default function MasterData() {
     setFormData({ 
       value: item.value, 
       kab_kota: item.metadata?.kab_kota || '', 
-      satuan: item.metadata?.satuan || '' 
+      satuan: item.metadata?.satuan || '',
+      id_wilayah: item.metadata?.id_wilayah || '',
     });
     setIsModalOpen(true);
   };
@@ -193,6 +196,14 @@ export default function MasterData() {
         return;
       }
       metadata = { satuan: formData.satuan };
+    }
+    if (currentCatObj?.hasMetadata === 'id_wilayah') {
+      const idWilayah = String(formData.id_wilayah || '').trim();
+      if (!idWilayah) {
+        showToast('ID Wilayah wajib diisi untuk Kabupaten/Kota', 'error');
+        return;
+      }
+      metadata = { id_wilayah: idWilayah };
     }
 
     try {
@@ -219,18 +230,16 @@ export default function MasterData() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus master data ini? Data yang terhapus tidak akan muncul di dropdown.')) return;
+  const handleDelete = item => setDeleteTarget(item);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return;
     try {
-      const res = await api.delete(`/master-data/${id}`);
-      if (res.data?.success) {
-        showToast('Data berhasil dihapus');
-        fetchData();
-        refreshGlobalStore();
-      }
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Gagal menghapus data', 'error');
-    }
+      setIsDeleting(true);
+      const res = await api.delete(`/master-data/${deleteTarget.id}`);
+      if (res.data?.success) { showToast('Data berhasil dihapus'); setDeleteTarget(null); fetchData(); refreshGlobalStore(); }
+    } catch (err) { showToast(err.response?.data?.message || 'Gagal menghapus data', 'error'); }
+    finally { setIsDeleting(false); }
   };
 
   const activeCategoryObj = CATEGORY_MAP[activeBidang]?.find(c => c.value === activeCategory);
@@ -240,7 +249,16 @@ export default function MasterData() {
       const matchCat = item.category === activeCategory;
       const matchSearch = item.value.toLowerCase().includes(searchQuery.toLowerCase());
       return matchCat && matchSearch;
-    }).sort((a, b) => a.value.localeCompare(b.value));
+    }).sort((a, b) => {
+      if (activeCategory === 'KABUPATEN_KOTA') {
+        const aId = String(a.metadata?.id_wilayah ?? '').trim();
+        const bId = String(b.metadata?.id_wilayah ?? '').trim();
+        if (aId && bId) return aId.localeCompare(bId, 'id', { numeric: true, sensitivity: 'base' });
+        if (aId) return -1;
+        if (bId) return 1;
+      }
+      return a.value.localeCompare(b.value, 'id', { numeric: true, sensitivity: 'base' });
+    });
   }, [data, activeCategory, searchQuery]);
 
 
@@ -440,6 +458,12 @@ export default function MasterData() {
                           Satuan: {item.metadata.satuan}
                         </div>
                       )}
+                      {item.metadata?.id_wilayah && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-600 text-xs font-medium border border-blue-500/20">
+                          <MapPin className="w-3 h-3" />
+                          ID Wilayah: {item.metadata.id_wilayah}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-6 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -451,7 +475,7 @@ export default function MasterData() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item)}
                         className="p-2 bg-background border border-border text-muted-foreground hover:text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/5 rounded-lg shadow-sm transition-all"
                         title="Hapus"
                       >
@@ -515,6 +539,22 @@ export default function MasterData() {
                 />
               </div>
 
+              {activeCategoryObj?.hasMetadata === 'id_wilayah' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    ID Wilayah <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.id_wilayah}
+                    onChange={(e) => setFormData({ ...formData, id_wilayah: e.target.value })}
+                    placeholder="Contoh: 01 untuk Kab. Pacitan"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                  />
+                </div>
+              )}
+
               {activeCategoryObj?.hasMetadata === 'kab_kota' && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
@@ -568,11 +608,31 @@ export default function MasterData() {
                   disabled={isSubmitting || !formData.value}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Simpan Data
                 </button>
               </div>
             </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <Modal isOpen={Boolean(deleteTarget)} onClose={() => !isDeleting && setDeleteTarget(null)} title="Hapus Data">
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+                <p className="text-sm leading-relaxed text-foreground">Yakin ingin menghapus master data ini? Data yang terhapus tidak akan muncul di dropdown.</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{deleteTarget.value}</p>
+              </div>
+              <div className="flex justify-end gap-3 border-t border-border pt-4">
+                <button type="button" disabled={isDeleting} onClick={() => setDeleteTarget(null)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">Batal</button>
+                <button type="button" disabled={isDeleting} onClick={confirmDelete} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {isDeleting ? 'Menghapus...' : 'Hapus'}
+                </button>
+              </div>
+            </div>
           </Modal>
         )}
       </AnimatePresence>
