@@ -3,6 +3,7 @@ import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filt
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import PengolahanPemasaranForm from '@/components/admin/PengolahanPemasaranForm';
@@ -63,65 +64,6 @@ const getGeoRegionName = databaseName => {
 
 // Registrasi peta Jawa Timur (aman dipanggil berkali-kali)
 echarts.registerMap('jawa_timur', geoJsonData);
-
-const KABUPATEN_KOTA_OPTIONS = [
-  'KAB. PACITAN',
-  'KAB. PONOROGO',
-  'KAB. TRENGGALEK',
-  'KAB. TULUNGAGUNG',
-  'KAB. BLITAR',
-  'KAB. KEDIRI',
-  'KAB. MALANG',
-  'KAB. LUMAJANG',
-  'KAB. JEMBER',
-  'KAB. BANYUWANGI',
-  'KAB. BONDOWOSO',
-  'KAB. SITUBONDO',
-  'KAB. PROBOLINGGO',
-  'KAB. PASURUAN',
-  'KAB. SIDOARJO',
-  'KAB. MOJOKERTO',
-  'KAB. JOMBANG',
-  'KAB. NGANJUK',
-  'KAB. MADIUN',
-  'KAB. MAGETAN',
-  'KAB. NGAWI',
-  'KAB. BOJONEGORO',
-  'KAB. TUBAN',
-  'KAB. LAMONGAN',
-  'KAB. GRESIK',
-  'KAB. BANGKALAN',
-  'KAB. SAMPANG',
-  'KAB. PAMEKASAN',
-  'KAB. SUMENEP',
-  'KOTA KEDIRI',
-  'KOTA BLITAR',
-  'KOTA MALANG',
-  'KOTA PROBOLINGGO',
-  'KOTA PASURUAN',
-  'KOTA MOJOKERTO',
-  'KOTA MADIUN',
-  'KOTA SURABAYA',
-  'KOTA BATU',
-];
-
-const JENIS_PENGOLAHAN_OPTIONS = [
-  'Fermentasi',
-  'Pelumatan Daging Ikan',
-  'Pembekuan',
-  'Pemindangan',
-  'Penanganan Produk Segar',
-  'Pengalengan',
-  'Pengasapan/ Pemanggangan',
-  'Pereduksian/ Ekstraksi',
-  'Penggaraman/ Pengeringan',
-  'Pengolahan Lainnya',
-];
-
-const JENIS_PEMASARAN_OPTIONS = [
-  'Pengecer',
-  'Pengumpul/ Pedagang Besar/ Distributor',
-];
 
 const PERIZINAN_OPTIONS = [
   'NIB',
@@ -850,6 +792,13 @@ export default function AdminPengolahanPemasaran() {
   const theme = useThemeStore((state) => state.theme);
   const isDark = theme === 'dark';
 
+  // Master data dinamis: menambah/menghapus data di halaman Master Data
+  // (kategori KABUPATEN_KOTA & KATEGORI_SKALA_USAHA) otomatis mengubah
+  // opsi filter di sini, sama seperti pola di AdminPerikananTangkap.
+  const { getOptions } = useMasterDataStore();
+  const KABUPATEN_KOTA_OPTIONS = getOptions('KABUPATEN_KOTA');
+  const SKALA_USAHA_OPTIONS = getOptions('KATEGORI_SKALA_USAHA');
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -1472,7 +1421,7 @@ export default function AdminPengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [verifiedData]);
+  }, [verifiedData, KABUPATEN_KOTA_OPTIONS]);
 
   const activeDetailKegiatan =
     filterJenisKegiatan.length === 1 &&
@@ -2752,7 +2701,7 @@ export default function AdminPengolahanPemasaran() {
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Skala Usaha</label>
                   <SearchableMultiSelect
                     values={filterSkalaUsaha}
-                    options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
+                    options={SKALA_USAHA_OPTIONS}
                     onChange={setFilterSkalaUsaha}
                     placeholder="Semua Skala Usaha"
                   />

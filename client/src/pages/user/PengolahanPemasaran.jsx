@@ -20,6 +20,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 import { useThemeStore } from '@/store/themeStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 const normalizeRegionKey = (value) => {
   let text = String(value ?? '')
@@ -60,62 +61,6 @@ const getGeoRegionName = (databaseName) => {
 
 // Registrasi peta Jawa Timur
 echarts.registerMap('jawa_timur', geoJsonData);
-
-const KABUPATEN_KOTA_OPTIONS = [
-  'KAB. PACITAN',
-  'KAB. PONOROGO',
-  'KAB. TRENGGALEK',
-  'KAB. TULUNGAGUNG',
-  'KAB. BLITAR',
-  'KAB. KEDIRI',
-  'KAB. MALANG',
-  'KAB. LUMAJANG',
-  'KAB. JEMBER',
-  'KAB. BANYUWANGI',
-  'KAB. BONDOWOSO',
-  'KAB. SITUBONDO',
-  'KAB. PROBOLINGGO',
-  'KAB. PASURUAN',
-  'KAB. SIDOARJO',
-  'KAB. MOJOKERTO',
-  'KAB. JOMBANG',
-  'KAB. NGANJUK',
-  'KAB. MADIUN',
-  'KAB. MAGETAN',
-  'KAB. NGAWI',
-  'KAB. BOJONEGORO',
-  'KAB. TUBAN',
-  'KAB. LAMONGAN',
-  'KAB. GRESIK',
-  'KAB. BANGKALAN',
-  'KAB. SAMPANG',
-  'KAB. PAMEKASAN',
-  'KAB. SUMENEP',
-  'KOTA KEDIRI',
-  'KOTA BLITAR',
-  'KOTA MALANG',
-  'KOTA PROBOLINGGO',
-  'KOTA PASURUAN',
-  'KOTA MOJOKERTO',
-  'KOTA MADIUN',
-  'KOTA SURABAYA',
-  'KOTA BATU',
-];
-
-const JENIS_PENGOLAHAN_OPTIONS = [
-  'Fermentasi',
-  'Pelumatan Daging Ikan',
-  'Pembekuan',
-  'Pemindangan',
-  'Penanganan Produk Segar',
-  'Pengalengan',
-  'Pengasapan/ Pemanggangan',
-  'Pereduksian/ Ekstraksi',
-  'Penggaraman/ Pengeringan',
-  'Pengolahan Lainnya',
-];
-
-const JENIS_PEMASARAN_OPTIONS = ['Pengecer', 'Pengumpul/ Pedagang Besar/ Distributor'];
 
 const formatRupiah = (value) =>
   new Intl.NumberFormat('id-ID', {
@@ -291,6 +236,13 @@ const downloadExcelFromApi = async (endpoint, payload, fileName) => {
 export default function PengolahanPemasaran() {
   const theme = useThemeStore((state) => state.theme);
   const isDark = theme === 'dark';
+
+  // Master data dinamis: menambah/menghapus data di halaman Master Data
+  // (kategori KABUPATEN_KOTA & KATEGORI_SKALA_USAHA) otomatis mengubah
+  // opsi filter di sini, tanpa perlu edit kode.
+  const { getOptions } = useMasterDataStore();
+  const KABUPATEN_KOTA_OPTIONS = getOptions('KABUPATEN_KOTA');
+  const SKALA_USAHA_OPTIONS = getOptions('KATEGORI_SKALA_USAHA');
 
   // Palet warna chart yang menyesuaikan mode aktif.
   // Di light mode kita pakai warna gelap (slate-700/900) agar teks
@@ -1275,7 +1227,7 @@ export default function PengolahanPemasaran() {
 
         <SearchableMultiSelect
           values={filterSkalaUsaha}
-          options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
+          options={SKALA_USAHA_OPTIONS}
           onChange={(values) => {
             setFilterSkalaUsaha(values);
             setSelectedMapRegion(null);
@@ -1727,7 +1679,7 @@ export default function PengolahanPemasaran() {
 
               <SearchableMultiSelect
                 values={filterSkalaUsaha}
-                options={['Mikro', 'Kecil', 'Menengah', 'Besar']}
+                options={SKALA_USAHA_OPTIONS}
                 onChange={(values) => {
                   setFilterSkalaUsaha(values);
                   setSelectedMapRegion(null);
