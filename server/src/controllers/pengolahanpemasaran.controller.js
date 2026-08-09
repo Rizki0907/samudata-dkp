@@ -869,11 +869,11 @@ const KABUPATEN_KOTA_EXPORT_OPTIONS = [
 
 const JENIS_PENGOLAHAN_EXPORT_OPTIONS = [
   'Fermentasi',
-  'Pelumatan Daging',
+  'Pelumatan Daging Ikan',
   'Pembekuan',
   'Pengalengan',
   'Penanganan Produk Segar',
-  'Pengasapan',
+  'Pengasapan/Pemanggangan',
   'Penggaraman/Pengeringan',
   'Pemindangan',
   'Pereduksian/Ekstraksi',
@@ -1354,7 +1354,7 @@ const getDetailExportHeaders = includeStatus => {
     'Jumlah Unit Usaha',
     'Hasil Produksi (Kg)',
     'Nilai Produksi (Rp)',
-    'Modal Investasi (Rp)',
+    'Investasi Modal (Rp)',
     'HACCP',
     'SNI',
     'HALAL',
@@ -1401,7 +1401,7 @@ const buildDetailExportRecords = (
       'Jumlah Unit Usaha': toExportWholeNumber(row.jumlah_unit_usaha),
       'Hasil Produksi (Kg)': toExportWholeNumber(row.hasil_kg),
       'Nilai Produksi (Rp)': toExportWholeNumber(row.hasil_rp),
-      'Modal Investasi (Rp)': toExportWholeNumber(row.modal_rp),
+      'Investasi Modal (Rp)': toExportWholeNumber(row.modal_rp),
       HACCP: toExportWholeNumber(row.sertifikat_haccp),
       SNI: toExportWholeNumber(row.sertifikat_sni),
       HALAL: toExportWholeNumber(row.sertifikat_halal),
@@ -1646,7 +1646,7 @@ const createDetailExportSheet = (
 
   [
     'Nilai Produksi (Rp)',
-    'Modal Investasi (Rp)',
+    'Investasi Modal (Rp)',
   ].forEach(header => {
     const col = headerIndex.get(header);
     if (col && lastDataRow >= firstDataRow) {
@@ -1727,7 +1727,7 @@ const createDaftarIsiSheet = (workbook, year) => {
     ['Unit Usaha', 'Rekap jumlah unit usaha dan skala usaha', 'Unit'],
     ['Hasil (Kg)', 'Rekap hasil produksi atau penjualan', 'Kg'],
     ['Hasil (Rp)', 'Rekap nilai produksi atau penjualan', 'Rp'],
-    ['Modal', 'Rekap modal investasi', 'Rp'],
+    ['Investasi Modal', 'Rekap investasi modal', 'Rp'],
     ['Sertifikat Produk', 'Rekap sertifikat produk', 'Dokumen'],
     ['Izin Usaha', 'Rekap izin usaha', 'Dokumen'],
     ['Sertifikat Bangunan', 'Rekap SHM dan Non-SHM', 'Dokumen'],
@@ -2475,7 +2475,7 @@ const buildRekapWorkbook = (
     year,
     regions,
     'Modal',
-    'REKAP MODAL INVESTASI (RP)',
+    'REKAP INVESTASI MODAL (RP)',
     'modal_rp',
     RUPIAH_NUMBER_FORMAT,
   );

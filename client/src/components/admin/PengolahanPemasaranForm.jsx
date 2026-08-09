@@ -94,7 +94,7 @@ const INITIAL_FORM_DATA = {
   kabupaten_kota: '',
   kategori_kegiatan: 'Pengolahan',
   jenis_kegiatan: '',
-  skala_usaha: 'Mikro',
+  skala_usaha: '',
   jumlah_unit_usaha: '0',
   modal_rp: '0',
   hasil_kg: '0',
@@ -253,7 +253,7 @@ const createFormData = (initialData, jenisPengolahanOptions, jenisPemasaranOptio
     kabupaten_kota: initialData.kabupaten_kota ?? '',
     kategori_kegiatan: kategori,
     jenis_kegiatan: findCanonicalOption(initialData.jenis_kegiatan, jenisOptions),
-    skala_usaha: initialData.skala_usaha ?? 'Mikro',
+    skala_usaha: initialData.skala_usaha ?? ' ',
     jumlah_unit_usaha: formatInitialNumber(initialData.jumlah_unit_usaha ?? 0, 0),
     modal_rp: formatInitialNumber(initialData.modal_rp ?? 0, 2),
     hasil_kg: formatInitialNumber(initialData.hasil_kg ?? 0, 2),
@@ -503,6 +503,8 @@ function SearchableSingleSelect({
   searchPlaceholder = 'Ketik untuk mencari...',
 }) {
   const wrapperRef = useRef(null);
+  const listRef = useRef(null);
+  const optionRefs = useRef([]);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -529,6 +531,20 @@ function SearchableSingleSelect({
     const selectedIndex = filteredOptions.findIndex(option => option === value);
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : (filteredOptions.length ? 0 : -1));
   }, [isOpen, search]);
+
+  useEffect(() => {
+    if (!isOpen || activeIndex < 0) return;
+
+    const activeOption = optionRefs.current[activeIndex];
+
+    if (!activeOption) return;
+
+    activeOption.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [activeIndex, isOpen]);
 
   const handleSelect = (option) => {
     onChange(option);
@@ -621,7 +637,7 @@ function SearchableSingleSelect({
             />
           </div>
 
-          <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+          <div ref={listRef} className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
             {filteredOptions.length ? (
               filteredOptions.map((option, index) => {
                 const selected = option === value;
@@ -629,6 +645,9 @@ function SearchableSingleSelect({
                 return (
                   <button
                     key={option}
+                    ref={(element) => {
+                      optionRefs.current[index] = element;
+                    }}
                     type="button"
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => handleSelect(option)}
@@ -1072,7 +1091,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-normal tracking-wide text-foreground">
-              Kategori Utama <span className="text-rose-500">*</span>
+              Kategori Kegiatan <span className="text-rose-500">*</span>
             </label>
             <div className="flex items-center gap-6">
               {[
@@ -1116,7 +1135,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       </SectionCard>
 
       {/* Bagian 3 */}
-      <SectionCard number="3" title="Unit Usaha dan Modal Investasi">
+      <SectionCard number="3" title="Unit Usaha dan Investasi Modal">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField
             label="Jumlah Unit Usaha (Unit)"
@@ -1126,7 +1145,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             decimalDigits={0}
           />
           <NumberField
-            label="Modal Investasi (Rp)"
+            label="Investasi Modal (Rp)"
             value={formData.modal_rp}
             onChange={(e) => setAmountField('modal_rp', e.target.value)}
             onStep={(direction) => stepAmountField('modal_rp', direction)}
@@ -1146,7 +1165,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
             decimalDigits={2}
           />
           <NumberField
-            label="Hasil Produksi (Rp)"
+            label="Nilai Produksi (Rp)"
             value={formData.hasil_rp}
             onChange={(e) => setAmountField('hasil_rp', e.target.value)}
             onStep={(direction) => stepAmountField('hasil_rp', direction)}
@@ -1158,7 +1177,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       {/* Bagian 5 */}
       <SectionCard
         number="5"
-        title="Rekapitulasi Sertifikat Produk"
+        title="Sertifikat Produk"
       >
         <NestedAmountGrid
           category="sertifikat_produk"
@@ -1172,7 +1191,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       {/* Bagian 6 */}
       <SectionCard
         number="6"
-        title="Rekapitulasi Izin Usaha"
+        title="Izin Usaha"
       >
         <NestedAmountGrid
           category="izin_usaha"
@@ -1186,7 +1205,7 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
       {/* Bagian 7 */}
       <SectionCard
         number="7"
-        title="Rekapitulasi Sertifikat Lahan dan Bangunan"
+        title="Sertifikat Lahan dan Bangunan"
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NumberField

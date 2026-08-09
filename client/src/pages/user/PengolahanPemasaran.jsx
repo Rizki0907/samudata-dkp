@@ -190,6 +190,51 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+
+const getSearchNumberVariants = (value) => {
+  if (value === null || value === undefined || value === '') return [];
+
+  const raw = String(value).trim();
+  const number = toNumber(value);
+
+  return [
+    raw,
+    raw.replace(/\s/g, ''),
+    raw.replace(/\./g, ''),
+    Number.isFinite(number)
+      ? number.toLocaleString('id-ID', { maximumFractionDigits: 2 })
+      : '',
+    Number.isFinite(number) ? String(number) : '',
+  ].filter(Boolean);
+};
+
+const buildTableSearchText = (row, includeStatus = false) => {
+  const parts = [];
+
+  if (includeStatus) parts.push(row?.status);
+
+  parts.push(
+    row?.tahun,
+    row?.kabupaten_kota,
+    row?.kategori_kegiatan,
+    row?.jenis_kegiatan,
+    row?.skala_usaha,
+  );
+
+  [
+    row?.jumlah_unit_usaha,
+    row?.hasil_kg,
+    row?.hasil_rp,
+    row?.modal_rp,
+  ].forEach((value) => {
+    parts.push(...getSearchNumberVariants(value));
+  });
+
+  return parts
+    .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+    .join(' ');
+};
+
 const normalizeKategori = (value) =>
   String(value ?? '')
     .trim()
@@ -292,7 +337,8 @@ export default function PengolahanPemasaran() {
   const [barFilter, setBarFilter] = useState('produksi');
   const [topKabFilter, setTopKabFilter] = useState('produksi');
   const [detailKegiatanFilter, setDetailKegiatanFilter] = useState('Pengolahan');
-  const [trendFilter, setTrendFilter] = useState('produksi');
+  const [trendPengolahanFilter, setTrendPengolahanFilter] = useState('produksi');
+  const [trendPemasaranFilter, setTrendPemasaranFilter] = useState('produksi');
 
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
@@ -581,7 +627,7 @@ export default function PengolahanPemasaran() {
     () => [
       { header: 'Tahun', accessorKey: 'tahun' },
       {
-        header: 'Kabupaten/Kota',
+        header: 'Kab/Kota',
         accessorKey: 'kabupaten_kota',
         cell: (info) => <p className="font-medium text-foreground">{info.getValue()}</p>,
       },
@@ -615,7 +661,7 @@ export default function PengolahanPemasaran() {
         cell: (info) => formatRupiah(info.getValue()),
       },
       {
-        header: 'Modal Investasi (Rp)',
+        header: 'Investasi Modal (Rp)',
         accessorKey: 'modal_rp',
         cell: (info) => formatRupiah(info.getValue()),
       },
@@ -667,7 +713,7 @@ export default function PengolahanPemasaran() {
 
           return [
             `<b>${regionName}</b>`,
-            `Jumlah UPI: <b>${upi.toLocaleString('id-ID')}</b>`,
+            `Total Unit Usaha: <b>${upi.toLocaleString('id-ID')}</b>`,
             `Hasil: <b>${produksi.toLocaleString('id-ID')} Kg</b>`,
             `Nilai: <b>${new Intl.NumberFormat('id-ID', {
               style: 'currency',
@@ -714,7 +760,7 @@ export default function PengolahanPemasaran() {
 
       series: [
         {
-          name: isProduksi ? 'Hasil Produksi' : 'Nilai Hasil',
+          name: isProduksi ? 'Hasil Produksi' : 'Nilai Produksi',
 
           type: 'map',
           map: 'jawa_timur',
@@ -865,7 +911,7 @@ export default function PengolahanPemasaran() {
       },
       series: [
         {
-          name: isProduksi ? 'Hasil Produksi (Kg)' : 'Nilai Hasil (Rp)',
+          name: isProduksi ? 'Hasil Produksi (Kg)' : 'Nilai Produksi (Rp)',
           type: 'bar',
           data: top10.map((item) => item[topKabFilter]),
           barMaxWidth: 28,
@@ -903,7 +949,7 @@ export default function PengolahanPemasaran() {
     return {
       title: {
         text: total.toLocaleString('id-ID'),
-        subtext: 'Total UPI',
+        subtext: 'Unit',
         left: 'center',
         top: '36%',
         textStyle: {
@@ -926,7 +972,7 @@ export default function PengolahanPemasaran() {
 
           return `${params.name}<br/>Jumlah: <b>${params.value.toLocaleString(
             'id-ID',
-          )} UPI</b><br/>Persentase: <b>${pct}%</b>`;
+          )} Unit</b><br/>Persentase: <b>${pct}%</b>`;
         },
       },
       legend: {
@@ -935,7 +981,7 @@ export default function PengolahanPemasaran() {
       },
       series: [
         {
-          name: 'Jumlah UPI',
+          name: 'Jumlah Unit Usaha',
           type: 'pie',
           radius: ['52%', '74%'],
           center: ['50%', '44%'],
@@ -950,7 +996,7 @@ export default function PengolahanPemasaran() {
             formatter: (params) => {
               const pct = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0';
 
-              return `${params.name}\n${params.value} UPI\n${pct}%`;
+              return `${params.name}\n${params.value} Unit\n${pct}%`;
             },
           },
           labelLine: {
@@ -993,7 +1039,7 @@ export default function PengolahanPemasaran() {
 
           return [
             `<b>${item?.name || '-'}</b>`,
-            `Jumlah: <b>${value.toLocaleString('id-ID')} UPI</b>`,
+            `Jumlah: <b>${value.toLocaleString('id-ID')} Unit</b>`,
           ].join('<br/>');
         },
       },
@@ -1050,7 +1096,7 @@ export default function PengolahanPemasaran() {
             position: 'right',
             color: chartColors.textStrong,
             formatter: (params) =>
-              `${toNumber(params.value).toLocaleString('id-ID')} UPI`,
+              `${toNumber(params.value).toLocaleString('id-ID')} Unit`,
           },
 
           itemStyle: {
@@ -1080,17 +1126,12 @@ export default function PengolahanPemasaran() {
   }, [activeDetailKegiatan, stats.detailKegiatan, chartColors]);
 
   const trendOptions = useMemo(() => {
-    const isProduksi = trendFilter === 'produksi';
-
-    const createTrendOption = (category, color, areaTop, areaBottom) => {
+    const createTrendOption = (category, metric, color, areaTop, areaBottom) => {
+      const isProduksi = metric === 'produksi';
       const dataKey =
         category === 'Pengolahan'
-          ? isProduksi
-            ? 'pengolahan_produksi'
-            : 'pengolahan_nilai'
-          : isProduksi
-            ? 'pemasaran_produksi'
-            : 'pemasaran_nilai';
+          ? isProduksi ? 'pengolahan_produksi' : 'pengolahan_nilai'
+          : isProduksi ? 'pemasaran_produksi' : 'pemasaran_nilai';
 
       return {
         animationDuration: 500,
@@ -1099,7 +1140,6 @@ export default function PengolahanPemasaran() {
           formatter: (params) => {
             const item = params?.[0];
             const value = toNumber(item?.value);
-
             return [
               `<b>${category}</b>`,
               `Tahun: <b>${item?.name || '-'}</b>`,
@@ -1109,115 +1149,68 @@ export default function PengolahanPemasaran() {
             ].join('<br/>');
           },
         },
-        grid: {
-          left: '3%',
-          right: '4%',
-          top: '8%',
-          bottom: '5%',
-          containLabel: true,
-        },
+        grid: { left: '3%', right: '4%', top: '8%', bottom: '5%', containLabel: true },
         xAxis: {
           type: 'category',
           boundaryGap: false,
           data: stats.trenTahunan.map((item) => item.tahun),
-          axisLabel: {
-            color: chartColors.textMuted,
-            fontSize: 12,
-          },
-          axisLine: {
-            lineStyle: {
-              color: chartColors.gridLine,
-            },
-          },
+          axisLabel: { color: chartColors.textMuted, fontSize: 12 },
+          axisLine: { lineStyle: { color: chartColors.gridLine } },
         },
         yAxis: {
           type: 'value',
-          splitLine: {
-            lineStyle: {
-              color: chartColors.gridLine,
-              type: 'dashed',
-            },
-          },
+          splitLine: { lineStyle: { color: chartColors.gridLine, type: 'dashed' } },
           axisLabel: {
             color: chartColors.textMuted,
             formatter: (value) => {
-              if (value >= 1_000_000_000_000) {
-                return `${(value / 1_000_000_000_000).toFixed(1)}T`;
-              }
-
-              if (value >= 1_000_000_000) {
-                return `${(value / 1_000_000_000).toFixed(1)}M`;
-              }
-
-              if (value >= 1_000_000) {
-                return `${(value / 1_000_000).toFixed(1)}Jt`;
-              }
-
-              if (value >= 1_000) {
-                return `${(value / 1_000).toFixed(1)}rb`;
-              }
-
+              if (value >= 1_000_000_000_000) return `${(value / 1_000_000_000_000).toFixed(1)}T`;
+              if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}M`;
+              if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}Jt`;
+              if (value >= 1_000) return `${(value / 1_000).toFixed(1)}rb`;
               return value;
             },
           },
         },
-        series: [
-          {
-            name: category,
-            type: 'line',
-            data: stats.trenTahunan.map((item) => item[dataKey]),
-            smooth: true,
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color,
-            },
-            itemStyle: {
-              color,
-              borderColor: '#ffffff',
-              borderWidth: 2,
-            },
-            areaStyle: {
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  {
-                    offset: 0,
-                    color: areaTop,
-                  },
-                  {
-                    offset: 1,
-                    color: areaBottom,
-                  },
-                ],
-              },
+        series: [{
+          name: category,
+          type: 'line',
+          data: stats.trenTahunan.map((item) => item[dataKey]),
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: { width: 3, color },
+          itemStyle: { color, borderColor: '#ffffff', borderWidth: 2 },
+          areaStyle: {
+            color: {
+              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: areaTop },
+                { offset: 1, color: areaBottom },
+              ],
             },
           },
-        ],
+        }],
       };
     };
 
     return {
       pengolahan: createTrendOption(
         'Pengolahan',
+        trendPengolahanFilter,
         '#0096C7',
         'rgba(0, 150, 199, 0.48)',
         'rgba(0, 150, 199, 0.04)',
       ),
       pemasaran: createTrendOption(
         'Pemasaran',
+        trendPemasaranFilter,
         '#023E8A',
         'rgba(2, 62, 138, 0.48)',
         'rgba(2, 62, 138, 0.04)',
       ),
     };
-  }, [stats.trenTahunan, trendFilter, chartColors]);
+  }, [stats.trenTahunan, trendPengolahanFilter, trendPemasaranFilter, chartColors]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1339,7 +1332,7 @@ export default function PengolahanPemasaran() {
                 <Box className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Hasil</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Hasil Produksi</p>
                 <p className="text-2xl font-bold text-foreground">
                   {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
                   <span className="text-sm font-normal text-muted-foreground">Kg</span>
@@ -1352,7 +1345,7 @@ export default function PengolahanPemasaran() {
                 <LineChart className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Nilai</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p>
                 <p className="text-xl font-bold leading-tight text-foreground">
                   {formatCompactRupiah(stats.kpi.total_nilai)}
                 </p>
@@ -1490,7 +1483,7 @@ export default function PengolahanPemasaran() {
                     </div>
 
                     <div className="rounded-xl bg-background/70 p-3">
-                      <p className="text-xs text-muted-foreground">Nilai Hasil</p>
+                      <p className="text-xs text-muted-foreground">Nilai Produksi</p>
 
                       <p className="mt-1 break-words font-bold text-foreground">
                         {new Intl.NumberFormat('id-ID', {
@@ -1544,7 +1537,7 @@ export default function PengolahanPemasaran() {
               <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
                 <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
                 <div>
-                  <h2 className="text-lg font-semibold">Perbandingan Jumlah UPI</h2>
+                  <h2 className="text-lg font-semibold">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
                 </div>
               </div>
 
@@ -1631,16 +1624,15 @@ export default function PengolahanPemasaran() {
                     </div>
                   </div>
 
-                  {/* <select
-                    value={trendFilter}
-                    onChange={event =>
-                      setTrendFilter(event.target.value)
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="produksi">Hasil (KG)</option>
-                    <option value="nilai">Nilai (Rp)</option>
-                  </select> */}
+                  <ChartSelect
+                    value={trendPengolahanFilter}
+                    onChange={(event) => setTrendPengolahanFilter(event.target.value)}
+                    ariaLabel="Filter tren pengolahan"
+                    options={[
+                      { value: 'produksi', label: 'Hasil (Kg)' },
+                      { value: 'nilai', label: 'Nilai (Rp)' },
+                    ]}
+                  />
                 </div>
 
                 <div className="h-[340px]">
@@ -1668,8 +1660,8 @@ export default function PengolahanPemasaran() {
                   </div>
 
                   <ChartSelect
-                    value={trendFilter}
-                    onChange={(event) => setTrendFilter(event.target.value)}
+                    value={trendPemasaranFilter}
+                    onChange={(event) => setTrendPemasaranFilter(event.target.value)}
                     ariaLabel="Filter tren pemasaran"
                     options={[
                       { value: 'produksi', label: 'Hasil (Kg)' },
@@ -1767,6 +1759,7 @@ export default function PengolahanPemasaran() {
             <DataTable
               columns={columns}
               data={filteredData}
+              getSearchText={(row) => buildTableSearchText(row, false)}
               onCustomExport={handleExportData}
               customExportButton={
                 <button

@@ -14,7 +14,10 @@ export default function SearchableMultiSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef(null);
+  const optionsListRef = useRef(null);
+  const optionRefs = useRef([]);
 
   const activeVal = value !== undefined ? value : (values !== undefined ? values : []);
   const selectedValues = Array.isArray(activeVal) ? activeVal : (activeVal ? [activeVal] : []);
@@ -43,6 +46,87 @@ export default function SearchableMultiSelect({
   const filteredOptions = options.filter(opt =>
     getOptionLabel(opt).toLowerCase().includes(search.toLowerCase())
   );
+
+  useEffect(() => {
+    if (!isOpen || filteredOptions.length === 0) {
+      setHighlightedIndex(-1);
+      return;
+    }
+    setHighlightedIndex(prev =>
+      prev >= 0 && prev < filteredOptions.length ? prev : 0
+    );
+  }, [isOpen, search, filteredOptions.length]);
+
+  useEffect(() => {
+    if (!isOpen || highlightedIndex < 0) return;
+
+    const activeOption = optionRefs.current[highlightedIndex];
+    const list = optionsListRef.current;
+    if (!activeOption || !list) return;
+
+    const optionTop = activeOption.offsetTop;
+    const optionBottom = optionTop + activeOption.offsetHeight;
+    const visibleTop = list.scrollTop;
+    const visibleBottom = visibleTop + list.clientHeight;
+
+    if (optionTop < visibleTop) {
+      list.scrollTo({ top: optionTop, behavior: 'smooth' });
+    } else if (optionBottom > visibleBottom) {
+      list.scrollTo({
+        top: optionBottom - list.clientHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [highlightedIndex, isOpen]);
+
+  const handleKeyboardNavigation = (event) => {
+    if (disabled) return;
+
+    if (!isOpen && ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(event.key)) {
+      event.preventDefault();
+      setIsOpen(true);
+      setHighlightedIndex(
+        event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+          ? Math.max(filteredOptions.length - 1, 0)
+          : 0
+      );
+      return;
+    }
+
+    if (!isOpen) return;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      if (!filteredOptions.length) return;
+      setHighlightedIndex(prev =>
+        prev < 0 ? 0 : Math.min(prev + 1, filteredOptions.length - 1)
+      );
+      return;
+    }
+
+    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      if (!filteredOptions.length) return;
+      setHighlightedIndex(prev =>
+        prev < 0 ? filteredOptions.length - 1 : Math.max(prev - 1, 0)
+      );
+      return;
+    }
+
+    if (event.key === 'Enter' && highlightedIndex >= 0) {
+      event.preventDefault();
+      const option = filteredOptions[highlightedIndex];
+      if (option) handleToggle(getOptionValue(option));
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setIsOpen(false);
+      setSearch('');
+      setHighlightedIndex(-1);
+    }
+  };
 
   const handleToggle = (optVal) => {
     const isSelected = selectedValues.includes(optVal);
@@ -88,8 +172,12 @@ export default function SearchableMultiSelect({
         </label>
       )}
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-expanded={isOpen}
+        onKeyDown={handleKeyboardNavigation}
         className={cn(
-          "flex items-center justify-between w-full rounded-lg border bg-background px-3 py-2 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary/50 text-sm select-none",
+          "flex items-center justify-between w-full rounded-lg border bg-background px-3 py-2 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm select-none",
           disabled ? "opacity-50 cursor-not-allowed bg-muted/50" : "hover:border-primary/50",
           className
         )}
@@ -127,6 +215,10 @@ export default function SearchableMultiSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                handleKeyboardNavigation(e);
+              }}
             />
             {search && (
               <button
@@ -156,7 +248,7 @@ export default function SearchableMultiSelect({
           </div>
 
           {/* Options list */}
-          <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 scrollbar-thin">
+          <div ref={optionsListRef} className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 scrollbar-thin">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt, idx) => {
                 const optVal = getOptionValue(opt);
@@ -166,10 +258,18 @@ export default function SearchableMultiSelect({
                 return (
                   <div
                     key={idx}
+                    ref={(element) => {
+                      optionRefs.current[idx] = element;
+                    }}
                     className={cn(
                       "px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors flex items-center gap-2.5 select-none",
-                      isSelected ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                      isSelected
+                        ? "bg-primary/10 text-primary font-medium"
+                        : highlightedIndex === idx
+                          ? "bg-muted text-foreground"
+                          : "text-foreground hover:bg-muted"
                     )}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
                     onClick={() => handleToggle(optVal)}
                   >
                     {isSelected ? (

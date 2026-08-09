@@ -43,6 +43,7 @@ export function DataTable({
   lockedStatuses = ['APPROVED', 'VERIFIED'],
   selectRowOnClick = false,
   canEditRow,
+  getSearchText,
 }) {
   const { user } = useAuthStore();
   const [sorting, setSorting] = useState([]);
@@ -127,6 +128,21 @@ export function DataTable({
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onExpandedChange: setExpanded,
+    ...(getSearchText
+      ? {
+          globalFilterFn: (row, _columnId, filterValue) => {
+            const query = String(filterValue ?? '')
+              .trim()
+              .toLowerCase();
+
+            if (!query) return true;
+
+            return String(getSearchText(row.original) ?? '')
+              .toLowerCase()
+              .includes(query);
+          },
+        }
+      : {}),
   });
 
 // Duplicate block removed
