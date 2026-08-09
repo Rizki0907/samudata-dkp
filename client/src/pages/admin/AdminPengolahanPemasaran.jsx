@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, } from 'lucide-react';
+import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, CheckCircle, XCircle, Trash2, } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -355,6 +355,86 @@ const formatRupiah = value =>
     maximumFractionDigits: 0,
   }).format(toNumber(value));
 
+
+const formatCompactRupiah = value => {
+  const number = Math.abs(toNumber(value));
+  const sign = toNumber(value) < 0 ? '-' : '';
+  const scales = [
+    { value: 1e15, label: 'Kuadriliun' },
+    { value: 1e12, label: 'Triliun' },
+    { value: 1e9, label: 'Miliar' },
+    { value: 1e6, label: 'Juta' },
+  ];
+  const scale = scales.find(item => number >= item.value);
+  if (!scale) return formatRupiah(value);
+  const compact = number / scale.value;
+  const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+  return `${sign}Rp ${compact.toLocaleString('id-ID', { maximumFractionDigits: digits })} ${scale.label}`;
+};
+
+function ChartSelect({ value, onChange, options, ariaLabel }) {
+  return (
+    <div className="relative w-full sm:w-auto">
+      <select
+        value={value}
+        onChange={onChange}
+        aria-label={ariaLabel}
+        className="w-full appearance-none rounded-xl border border-border bg-background py-2 pl-3 pr-9 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
+      >
+        {options.map(option => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
+
+function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
+  if (!dialog?.open) return null;
+  const themes = {
+    APPROVED: { border: 'border-blue-500/30', bg: 'bg-blue-500', soft: 'bg-blue-500/10', text: 'text-blue-600', icon: CheckCircle },
+    VERIFIED: { border: 'border-emerald-500/30', bg: 'bg-emerald-500', soft: 'bg-emerald-500/10', text: 'text-emerald-600', icon: CheckCircle },
+    REJECTED: { border: 'border-rose-500/30', bg: 'bg-rose-500', soft: 'bg-rose-500/10', text: 'text-rose-600', icon: XCircle },
+    DELETE: { border: 'border-rose-500/30', bg: 'bg-rose-500', soft: 'bg-rose-500/10', text: 'text-rose-600', icon: Trash2 },
+    INFO: { border: 'border-primary/30', bg: 'bg-primary', soft: 'bg-primary/10', text: 'text-primary', icon: Info },
+  };
+  const theme = themes[dialog.theme] || themes.INFO;
+  const Icon = theme.icon;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
+      <div className={`w-full max-w-lg overflow-hidden rounded-3xl border ${theme.border} bg-card shadow-2xl`} onClick={event => event.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.soft} ${theme.text}`}><Icon className="h-6 w-6" /></div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg font-bold text-foreground">{dialog.title}</h3>
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{dialog.message}</p>
+            </div>
+            <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted"><X className="h-5 w-5" /></button>
+          </div>
+          {dialog.input ? (
+            <div className="mt-5">
+              {dialog.multiline ? (
+                <textarea autoFocus rows={4} value={value} onChange={event => setValue(event.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+              ) : (
+                <input autoFocus type="text" value={value} onChange={event => setValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') onSubmit(); }} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+              )}
+            </div>
+          ) : null}
+          {dialog.error ? <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">{dialog.error}</div> : null}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border p-5">
+          {dialog.showCancel !== false ? <button type="button" onClick={onClose} className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted">Batal</button> : null}
+          <button type="button" onClick={onSubmit} disabled={dialog.loading} className={`rounded-xl px-5 py-2.5 text-sm font-semibold text-white ${theme.bg} disabled:opacity-50`}>
+            {dialog.loading ? 'Memproses...' : (dialog.confirmLabel || 'OK')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const getUpiKey = row => {
   if (row?.id_upi) return String(row.id_upi);
   if (row?.upi_id) return String(row.upi_id);
@@ -483,8 +563,8 @@ function StatusBadge({ row, onEdit }) {
   const alasan = row?.alasan_penolakan;
   const isRejected = status === 'REJECTED';
 
-  let colorClass = 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600';
-  let label = 'PENDING';
+  let colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
+  let label = 'APPROVED';
 
   if (status === 'APPROVED') {
     colorClass = 'border-blue-500/20 bg-blue-500/10 text-blue-600';
@@ -592,7 +672,7 @@ function StatusBadge({ row, onEdit }) {
               {/* Panduan singkat */}
               <div className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm leading-relaxed text-muted-foreground break-words whitespace-normal">
                 Silakan perbaiki data sesuai alasan di atas. Setelah diperbaiki dan disimpan,
-                status data akan otomatis kembali menjadi <b>PENDING</b> dan akan diperiksa
+                status data akan otomatis kembali menjadi <b>APPROVED</b> dan dapat diverifikasi
                 ulang oleh Pusat.
               </div>
             </div>
@@ -643,7 +723,7 @@ const getRowTotalTenagaKerja = row => {
 // Skema baru: row.jenis_kegiatan sudah berisi sub-jenis kegiatan langsung
 // (mis. "Fermentasi", "Pengecer"), sedangkan kategorinya ada di row.kategori_kegiatan.
 const getJenisDetail = row => row?.jenis_kegiatan || '';
-const STATUS_OPTIONS = ['PENDING', 'APPROVED', 'VERIFIED', 'REJECTED'];
+const STATUS_OPTIONS = ['APPROVED', 'VERIFIED', 'REJECTED'];
 const normalizeKategori = value =>
   String(value ?? '').trim().toLowerCase() === 'pemasaran'
     ? 'Pemasaran'
@@ -730,6 +810,19 @@ export default function AdminPengolahanPemasaran() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [actionDialog, setActionDialog] = useState(null);
+  const [dialogValue, setDialogValue] = useState('');
+
+  const closeActionDialog = () => {
+    if (actionDialog?.loading) return;
+    setActionDialog(null);
+    setDialogValue('');
+  };
+
+  const showNotice = (message, theme = 'INFO', title = 'Informasi') => {
+    setDialogValue('');
+    setActionDialog({ open: true, kind: 'notice', title, message, theme, showCancel: false, confirmLabel: 'OK' });
+  };
 
   const [filterTahun, setFilterTahun] = useState([]);
   const [filterKabupaten, setFilterKabupaten] = useState([]);
@@ -851,7 +944,7 @@ export default function AdminPengolahanPemasaran() {
   const handleCreateOrUpdate = async formData => {
     try {
       setSubmitLoading(true);
-
+      const wasEditing = Boolean(editingData);
       if (editingData) {
         await api.put(`/pengolahan-pemasaran/${editingData.id}`, formData);
       } else if (Array.isArray(formData?.details)) {
@@ -859,18 +952,17 @@ export default function AdminPengolahanPemasaran() {
       } else {
         await api.post('/pengolahan-pemasaran', formData);
       }
-
       setIsFormOpen(false);
       setEditingData(null);
       await fetchData();
+      showNotice(
+        wasEditing ? 'Perubahan data berhasil disimpan.' : 'Data berhasil disimpan.',
+        wasEditing ? 'INFO' : 'APPROVED',
+        wasEditing ? 'Perubahan Berhasil' : 'Penyimpanan Berhasil',
+      );
     } catch (error) {
-      console.error(
-        'Error saving pengolahan dan pemasaran:',
-        error.response?.data || error.message,
-      );
-      window.alert(
-        error.response?.data?.message || 'Gagal menyimpan data pengolahan dan pemasaran.',
-      );
+      console.error('Error saving pengolahan dan pemasaran:', error.response?.data || error.message);
+      showNotice(error.response?.data?.message || 'Gagal menyimpan data pengolahan dan pemasaran.', 'REJECTED', 'Penyimpanan Gagal');
     } finally {
       setSubmitLoading(false);
     }
@@ -882,361 +974,202 @@ export default function AdminPengolahanPemasaran() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = async row => {
-    if (!window.confirm(`Yakin ingin menghapus data ${row.kabupaten_kota} - ${row.jenis_kegiatan} (${row.tahun})?`)) {
-      return;
-    }
-
-    try {
-      await api.delete(`/pengolahan-pemasaran/${row.id}`);
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting pengolahan dan pemasaran:', error);
-      alert('Gagal menghapus data.');
-    }
-  };
-
-  const handleApprove = async row => {
-  if (!isAdminPusat) {
-    alert('Hanya Pusat yang dapat melakukan validasi data.');
-    return;
-  }
-
-  if (row.status === 'VERIFIED') {
-    alert('Data ini sudah VERIFIED.');
-    return false;
-  }
-
-  if (row.status === 'REJECTED') {
-    alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-    return;
-  }
-
-  let promptMsg = '';
-
-  if (row.status === 'PENDING') {
-    promptMsg =
-      'Data masih PENDING.\nKetik "1" untuk APPROVED.\n\nCatatan: VERIFIED belum bisa dilakukan sebelum APPROVED.';
-  } else if (row.status === 'APPROVED') {
-    promptMsg =
-      'Data sudah APPROVED.\nKetik "2" untuk VERIFIED.';
-  } else {
-    alert('Status data tidak valid.');
-    return;
-  }
-
-  const jenis = window.prompt(promptMsg);
-  if (!jenis) return;
-
-  let targetStatus = '';
-  let namaValidasi = '';
-
-  if (jenis === '1') {
-    if (row.status !== 'PENDING') {
-      alert('APPROVED hanya bisa dilakukan pada data berstatus PENDING.');
-      return;
-    }
-
-    targetStatus = 'APPROVED';
-    namaValidasi = 'APPROVED';
-  } else if (jenis === '2') {
-    if (row.status !== 'APPROVED') {
-      alert('Data harus APPROVED terlebih dahulu sebelum VERIFIED.');
-      return;
-    }
-
-    targetStatus = 'VERIFIED';
-    namaValidasi = 'VERIFIED';
-  } else {
-    alert('Pilihan tidak valid. Ketik 1 atau 2.');
-    return;
-  }
-
-  const confirmText = window.prompt(
-    `Ketik "SETUJU" untuk menyelesaikan ${namaValidasi}:`
-  );
-
-  if (confirmText !== 'SETUJU') {
-    alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-    return;
-  }
-
-  try {
-    const response = await api.put(
-      `/pengolahan-pemasaran/${row.id}/status`,
-      {
-        status: targetStatus,
-      }
-    );
-
-    alert(
-      response.data?.message ||
-      `Data berhasil diubah statusnya menjadi ${targetStatus}.`,
-    );
-
-    await fetchData();
-    return true;
-  } catch (error) {
-    console.error('Error approving data:', error.response?.data || error);
-    
-    alert(
-      `Gagal memvalidasi data: ${
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error.message
-      }`
-    );
-    return false;
-  }
-};
-
-  // Penolakan data menggunakan dialog bawaan browser (localhost),
-  // sama seperti proses konfirmasi approval dan verifikasi.
-  const handleReject = async row => {
+  const openValidationDialog = (rows, isBatch = false) => {
+    const targetRows = Array.isArray(rows) ? rows : [rows];
     if (!isAdminPusat) {
-      window.alert('Hanya Pusat yang dapat menolak data.');
-      return false;
-    }
-
-    if (row.status === 'REJECTED') {
-      window.alert('Data ini sudah ditolak.');
-      return false;
-    }
-
-    const alasan = window.prompt(
-      `Masukkan alasan penolakan untuk ${row.jenis_kegiatan || '-'} - ${row.kabupaten_kota || '-'} (${row.tahun || '-'}):`,
-    );
-
-    // Pengguna menekan Batal.
-    if (alasan === null) return false;
-
-    if (!alasan.trim()) {
-      window.alert('Alasan penolakan wajib diisi.');
-      return false;
-    }
-
-    const konfirmasi = window.confirm(
-      'Yakin ingin menolak data ini? Alasan penolakan akan disimpan.',
-    );
-
-    if (!konfirmasi) return false;
-
-    try {
-      await api.put(`/pengolahan-pemasaran/${row.id}/status`, {
-        status: 'REJECTED',
-        alasan_penolakan: alasan.trim(),
-      });
-
-      await fetchData();
-      window.alert('Data berhasil ditolak.');
-      return true;
-    } catch (error) {
-      console.error('Error rejecting data:', error.response?.data || error);
-
-      window.alert(
-        `Gagal menolak data: ${
-          error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          error.message
-        }`,
-      );
-      return false;
-    }
-  };
-
-  const handleBatchApprove = async ids => {
-  if (!isAdminPusat) {
-    alert('Hanya Pusat yang dapat melakukan validasi data.');
-    return;
-  }
-
-  if (!Array.isArray(ids) || ids.length === 0) {
-    alert('Tidak ada data yang dipilih.');
-    return;
-  }
-
-  const selectedIdSet = new Set(ids.map(id => String(id)));
-  const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
-
-  if (!selectedRows.length) {
-    alert('Data terpilih tidak ditemukan. Silakan refresh halaman.');
-    return;
-  }
-
-  if (selectedRows.some(row => row.status === 'VERIFIED')) {
-    alert(
-      'Ada data yang sudah VERIFIED. Hapus data tersebut dari pilihan.',
-    );
-    return false;
-  }
-
-  if (selectedRows.some(row => row.status === 'REJECTED')) {
-    alert('Data yang ditolak harus diperbaiki dulu agar kembali ke status PENDING.');
-    return;
-  }
-
-  const selectedStatuses = [...new Set(selectedRows.map(row => row.status))];
-
-  if (selectedStatuses.length > 1) {
-    alert('Pilih data dengan status yang sama. APPROVED hanya untuk PENDING, sedangkan VERIFIED hanya untuk APPROVED.');
-    return;
-  }
-
-  const currentStatus = selectedStatuses[0];
-
-  let promptMsg = '';
-
-  if (currentStatus === 'PENDING') {
-    promptMsg = `Data yang dipilih masih PENDING (${selectedRows.length} data).\nKetik "1" untuk APPROVED.`;
-  } else if (currentStatus === 'APPROVED') {
-    promptMsg = `Data yang dipilih sudah APPROVED (${selectedRows.length} data).\nKetik "2" untuk VERIFIED.`;
-  } else {
-    alert('Status data terpilih tidak valid untuk proses validasi.');
-    return;
-  }
-
-  const jenis = window.prompt(promptMsg);
-  if (!jenis) return;
-
-  let targetStatus = '';
-  let namaValidasi = '';
-
-  if (jenis === '1') {
-    if (currentStatus !== 'PENDING') {
-      alert('APPROVED hanya bisa dilakukan pada data PENDING.');
+      showNotice('Hanya Pusat yang dapat melakukan validasi data.', 'INFO');
       return;
     }
-
-    targetStatus = 'APPROVED';
-    namaValidasi = 'APPROVED';
-  } else if (jenis === '2') {
-    if (currentStatus !== 'APPROVED') {
-      alert('Data harus APPROVED terlebih dahulu sebelum VERIFIED.');
+    if (!targetRows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
       return;
     }
-
-    targetStatus = 'VERIFIED';
-    namaValidasi = 'VERIFIED';
-  } else {
-    alert('Pilihan tidak valid. Ketik 1 atau 2.');
-    return;
-  }
-
-  const confirmText = window.prompt(
-    `Ketik "SETUJU" untuk menyelesaikan ${namaValidasi} pada ${selectedRows.length} data:`
-  );
-
-  if (confirmText !== 'SETUJU') {
-    alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-    return;
-  }
-
-  try {
-    const response =await api.post(
-      '/pengolahan-pemasaran/batch-status', 
-      {
-        ids,
-        status: targetStatus,
-      }
-    );
-
-    const count = Number(
-      response.data?.count ?? 0,
-    );
-
-    if (count === 0) {
-      alert('Tidak ada data yang berhasil diperbarui. Pastikan status data yang dipilih sesuai.'
-      );
-      return false;
-    }
-
-    alert(
-      response.data?.message ||
-      `${count} data berhasil diubah menjadi ${targetStatus}.`
-    );
-
-    await fetchData();
-    return true;
-  } catch (error) {
-    console.error('Error batch approve:', error.response?.data || error);
-    alert(
-      `Gagal memvalidasi data terpilih: ${
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error.message
-      }`
-    );
-    return false;
-  }
-};
-
-  const handleBatchDelete = async ids => {
-    if (!Array.isArray(ids) || ids.length === 0) {
-      alert('Tidak ada data yang dipilih.');
+    if (targetRows.some(row => row.status === 'REJECTED')) {
+      showNotice('Data yang ditolak harus diperbaiki terlebih dahulu agar kembali ke status APPROVED.', 'INFO');
       return;
     }
-
-    if (!window.confirm(`Yakin ingin menghapus ${ids.length} data terpilih?`)) {
+    if (targetRows.some(row => row.status === 'VERIFIED')) {
+      showNotice(isBatch ? 'Ada data yang sudah VERIFIED. Hapus data tersebut dari pilihan.' : 'Data ini sudah VERIFIED.', 'INFO');
       return;
     }
-
-    try {
-      await api.post('/pengolahan-pemasaran/batch-delete', { ids });
-
-      await fetchData();
-    } catch (error) {
-      console.error('Error batch delete:', error);
-      alert(`Gagal menghapus data terpilih: ${error?.response?.data?.message || error.message}`);
+    if (targetRows.some(row => row.status !== 'APPROVED')) {
+      showNotice('Status data tidak valid untuk proses verifikasi.', 'INFO');
+      return;
     }
-  };
-
-  const handleBatchReject = async ids => {
-  if (!isAdminPusat) {
-    alert('Hanya Pusat yang dapat menolak data.');
-    return;
-  }
-
-  if (!Array.isArray(ids) || ids.length === 0) {
-    alert('Tidak ada data yang dipilih.');
-    return;
-  }
-
-  const selectedIdSet = new Set(ids.map(id => String(id)));
-  const selectedRows = data.filter(row => selectedIdSet.has(String(row.id)));
-
-  if (selectedRows.some(row => row.status === 'REJECTED')) {
-    alert('Ada data yang sudah REJECTED. Pilih data lain.');
-    return;
-  }
-
-  const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-  if (alasan === null) return;
-
-  if (!alasan.trim()) {
-    alert('Alasan penolakan wajib diisi.');
-    return;
-  }
-
-  try {
-    await api.post('/pengolahan-pemasaran/batch-status', {
-      ids,
-      status: 'REJECTED',
-      alasan_penolakan: alasan.trim(),
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'validation-choice',
+      title: 'Verifikasi Data',
+      message: isBatch
+        ? `Data yang dipilih sudah APPROVED (${targetRows.length} data).\nKetik "2" untuk VERIFIED.`
+        : 'Data sudah APPROVED.\nKetik "2" untuk VERIFIED.',
+      theme: 'VERIFIED',
+      input: true,
+      rows: targetRows,
+      isBatch,
+      targetStatus: 'VERIFIED',
+      expected: '2',
+      confirmLabel: 'OK',
     });
+  };
 
-    await fetchData();
-    // await fetchStats();
-  } catch (error) {
-    console.error('Error batch reject:', error.response?.data || error);
-    alert(
-      `Gagal menolak data terpilih: ${
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error.message
-      }`
-    );
-  }
-};
+  const handleApprove = row => openValidationDialog(row, false);
+
+  const handleReject = row => {
+    if (!isAdminPusat) {
+      showNotice('Hanya Pusat yang dapat menolak data.', 'INFO');
+      return;
+    }
+    if (row.status === 'REJECTED') {
+      showNotice('Data ini sudah ditolak.', 'INFO');
+      return;
+    }
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data',
+      message: `Masukkan alasan penolakan untuk ${row.jenis_kegiatan || '-'} - ${row.kabupaten_kota || '-'} (${row.tahun || '-'}):`,
+      theme: 'REJECTED',
+      rows: [row],
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+    });
+  };
+
+  const handleDelete = row => {
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data',
+      message: `Yakin ingin menghapus data ${row.kabupaten_kota} - ${row.jenis_kegiatan} (${row.tahun})?`,
+      theme: 'DELETE',
+      rows: [row],
+      confirmLabel: 'Hapus',
+    });
+  };
+
+  const getSelectedRows = ids => {
+    const selectedIdSet = new Set((ids || []).map(id => String(id)));
+    return data.filter(row => selectedIdSet.has(String(row.id)));
+  };
+
+  const handleBatchApprove = ids => openValidationDialog(getSelectedRows(ids), true);
+
+  const handleBatchReject = ids => {
+    const rows = getSelectedRows(ids);
+    if (!rows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
+      return;
+    }
+    if (rows.some(row => row.status === 'REJECTED')) {
+      showNotice('Ada data yang sudah REJECTED. Pilih data lain.', 'INFO');
+      return;
+    }
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data Terpilih',
+      message: `Masukkan alasan penolakan untuk ${rows.length} data:`,
+      theme: 'REJECTED',
+      rows,
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+    });
+  };
+
+  const handleBatchDelete = ids => {
+    const rows = getSelectedRows(ids);
+    if (!rows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
+      return;
+    }
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data Terpilih',
+      message: `Yakin ingin menghapus ${rows.length} data terpilih?`,
+      theme: 'DELETE',
+      rows,
+      confirmLabel: 'Hapus',
+    });
+  };
+
+  const submitActionDialog = async () => {
+    if (!actionDialog) return;
+    if (actionDialog.kind === 'notice') {
+      closeActionDialog();
+      return;
+    }
+    if (actionDialog.kind === 'validation-choice') {
+      if (dialogValue !== actionDialog.expected) {
+        setActionDialog(previous => ({ ...previous, error: 'Pilihan tidak valid. Ketik 2.' }));
+        return;
+      }
+      const countText = actionDialog.isBatch ? ` pada ${actionDialog.rows.length} data` : '';
+      setDialogValue('');
+      setActionDialog(previous => ({
+        ...previous,
+        kind: 'validation-confirm',
+        message: `Ketik "SETUJU" untuk menyelesaikan ${previous.targetStatus}${countText}:`,
+        expected: 'SETUJU',
+        error: '',
+      }));
+      return;
+    }
+    if (actionDialog.kind === 'validation-confirm' && dialogValue !== 'SETUJU') {
+      setActionDialog(previous => ({ ...previous, error: 'Konfirmasi dibatalkan atau kata kunci tidak sesuai.' }));
+      return;
+    }
+    if (actionDialog.kind === 'reject' && !dialogValue.trim()) {
+      setActionDialog(previous => ({ ...previous, error: 'Alasan penolakan wajib diisi.' }));
+      return;
+    }
+    setActionDialog(previous => ({ ...previous, loading: true, error: '' }));
+    const rows = actionDialog.rows || [];
+    try {
+      if (actionDialog.kind === 'delete') {
+        if (rows.length === 1) await api.delete(`/pengolahan-pemasaran/${rows[0].id}`);
+        else await api.post('/pengolahan-pemasaran/batch-delete', { ids: rows.map(row => row.id) });
+        setActionDialog(null);
+        setDialogValue('');
+        await fetchData();
+        showNotice(rows.length === 1 ? 'Data berhasil dihapus.' : `${rows.length} data berhasil dihapus.`, 'DELETE', 'Penghapusan Berhasil');
+        return;
+      }
+      if (actionDialog.kind === 'reject') {
+        if (rows.length === 1) {
+          await api.put(`/pengolahan-pemasaran/${rows[0].id}/status`, { status: 'REJECTED', alasan_penolakan: dialogValue.trim() });
+        } else {
+          await api.post('/pengolahan-pemasaran/batch-status', { ids: rows.map(row => row.id), status: 'REJECTED', alasan_penolakan: dialogValue.trim() });
+        }
+        setActionDialog(null);
+        setDialogValue('');
+        await fetchData();
+        showNotice('Data berhasil ditolak.', 'REJECTED', 'Penolakan Berhasil');
+        return;
+      }
+      if (actionDialog.kind === 'validation-confirm') {
+        let response;
+        if (rows.length === 1) response = await api.put(`/pengolahan-pemasaran/${rows[0].id}/status`, { status: 'VERIFIED' });
+        else response = await api.post('/pengolahan-pemasaran/batch-status', { ids: rows.map(row => row.id), status: 'VERIFIED' });
+        const message = response.data?.message || (rows.length === 1 ? 'Data berhasil diubah statusnya menjadi VERIFIED.' : `${rows.length} data berhasil diubah menjadi VERIFIED.`);
+        setActionDialog(null);
+        setDialogValue('');
+        await fetchData();
+        showNotice(message, 'VERIFIED', 'VERIFIED Berhasil');
+      }
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.response?.data?.error || error.message;
+      setActionDialog(null);
+      setDialogValue('');
+      showNotice(message, 'REJECTED', 'Proses Gagal');
+    }
+  };
 
   const tahunOptions = useMemo(
     () =>
@@ -2307,7 +2240,7 @@ export default function AdminPengolahanPemasaran() {
             onClick={handleExportRekap}
             disabled={!filteredData.length}
             title="Pilih satu tahun. Rekap hanya menghitung data VERIFIED dan wilayah yang dipilih."
-            className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Rekap Statistik
@@ -2330,10 +2263,11 @@ export default function AdminPengolahanPemasaran() {
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">
-              Total Unit Usaha (UPI)
+              Total Unit Usaha
             </p>
             <p className="text-2xl font-bold text-foreground">
               {stats.kpi.total_upi.toLocaleString('id-ID')}
+              <span className="text-sm font-normal text-muted-foreground"> Unit </span>
             </p>
           </div>
         </div>
@@ -2364,7 +2298,7 @@ export default function AdminPengolahanPemasaran() {
               Total Nilai
             </p>
             <p className="text-xl font-bold leading-tight text-foreground">
-              {formatRupiah(stats.kpi.total_nilai)}
+              {formatCompactRupiah(stats.kpi.total_nilai)}
             </p>
           </div>
         </div>
@@ -2390,10 +2324,10 @@ export default function AdminPengolahanPemasaran() {
       {/* Baris 2 — Peta dan Top 10 Kabupaten/Kota */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-3">
-          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-cyan-400" />
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500"><MapPin className="h-5 w-5" /></div>
                 <h2 className="text-base font-semibold sm:text-lg">
                   Peta Sebaran Hasil
                 </h2>
@@ -2401,17 +2335,15 @@ export default function AdminPengolahanPemasaran() {
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:flex">
-              <select
+              <ChartSelect
                 value={barFilter}
                 onChange={event => {
                   setBarFilter(event.target.value);
                   setSelectedMapRegion(null);
                 }}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
-              >
-                <option value="produksi">Hasil (Kg)</option>
-                <option value="nilai">Nilai (Rp)</option>
-              </select>
+                ariaLabel="Filter peta"
+                options={[{ value: 'produksi', label: 'Hasil (Kg)' }, { value: 'nilai', label: 'Nilai (Rp)' }]}
+              />
 
               {isMobileMap ? (
                 <button
@@ -2507,22 +2439,20 @@ export default function AdminPengolahanPemasaran() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-2">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-orange-500" />
+          <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500"><TrendingUp className="h-5 w-5" /></div>
               <h2 className="text-lg font-semibold">
                 Top 10 Kabupaten/Kota
               </h2>
             </div>
 
-            <select
+            <ChartSelect
               value={topKabFilter}
               onChange={event => setTopKabFilter(event.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary sm:w-auto"
-            >
-              <option value="produksi">Hasil (Kg)</option>
-              <option value="nilai">Nilai (Rp)</option>
-            </select>
+              ariaLabel="Filter Top 10 Kabupaten/Kota"
+              options={[{ value: 'produksi', label: 'Hasil (Kg)' }, { value: 'nilai', label: 'Nilai (Rp)' }]}
+            />
           </div>
 
           <div className="h-[380px] sm:h-[450px]">
@@ -2537,8 +2467,8 @@ export default function AdminPengolahanPemasaran() {
       {/* Baris 3 — Donut UPI dan Jenis Detail Kegiatan */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-purple-500" />
+          <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
+            <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
             <div>
               <h2 className="text-lg font-semibold">
                 Perbandingan Jumlah UPI
@@ -2555,15 +2485,19 @@ export default function AdminPengolahanPemasaran() {
         </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-2">
+              <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className={`rounded-xl p-2.5 ${
+                    activeDetailKegiatan === 'Pengolahan' ? 'bg-[#0096C7]/10 text-[#0096C7]' : 'bg-[#023E8A]/10 text-[#023E8A]'
+                  }`}>
                   <Factory
-                    className={`mt-0.5 h-5 w-5 ${
+                    className={`h-5 w-5 ${
                       activeDetailKegiatan === 'Pengolahan'
                         ? 'text-[#0096C7]'
                         : 'text-[#023E8A]'
                     }`}
                   />
+                  </div>
 
                   <div>
                     <h2 className="text-lg font-semibold">
@@ -2624,7 +2558,7 @@ export default function AdminPengolahanPemasaran() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-2xl border border-[#0096C7]/20 bg-card p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-xl bg-[#0096C7]/10 p-2.5 text-[#0096C7]">
                       <TrendingUp className="h-5 w-5" />
@@ -2665,7 +2599,7 @@ export default function AdminPengolahanPemasaran() {
               </div>
 
               <div className="rounded-2xl border border-[#023E8A]/20 bg-card p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-xl bg-[#023E8A]/10 p-2.5 text-[#023E8A]">
                       <TrendingUp className="h-5 w-5" />
@@ -2678,16 +2612,12 @@ export default function AdminPengolahanPemasaran() {
                     </div>
                   </div>
 
-                  <select
+                  <ChartSelect
                     value={trendFilter}
-                    onChange={event =>
-                      setTrendFilter(event.target.value)
-                    }
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="produksi">Hasil (Kg)</option>
-                    <option value="nilai">Nilai (Rp)</option>
-                  </select>
+                    onChange={event => setTrendFilter(event.target.value)}
+                    ariaLabel="Filter tren pemasaran"
+                    options={[{ value: 'produksi', label: 'Hasil (Kg)' }, { value: 'nilai', label: 'Nilai (Rp)' }]}
+                  />
                 </div>
 
                 <div className="h-[340px]">
@@ -2805,7 +2735,8 @@ export default function AdminPengolahanPemasaran() {
                 {activeTab !== 'table' ? (
                   <div className="inline-flex items-center gap-2 self-start whitespace-nowrap rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 sm:self-auto">
                     <Clock className="h-4 w-4 animate-pulse" />
-                    <span>Terakhir Diperbarui: {lastUpdated}</span>
+                    <span className="opacity-80">Terakhir Diperbarui:</span>
+                    <span className="font-semibold">{lastUpdated}</span>
                   </div>
                 ) : null}
               </div>
@@ -2818,8 +2749,7 @@ export default function AdminPengolahanPemasaran() {
                     options={[
                       { label: 'Verified', value: 'VERIFIED' },
                       { label: 'Approved', value: 'APPROVED' },
-                      { label: 'Rejected', value: 'REJECTED' },
-                      { label: 'Pending', value: 'PENDING' }
+                      { label: 'Rejected', value: 'REJECTED' }
                     ]}
                     onChange={setFilterStatus}
                     placeholder="Semua Status"
@@ -2890,6 +2820,14 @@ export default function AdminPengolahanPemasaran() {
           {activeTab === 'table' ? dataPreview : dataVisualization}
         </>
       )}
+
+      <ActionDialog
+        dialog={actionDialog}
+        value={dialogValue}
+        setValue={setDialogValue}
+        onClose={closeActionDialog}
+        onSubmit={submitActionDialog}
+      />
     </div>
   );
 }

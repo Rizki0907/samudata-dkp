@@ -347,7 +347,7 @@ const createData = async (req, res) => {
     const data = await pengolahanPemasaranDb.create({
       data: {
         ...payload,
-        status: 'PENDING',
+        status: 'APPROVED',
         alasan_penolakan: null,
       },
     });
@@ -355,7 +355,7 @@ const createData = async (req, res) => {
     return res.status(201).json({
       success: true,
       data,
-      message: 'Data berhasil ditambahkan dengan status PENDING',
+      message: 'Data berhasil ditambahkan dengan status APPROVED',
     });
   } catch (error) {
     console.error(
@@ -531,7 +531,7 @@ const createBatchData = async (req, res) => {
         pengolahanPemasaranDb.create({
           data: {
             ...payload,
-            status: 'PENDING',
+            status: 'APPROVED',
             alasan_penolakan: null,
           },
         }),
@@ -543,7 +543,7 @@ const createBatchData = async (req, res) => {
       data,
       count: data.length,
       message:
-        `${data.length} rincian berhasil disimpan dengan status PENDING`,
+        `${data.length} rincian berhasil disimpan dengan status APPROVED`,
     });
   } catch (error) {
     console.error(
@@ -603,13 +603,6 @@ const updateStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Data yang ditolak harus diperbaiki terlebih dahulu',
-      });
-    }
-
-    if (status === 'APPROVED' && existing.status !== 'PENDING') {
-      return res.status(400).json({
-        success: false,
-        message: 'APPROVED hanya bisa dilakukan pada data berstatus PENDING',
       });
     }
 
@@ -690,7 +683,7 @@ const updateData = async (req, res) => {
       where: { id },
       data: {
         ...payload,
-        status: isRejectedCorrection ? 'PENDING' : existing.status,
+        status: isRejectedCorrection ? 'APPROVED' : existing.status,
         alasan_penolakan: isRejectedCorrection ? null : existing.alasan_penolakan,
       },
     });
@@ -699,7 +692,7 @@ const updateData = async (req, res) => {
       success: true,
       data,
       message: isRejectedCorrection
-        ? 'Data berhasil diperbaiki dan dikirim ulang dengan status PENDING'
+        ? 'Data berhasil diperbaiki dan dikembalikan ke status APPROVED'
         : 'Data berhasil diperbarui',
     });
   } catch (error) {
@@ -761,13 +754,13 @@ const batchStatus = async (req, res) => {
     const parsedIds = ids.map(id => parseInt(id, 10)).filter(Number.isInteger);
     let statusFilter;
 
-    if (status === 'APPROVED') statusFilter = 'PENDING';
+    if (status === 'APPROVED') statusFilter = 'APPROVED';
     if (status === 'VERIFIED') statusFilter = 'APPROVED';
 
     const where = {
       id: { in: parsedIds },
       ...(status === 'REJECTED'
-        ? { status: { in: ['PENDING', 'APPROVED', 'VERIFIED'] } }
+        ? { status: { in: ['APPROVED', 'VERIFIED'] } }
         : { status: statusFilter }),
     };
 

@@ -411,7 +411,7 @@ function SectionCard({ number, title, children, onClose }) {
       <div className="rounded-t-2xl border-b border-border bg-muted/35 px-5 py-4 md:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
               {number}
             </span>
             <h2 className="font-heading text-base font-semibold leading-tight text-foreground">
@@ -472,10 +472,12 @@ function SearchableSingleSelect({
   onChange,
   placeholder = 'Pilih salah satu',
   required = true,
+  searchPlaceholder = 'Ketik untuk mencari...',
 }) {
   const wrapperRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const normalizedOptions = [...new Set((options || []).filter(Boolean))];
   const normalizedSearch = search.trim().toUpperCase();
@@ -487,17 +489,71 @@ function SearchableSingleSelect({
     const handleOutsideClick = (event) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setIsOpen(false);
+        setActiveIndex(-1);
       }
     };
-
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const selectedIndex = filteredOptions.findIndex(option => option === value);
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : (filteredOptions.length ? 0 : -1));
+  }, [isOpen, search]);
 
   const handleSelect = (option) => {
     onChange(option);
     setSearch('');
     setIsOpen(false);
+    setActiveIndex(-1);
+  };
+
+  const moveSelection = (direction) => {
+    if (!normalizedOptions.length) return;
+    const currentIndex = Math.max(0, normalizedOptions.findIndex(option => option === value));
+    const nextIndex = (currentIndex + direction + normalizedOptions.length) % normalizedOptions.length;
+    onChange(normalizedOptions[nextIndex]);
+  };
+
+  const handleKeyboard = (event, fromSearch = false) => {
+    const forward = event.key === 'ArrowDown' || event.key === 'ArrowRight';
+    const backward = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+    if (!forward && !backward && event.key !== 'Enter' && event.key !== 'Escape') return;
+
+    // Jangan biarkan tombol panah memicu scroll halaman / navigasi form global.
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    if (!isOpen && (forward || backward)) {
+      moveSelection(forward ? 1 : -1);
+      return;
+    }
+
+    if (!isOpen && event.key === 'Enter') {
+      setIsOpen(true);
+      return;
+    }
+
+    if (isOpen && (forward || backward)) {
+      if (!filteredOptions.length) return;
+      const delta = forward ? 1 : -1;
+      setActiveIndex(index => {
+        const base = index < 0 ? 0 : index;
+        return (base + delta + filteredOptions.length) % filteredOptions.length;
+      });
+      return;
+    }
+
+    if (isOpen && event.key === 'Enter' && activeIndex >= 0 && filteredOptions[activeIndex]) {
+      handleSelect(filteredOptions[activeIndex]);
+    }
   };
 
   return (
@@ -509,6 +565,7 @@ function SearchableSingleSelect({
       <button
         type="button"
         onClick={() => setIsOpen((previous) => !previous)}
+        onKeyDown={(event) => handleKeyboard(event)}
         aria-expanded={isOpen}
         data-form-nav="true"
         className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
@@ -517,9 +574,7 @@ function SearchableSingleSelect({
           {value || placeholder}
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -531,7 +586,8 @@ function SearchableSingleSelect({
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Ketik nama kabupaten/kota..."
+              onKeyDown={(event) => handleKeyboard(event, true)}
+              placeholder={searchPlaceholder}
               className={`${INPUT_CLASS} pl-9`}
               autoFocus
             />
@@ -539,16 +595,17 @@ function SearchableSingleSelect({
 
           <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
             {filteredOptions.length ? (
-              filteredOptions.map((option) => {
+              filteredOptions.map((option, index) => {
                 const selected = option === value;
-
+                const active = index === activeIndex;
                 return (
                   <button
                     key={option}
                     type="button"
+                    onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => handleSelect(option)}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                      selected
+                      selected || active
                         ? 'bg-primary/10 font-semibold text-primary'
                         : 'text-foreground hover:bg-muted'
                     }`}
@@ -558,27 +615,9 @@ function SearchableSingleSelect({
                 );
               })
             ) : (
-              <p className="px-3 py-2 text-sm text-muted-foreground">
-                Tidak ada kabupaten/kota yang cocok.
-              </p>
+              <p className="px-3 py-2 text-sm text-muted-foreground">Tidak ada pilihan yang cocok.</p>
             )}
           </div>
-
-          {value ? (
-            <div className="mt-3 border-t border-border pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('');
-                  setSearch('');
-                  setIsOpen(false);
-                }}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Bersihkan pilihan
-              </button>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>
@@ -588,64 +627,21 @@ function SearchableSingleSelect({
 function NumericInputWithStepper({
   value,
   onChange,
-  onStep,
   required = true,
   ariaLabel,
   decimalDigits = MAX_DECIMAL_DIGITS,
 }) {
-  const keepInputFocused = (event) => {
-    event.preventDefault();
-  };
-
-  const stepLabel = decimalDigits > 0 ? '0,01' : '1';
-
   return (
-    <div className="group relative">
-      <input
-        type="text"
-        required={required}
-        inputMode={decimalDigits > 0 ? 'decimal' : 'numeric'}
-        value={value}
-        onChange={onChange}
-        data-form-nav="true"
-        aria-label={ariaLabel}
-        className={`${INPUT_CLASS} pr-12`}
-      />
-
-      {/* Spinner menyerupai input number native: tersembunyi saat normal,
-          lalu muncul ketika kotak di-hover atau sedang fokus/disentuh.
-          Input tetap bertipe text agar format Indonesia 1.000,65 tetap bisa digunakan. */}
-      <div className="pointer-events-none absolute right-3 top-1/2 flex h-[26px] w-[18px] -translate-y-1/2 flex-col overflow-hidden rounded-[2px] border border-slate-300 bg-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={`Naikkan ${ariaLabel || 'nilai'} sebesar ${stepLabel}`}
-          title={`Tambah ${stepLabel}`}
-          onMouseDown={keepInputFocused}
-          onClick={() => onStep(1)}
-          className="flex min-h-0 flex-1 items-center justify-center bg-white transition-colors hover:bg-slate-100 active:bg-slate-200"
-        >
-          <span
-            aria-hidden="true"
-            className="h-0 w-0 border-x-[3px] border-b-[5px] border-x-transparent border-b-slate-600"
-          />
-        </button>
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={`Turunkan ${ariaLabel || 'nilai'} sebesar ${stepLabel}`}
-          title={`Kurangi ${stepLabel}`}
-          onMouseDown={keepInputFocused}
-          onClick={() => onStep(-1)}
-          className="flex min-h-0 flex-1 items-center justify-center border-t border-slate-300 bg-white transition-colors hover:bg-slate-100 active:bg-slate-200"
-        >
-          <span
-            aria-hidden="true"
-            className="h-0 w-0 border-x-[3px] border-t-[5px] border-x-transparent border-t-slate-600"
-          />
-        </button>
-      </div>
-    </div>
+    <input
+      type="text"
+      required={required}
+      inputMode={decimalDigits > 0 ? 'decimal' : 'numeric'}
+      value={value}
+      onChange={onChange}
+      data-form-nav="true"
+      aria-label={ariaLabel}
+      className={INPUT_CLASS}
+    />
   );
 }
 
@@ -665,7 +661,6 @@ function NumberField({
       <NumericInputWithStepper
         value={value}
         onChange={onChange}
-        onStep={onStep}
         required={required}
         ariaLabel={label}
         decimalDigits={decimalDigits}
@@ -693,9 +688,6 @@ function NestedAmountGrid({
             value={values[item.key] ?? '0'}
             onChange={(event) =>
               onChangeItem(category, item.key, event.target.value)
-            }
-            onStep={(direction) =>
-              onStepItem(category, item.key, direction)
             }
             ariaLabel={item.label}
             decimalDigits={0}
@@ -989,19 +981,30 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
         onClose={onCancel}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <SelectField
-            label="Tahun"
-            value={formData.tahun}
-            onChange={(e) => setField('tahun', e.target.value)}
-            options={TAHUN_OPTIONS}
-            placeholder={null}
-          />
+          <div>
+            <label className={LABEL_CLASS}>
+              Tahun <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1900"
+              max="2100"
+              step="1"
+              required
+              value={formData.tahun}
+              onChange={(event) => setField('tahun', event.target.value)}
+              data-form-nav="true"
+              className={INPUT_CLASS}
+              aria-label="Tahun"
+            />
+          </div>
           <SearchableSingleSelect
-            label="Kabupaten / Kota"
+            label="Kab/Kota"
             value={formData.kabupaten_kota}
             onChange={(value) => setField('kabupaten_kota', value)}
             options={KabupatenKotaOptions}
             placeholder="Cari atau pilih kabupaten/kota"
+            searchPlaceholder="Ketik nama kabupaten/kota..."
           />
         </div>
       </SectionCard>
@@ -1037,19 +1040,21 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SelectField
+            <SearchableSingleSelect
               label={`Jenis Kegiatan (${formData.kategori_kegiatan === 'Pengolahan' ? 'Pengolahan' : 'Pemasaran'})`}
               value={formData.jenis_kegiatan}
-              onChange={(e) => setField('jenis_kegiatan', e.target.value)}
+              onChange={(value) => setField('jenis_kegiatan', value)}
               options={subJenisOptions}
-              placeholder="-- Pilih Jenis Kegiatan --"
+              placeholder="Pilih jenis kegiatan"
+              searchPlaceholder="Ketik jenis kegiatan..."
             />
-            <SelectField
+            <SearchableSingleSelect
               label="Skala Usaha"
               value={formData.skala_usaha}
-              onChange={(e) => setField('skala_usaha', e.target.value)}
+              onChange={(value) => setField('skala_usaha', value)}
               options={SKALA_USAHA_OPTIONS}
-              placeholder={null}
+              placeholder="Pilih skala usaha"
+              searchPlaceholder="Ketik skala usaha..."
             />
           </div>
         </div>

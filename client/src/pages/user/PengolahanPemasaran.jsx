@@ -124,6 +124,50 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(toNumber(value));
 
+const formatCompactRupiah = (value) => {
+  const rawNumber = toNumber(value);
+  const number = Math.abs(rawNumber);
+  const sign = rawNumber < 0 ? '-' : '';
+
+  const scales = [
+    { value: 1e15, label: 'Biliar' },
+    { value: 1e12, label: 'Triliun' },
+    { value: 1e9, label: 'Miliar' },
+    { value: 1e6, label: 'Juta' },
+  ];
+
+  const scale = scales.find((item) => number >= item.value);
+  if (!scale) return formatRupiah(value);
+
+  const compact = number / scale.value;
+  const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+
+  return `${sign}Rp ${compact.toLocaleString('id-ID', {
+    maximumFractionDigits: digits,
+  })} ${scale.label}`;
+};
+
+function ChartSelect({ value, onChange, options, ariaLabel }) {
+  return (
+    <div className="relative w-full sm:w-auto">
+      <select
+        value={value}
+        onChange={onChange}
+        aria-label={ariaLabel}
+        className="w-full appearance-none rounded-full border border-border bg-background py-2 pl-4 pr-10 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
+      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
+
 const toNumber = (value) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0;
@@ -1278,7 +1322,7 @@ export default function PengolahanPemasaran() {
         <div className="space-y-6">
           {/* Baris 1 — KPI */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="rounded-xl bg-purple-500/10 p-4 text-purple-500">
                 <Users className="h-6 w-6" />
               </div>
@@ -1293,7 +1337,7 @@ export default function PengolahanPemasaran() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
                 <Box className="h-6 w-6" />
               </div>
@@ -1306,19 +1350,19 @@ export default function PengolahanPemasaran() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
                 <LineChart className="h-6 w-6" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Nilai</p>
-                <p className="text-xl font-bold text-foreground">
-                  {formatRupiah(stats.kpi.total_nilai)}
+                <p className="text-xl font-bold leading-tight text-foreground">
+                  {formatCompactRupiah(stats.kpi.total_nilai)}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="rounded-xl bg-orange-500/10 p-4 text-orange-500">
                 <TrendingUp className="h-6 w-6" />
               </div>
@@ -1340,27 +1384,30 @@ export default function PengolahanPemasaran() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-3">
               {/* Header peta */}
-              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-cyan-400" />
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500">
+                    <MapPin className="h-5 w-5" />
+                  </div>
 
                   <h2 className="text-base font-semibold sm:text-lg">
                     Peta Sebaran Hasil
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:flex">
-                  <select
+                <div className="grid grid-cols-1 gap-2 sm:flex">
+                  <ChartSelect
                     value={barFilter}
                     onChange={(event) => {
                       setBarFilter(event.target.value);
                       setSelectedMapRegion(null);
                     }}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
-                  >
-                    <option value="produksi">Hasil (Kg)</option>
-                    <option value="nilai">Nilai (Rp)</option>
-                  </select>
+                    ariaLabel="Filter peta"
+                    options={[
+                      { value: 'produksi', label: 'Hasil (Kg)' },
+                      { value: 'nilai', label: 'Nilai (Rp)' },
+                    ]}
+                  />
 
                   {isMobileMap ? (
                     <button
@@ -1466,23 +1513,26 @@ export default function PengolahanPemasaran() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:col-span-2">
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-orange-500" />
+              <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
                   <h2 className="text-lg font-semibold">Top 10 Kabupaten/Kota</h2>
                 </div>
 
-                <select
+                <ChartSelect
                   value={topKabFilter}
                   onChange={(event) => setTopKabFilter(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary sm:w-auto"
-                >
-                  <option value="produksi">Hasil (Kg)</option>
-                  <option value="nilai">Nilai (Rp)</option>
-                </select>
+                  ariaLabel="Filter Top 10 Kabupaten/Kota"
+                  options={[
+                    { value: 'produksi', label: 'Hasil (Kg)' },
+                    { value: 'nilai', label: 'Nilai (Rp)' },
+                  ]}
+                />
               </div>
 
-              <div className="h-[450px]">
+              <div className="h-[380px] sm:h-[450px]">
                 <ReactECharts
                   option={barOption}
                   style={{ height: '100%', width: '100%' }}
@@ -1494,8 +1544,8 @@ export default function PengolahanPemasaran() {
           {/* Baris 3 — Donut UPI dan Jenis Detail Kegiatan */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-purple-500" />
+              <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
+                <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
                 <div>
                   <h2 className="text-lg font-semibold">Perbandingan Jumlah UPI</h2>
                 </div>
@@ -1510,15 +1560,17 @@ export default function PengolahanPemasaran() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-2">
-                  <Factory
-                    className={`mt-0.5 h-5 w-5 ${
+              <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`rounded-xl p-2.5 ${
                       activeDetailKegiatan === 'Pengolahan'
-                        ? 'text-[#0096C7]'
-                        : 'text-[#023E8A]'
+                        ? 'bg-[#0096C7]/10 text-[#0096C7]'
+                        : 'bg-[#023E8A]/10 text-[#023E8A]'
                     }`}
-                  />
+                  >
+                    <Factory className="h-5 w-5" />
+                  </div>
 
                   <div>
                     <h2 className="text-lg font-semibold">Jenis Detail Kegiatan</h2>
@@ -1572,7 +1624,7 @@ export default function PengolahanPemasaran() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-2xl border border-[#0096C7]/20 bg-card p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-xl bg-[#0096C7]/10 p-2.5 text-[#0096C7]">
                       <TrendingUp className="h-5 w-5" />
@@ -1608,7 +1660,7 @@ export default function PengolahanPemasaran() {
               </div>
 
               <div className="rounded-2xl border border-[#023E8A]/20 bg-card p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-xl bg-[#023E8A]/10 p-2.5 text-[#023E8A]">
                       <TrendingUp className="h-5 w-5" />
@@ -1618,14 +1670,15 @@ export default function PengolahanPemasaran() {
                     </div>
                   </div>
 
-                  <select
+                  <ChartSelect
                     value={trendFilter}
                     onChange={(event) => setTrendFilter(event.target.value)}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="produksi">Hasil (Kg)</option>
-                    <option value="nilai">Nilai (Rp)</option>
-                  </select>
+                    ariaLabel="Filter tren pemasaran"
+                    options={[
+                      { value: 'produksi', label: 'Hasil (Kg)' },
+                      { value: 'nilai', label: 'Nilai (Rp)' },
+                    ]}
+                  />
                 </div>
 
                 <div className="h-[340px]">
@@ -1648,7 +1701,7 @@ export default function PengolahanPemasaran() {
             <div className="mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-slate-500" />
               <h3 className="text-lg font-semibold text-foreground">
-                Rincian Data Pengolahan dan Pemasaran
+                Rincian Data Pengolahan dan Pemasaran Produk Kelautan dan Perikanan
               </h3>
             </div>
 
@@ -1724,7 +1777,7 @@ export default function PengolahanPemasaran() {
                   onClick={handleExportRekap}
                   disabled={!filteredData.length}
                   title="Pilih satu tahun. Rekap mengikuti wilayah yang dipilih."
-                  className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="order-first inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
                   Rekap Statistik
