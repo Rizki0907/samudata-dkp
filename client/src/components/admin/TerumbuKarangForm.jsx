@@ -208,6 +208,23 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
   const inputCls = (field) =>
     `w-full bg-background border ${errors[field] ? 'border-destructive hover:border-destructive' : 'border-border hover:border-border'} rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none`;
 
+  // Class tambahan untuk menghilangkan spin button (panah atas/bawah) pada input number,
+  // dipakai di semua input number KECUALI "Tahun"
+  const noSpinnerCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+
+  // Persen untuk warna track slider (fill cyan vs sisa abu-abu, sesuai tema Terumbu Karang), full custom
+  // biar konsisten di semua browser & tidak ikut warna default gelap saat light mode
+  const persentaseValue = form.persentase_kondisi === '' ? 0 : Math.min(100, Math.max(0, Number(form.persentase_kondisi) || 0));
+  const rangeTrackStyle = {
+    background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${persentaseValue}%, #e2e8f0 ${persentaseValue}%, #e2e8f0 100%)`,
+  };
+  const rangeSliderCls =
+    'appearance-none w-full h-2 rounded-full cursor-pointer outline-none ' +
+    '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent ' +
+    '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:cursor-pointer ' +
+    '[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent ' +
+    '[&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-cyan-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow [&::-moz-range-thumb]:cursor-pointer';
+
   return (
     <form ref={formRef} onKeyDown={handleArrowNavigation} onSubmit={handleSubmit} className="space-y-6">
       {/* ── HEADER ── */}
@@ -274,8 +291,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
             min="0"
             value={form.luas_eksisting_ha}
             onChange={(e) => handleChange('luas_eksisting_ha', e.target.value)}
-            className={inputCls('luas_eksisting_ha')}
-            placeholder="0.00"
+            className={`${inputCls('luas_eksisting_ha')} ${noSpinnerCls}`}
+            placeholder="12.5"
           />
           {errors.luas_eksisting_ha && <p className="text-xs text-destructive mt-1">{errors.luas_eksisting_ha}</p>}
         </div>
@@ -288,8 +305,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
             min="0"
             value={form.luas_rehabilitasi_ha}
             onChange={(e) => handleChange('luas_rehabilitasi_ha', e.target.value)}
-            className={inputCls('luas_rehabilitasi_ha')}
-            placeholder="0.00"
+            className={`${inputCls('luas_rehabilitasi_ha')} ${noSpinnerCls}`}
+            placeholder="3.2"
           />
           {errors.luas_rehabilitasi_ha && <p className="text-xs text-destructive mt-1">{errors.luas_rehabilitasi_ha}</p>}
         </div>
@@ -303,39 +320,46 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
             max="100"
             value={form.persentase_tutupan}
             onChange={(e) => handleChange('persentase_tutupan', e.target.value)}
-            className={inputCls('persentase_tutupan')}
-            placeholder="0.00"
+            className={`${inputCls('persentase_tutupan')} ${noSpinnerCls}`}
+            placeholder="65.4"
           />
           {errors.persentase_tutupan && <p className="text-xs text-destructive mt-1">{errors.persentase_tutupan}</p>}
         </div>
 
         {/* Kotak Kondisi */}
-        <div>
+        <div className="md:col-span-1">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Persentase Kondisi (%)</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={form.persentase_kondisi === '' ? 0 : form.persentase_kondisi}
-              onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
-              className="flex-1 accent-cyan-500"
-            />
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={form.persentase_kondisi}
-              onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
-              className={`${inputCls('persentase_kondisi')} w-20`}
-              placeholder="0-100"
-            />
-            <span className="text-sm text-muted-foreground font-bold">%</span>
-            <span className={`px-4 py-2.5 rounded-xl text-xs font-bold border shrink-0 ${kondisiTerumbuStyle(kondisiPreview)}`}>
-              {kondisiPreview}
-            </span>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-[3] min-w-[140px]">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={persentaseValue}
+                  onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+                  style={rangeTrackStyle}
+                  className={rangeSliderCls}
+                />
+              </div>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={form.persentase_kondisi}
+                onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
+                className={`${inputCls('persentase_kondisi')} ${noSpinnerCls} w-14 shrink-0`}
+                placeholder="70.3"
+              />
+              <span className="text-sm text-muted-foreground font-bold">%</span>
+            </div>
+            <div className="flex justify-start">
+              <span className={`px-4 py-1.5 rounded-xl text-xs font-bold border shrink-0 ${kondisiTerumbuStyle(kondisiPreview)}`}>
+                {kondisiPreview}
+              </span>
+            </div>
           </div>
           {errors.persentase_kondisi && <p className="text-xs text-destructive mt-1">{errors.persentase_kondisi}</p>}
         </div>
@@ -351,8 +375,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
               type="number" step="0.01" min="0"
               value={form.luas_sangat_baik}
               onChange={(e) => handleChange('luas_sangat_baik', e.target.value)}
-              className={inputCls('luas_sangat_baik')}
-              placeholder="0.00"
+              className={`${inputCls('luas_sangat_baik')} ${noSpinnerCls}`}
+              placeholder="5.4"
             />
           </div>
           <div>
@@ -361,8 +385,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
               type="number" step="0.01" min="0"
               value={form.luas_baik}
               onChange={(e) => handleChange('luas_baik', e.target.value)}
-              className={inputCls('luas_baik')}
-              placeholder="0.00"
+              className={`${inputCls('luas_baik')} ${noSpinnerCls}`}
+              placeholder="3.1"
             />
           </div>
           <div>
@@ -371,8 +395,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
               type="number" step="0.01" min="0"
               value={form.luas_sedang}
               onChange={(e) => handleChange('luas_sedang', e.target.value)}
-              className={inputCls('luas_sedang')}
-              placeholder="0.00"
+              className={`${inputCls('luas_sedang')} ${noSpinnerCls}`}
+              placeholder="1.8"
             />
           </div>
           <div>
@@ -381,8 +405,8 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
               type="number" step="0.01" min="0"
               value={form.luas_rusak}
               onChange={(e) => handleChange('luas_rusak', e.target.value)}
-              className={inputCls('luas_rusak')}
-              placeholder="0.00"
+              className={`${inputCls('luas_rusak')} ${noSpinnerCls}`}
+              placeholder="1.3"
             />
           </div>
         </div>
