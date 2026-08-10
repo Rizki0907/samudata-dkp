@@ -103,24 +103,24 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     const direction = directionByKey[event.key];
     if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
-    
+
     const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
     if (!currentElement || !formRef.current?.contains(currentElement)) return;
-    
+
     const targetElement = findDirectionalTarget(formRef.current, currentElement, direction);
     if (!targetElement) return;
-    
+
     event.preventDefault();
     targetElement.focus({ preventScroll: true });
     targetElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    
+
     if (targetElement instanceof HTMLInputElement && targetElement.type === 'text') {
       requestAnimationFrame(() => targetElement.select());
     }
   };
   const [formData, setFormData] = useState(initialData || {
     bulan: 'Januari',
-    tahun: new Date().getFullYear(),
+    tahun: '',
     kabupaten_kota: '',
     luas_total_ha: '',
     luas_produksi_ha: '',
@@ -170,7 +170,8 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
     onSubmit(finalData);
   };
 
-  const inputClass = "w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary hover:border-border transition-all outline-none";
+  const inputClass = "w-full max-w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary hover:border-border transition-all outline-none";
+  const noSpinnerCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
   const labelClass = "block text-xs font-medium text-muted-foreground mb-1.5";
 
   // ── Sistem heading & label (disamakan biar konsisten di semua section) ──
@@ -221,7 +222,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             </div>
             <div>
               <label className={labelClass}>Tahun</label>
-              <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} required />
+              <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} placeholder="YYYY" required />
             </div>
             <div>
               <label className={labelClass}>Kab/Kota</label>
@@ -259,19 +260,19 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
             <div>
               <label className={labelClass}>Luas Lahan Total (Ha)</label>
-              <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={inputClass} placeholder="0" />
+              <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Luas Produksi (Ha)</label>
-              <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={inputClass} placeholder="0" />
+              <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Kelompok</label>
-              <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={inputClass} placeholder="0" />
+              <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
-              <label className={labelClass}>Jumlah Petambak</label>
-              <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={inputClass} placeholder="0" />
+              <label className={labelClass}>Jumlah Petambak (Orang)</label>
+              <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
           </div>
         </section>
@@ -297,15 +298,15 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
                   <div className="space-y-3">
                     <div>
                       <label className={metaLabelClass}>Produksi (Ton)</label>
-                      <input type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                      <input type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div>
                       <label className={metaLabelClass}>Stok (Ton)</label>
-                      <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                      <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div>
                       <label className={metaLabelClass}>Harga (Rp)</label>
-                      <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={inputClass} placeholder="0" />
+                      <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div className="pt-3 border-t border-border flex justify-between items-center">
                       <span className={metaLabelClass.replace(' mb-1', '')}>Nilai Produksi</span>

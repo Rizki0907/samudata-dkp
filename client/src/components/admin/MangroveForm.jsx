@@ -125,7 +125,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
     }
   };
   const [form, setForm] = useState({
-    tahun: currentYear,
+    tahun: '',
     kabupaten_kota: '',
     luas_eksisting_ha: '',
     spesies: '',
@@ -185,7 +185,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
   };
 
   const inputCls = (field) =>
-    `w-full bg-background border ${errors[field] ? 'border-destructive hover:border-destructive' : 'border-border hover:border-border'} rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none`;
+    `w-full max-w-full bg-background border ${errors[field] ? 'border-destructive hover:border-destructive' : 'border-border hover:border-border'} rounded-xl px-4 py-2.5 text-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none`;
 
   // Class tambahan untuk menghilangkan spin button (panah atas/bawah) pada input number,
   // dipakai di semua input number KECUALI "Tahun"
@@ -232,7 +232,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
             value={form.tahun}
             onChange={(e) => handleChange('tahun', e.target.value)}
             className={inputCls('tahun')}
-            placeholder="Contoh: 2026"
+            placeholder="YYYY"
           />
           {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
         </div>
@@ -271,7 +271,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
             value={form.luas_eksisting_ha}
             onChange={(e) => handleChange('luas_eksisting_ha', e.target.value)}
             className={`${inputCls('luas_eksisting_ha')} ${noSpinnerCls}`}
-            placeholder="12.5"
+            placeholder="0.00"
           />
           {errors.luas_eksisting_ha && <p className="text-xs text-destructive mt-1">{errors.luas_eksisting_ha}</p>}
         </div>
@@ -285,7 +285,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
             value={form.luas_rehabilitasi_ha}
             onChange={(e) => handleChange('luas_rehabilitasi_ha', e.target.value)}
             className={`${inputCls('luas_rehabilitasi_ha')} ${noSpinnerCls}`}
-            placeholder="3.2"
+            placeholder="0.00"
           />
           {errors.luas_rehabilitasi_ha && <p className="text-xs text-destructive mt-1">{errors.luas_rehabilitasi_ha}</p>}
         </div>
@@ -305,9 +305,9 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
         {/* Kondisi Mangrove */}
         <div className="md:col-span-1">
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Persentase Kondisi Mangrove (%)</label>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="flex-[3] min-w-[140px]">
+          <div className="flex flex-col gap-2 w-full max-w-full">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full">
+              <div className="flex-1 min-w-[120px]">
                 <input
                   type="range"
                   min="0"
@@ -326,8 +326,8 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
                 step="0.1"
                 value={form.persentase_kondisi}
                 onChange={(e) => handleChange('persentase_kondisi', e.target.value)}
-                className={`${inputCls('persentase_kondisi')} ${noSpinnerCls} w-14 shrink-0`}
-                placeholder="70.3"
+                className={`${inputCls('persentase_kondisi')} ${noSpinnerCls} !w-20 px-2 text-center shrink-0`}
+                placeholder="0.00"
               />
               <span className="text-sm text-muted-foreground font-bold">%</span>
             </div>
@@ -352,7 +352,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
               value={form.luas_sangat_padat}
               onChange={(e) => handleChange('luas_sangat_padat', e.target.value)}
               className={`${inputCls('luas_sangat_padat')} ${noSpinnerCls}`}
-              placeholder="5.4"
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -362,7 +362,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
               value={form.luas_sedang}
               onChange={(e) => handleChange('luas_sedang', e.target.value)}
               className={`${inputCls('luas_sedang')} ${noSpinnerCls}`}
-              placeholder="3.1"
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -372,7 +372,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel }) {
               value={form.luas_jarang}
               onChange={(e) => handleChange('luas_jarang', e.target.value)}
               className={`${inputCls('luas_jarang')} ${noSpinnerCls}`}
-              placeholder="1.3"
+              placeholder="0.00"
             />
           </div>
         </div>

@@ -109,7 +109,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     }
   };
   const [formData, setFormData] = useState(initialData || {
-    tahun_data: CURRENT_YEAR,
+    tahun_data: '',
     luas_wilayah_laut_km2: '',
     total_panjang_garis_pantai_km: '',
     jumlah_pulau_kecil: '',
@@ -134,8 +134,9 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     });
   };
 
-  const inputClass = "w-full rounded-lg border bg-background px-3 py-2 text-center outline-none focus:ring-2 focus:ring-primary/50 border-input";
+  const inputClass = "w-full max-w-full rounded-lg border bg-background px-3 py-2 text-center outline-none focus:ring-2 focus:ring-primary/50 border-input";
   const labelClass = "block text-sm font-medium mb-2";
+  const noSpinnerCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden text-card-foreground">
@@ -161,7 +162,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
             <div>
               <label className={labelClass}>Tahun Data</label>
-              <input type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} required />
+              <input type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} placeholder="YYYY" required />
             </div>
           </div>
         </section>
@@ -177,19 +178,19 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>Desa Pesisir</label>
-              <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={inputClass} placeholder="0" />
+              <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Luas Wilayah Laut (Km2)</label>
-              <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={inputClass} placeholder="0" />
+              <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Pulau-pulau Kecil</label>
-              <input type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={inputClass} />
+              <input type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Total Panjang Garis Pantai (Km)</label>
-              <input type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={inputClass} />
+              <input type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>Keterangan Tambahan</label>
