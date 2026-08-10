@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
@@ -70,27 +71,27 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(toNumber(value));
 
-const formatCompactRupiah = (value) => {
-  const rawNumber = toNumber(value);
-  const number = Math.abs(rawNumber);
-  const sign = rawNumber < 0 ? '-' : '';
-
+const formatCompactRupiah = value => {
+  const number = Math.abs(toNumber(value));
+  const sign = toNumber(value) < 0 ? '-' : '';
   const scales = [
-    { value: 1e15, label: 'Biliar' },
+    { value: 1e15, label: 'Kuadriliun' },
     { value: 1e12, label: 'Triliun' },
     { value: 1e9, label: 'Miliar' },
     { value: 1e6, label: 'Juta' },
   ];
-
-  const scale = scales.find((item) => number >= item.value);
+  const scale = scales.find(item => number >= item.value);
   if (!scale) return formatRupiah(value);
-
   const compact = number / scale.value;
   const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+  return `${sign}Rp ${compact.toLocaleString('id-ID', { maximumFractionDigits: digits })} ${scale.label}`;
+};
 
-  return `${sign}Rp ${compact.toLocaleString('id-ID', {
-    maximumFractionDigits: digits,
-  })} ${scale.label}`;
+const splitCompactRupiah = value => {
+  const formatted = formatCompactRupiah(value);
+  const match = formatted.match(/^(.*)\s(Kuadriliun|Biliar|Triliun|Miliar|Juta)$/);
+  if (!match) return { amount: formatted, unit: '' };
+  return { amount: match[1], unit: match[2] };
 };
 
 function ChartSelect({ value, onChange, options, ariaLabel }) {
@@ -154,31 +155,54 @@ const getSearchNumberVariants = (value) => {
   ].filter(Boolean);
 };
 
-const buildTableSearchText = (row, includeStatus = false) => {
-  const parts = [];
-
-  if (includeStatus) parts.push(row?.status);
-
-  parts.push(
-    row?.tahun,
-    row?.kabupaten_kota,
-    row?.kategori_kegiatan,
-    row?.jenis_kegiatan,
-    row?.skala_usaha,
+const flattenPackageDetails = packages =>
+  (packages || []).flatMap(pkg =>
+    (pkg.details || []).map(detail => ({
+      ...detail,
+      tahun: pkg.tahun,
+      kabupaten_kota: pkg.kabupaten_kota,
+      status: pkg.status,
+      updated_at: pkg.updated_at,
+    })),
   );
 
-  [
-    row?.jumlah_unit_usaha,
-    row?.hasil_kg,
-    row?.hasil_rp,
-    row?.modal_rp,
-  ].forEach((value) => {
+const packageMatchesDetailFilters = (item, filterJenisKegiatan, filterSkalaUsaha) => {
+  const details = Array.isArray(item?.details) ? item.details : [];
+  if (
+    filterJenisKegiatan.length &&
+    !details.some(detail => filterJenisKegiatan.includes(normalizeKategori(detail.kategori_kegiatan)))
+  ) return false;
+  if (
+    filterSkalaUsaha.length &&
+    !details.some(detail => filterSkalaUsaha.includes(detail.skala_usaha))
+  ) return false;
+  return true;
+};
+
+const buildTableSearchText = (row, includeStatus = false) => {
+  const parts = [];
+  if (includeStatus) parts.push(row?.status);
+  parts.push(row?.tahun, row?.kabupaten_kota);
+
+  (row?.details || []).forEach(detail => {
+    parts.push(detail?.kategori_kegiatan, detail?.jenis_kegiatan, detail?.skala_usaha);
+    [detail?.jumlah_unit_usaha, detail?.hasil_kg, detail?.hasil_rp].forEach(value => {
+      parts.push(...getSearchNumberVariants(value));
+    });
+  });
+
+  [row?.jumlah_unit_usaha, row?.hasil_kg, row?.hasil_rp, row?.modal_rp].forEach(value => {
     parts.push(...getSearchNumberVariants(value));
   });
 
-  return parts
-    .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
-    .join(' ');
+  Object.entries(row?.modal_by_jenis || {}).forEach(([key, value]) => {
+    parts.push(key, ...getSearchNumberVariants(value));
+  });
+  Object.entries(row?.modal_by_skala || {}).forEach(([key, value]) => {
+    parts.push(key, ...getSearchNumberVariants(value));
+  });
+
+  return parts.filter(value => value !== null && value !== undefined && String(value).trim() !== '').join(' ');
 };
 
 const normalizeKategori = (value) =>
@@ -272,6 +296,8 @@ export default function PengolahanPemasaran() {
       // Gradasi warna bar Top 10 — disamakan dengan bar Top 10 Budidaya.
       barGradientStart: isDark ? '#0ea5e9' : '#0284c7',
       barGradientEnd: isDark ? '#2563eb' : '#1e40af',
+      categoryPengolahan: '#0096C7',
+      categoryPemasaran: isDark ? '#34D399' : '#10B981',
     }),
     [isDark],
   );
@@ -298,6 +324,7 @@ export default function PengolahanPemasaran() {
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
 
   const [rekapDialogOpen, setRekapDialogOpen] = useState(false);
+  const [noticeDialog, setNoticeDialog] = useState(null);
   const [rekapTahun, setRekapTahun] = useState('');
   const [rekapLoading, setRekapLoading] = useState(false);
   const [rekapError, setRekapError] = useState('');
@@ -381,26 +408,10 @@ export default function PengolahanPemasaran() {
 
   const filteredData = useMemo(
     () =>
-      data.filter((item) => {
-        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) {
-          return false;
-        }
-
-        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) {
-          return false;
-        }
-
-        if (
-          filterJenisKegiatan.length &&
-          !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))
-        ) {
-          return false;
-        }
-
-        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) {
-          return false;
-        }
-
+      data.filter(item => {
+        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
         return true;
       }),
     [data, filterTahun, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha],
@@ -410,7 +421,10 @@ export default function PengolahanPemasaran() {
     const exportRows = Array.isArray(rows) ? rows : [];
 
     if (!exportRows.length) {
-      window.alert('Tidak ada data yang dapat diekspor.');
+      setNoticeDialog({
+        title: 'Ekspor Data',
+        message: 'Tidak ada data yang dapat diekspor.',
+      });
       return;
     }
 
@@ -457,7 +471,7 @@ export default function PengolahanPemasaran() {
   };
 
   const stats = useMemo(() => {
-    const rows = filteredData;
+    const rows = flattenPackageDetails(filteredData);
 
     const total_volume = rows.reduce((sum, row) => sum + toNumber(row.hasil_kg), 0);
     const total_nilai = rows.reduce((sum, row) => sum + toNumber(row.hasil_rp), 0);
@@ -484,6 +498,10 @@ export default function PengolahanPemasaran() {
     };
 
     const kabupatenMap = new Map();
+    KABUPATEN_KOTA_OPTIONS.forEach((name) => {
+      kabupatenMap.set(name, { name, produksi: 0, nilai: 0, upi: 0 });
+    });
+
     rows.forEach((row) => {
       const name = row.kabupaten_kota;
       if (!name) return;
@@ -571,7 +589,7 @@ export default function PengolahanPemasaran() {
         top_produk: topProduk,
       },
     };
-  }, [filteredData]);
+  }, [filteredData, KABUPATEN_KOTA_OPTIONS]);
 
   const singleSelectedCategory =
     filterJenisKegiatan.length === 1 ? filterJenisKegiatan[0] : '';
@@ -580,48 +598,92 @@ export default function PengolahanPemasaran() {
 
   const showDetailKegiatanToggle = filterJenisKegiatan.length !== 1;
 
+  const renderPackageDetail = ({ row }) => {
+    const pkg = row.original;
+    const details = Array.isArray(pkg.details) ? pkg.details : [];
+    const modalJenis = Object.entries(pkg.modal_by_jenis || {}).filter(([, value]) => toNumber(value) > 0);
+    const modalSkala = Object.entries(pkg.modal_by_skala || {}).filter(([, value]) => toNumber(value) > 0);
+
+    return (
+      <div className="space-y-5 bg-muted/20 p-5 md:p-6">
+        <div>
+          <h4 className="mb-3 text-sm font-bold text-foreground">Unit Usaha dan Produksi</h4>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Kategori</th>
+                  <th className="px-4 py-3 text-left">Jenis Kegiatan</th>
+                  <th className="px-4 py-3 text-left">Skala</th>
+                  <th className="px-4 py-3 text-right">Unit</th>
+                  <th className="px-4 py-3 text-right">Hasil (Kg)</th>
+                  <th className="px-4 py-3 text-right">Hasil (Rp)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {details.map((detail, index) => (
+                  <tr key={`${detail.id || index}-${detail.jenis_kegiatan}-${detail.skala_usaha}`}>
+                    <td className="px-4 py-3">{detail.kategori_kegiatan || '-'}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{detail.jenis_kegiatan || '-'}</td>
+                    <td className="px-4 py-3">{detail.skala_usaha || '-'}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.jumlah_unit_usaha).toLocaleString('id-ID')}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.hasil_kg).toLocaleString('id-ID')}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatRupiah(detail.hasil_rp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h4 className="mb-3 text-sm font-bold text-foreground">Modal berdasarkan Jenis Kegiatan</h4>
+            {modalJenis.length ? (
+              <div className="space-y-2">
+                {modalJenis.map(([name, value]) => (
+                  <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
+                    <span className="text-muted-foreground">{name}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Belum ada modal yang diisi.</p>}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h4 className="mb-3 text-sm font-bold text-foreground">Modal berdasarkan Skala Usaha</h4>
+            {modalSkala.length ? (
+              <div className="space-y-2">
+                {modalSkala.map(([name, value]) => (
+                  <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
+                    <span className="text-muted-foreground">{name}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Belum ada modal yang diisi.</p>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const columns = useMemo(
     () => [
       { header: 'Tahun', accessorKey: 'tahun' },
+      { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <span className="font-medium text-foreground">{info.getValue()}</span> },
       {
-        header: 'Kab/Kota',
-        accessorKey: 'kabupaten_kota',
-        cell: (info) => <p className="font-medium text-foreground">{info.getValue()}</p>,
+        header: 'Isi Rekap', id: 'isi_rekap',
+        cell: info => {
+          const row = info.row.original;
+          return <span className="text-muted-foreground"><b className="text-foreground">{row.jumlah_rincian || 0} rincian</b> • {row.jumlah_skala || 0} skala</span>;
+        },
       },
-      {
-        header: 'Kategori Kegiatan',
-        accessorKey: 'kategori_kegiatan',
-        cell: (info) => (
-          <span className="font-medium text-foreground">
-            {normalizeKategori(info.getValue()) || '-'}
-          </span>
-        ),
-      },
-      {
-        header: 'Jenis Kegiatan',
-        accessorKey: 'jenis_kegiatan',
-      },
-      { header: 'Skala Usaha', accessorKey: 'skala_usaha' },
-      {
-        header: 'Jumlah Unit Usaha',
-        accessorKey: 'jumlah_unit_usaha',
-        cell: (info) => toNumber(info.getValue()).toLocaleString('id-ID'),
-      },
-      {
-        header: 'Hasil Produksi (Kg)',
-        accessorKey: 'hasil_kg',
-        cell: (info) => toNumber(info.getValue()).toLocaleString('id-ID'),
-      },
-      {
-        header: 'Nilai Produksi (Rp)',
-        accessorKey: 'hasil_rp',
-        cell: (info) => formatRupiah(info.getValue()),
-      },
-      {
-        header: 'Investasi Modal (Rp)',
-        accessorKey: 'modal_rp',
-        cell: (info) => formatRupiah(info.getValue()),
-      },
+      { header: 'Total Unit', accessorKey: 'jumlah_unit_usaha', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
+      { header: 'Hasil Produksi (Kg)', accessorKey: 'hasil_kg', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
+      { header: 'Nilai Produksi (Rp)', accessorKey: 'hasil_rp', cell: info => formatRupiah(info.getValue()) },
+      { header: 'Total Modal (Rp)', accessorKey: 'modal_rp', cell: info => formatRupiah(info.getValue()) },
     ],
     [],
   );
@@ -962,11 +1024,11 @@ export default function PengolahanPemasaran() {
           data: [
             {
               ...stats.rasioKegiatan.find((item) => item.name === 'Pengolahan'),
-              itemStyle: { color: '#0096C7' },
+              itemStyle: { color: chartColors.categoryPengolahan },
             },
             {
               ...stats.rasioKegiatan.find((item) => item.name === 'Pemasaran'),
-              itemStyle: { color: '#023E8A' },
+              itemStyle: { color: chartColors.categoryPemasaran },
             },
           ],
         },
@@ -1057,7 +1119,9 @@ export default function PengolahanPemasaran() {
           },
 
           itemStyle: {
-            color: isPengolahan ? '#0096C7' : '#023E8A',
+            color: isPengolahan
+              ? chartColors.categoryPengolahan
+              : chartColors.categoryPemasaran,
 
             borderRadius: [0, 6, 6, 0],
           },
@@ -1162,9 +1226,9 @@ export default function PengolahanPemasaran() {
       pemasaran: createTrendOption(
         'Pemasaran',
         trendPemasaranFilter,
-        '#023E8A',
-        'rgba(2, 62, 138, 0.48)',
-        'rgba(2, 62, 138, 0.04)',
+        isDark ? '#34D399' : '#10B981',
+        isDark ? 'rgba(52, 211, 153, 0.38)' : 'rgba(16, 185, 129, 0.30)',
+        isDark ? 'rgba(52, 211, 153, 0.03)' : 'rgba(16, 185, 129, 0.03)',
       ),
     };
   }, [stats.trenTahunan, trendPengolahanFilter, trendPemasaranFilter, chartColors]);
@@ -1277,7 +1341,7 @@ export default function PengolahanPemasaran() {
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Unit Usaha 
                 </p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl font-bold text-foreground xl:text-2xl">
                   {stats.kpi.total_upi.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-muted-foreground"> Unit </span>
                 </p>
@@ -1290,7 +1354,7 @@ export default function PengolahanPemasaran() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Hasil Produksi</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl font-bold text-foreground xl:text-2xl">
                   {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
                   <span className="text-sm font-normal text-muted-foreground">Kg</span>
                 </p>
@@ -1303,9 +1367,21 @@ export default function PengolahanPemasaran() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Nilai Produksi</p>
-                <p className="text-xl font-bold leading-tight text-foreground">
-                  {formatCompactRupiah(stats.kpi.total_nilai)}
-                </p>
+                {(() => {
+                  const compactNilai = splitCompactRupiah(stats.kpi.total_nilai);
+                  return (
+                    <div className="flex items-end gap-1.5">
+                      <span className="text-xl font-bold leading-tight text-foreground">
+                        {compactNilai.amount}
+                      </span>
+                      {compactNilai.unit ? (
+                        <span className="pb-[1px] text-sm font-normal leading-none text-muted-foreground">
+                          {compactNilai.unit}
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1327,7 +1403,7 @@ export default function PengolahanPemasaran() {
             </div>
           </div>
 
-          {/* Baris 2 — Peta dan Top 10 Kabupaten/Kota */}
+          {/* Baris 2 — Peta dan Top 10 Kab/Kota */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-3">
               {/* Header peta */}
@@ -1337,8 +1413,8 @@ export default function PengolahanPemasaran() {
                     <MapPin className="h-5 w-5" />
                   </div>
 
-                  <h2 className="text-base font-semibold sm:text-lg">
-                    Peta Sebaran Hasil
+                  <h2 className="text-xl font-bold text-foreground">
+                    Peta Sebaran
                   </h2>
                 </div>
 
@@ -1368,7 +1444,7 @@ export default function PengolahanPemasaran() {
                           : 'border-border bg-background text-muted-foreground'
                       }`}
                     >
-                      {mapInteractionEnabled ? 'Kunci Peta' : 'Geser & Zoom'}
+                      {mapInteractionEnabled ? 'Kunci Peta' : 'Geser dan Zoom'}
                     </button>
                   ) : null}
                 </div>
@@ -1398,65 +1474,6 @@ export default function PengolahanPemasaran() {
                   }}
                 />
               </div>
-
-              {/* Detail wilayah hasil tap */}
-              {selectedMapRegion ? (
-                <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Wilayah Terpilih
-                      </p>
-
-                      <h3 className="mt-1 break-words font-semibold text-foreground">
-                        {selectedMapRegion.name}
-                      </h3>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMapRegion(null)}
-                      className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                    >
-                      Tutup
-                    </button>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl bg-background/70 p-3">
-                      <p className="text-xs text-muted-foreground">Jumlah UPI</p>
-
-                      <p className="mt-1 font-bold text-foreground">
-                        {selectedMapRegion.upi.toLocaleString('id-ID')}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-background/70 p-3">
-                      <p className="text-xs text-muted-foreground">Hasil Produksi</p>
-
-                      <p className="mt-1 font-bold text-foreground">
-                        {selectedMapRegion.produksi.toLocaleString('id-ID')} Kg
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-background/70 p-3">
-                      <p className="text-xs text-muted-foreground">Nilai Produksi</p>
-
-                      <p className="mt-1 break-words font-bold text-foreground">
-                        {new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          maximumFractionDigits: 0,
-                        }).format(selectedMapRegion.nilai)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
-                </p>
-              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:col-span-2">
@@ -1465,13 +1482,13 @@ export default function PengolahanPemasaran() {
                   <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500">
                     <TrendingUp className="h-5 w-5" />
                   </div>
-                  <h2 className="text-lg font-semibold">Top 10 Kabupaten/Kota</h2>
+                  <h2 className="text-xl font-bold text-foreground">Top 10 Kab/Kota</h2>
                 </div>
 
                 <ChartSelect
                   value={topKabFilter}
                   onChange={(event) => setTopKabFilter(event.target.value)}
-                  ariaLabel="Filter Top 10 Kabupaten/Kota"
+                  ariaLabel="Filter Top 10 Kab/Kota"
                   options={[
                     { value: 'produksi', label: 'Hasil (Kg)' },
                     { value: 'nilai', label: 'Nilai (Rp)' },
@@ -1494,7 +1511,7 @@ export default function PengolahanPemasaran() {
               <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
                 <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
                 <div>
-                  <h2 className="text-lg font-semibold">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
+                  <h2 className="text-xl font-bold text-foreground">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
                 </div>
               </div>
 
@@ -1513,14 +1530,14 @@ export default function PengolahanPemasaran() {
                     className={`rounded-xl p-2.5 ${
                       activeDetailKegiatan === 'Pengolahan'
                         ? 'bg-[#0096C7]/10 text-[#0096C7]'
-                        : 'bg-[#023E8A]/10 text-[#023E8A]'
+                        : 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-400'
                     }`}
                   >
                     <Factory className="h-5 w-5" />
                   </div>
 
                   <div>
-                    <h2 className="text-lg font-semibold">Jenis Detail Kegiatan</h2>
+                    <h2 className="text-xl font-bold text-foreground">Jenis Detail Kegiatan</h2>
                   </div>
                 </div>
 
@@ -1543,7 +1560,7 @@ export default function PengolahanPemasaran() {
                       onClick={() => setDetailKegiatanFilter('Pemasaran')}
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                         activeDetailKegiatan === 'Pemasaran'
-                          ? 'bg-[#023E8A] text-white shadow-md hover:bg-[#034ea2]'
+                          ? 'bg-emerald-500 text-white shadow-md hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -1577,7 +1594,7 @@ export default function PengolahanPemasaran() {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Tren Pengolahan</h3>
+                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pengolahan</h3>
                     </div>
                   </div>
 
@@ -1605,14 +1622,14 @@ export default function PengolahanPemasaran() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#023E8A]/20 bg-card p-6 shadow-sm">
+              <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-[#023E8A]/10 p-2.5 text-[#023E8A]">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-400">
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Tren Pemasaran</h3>
+                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pemasaran</h3>
                     </div>
                   </div>
 
@@ -1718,6 +1735,7 @@ export default function PengolahanPemasaran() {
               data={filteredData}
               getSearchText={(row) => buildTableSearchText(row, false)}
               onCustomExport={handleExportData}
+              renderSubComponent={renderPackageDetail}
               customExportButton={
                 <button
                   type="button"
@@ -1737,8 +1755,48 @@ export default function PengolahanPemasaran() {
           </div>
         </div>
       )}
-      {rekapDialogOpen ? (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 px-4 py-8" onClick={() => !rekapLoading && setRekapDialogOpen(false)}>
+
+      {noticeDialog && typeof document !== 'undefined' ? createPortal(
+        <div
+          className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8"
+          onClick={() => setNoticeDialog(null)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{noticeDialog.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{noticeDialog.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNoticeDialog(null)}
+                  className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end border-t border-border p-5">
+              <button
+                type="button"
+                onClick={() => setNoticeDialog(null)}
+                className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      ,
+        document.body
+      ) : null}
+
+      {rekapDialogOpen && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8" onClick={() => !rekapLoading && setRekapDialogOpen(false)}>
           <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl" onClick={event => event.stopPropagation()}>
             <div className="border-b border-border p-6">
               <div className="flex items-start justify-between gap-4">
@@ -1769,6 +1827,8 @@ export default function PengolahanPemasaran() {
             </div>
           </div>
         </div>
+      ,
+        document.body
       ) : null}
 
     </div>

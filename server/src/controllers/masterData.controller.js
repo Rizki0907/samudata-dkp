@@ -53,7 +53,7 @@ const getAllMasterData = async (req, res) => {
     const data = await prisma.masterData.findMany({
       orderBy: [
         { category: 'asc' },
-        { value: 'asc' }
+        { id: 'asc' }
       ]
     });
     res.status(200).json({ success: true, data });
@@ -68,7 +68,7 @@ const getMasterDataByCategory = async (req, res) => {
     const { category } = req.params;
     const data = await prisma.masterData.findMany({
       where: { category },
-      orderBy: { value: 'asc' }
+      orderBy: { id: 'asc' }
     });
     res.status(200).json({ success: true, data });
   } catch (error) {

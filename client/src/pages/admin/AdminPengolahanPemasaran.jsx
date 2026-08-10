@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, CheckCircle, XCircle, Trash2, } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -314,6 +315,13 @@ const formatCompactRupiah = value => {
   return `${sign}Rp ${compact.toLocaleString('id-ID', { maximumFractionDigits: digits })} ${scale.label}`;
 };
 
+const splitCompactRupiah = value => {
+  const formatted = formatCompactRupiah(value);
+  const match = formatted.match(/^(.*)\s(Kuadriliun|Biliar|Triliun|Miliar|Juta)$/);
+  if (!match) return { amount: formatted, unit: '' };
+  return { amount: match[1], unit: match[2] };
+};
+
 function ChartSelect({ value, onChange, options, ariaLabel }) {
   return (
     <div className="relative w-full sm:w-auto">
@@ -343,8 +351,9 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
   };
   const theme = themes[dialog.theme] || themes.INFO;
   const Icon = theme.icon;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
       <div className={`w-full max-w-lg overflow-hidden rounded-3xl border ${theme.border} bg-card shadow-2xl`} onClick={event => event.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-start gap-4">
@@ -373,7 +382,8 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -535,13 +545,13 @@ function StatusBadge({ row, onEdit }) {
           className="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 underline decoration-dotted underline-offset-2 transition-colors hover:text-rose-600"
         >
           <Info className="h-3.5 w-3.5" />
-          Lihat &amp; Perbaiki
+          Lihat dan Perbaiki
         </button>
       ) : null}
 
-      {isRejected && showModal ? (
+      {isRejected && showModal && typeof document !== 'undefined' ? createPortal(
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4 py-8"
+          className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8"
           onClick={() => setShowModal(false)}
         >
           <div
@@ -642,6 +652,8 @@ function StatusBadge({ row, onEdit }) {
             </div>
           </div>
         </div>
+      ,
+        document.body
       ) : null}
     </div>
   );
@@ -684,31 +696,54 @@ const getSearchNumberVariants = (value) => {
   ].filter(Boolean);
 };
 
-const buildTableSearchText = (row, includeStatus = false) => {
-  const parts = [];
-
-  if (includeStatus) parts.push(row?.status);
-
-  parts.push(
-    row?.tahun,
-    row?.kabupaten_kota,
-    row?.kategori_kegiatan,
-    row?.jenis_kegiatan,
-    row?.skala_usaha,
+const flattenPackageDetails = packages =>
+  (packages || []).flatMap(pkg =>
+    (pkg.details || []).map(detail => ({
+      ...detail,
+      tahun: pkg.tahun,
+      kabupaten_kota: pkg.kabupaten_kota,
+      status: pkg.status,
+      updated_at: pkg.updated_at,
+    })),
   );
 
-  [
-    row?.jumlah_unit_usaha,
-    row?.hasil_kg,
-    row?.hasil_rp,
-    row?.modal_rp,
-  ].forEach((value) => {
+const packageMatchesDetailFilters = (item, filterJenisKegiatan, filterSkalaUsaha) => {
+  const details = Array.isArray(item?.details) ? item.details : [];
+  if (
+    filterJenisKegiatan.length &&
+    !details.some(detail => filterJenisKegiatan.includes(normalizeKategori(detail.kategori_kegiatan)))
+  ) return false;
+  if (
+    filterSkalaUsaha.length &&
+    !details.some(detail => filterSkalaUsaha.includes(detail.skala_usaha))
+  ) return false;
+  return true;
+};
+
+const buildTableSearchText = (row, includeStatus = false) => {
+  const parts = [];
+  if (includeStatus) parts.push(row?.status);
+  parts.push(row?.tahun, row?.kabupaten_kota);
+
+  (row?.details || []).forEach(detail => {
+    parts.push(detail?.kategori_kegiatan, detail?.jenis_kegiatan, detail?.skala_usaha);
+    [detail?.jumlah_unit_usaha, detail?.hasil_kg, detail?.hasil_rp].forEach(value => {
+      parts.push(...getSearchNumberVariants(value));
+    });
+  });
+
+  [row?.jumlah_unit_usaha, row?.hasil_kg, row?.hasil_rp, row?.modal_rp].forEach(value => {
     parts.push(...getSearchNumberVariants(value));
   });
 
-  return parts
-    .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
-    .join(' ');
+  Object.entries(row?.modal_by_jenis || {}).forEach(([key, value]) => {
+    parts.push(key, ...getSearchNumberVariants(value));
+  });
+  Object.entries(row?.modal_by_skala || {}).forEach(([key, value]) => {
+    parts.push(key, ...getSearchNumberVariants(value));
+  });
+
+  return parts.filter(value => value !== null && value !== undefined && String(value).trim() !== '').join(' ');
 };
 
 const normalizeKategori = value =>
@@ -882,7 +917,7 @@ export default function AdminPengolahanPemasaran() {
 
       // Palet kategori Pengolahan dan Pemasaran.
       categoryPengolahan: '#0096C7',
-      categoryPemasaran: '#023E8A',
+      categoryPemasaran: isDark ? '#34D399' : '#10B981',
     }),
     [isDark],
   );
@@ -946,8 +981,6 @@ export default function AdminPengolahanPemasaran() {
       const wasEditing = Boolean(editingData);
       if (editingData) {
         await api.put(`/pengolahan-pemasaran/${editingData.id}`, formData);
-      } else if (Array.isArray(formData?.details)) {
-        await api.post('/pengolahan-pemasaran/batch', formData);
       } else {
         await api.post('/pengolahan-pemasaran', formData);
       }
@@ -1179,20 +1212,16 @@ export default function AdminPengolahanPemasaran() {
   );
 
   const filteredData = useMemo(
-  () =>
-    data.filter(item => {
-      if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
-      if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-      if (filterJenisKegiatan.length && !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))) return false;
-      if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
-      
-      // Menggunakan filterStatus multi-select (jika diisi), jika kosong tampilkan SEMUA status
-      if (filterStatus.length && !filterStatus.includes(item.status)) return false;
-      
-      return true;
-    }),
-  [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
-);
+    () =>
+      data.filter(item => {
+        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
+        if (filterStatus.length && !filterStatus.includes(item.status)) return false;
+        return true;
+      }),
+    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
+  );
 
   const handleExportData = async rows => {
     const exportRows = Array.isArray(rows) ? rows : [];
@@ -1294,22 +1323,22 @@ export default function AdminPengolahanPemasaran() {
         return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
       }, [filteredData]);
 
-  // Data sumber visualisasi hanya VERIFIED.
-  // Filter Status tidak dipakai di tab Visualisasi Statistik.
-  const verifiedData = useMemo(
+  // Data sumber visualisasi hanya VERIFIED. Tabel utama tetap satu baris per paket Tahun + Kab/Kota.
+  const verifiedPackages = useMemo(
     () =>
       data.filter(item => {
         if (item.status !== 'VERIFIED') return false;
         if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
         if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (
-          filterJenisKegiatan.length &&
-          !filterJenisKegiatan.includes(normalizeKategori(item.kategori_kegiatan))
-        ) return false;
-        if (filterSkalaUsaha.length && !filterSkalaUsaha.includes(item.skala_usaha)) return false;
+        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
         return true;
       }),
     [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
+  );
+
+  const verifiedData = useMemo(
+    () => flattenPackageDetails(verifiedPackages),
+    [verifiedPackages],
   );
 
   const stats = useMemo(() => {
@@ -1671,7 +1700,7 @@ export default function AdminPengolahanPemasaran() {
     [],
   );
 
-  // 2. Bar Chart Top 10 Kabupaten/Kota
+  // 2. Bar Chart Top 10 Kab/Kota
   const barOption = useMemo(() => {
     const top10 = [...stats.produksiPerKabupaten]
       .filter(item => item[topKabFilter] > 0)
@@ -2077,77 +2106,104 @@ export default function AdminPengolahanPemasaran() {
         category: 'Pemasaran',
         metric: trendPemasaranFilter,
         color: chartTheme.categoryPemasaran,
-        areaStart: 'rgba(2, 62, 138, 0.48)',
-        areaEnd: 'rgba(2, 62, 138, 0.04)',
+        areaStart: isDark ? 'rgba(52, 211, 153, 0.38)' : 'rgba(16, 185, 129, 0.30)',
+        areaEnd: isDark ? 'rgba(52, 211, 153, 0.03)' : 'rgba(16, 185, 129, 0.03)',
       }),
     };
   }, [stats.trenTahunan, trendPengolahanFilter, trendPemasaranFilter, chartTheme]);
 
   // ==== Akhir Visualisasi Data ====
 
+  const renderPackageDetail = ({ row }) => {
+    const pkg = row.original;
+    const details = Array.isArray(pkg.details) ? pkg.details : [];
+    const modalJenis = Object.entries(pkg.modal_by_jenis || {}).filter(([, value]) => toNumber(value) > 0);
+    const modalSkala = Object.entries(pkg.modal_by_skala || {}).filter(([, value]) => toNumber(value) > 0);
+
+    return (
+      <div className="space-y-5 bg-muted/20 p-5 md:p-6">
+        <div>
+          <h4 className="mb-3 text-sm font-bold text-foreground">Unit Usaha dan Produksi</h4>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Kategori</th>
+                  <th className="px-4 py-3 text-left">Jenis Kegiatan</th>
+                  <th className="px-4 py-3 text-left">Skala</th>
+                  <th className="px-4 py-3 text-right">Unit</th>
+                  <th className="px-4 py-3 text-right">Hasil (Kg)</th>
+                  <th className="px-4 py-3 text-right">Hasil (Rp)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {details.map((detail, index) => (
+                  <tr key={`${detail.id || index}-${detail.jenis_kegiatan}-${detail.skala_usaha}`}>
+                    <td className="px-4 py-3">{detail.kategori_kegiatan || '-'}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{detail.jenis_kegiatan || '-'}</td>
+                    <td className="px-4 py-3">{detail.skala_usaha || '-'}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.jumlah_unit_usaha).toLocaleString('id-ID')}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.hasil_kg).toLocaleString('id-ID')}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatRupiah(detail.hasil_rp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h4 className="mb-3 text-sm font-bold text-foreground">Modal berdasarkan Jenis Kegiatan</h4>
+            {modalJenis.length ? (
+              <div className="space-y-2">
+                {modalJenis.map(([name, value]) => (
+                  <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
+                    <span className="text-muted-foreground">{name}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Belum ada modal yang diisi.</p>}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h4 className="mb-3 text-sm font-bold text-foreground">Modal berdasarkan Skala Usaha</h4>
+            {modalSkala.length ? (
+              <div className="space-y-2">
+                {modalSkala.map(([name, value]) => (
+                  <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
+                    <span className="text-muted-foreground">{name}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Belum ada modal yang diisi.</p>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const columns = useMemo(
     () => [
       {
-        header: 'Status',
-        accessorKey: 'status',
-        cell: info => (
-          <StatusBadge
-            row={info.row.original}
-            onEdit={handleEdit}
-          />
-        ),
+        header: 'Status', accessorKey: 'status',
+        cell: info => <StatusBadge row={info.row.original} onEdit={handleEdit} />,
       },
       { header: 'Tahun', accessorKey: 'tahun' },
+      { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <span className="font-medium text-foreground">{info.getValue()}</span> },
       {
-        header: 'Kab/Kota',
-        accessorKey: 'kabupaten_kota',
-        cell: info => <span className="font-medium text-foreground">{info.getValue()}</span>,
+        header: 'Isi Rekap', id: 'isi_rekap',
+        cell: info => {
+          const row = info.row.original;
+          return <span className="text-muted-foreground"><b className="text-foreground">{row.jumlah_rincian || 0} rincian</b> • {row.jumlah_skala || 0} skala</span>;
+        },
       },
-      {
-        header: 'Kategori Kegiatan',
-        accessorKey: 'kategori_kegiatan',
-        cell: info => (
-          <span className="font-medium text-foreground">
-            {normalizeKategori(info.getValue()) || '-'}
-          </span>
-        ),
-      },
-      {
-        header: 'Jenis Kegiatan',
-        id: 'jenis_kegiatan_detail',
-        cell: info => getJenisDetail(info.row.original) || '-',
-      },
-      { header: 'Skala Usaha', accessorKey: 'skala_usaha' },
-      {
-        header: 'Jumlah Unit Usaha',
-        accessorKey: 'jumlah_unit_usaha',
-        cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
-      },
-      {
-        header: 'Hasil Produksi (Kg)',
-        accessorKey: 'hasil_kg',
-        cell: info => toNumber(info.getValue()).toLocaleString('id-ID'),
-      },
-      {
-        header: 'Nilai Produksi (Rp)',
-        accessorKey: 'hasil_rp',
-        cell: info =>
-          new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0,
-          }).format(toNumber(info.getValue())),
-      },
-      {
-        header: 'Investasi Modal (Rp)',
-        accessorKey: 'modal_rp',
-        cell: info =>
-          new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0,
-          }).format(toNumber(info.getValue())),
-      },
+      { header: 'Total Unit', accessorKey: 'jumlah_unit_usaha', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
+      { header: 'Hasil Produksi (Kg)', accessorKey: 'hasil_kg', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
+      { header: 'Nilai Produksi (Rp)', accessorKey: 'hasil_rp', cell: info => formatRupiah(info.getValue()) },
+      { header: 'Total Modal (Rp)', accessorKey: 'modal_rp', cell: info => formatRupiah(info.getValue()) },
     ],
     [],
   );
@@ -2166,6 +2222,7 @@ export default function AdminPengolahanPemasaran() {
         onBatchReject={isAdminPusat ? handleBatchReject : undefined}
         onBatchDelete={isAdminPusat ? handleBatchDelete : undefined}
         selectRowOnClick
+        renderSubComponent={renderPackageDetail}
         customExportButton={
           <button
             type="button"
@@ -2197,7 +2254,7 @@ export default function AdminPengolahanPemasaran() {
             <p className="text-sm font-medium text-muted-foreground">
               Total Unit Usaha
             </p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-xl font-bold text-foreground xl:text-2xl">
               {stats.kpi.total_upi.toLocaleString('id-ID')}
               <span className="text-sm font-normal text-muted-foreground"> Unit </span>
             </p>
@@ -2212,7 +2269,7 @@ export default function AdminPengolahanPemasaran() {
             <p className="text-sm font-medium text-muted-foreground">
               Total Hasil Produksi
             </p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-xl font-bold text-foreground xl:text-2xl">
               {stats.kpi.total_volume.toLocaleString('id-ID')}{' '}
               <span className="text-sm font-normal text-muted-foreground">
                 Kg
@@ -2229,9 +2286,21 @@ export default function AdminPengolahanPemasaran() {
             <p className="text-sm font-medium text-muted-foreground">
               Total Nilai Produksi
             </p>
-            <p className="text-xl font-bold leading-tight text-foreground">
-              {formatCompactRupiah(stats.kpi.total_nilai)}
-            </p>
+            {(() => {
+              const compactNilai = splitCompactRupiah(stats.kpi.total_nilai);
+              return (
+                <div className="flex items-end gap-1.5">
+                  <span className="text-xl font-bold leading-tight text-foreground">
+                    {compactNilai.amount}
+                  </span>
+                  {compactNilai.unit ? (
+                    <span className="pb-[1px] text-sm font-normal leading-none text-muted-foreground">
+                      {compactNilai.unit}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -2253,14 +2322,14 @@ export default function AdminPengolahanPemasaran() {
         </div>
       </div>
 
-      {/* Baris 2 — Peta dan Top 10 Kabupaten/Kota */}
+      {/* Baris 2 — Peta dan Top 10 Kab/Kota */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-3">
           <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500"><MapPin className="h-5 w-5" /></div>
-                <h2 className="text-base font-semibold sm:text-lg">
+                <h2 className="text-xl font-bold text-foreground">
                   Peta Sebaran
                 </h2>
               </div>
@@ -2289,7 +2358,7 @@ export default function AdminPengolahanPemasaran() {
                       : 'border-border bg-background text-muted-foreground'
                   }`}
                 >
-                  {mapInteractionEnabled ? 'Kunci Peta' : 'Geser & Zoom'}
+                  {mapInteractionEnabled ? 'Kunci Peta' : 'Geser dan Zoom'}
                 </button>
               ) : null}
             </div>
@@ -2316,58 +2385,6 @@ export default function AdminPengolahanPemasaran() {
               }}
             />
           </div>
-
-          {selectedMapRegion ? (
-            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Wilayah Terpilih
-                  </p>
-                  <h3 className="mt-1 break-words font-semibold text-foreground">
-                    {selectedMapRegion.name}
-                  </h3>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMapRegion(null)}
-                  className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  Tutup
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-background/70 p-3">
-                  <p className="text-xs text-muted-foreground">Jumlah Unit Usaha</p>
-                  <p className="mt-1 font-bold text-foreground">
-                    {selectedMapRegion.upi.toLocaleString('id-ID')}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-background/70 p-3">
-                  <p className="text-xs text-muted-foreground">
-                    Hasil Produksi
-                  </p>
-                  <p className="mt-1 font-bold text-foreground">
-                    {selectedMapRegion.produksi.toLocaleString('id-ID')} Kg
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-background/70 p-3">
-                  <p className="text-xs text-muted-foreground">Nilai Produksi</p>
-                  <p className="mt-1 break-words font-bold text-foreground">
-                    {formatRupiah(selectedMapRegion.nilai)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Ketuk salah satu kabupaten/kota pada peta untuk melihat rinciannya.
-            </p>
-          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-2">
@@ -2375,14 +2392,14 @@ export default function AdminPengolahanPemasaran() {
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500"><TrendingUp className="h-5 w-5" /></div>
               <h2 className="text-lg font-semibold">
-                Top 10 Kabupaten/Kota
+                Top 10 Kab/Kota
               </h2>
             </div>
 
             <ChartSelect
               value={topKabFilter}
               onChange={event => setTopKabFilter(event.target.value)}
-              ariaLabel="Filter Top 10 Kabupaten/Kota"
+              ariaLabel="Filter Top 10 Kab/Kota"
               options={[{ value: 'produksi', label: 'Hasil (Kg)' }, { value: 'nilai', label: 'Nilai (Rp)' }]}
             />
           </div>
@@ -2420,13 +2437,15 @@ export default function AdminPengolahanPemasaran() {
               <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
                   <div className={`rounded-xl p-2.5 ${
-                    activeDetailKegiatan === 'Pengolahan' ? 'bg-[#0096C7]/10 text-[#0096C7]' : 'bg-[#023E8A]/10 text-[#023E8A]'
+                    activeDetailKegiatan === 'Pengolahan'
+                      ? 'bg-[#0096C7]/10 text-[#0096C7]'
+                      : 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-400'
                   }`}>
                   <Factory
                     className={`h-5 w-5 ${
                       activeDetailKegiatan === 'Pengolahan'
                         ? 'text-[#0096C7]'
-                        : 'text-[#023E8A]'
+                        : 'text-emerald-500 dark:text-emerald-400'
                     }`}
                   />
                   </div>
@@ -2462,7 +2481,7 @@ export default function AdminPengolahanPemasaran() {
                       }
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                         activeDetailKegiatan === 'Pemasaran'
-                          ? 'bg-[#023E8A] text-white shadow-md hover:bg-[#034ea2]'
+                          ? 'bg-emerald-500 text-white shadow-md hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -2498,7 +2517,7 @@ export default function AdminPengolahanPemasaran() {
 
                     <div>
                       <h3 className="font-semibold text-foreground">
-                        Tren Pengolahan
+                        Tren Produksi Pengolahan
                       </h3>
                     </div>
                   </div>
@@ -2529,16 +2548,16 @@ export default function AdminPengolahanPemasaran() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#023E8A]/20 bg-card p-6 shadow-sm">
+              <div className="rounded-2xl border border-emerald-500/20 bg-card p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-[#023E8A]/10 p-2.5 text-[#023E8A]">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-400">
                       <TrendingUp className="h-5 w-5" />
                     </div>
 
                     <div>
                       <h3 className="font-semibold text-foreground">
-                        Tren Pemasaran
+                        Tren Produksi Pemasaran
                       </h3>
                     </div>
                   </div>
@@ -2754,9 +2773,9 @@ export default function AdminPengolahanPemasaran() {
         </>
       )}
 
-      {rekapDialogOpen ? (
+      {rekapDialogOpen && typeof document !== 'undefined' ? createPortal(
         <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 px-4 py-8"
+          className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8"
           onClick={() => !rekapLoading && setRekapDialogOpen(false)}
         >
           <div
@@ -2841,6 +2860,8 @@ export default function AdminPengolahanPemasaran() {
             </div>
           </div>
         </div>
+      ,
+        document.body
       ) : null}
 
       <ActionDialog

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import api from '@/services/api';
@@ -82,12 +83,14 @@ const OVERVIEW_BIDANG_LIST = [
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-      <motion.div 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" 
+  if (!isOpen || typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-transparent"
         onClick={onClose}
       />
       <motion.div 
@@ -104,7 +107,8 @@ const Modal = ({ isOpen, onClose, title, children }) => {
           {children}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -167,9 +171,9 @@ export default function MasterData() {
   const handleOpenEdit = (item) => {
     setIsEditing(true);
     setEditId(item.id);
-    setFormData({ 
-      value: item.value, 
-      kab_kota: item.metadata?.kab_kota || '', 
+    setFormData({
+      value: item.value,
+      kab_kota: item.metadata?.kab_kota || '',
       satuan: item.metadata?.satuan || '',
       id_wilayah: item.metadata?.id_wilayah || '',
     });
@@ -257,6 +261,11 @@ export default function MasterData() {
         if (aId) return -1;
         if (bId) return 1;
       }
+
+      if (['JENIS_PENGOLAHAN', 'JENIS_PEMASARAN', 'KATEGORI_SKALA_USAHA'].includes(activeCategory)) {
+        return Number(a.id ?? 0) - Number(b.id ?? 0);
+      }
+
       return a.value.localeCompare(b.value, 'id', { numeric: true, sensitivity: 'base' });
     });
   }, [data, activeCategory, searchQuery]);
@@ -281,7 +290,7 @@ export default function MasterData() {
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border ${toast.type === 'error' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}
+            className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl border ${toast.type === 'error' ? 'bg-rose-600 border-rose-700 text-white' : 'bg-emerald-600 border-emerald-700 text-white'}`}
           >
             {toast.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
             <span className="font-medium">{toast.msg}</span>
@@ -548,7 +557,7 @@ export default function MasterData() {
                     type="text"
                     value={formData.id_wilayah}
                     onChange={(e) => setFormData({ ...formData, id_wilayah: e.target.value })}
-                    placeholder="Contoh: 01 untuk Kab. Pacitan"
+                    placeholder="Contoh: 01 untuk Kab. Pacitan, 78 untuk Kota Surabaya"
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     required
                   />
@@ -571,7 +580,7 @@ export default function MasterData() {
                       <option key={kk} value={kk}>{kk}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-muted-foreground">Ini akan otomatis terpilih di form input jika pelabuhan dipilih.</p>
+                  
                 </div>
               )}
 

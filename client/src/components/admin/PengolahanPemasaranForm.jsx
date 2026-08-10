@@ -1,327 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
-export const KabupatenKotaOptions_FALLBACK = [
-  'KAB. PACITAN', 'KAB. PONOROGO', 'KAB. TRENGGALEK', 'KAB. TULUNGAGUNG',
-  'KAB. BLITAR', 'KAB. KEDIRI', 'KAB. MALANG', 'KAB. LUMAJANG', 'KAB. JEMBER',
-  'KAB. BANYUWANGI', 'KAB. BONDOWOSO', 'KAB. SITUBONDO', 'KAB. PROBOLINGGO',
-  'KAB. PASURUAN', 'KAB. SIDOARJO', 'KAB. MOJOKERTO', 'KAB. JOMBANG',
-  'KAB. NGANJUK', 'KAB. MADIUN', 'KAB. MAGETAN', 'KAB. NGAWI', 'KAB. BOJONEGORO',
-  'KAB. TUBAN', 'KAB. LAMONGAN', 'KAB. GRESIK', 'KAB. BANGKALAN', 'KAB. SAMPANG',
-  'KAB. PAMEKASAN', 'KAB. SUMENEP', 'KOTA KEDIRI', 'KOTA BLITAR', 'KOTA MALANG',
-  'KOTA PROBOLINGGO', 'KOTA PASURUAN', 'KOTA MOJOKERTO', 'KOTA MADIUN',
-  'KOTA SURABAYA', 'KOTA BATU',
+const TAB_ITEMS = [
+  { id: 'produksi', label: 'Unit dan Produksi' },
+  { id: 'modal', label: 'Modal' },
+  { id: 'dokumen', label: 'Sertifikat dan Izin' },
 ];
 
-export const KabupatenKotaOptions = KabupatenKotaOptions_FALLBACK;
-const CURRENT_YEAR = new Date().getFullYear();
-export const TAHUN_OPTIONS = Array.from({ length: 8 }, (_, i) => String(CURRENT_YEAR + 1 - i));
-
-export const JENIS_KEGIATAN_PENGOLAHAN_FALLBACK = [
-  'Fermentasi',
-  'Pelumatan Daging Ikan',
-  'Pembekuan',
-  'Pemindangan',
-  'Penanganan Produk Segar',
-  'Pengalengan',
-  'Pengasapan/ Pemanggangan',
-  'Pereduksian/ Ekstraksi',
-  'Penggaraman/ Pengeringan',
-  'Pengolahan Lainnya',
-];
-export const JENIS_KEGIATAN_PENGOLAHAN = JENIS_KEGIATAN_PENGOLAHAN_FALLBACK;
-
-export const JENIS_KEGIATAN_PEMASARAN_FALLBACK = [
-  'Pengecer',
-  'Pengumpul/ Pedagang Besar/ Distributor',
-];
-export const JENIS_KEGIATAN_PEMASARAN = JENIS_KEGIATAN_PEMASARAN_FALLBACK;
-
-export const SKALA_USAHA_OPTIONS_FALLBACK = ['Mikro', 'Kecil', 'Menengah', 'Besar'];
-export const SKALA_USAHA_OPTIONS = SKALA_USAHA_OPTIONS_FALLBACK;
-
-// Sertifikat Produk & Izin Usaha SENGAJA tetap hardcode -- lihat catatan di atas.
-export const SERTIFIKAT_PRODUK_LIST = [
-  { key: 'haccp', label: 'HACCP' },
-  { key: 'sni', label: 'SNI' },
-  { key: 'halal', label: 'HALAL' },
-  { key: 'skp', label: 'SKP' },
-  { key: 'pirt', label: 'PIRT' },
-  { key: 'md', label: 'MD' },
-  { key: 'lainnya', label: 'lainnya' },
-];
-
-export const IZIN_USAHA_LIST = [
-  { key: 'nib', label: 'NIB' },
-  { key: 'npwp', label: 'NPWP' },
-  { key: 'kusuka', label: 'KUSUKA' },
-  { key: 'menkumham', label: 'Pengesahan MENKUMHAM' },
-  { key: 'akta_pendirian', label: 'Akta Pendirian Usaha' },
-  { key: 'lokasi_domisili', label: 'Lokasi / Domisili' },
-  { key: 'imb', label: 'IMB' },
-  { key: 'siup_perikanan', label: 'SIUP Perikanan' },
-  { key: 'siup_perdagangan', label: 'SIUP Perdagangan' },
-  { key: 'lainnya', label: 'Lain-lain' },
-];
-
-const INITIAL_FORM_DATA = {
-  tahun: String(CURRENT_YEAR),
-  kabupaten_kota: '',
-  kategori_kegiatan: 'Pengolahan',
-  jenis_kegiatan: '',
-  skala_usaha: '',
-  jumlah_unit_usaha: '0',
-  modal_rp: '0',
-  hasil_kg: '0',
-  hasil_rp: '0',
-  sertifikat_produk: SERTIFIKAT_PRODUK_LIST.reduce((acc, item) => ({ ...acc, [item.key]: '0' }), {}),
-  izin_usaha: IZIN_USAHA_LIST.reduce((acc, item) => ({ ...acc, [item.key]: '0' }), {}),
-  shm_count: '0',
-  non_shm_count: '0',
-};
-
-// ============================================================================
-// STYLING
-// ============================================================================
-const INPUT_CLASS =
-  'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
-
-const LABEL_CLASS =
-  'mb-1 block text-xs font-normal tracking-wide text-foreground';
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-// Input angka memakai format Indonesia:
-// - titik sebagai pemisah ribuan: 1000 -> "1.000"
-// - koma sebagai pemisah desimal: 1000,65 -> "1.000,65"
-// - maksimal dua angka di belakang koma.
-const MAX_DECIMAL_DIGITS = 2;
-const DECIMAL_AMOUNT_FIELDS = new Set(['modal_rp', 'hasil_kg', 'hasil_rp']);
-
-const getDecimalDigits = (key) =>
-  DECIMAL_AMOUNT_FIELDS.has(key) ? MAX_DECIMAL_DIGITS : 0;
-
-const roundToDigits = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
-  const factor = 10 ** decimalDigits;
-  return Math.round((Number(value) + Number.EPSILON) * factor) / factor;
-};
-
-const formatIndonesianInput = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
-  if (value === '' || value === null || value === undefined) return '';
-
-  let raw = String(value)
-    .trim()
-    .replace(/\s/g, '')
-    .replace(/[^0-9.,]/g, '');
-
-  if (!raw) return '';
-
-  const hasDecimalSeparator = decimalDigits > 0 && raw.includes(',');
-  const [rawInteger = '', ...rawDecimalParts] = raw.split(',');
-  const integerDigits = rawInteger.replace(/\./g, '').replace(/\D/g, '');
-  const cleanInteger = integerDigits.replace(/^0+(?=\d)/, '') || '0';
-  const groupedInteger = cleanInteger.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  if (!hasDecimalSeparator) return groupedInteger;
-
-  const decimalDigitsOnly = rawDecimalParts
-    .join('')
-    .replace(/\D/g, '')
-    .slice(0, decimalDigits);
-
-  return `${groupedInteger},${decimalDigitsOnly}`;
-};
-
-const formatInitialNumber = (value, decimalDigits = MAX_DECIMAL_DIGITS) => {
-  if (value === '' || value === null || value === undefined) return '';
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value.toLocaleString('id-ID', {
-      useGrouping: true,
-      maximumFractionDigits: decimalDigits,
-    });
-  }
-
-  const raw = String(value).trim();
-  if (!raw) return '';
-
-  // Nilai yang sudah berbentuk 1.000 atau 1.000.000 dianggap memakai
-  // pemisah ribuan Indonesia, bukan titik desimal dari API.
-  if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
-    return formatIndonesianInput(raw, decimalDigits);
-  }
-
-  // Nilai dari API umumnya memakai titik sebagai desimal, misalnya 1000.65.
-  // Nilai yang sudah memakai koma dianggap sudah berformat Indonesia.
-  if (!raw.includes(',') && /^-?\d+(?:\.\d+)?$/.test(raw)) {
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) {
-      return parsed.toLocaleString('id-ID', {
-        useGrouping: true,
-        maximumFractionDigits: decimalDigits,
-      });
-    }
-  }
-
-  return formatIndonesianInput(raw, decimalDigits);
-};
-
-// Ubah "1.000,65" menjadi 1000.65 untuk payload API.
-const toRawNumber = (value) => {
-  if (value === '' || value === null || value === undefined) return 0;
-
-  const normalized = String(value)
-    .trim()
-    .replace(/\s/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-    .replace(/[^0-9.-]/g, '');
-
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const formatSteppedNumber = (value, decimalDigits = MAX_DECIMAL_DIGITS) =>
-  Math.max(0, roundToDigits(value, decimalDigits)).toLocaleString('id-ID', {
-    useGrouping: true,
-    maximumFractionDigits: decimalDigits,
-  });
-
-
-const normalizeKategori = (value) =>
-  String(value ?? '').trim().toLowerCase() === 'pemasaran'
-    ? 'Pemasaran'
-    : 'Pengolahan';
-
-const normalizeOptionKey = (value) =>
-  String(value ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s*\/\s*/g, '/')
-    .replace(/\s+/g, ' ');
-
-const findCanonicalOption = (value, options) => {
-  const key = normalizeOptionKey(value);
-  return options.find((option) => normalizeOptionKey(option) === key) || value || '';
-};
-
-const createEmptyFormData = () => ({
-  ...INITIAL_FORM_DATA,
-  sertifikat_produk: { ...INITIAL_FORM_DATA.sertifikat_produk },
-  izin_usaha: { ...INITIAL_FORM_DATA.izin_usaha },
-});
-
-// jenisPengolahanOptions & jenisPemasaranOptions sekarang dikirim dari
-// komponen (hasil getOptions() dari Master Data), bukan konstanta module-level lagi.
-const createFormData = (initialData, jenisPengolahanOptions, jenisPemasaranOptions) => {
-  if (!initialData) return createEmptyFormData();
-
-  const kategori = normalizeKategori(initialData.kategori_kegiatan);
-  const jenisOptions =
-    kategori === 'Pengolahan'
-      ? jenisPengolahanOptions
-      : jenisPemasaranOptions;
-
-  return {
-    tahun: String(initialData.tahun ?? CURRENT_YEAR),
-    kabupaten_kota: initialData.kabupaten_kota ?? '',
-    kategori_kegiatan: kategori,
-    jenis_kegiatan: findCanonicalOption(initialData.jenis_kegiatan, jenisOptions),
-    skala_usaha: initialData.skala_usaha ?? ' ',
-    jumlah_unit_usaha: formatInitialNumber(initialData.jumlah_unit_usaha ?? 0, 0),
-    modal_rp: formatInitialNumber(initialData.modal_rp ?? 0, 2),
-    hasil_kg: formatInitialNumber(initialData.hasil_kg ?? 0, 2),
-    hasil_rp: formatInitialNumber(initialData.hasil_rp ?? 0, 2),
-    sertifikat_produk: {
-      haccp: formatInitialNumber(initialData.sertifikat_haccp ?? 0, 0),
-      sni: formatInitialNumber(initialData.sertifikat_sni ?? 0, 0),
-      halal: formatInitialNumber(initialData.sertifikat_halal ?? 0, 0),
-      skp: formatInitialNumber(initialData.sertifikat_skp ?? 0, 0),
-      pirt: formatInitialNumber(initialData.sertifikat_pirt ?? 0, 0),
-      md: formatInitialNumber(initialData.sertifikat_md ?? 0, 0),
-      lainnya: formatInitialNumber(initialData.sertifikat_lainnya ?? 0, 0),
-    },
-    izin_usaha: {
-      nib: formatInitialNumber(initialData.izin_nib ?? 0, 0),
-      npwp: formatInitialNumber(initialData.izin_npwp ?? 0, 0),
-      kusuka: formatInitialNumber(initialData.izin_kusuka ?? 0, 0),
-      menkumham: formatInitialNumber(initialData.izin_menkumham ?? 0, 0),
-      akta_pendirian: formatInitialNumber(initialData.izin_akta_pendirian ?? 0, 0),
-      lokasi_domisili: formatInitialNumber(initialData.izin_lokasi_domisili ?? 0, 0),
-      imb: formatInitialNumber(initialData.izin_imb ?? 0, 0),
-      siup_perikanan: formatInitialNumber(initialData.izin_siup_perikanan ?? 0, 0),
-      siup_perdagangan: formatInitialNumber(initialData.izin_siup_perdagangan ?? 0, 0),
-      lainnya: formatInitialNumber(initialData.izin_lainnya ?? 0, 0),
-    },
-    shm_count: formatInitialNumber(initialData.shm_count ?? 0, 0),
-    non_shm_count: formatInitialNumber(initialData.non_shm_count ?? 0, 0),
-  };
-};
-
-const buildApiPayload = (source) => {
-  const payload = {
-    tahun: toRawNumber(source.tahun),
-    kabupaten_kota: source.kabupaten_kota,
-    kategori_kegiatan: source.kategori_kegiatan,
-    jenis_kegiatan: source.jenis_kegiatan,
-    skala_usaha: source.skala_usaha,
-    jumlah_unit_usaha: toRawNumber(source.jumlah_unit_usaha),
-    modal_rp: toRawNumber(source.modal_rp),
-    hasil_kg: toRawNumber(source.hasil_kg),
-    hasil_rp: toRawNumber(source.hasil_rp),
-    shm_count: toRawNumber(source.shm_count),
-    non_shm_count: toRawNumber(source.non_shm_count),
-  };
-
-  Object.keys(source.sertifikat_produk).forEach((key) => {
-    payload[`sertifikat_${key}`] = toRawNumber(
-      source.sertifikat_produk[key],
-    );
-  });
-
-  Object.keys(source.izin_usaha).forEach((key) => {
-    payload[`izin_${key}`] = toRawNumber(
-      source.izin_usaha[key],
-    );
-  });
-
-  return payload;
-};
-
-const createNextDetailForm = (current) => {
-  const next = createEmptyFormData();
-
-  return {
-    ...next,
-    tahun: current.tahun,
-    kabupaten_kota: current.kabupaten_kota,
-    kategori_kegiatan: current.kategori_kegiatan,
-    skala_usaha: current.skala_usaha,
-  };
-};
-
-const getBatchCombinationKey = (item) =>
-  [
-    normalizeKategori(item.kategori_kegiatan),
-    normalizeOptionKey(item.jenis_kegiatan),
-    normalizeOptionKey(item.skala_usaha),
-  ].join('|');
-
-const formatValueForDisplay = (value) => {
-  if (value === '' || value === null || value === undefined) return '-';
-  const parsed = toRawNumber(value);
-  if (parsed === 0) return '-';
-  return parsed.toLocaleString('id-ID', {
-    useGrouping: true,
-    maximumFractionDigits: MAX_DECIMAL_DIGITS,
-  });
-};
+const INPUT_CLASS = 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15';
 
 const FORM_NAV_SELECTOR = '[data-form-nav="true"]:not(:disabled)';
 
-const isElementVisible = (element) => {
+const isElementVisible = element => {
   if (!(element instanceof HTMLElement)) return false;
 
   const style = window.getComputedStyle(element);
@@ -335,7 +26,7 @@ const isElementVisible = (element) => {
   );
 };
 
-const getElementCenter = (element) => {
+const getElementCenter = element => {
   const rect = element.getBoundingClientRect();
 
   return {
@@ -351,13 +42,13 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 
   const current = getElementCenter(currentElement);
   const candidates = Array.from(formElement.querySelectorAll(FORM_NAV_SELECTOR))
-    .filter((element) => element !== currentElement && isElementVisible(element))
+    .filter(element => element !== currentElement && isElementVisible(element))
     .map(getElementCenter);
 
   const horizontalDirection = direction === 'left' || direction === 'right';
   const sign = direction === 'left' || direction === 'up' ? -1 : 1;
 
-  const directionalCandidates = candidates.filter((candidate) => {
+  const directionalCandidates = candidates.filter(candidate => {
     const primaryDelta = horizontalDirection
       ? candidate.x - current.x
       : candidate.y - current.y;
@@ -371,7 +62,7 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
     ? Math.max(current.rect.height * 1.5, 48)
     : Math.max(current.rect.width * 0.6, 110);
 
-  const sameLineCandidates = directionalCandidates.filter((candidate) => {
+  const sameLineCandidates = directionalCandidates.filter(candidate => {
     const secondaryDelta = horizontalDirection
       ? Math.abs(candidate.y - current.y)
       : Math.abs(candidate.x - current.x);
@@ -384,7 +75,7 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
     : directionalCandidates;
 
   return pool
-    .map((candidate) => {
+    .map(candidate => {
       const primaryDistance = horizontalDirection
         ? Math.abs(candidate.x - current.x)
         : Math.abs(candidate.y - current.y);
@@ -400,239 +91,252 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
     .sort((a, b) => a.score - b.score)[0]?.element ?? null;
 };
 
-// ============================================================================
-// REUSABLE FIELDS
-// ============================================================================
-function SectionCard({ number, title, children, onClose }) {
-  return (
-    <section className="relative overflow-visible rounded-2xl border border-border bg-card shadow-sm">
-      <div className="rounded-t-2xl border-b border-border bg-muted/35 px-5 py-4 md:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              {number}
-            </span>
-            <h2 className="font-heading text-base font-semibold leading-tight text-foreground">
-              {title}
-            </h2>
-          </div>
+const toNumber = value => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  let text = String(value ?? '').trim().replace(/\s/g, '');
+  if (!text) return 0;
+  if (text.includes(',')) text = text.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(text)) text = text.replace(/\./g, '');
+  text = text.replace(/[^0-9.-]/g, '');
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
-          {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              title="Tutup form"
-              aria-label="Tutup form Pengolahan dan Pemasaran"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-foreground transition-opacity hover:opacity-60 focus:outline-none"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <div className="p-5 md:p-6">{children}</div>
-    </section>
+const formatInputNumber = value => {
+  const raw = String(value ?? '').replace(/\./g, '').replace(/[^0-9,]/g, '');
+  if (!raw) return '';
+  const [integer = '', decimal = ''] = raw.split(',');
+  const grouped = (integer.replace(/^0+(?=\d)/, '') || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return raw.includes(',') ? `${grouped},${decimal.slice(0, 2)}` : grouped;
+};
+
+const normalizeNumericMap = (options, source = {}) => Object.fromEntries(
+  [...new Set([...(options || []), ...Object.keys(source || {})])].map(option => [
+    option,
+    source?.[option] === undefined || source?.[option] === null ? '' : formatInputNumber(source[option]),
+  ]),
+);
+
+const normalizeDocs = (options, source = {}) => ({
+  sertifikat_produk: normalizeNumericMap(options.sertifikatProduk, source?.sertifikat_produk),
+  izin_usaha: normalizeNumericMap(options.izinUsaha, source?.izin_usaha),
+  sertifikat_lahan_bangunan: normalizeNumericMap(options.sertifikatLB, source?.sertifikat_lahan_bangunan),
+});
+
+const emptyDetail = () => ({
+  kategori_kegiatan: '',
+  jenis_kegiatan: '',
+  skala_usaha: '',
+  jumlah_unit_usaha: '',
+  hasil_kg: '',
+  hasil_rp: '',
+});
+
+function NumericInput({ value, onChange, placeholder = '0' }) {
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      data-form-nav="true"
+      value={value}
+      onChange={event => onChange(formatInputNumber(event.target.value))}
+      placeholder={placeholder}
+      className={`${INPUT_CLASS} text-right tabular-nums`}
+    />
   );
 }
 
-function SelectField({ label, value, onChange, options, placeholder = '-- Pilih --', required = true, disabled = false }) {
-  return (
-    <div>
-      <label className={LABEL_CLASS}>
-        {label} {required ? <span className="text-rose-500">*</span> : null}
-      </label>
-      <div className="relative">
-        <select
-          required={required}
-          disabled={disabled}
-          value={value}
-          onChange={onChange}
-          data-form-nav="true"
-          className={`${INPUT_CLASS} appearance-none pr-10`}
-        >
-          {placeholder ? <option value="">{placeholder}</option> : null}
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      </div>
-    </div>
-  );
-}
 
 function SearchableSingleSelect({
-  label,
   value,
-  options,
   onChange,
-  placeholder = 'Pilih salah satu',
-  required = true,
-  searchPlaceholder = 'Ketik untuk mencari...',
+  options,
+  placeholder = 'Pilih...',
+  searchable = true,
+  emptyMessage = 'Data tidak ditemukan.',
 }) {
-  const wrapperRef = useRef(null);
-  const listRef = useRef(null);
-  const optionRefs = useRef([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef(null);
+  const searchRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-  const normalizedOptions = [...new Set((options || []).filter(Boolean))];
-  const normalizedSearch = search.trim().toUpperCase();
-  const filteredOptions = normalizedOptions.filter((option) =>
-    String(option).toUpperCase().includes(normalizedSearch),
-  );
+  const filteredOptions = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) return options || [];
+    return (options || []).filter(option =>
+      String(option).toLowerCase().includes(keyword)
+    );
+  }, [options, query]);
 
   useEffect(() => {
-    const handleOutsideClick = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setActiveIndex(-1);
+    const handleOutside = event => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
+        setQuery('');
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!open) return;
     const selectedIndex = filteredOptions.findIndex(option => option === value);
-    setActiveIndex(selectedIndex >= 0 ? selectedIndex : (filteredOptions.length ? 0 : -1));
-  }, [isOpen, search]);
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+
+    if (searchable) {
+      requestAnimationFrame(() => searchRef.current?.focus());
+    }
+  }, [open, searchable]);
 
   useEffect(() => {
-    if (!isOpen || activeIndex < 0) return;
+    if (highlightedIndex > filteredOptions.length - 1) {
+      setHighlightedIndex(Math.max(filteredOptions.length - 1, 0));
+    }
+  }, [filteredOptions.length, highlightedIndex]);
 
-    const activeOption = optionRefs.current[activeIndex];
+  useEffect(() => {
+    if (!open) return;
 
-    if (!activeOption) return;
+    const activeOption = containerRef.current?.querySelector(
+      `[data-option-index="${highlightedIndex}"]`
+    );
 
-    activeOption.scrollIntoView({
-      block: 'nearest',
-      inline: 'nearest',
-      behavior: 'smooth',
-    });
-  }, [activeIndex, isOpen]);
+    if (activeOption instanceof HTMLElement) {
+      activeOption.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  }, [highlightedIndex, open, filteredOptions.length]);
 
-  const handleSelect = (option) => {
+  const choose = option => {
     onChange(option);
-    setSearch('');
-    setIsOpen(false);
-    setActiveIndex(-1);
+    setOpen(false);
+    setQuery('');
   };
 
-  const moveSelection = (direction) => {
-    if (!normalizedOptions.length) return;
-    const currentIndex = Math.max(0, normalizedOptions.findIndex(option => option === value));
-    const nextIndex = (currentIndex + direction + normalizedOptions.length) % normalizedOptions.length;
-    onChange(normalizedOptions[nextIndex]);
-  };
+  const handleKeyDown = event => {
+    const nextKeys = ['ArrowDown', 'ArrowRight'];
+    const previousKeys = ['ArrowUp', 'ArrowLeft'];
 
-  const handleKeyboard = (event, fromSearch = false) => {
-    const forward = event.key === 'ArrowDown' || event.key === 'ArrowRight';
-    const backward = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
-    if (!forward && !backward && event.key !== 'Enter' && event.key !== 'Escape') return;
+    if (nextKeys.includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    // Jangan biarkan tombol panah memicu scroll halaman / navigasi form global.
-    event.preventDefault();
-    event.stopPropagation();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
 
-    if (event.key === 'Escape') {
-      setIsOpen(false);
-      setActiveIndex(-1);
-      return;
-    }
-
-    if (!isOpen && (forward || backward)) {
-      moveSelection(forward ? 1 : -1);
-      return;
-    }
-
-    if (!isOpen && event.key === 'Enter') {
-      setIsOpen(true);
-      return;
-    }
-
-    if (isOpen && (forward || backward)) {
-      if (!filteredOptions.length) return;
-      const delta = forward ? 1 : -1;
-      setActiveIndex(index => {
-        const base = index < 0 ? 0 : index;
-        return (base + delta + filteredOptions.length) % filteredOptions.length;
+      setHighlightedIndex(previous => {
+        if (!filteredOptions.length) return 0;
+        return previous >= filteredOptions.length - 1 ? 0 : previous + 1;
       });
       return;
     }
 
-    if (isOpen && event.key === 'Enter' && activeIndex >= 0 && filteredOptions[activeIndex]) {
-      handleSelect(filteredOptions[activeIndex]);
+    if (previousKeys.includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+
+      setHighlightedIndex(previous => {
+        if (!filteredOptions.length) return 0;
+        return previous <= 0 ? filteredOptions.length - 1 : previous - 1;
+      });
+      return;
+    }
+
+    if (event.key === 'Enter' && open && filteredOptions.length) {
+      event.preventDefault();
+      event.stopPropagation();
+      choose(filteredOptions[highlightedIndex]);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      setQuery('');
     }
   };
 
   return (
-    <div ref={wrapperRef} className={`relative ${isOpen ? 'z-[90]' : 'z-0'}`}>
-      <label className={LABEL_CLASS}>
-        {label} {required ? <span className="text-rose-500">*</span> : null}
-      </label>
-
+    <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((previous) => !previous)}
-        onKeyDown={(event) => handleKeyboard(event)}
-        aria-expanded={isOpen}
         data-form-nav="true"
-        className={`${INPUT_CLASS} flex items-center justify-between gap-3 text-left`}
+        onClick={() => setOpen(previous => !previous)}
+        onKeyDown={handleKeyDown}
+        className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-left text-sm text-foreground outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/15"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
-        <span className={value ? 'truncate text-foreground' : 'truncate text-muted-foreground'}>
+        <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
           {value || placeholder}
         </span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen ? (
-        <div className="absolute left-0 right-0 top-full z-[100] mt-2 rounded-xl border border-border bg-card p-3 shadow-2xl">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => handleKeyboard(event, true)}
-              placeholder={searchPlaceholder}
-              className={`${INPUT_CLASS} pl-9`}
-              autoFocus
-            />
-          </div>
+      {open ? (
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[150] overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+          {searchable ? (
+            <div className="border-b border-border p-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={query}
+                  onChange={event => {
+                    setQuery(event.target.value);
+                    setHighlightedIndex(0);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Cari..."
+                  className="w-full rounded-xl border-0 bg-transparent py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+            </div>
+          ) : null}
 
-          <div ref={listRef} className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+          <div role="listbox" className="max-h-64 overflow-y-auto p-1.5">
             {filteredOptions.length ? (
               filteredOptions.map((option, index) => {
                 const selected = option === value;
-                const active = index === activeIndex;
+                const highlighted = index === highlightedIndex;
                 return (
                   <button
                     key={option}
-                    ref={(element) => {
-                      optionRefs.current[index] = element;
-                    }}
                     type="button"
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => handleSelect(option)}
-                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                      selected || active
-                        ? 'bg-primary/10 font-semibold text-primary'
+                    role="option"
+                    data-option-index={index}
+                    aria-selected={selected}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onClick={() => choose(option)}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      highlighted || selected
+                        ? 'bg-primary/10 text-foreground'
                         : 'text-foreground hover:bg-muted'
                     }`}
                   >
-                    {option}
+                    <span>{option}</span>
+                    {selected ? <Check className="h-4 w-4 text-primary" /> : null}
                   </button>
                 );
               })
             ) : (
-              <p className="px-3 py-2 text-sm text-muted-foreground">Tidak ada pilihan yang cocok.</p>
+              <div className="px-3 py-5 text-center text-sm text-muted-foreground">
+                {emptyMessage}
+              </div>
             )}
           </div>
         </div>
@@ -641,323 +345,183 @@ function SearchableSingleSelect({
   );
 }
 
-function NumericInputWithStepper({
-  value,
-  onChange,
-  required = true,
-  ariaLabel,
-  decimalDigits = MAX_DECIMAL_DIGITS,
-}) {
+function AmountMatrix({ title, options, values, onChange, prefix = 'Rp' }) {
   return (
-    <input
-      type="text"
-      required={required}
-      inputMode={decimalDigits > 0 ? 'decimal' : 'numeric'}
-      value={value}
-      onChange={onChange}
-      data-form-nav="true"
-      aria-label={ariaLabel}
-      className={INPUT_CLASS}
-    />
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  onChange,
-  onStep,
-  required = true,
-  decimalDigits = MAX_DECIMAL_DIGITS,
-}) {
-  return (
-    <div>
-      <label className={LABEL_CLASS}>
-        {label} {required ? <span className="text-rose-500">*</span> : null}
-      </label>
-      <NumericInputWithStepper
-        value={value}
-        onChange={onChange}
-        required={required}
-        ariaLabel={label}
-        decimalDigits={decimalDigits}
-      />
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/40 px-4 py-3">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+      </div>
+      <div className="divide-y divide-border">
+        {options.map(option => (
+          <div key={option} className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+            <span className="text-sm font-medium text-foreground">{option}</span>
+            <div className="flex items-center gap-2">
+              {prefix ? <span className="text-xs font-semibold text-muted-foreground">{prefix}</span> : null}
+              <NumericInput value={values?.[option] ?? ''} onChange={value => onChange(option, value)} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-// Grid input angka untuk daftar kategori (Sertifikat Produk / Izin Usaha)
-function NestedAmountGrid({
-  category,
-  list,
-  values,
-  onChangeItem,
-  onStepItem,
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {list.map((item) => (
-        <div key={item.key}>
-          <label className="mb-1 block text-xs font-normal text-foreground">
-            {item.label} <span className="text-rose-500">*</span>
-          </label>
-          <NumericInputWithStepper
-            value={values[item.key] ?? '0'}
-            onChange={(event) =>
-              onChangeItem(category, item.key, event.target.value)
-            }
-            ariaLabel={item.label}
-            decimalDigits={0}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ============================================================================
-// MAIN COMPONENT (DIRECT REKAP MODE ONLY)
-// ============================================================================
-export default function PengolahanPemasaranForm({ initialData, onSubmit, onCancel, isLoading }) {
+export default function PengolahanPemasaranForm({ initialData, isLoading = false, onSubmit, onCancel }) {
   const formRef = useRef(null);
-  const isBatchMode = !initialData;
-  const getOptions = useMasterDataStore((state) => state.getOptions);
-
-  const kabupatenKotaOptions = useMemo(() => {
-    const fromStore = getOptions('KABUPATEN_KOTA');
-    return fromStore?.length ? fromStore : KabupatenKotaOptions_FALLBACK;
-  }, [getOptions]);
-
-  const jenisPengolahanOptions = useMemo(() => {
-    const fromStore = getOptions('JENIS_PENGOLAHAN');
-    return fromStore?.length ? fromStore : JENIS_KEGIATAN_PENGOLAHAN_FALLBACK;
-  }, [getOptions]);
-
-  const jenisPemasaranOptions = useMemo(() => {
-    const fromStore = getOptions('JENIS_PEMASARAN');
-    return fromStore?.length ? fromStore : JENIS_KEGIATAN_PEMASARAN_FALLBACK;
-  }, [getOptions]);
-
-  const skalaUsahaOptions = useMemo(() => {
-    const fromStore = getOptions('KATEGORI_SKALA_USAHA');
-    return fromStore?.length ? fromStore : SKALA_USAHA_OPTIONS_FALLBACK;
-  }, [getOptions]);
-
-  const [formData, setFormData] = useState(() =>
-    createFormData(initialData, jenisPengolahanOptions, jenisPemasaranOptions),
-  );
-  const [batchItems, setBatchItems] = useState([]);
-  const [editingBatchIndex, setEditingBatchIndex] = useState(null);
-  const [batchError, setBatchError] = useState('');
+  const errorRef = useRef(null);
+  const { data: masterData, fetchMasterData, getOptions } = useMasterDataStore();
+  const [activeTab, setActiveTab] = useState('produksi');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    setFormData(createFormData(initialData, jenisPengolahanOptions, jenisPemasaranOptions));
-    setBatchItems([]);
-    setEditingBatchIndex(null);
-    setBatchError('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
+    if (!masterData.length) fetchMasterData();
+  }, [masterData.length, fetchMasterData]);
 
-  const subJenisOptions = useMemo(
-    () => (formData.kategori_kegiatan === 'Pengolahan' ? jenisPengolahanOptions : jenisPemasaranOptions),
-    [formData.kategori_kegiatan, jenisPengolahanOptions, jenisPemasaranOptions],
-  );
+  const options = useMemo(() => ({
+    kabupaten: getOptions('KABUPATEN_KOTA'),
+    pengolahan: getOptions('JENIS_PENGOLAHAN'),
+    pemasaran: getOptions('JENIS_PEMASARAN'),
+    skala: getOptions('KATEGORI_SKALA_USAHA'),
+    sertifikatProduk: getOptions('SERTIFIKAT_PRODUK'),
+    izinUsaha: getOptions('IZIN_USAHA'),
+    sertifikatLB: getOptions('SERTIFIKAT_LAHAN_BANGUNAN'),
+  }), [masterData, getOptions]);
 
-  const setField = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  const allJenis = useMemo(() => [...options.pengolahan, ...options.pemasaran], [options.pengolahan, options.pemasaran]);
 
-  const setAmountField = (key, value) => {
-    const decimalDigits = getDecimalDigits(key);
-    setFormData((prev) => ({
-      ...prev,
-      [key]: formatIndonesianInput(value, decimalDigits),
+  const [tahun, setTahun] = useState(initialData?.tahun ? String(initialData.tahun) : String(new Date().getFullYear()));
+  const [kabupaten, setKabupaten] = useState(initialData?.kabupaten_kota || '');
+  const [details, setDetails] = useState(() => (initialData?.details?.length ? initialData.details.map(item => ({
+    ...item,
+    jumlah_unit_usaha: formatInputNumber(item.jumlah_unit_usaha),
+    hasil_kg: formatInputNumber(item.hasil_kg),
+    hasil_rp: formatInputNumber(item.hasil_rp),
+  })) : [emptyDetail()]));
+  const [modalJenis, setModalJenis] = useState(() => normalizeNumericMap(allJenis, initialData?.modal_by_jenis));
+  const [modalSkala, setModalSkala] = useState(() => normalizeNumericMap(options.skala, initialData?.modal_by_skala));
+  const [dokumen, setDokumen] = useState(() => normalizeDocs(options, initialData?.dokumen));
+
+  // Saat master data selesai dimuat, tambahkan key baru tanpa menghapus nilai yang sedang diisi.
+  useEffect(() => {
+    setModalJenis(previous => ({ ...normalizeNumericMap(allJenis), ...previous }));
+    setModalSkala(previous => ({ ...normalizeNumericMap(options.skala), ...previous }));
+    setDokumen(previous => ({
+      sertifikat_produk: { ...normalizeNumericMap(options.sertifikatProduk), ...(previous?.sertifikat_produk || {}) },
+      izin_usaha: { ...normalizeNumericMap(options.izinUsaha), ...(previous?.izin_usaha || {}) },
+      sertifikat_lahan_bangunan: { ...normalizeNumericMap(options.sertifikatLB), ...(previous?.sertifikat_lahan_bangunan || {}) },
+    }));
+  }, [allJenis, options.skala, options.sertifikatProduk, options.izinUsaha, options.sertifikatLB]);
+
+  const setDetail = (index, field, value) => {
+    setDetails(previous => previous.map((item, idx) => {
+      if (idx !== index) return item;
+      if (field === 'kategori_kegiatan') return { ...item, kategori_kegiatan: value, jenis_kegiatan: '' };
+      return { ...item, [field]: value };
     }));
   };
 
-  const stepAmountField = (key, direction) => {
-    const decimalDigits = getDecimalDigits(key);
-    const step = decimalDigits > 0 ? 0.01 : 1;
+  const addDetail = () => setDetails(previous => [emptyDetail(), ...previous]);
+  const removeDetail = index => setDetails(previous => previous.length === 1 ? previous : previous.filter((_, idx) => idx !== index));
 
-    setFormData((prev) => ({
-      ...prev,
-      [key]: formatSteppedNumber(
-        toRawNumber(prev[key]) + direction * step,
-        decimalDigits,
-      ),
-    }));
+  const totals = useMemo(() => ({
+    unit: details.reduce((sum, item) => sum + toNumber(item.jumlah_unit_usaha), 0),
+    kg: details.reduce((sum, item) => sum + toNumber(item.hasil_kg), 0),
+    rp: details.reduce((sum, item) => sum + toNumber(item.hasil_rp), 0),
+    modalJenis: Object.values(modalJenis).reduce((sum, value) => sum + toNumber(value), 0),
+    modalSkala: Object.values(modalSkala).reduce((sum, value) => sum + toNumber(value), 0),
+  }), [details, modalJenis, modalSkala]);
+
+  const validate = () => {
+    if (!tahun || Number(tahun) < 1900) return 'Tahun wajib diisi dengan benar.';
+    if (!kabupaten) return 'Kab/Kota wajib dipilih.';
+    if (!details.length) return 'Tambahkan minimal satu rincian Unit dan Produksi.';
+    const seen = new Set();
+    for (let index = 0; index < details.length; index += 1) {
+      const item = details[index];
+      if (!item.kategori_kegiatan) return `Rincian ke-${details.length - index}: Kategori kegiatan belum dipilih.`;
+      if (!item.jenis_kegiatan) return `Rincian ke-${details.length - index}: Jenis kegiatan belum dipilih.`;
+      if (!item.skala_usaha) return `Rincian ke-${details.length - index}: Skala usaha belum dipilih.`;
+      const key = `${item.kategori_kegiatan}|${item.jenis_kegiatan}|${item.skala_usaha}`.toLowerCase();
+      if (seen.has(key)) return `${item.jenis_kegiatan} - ${item.skala_usaha} sudah ada. Edit baris yang sama agar tidak terhitung ganda.`;
+      seen.add(key);
+    }
+    return '';
   };
 
-  const handleKategoriChange = (kategori) => {
-    setFormData((prev) => ({
-      ...prev,
-      kategori_kegiatan: kategori,
-      jenis_kegiatan: '', // reset karena daftar sub-jenis berubah (dependent dropdown)
-    }));
-  };
+  const submit = () => {
 
-  const handleNestedAmountChange = (category, key, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [key]: formatIndonesianInput(value, 0),
-      },
-    }));
-  };
+    const validation = validate();
+    if (validation) {
+      setError(validation);
 
-  const stepNestedAmount = (category, key, direction) => {
-    setFormData((prev) => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [key]: formatSteppedNumber(
-          toRawNumber(prev[category]?.[key]) + direction,
-          0,
-        ),
-      },
-    }));
-  };
+      const shouldOpenProduksi =
+        validation.includes('Rincian') ||
+        validation.includes('sudah ada') ||
+        validation.includes('Kategori kegiatan') ||
+        validation.includes('Jenis kegiatan') ||
+        validation.includes('Skala usaha');
 
-  const validateCurrentDetail = () => {
-    if (!formData.tahun) return 'Tahun wajib dipilih.';
-    if (!formData.kabupaten_kota) {
-      return 'Kabupaten/Kota wajib dipilih.';
-    }
-    if (!formData.kategori_kegiatan) {
-      return 'Kategori kegiatan wajib dipilih.';
-    }
-    if (!formData.jenis_kegiatan) {
-      return 'Jenis kegiatan wajib dipilih.';
-    }
-    if (!formData.skala_usaha) {
-      return 'Skala usaha wajib dipilih.';
-    }
-
-    return null;
-  };
-
-  const handleAddToBatch = () => {
-    const validationError = validateCurrentDetail();
-
-    if (validationError) {
-      setBatchError(validationError);
-      return;
-    }
-
-    const payload = buildApiPayload(formData);
-    const combinationKey = getBatchCombinationKey(payload);
-
-    const duplicateIndex = batchItems.findIndex(
-      (item, index) =>
-        index !== editingBatchIndex &&
-        getBatchCombinationKey(item) === combinationKey,
-    );
-
-    if (duplicateIndex !== -1) {
-      setBatchError(
-        `${payload.jenis_kegiatan} dengan skala ${payload.skala_usaha} sudah ada dalam daftar. Gunakan tombol Edit pada rincian tersebut.`,
-      );
-      return;
-    }
-
-    setBatchItems((previous) => {
-      if (editingBatchIndex === null) {
-        return [...previous, payload];
+      if (shouldOpenProduksi) {
+        setActiveTab('produksi');
       }
 
-      return previous.map((item, index) =>
-        index === editingBatchIndex ? payload : item,
-      );
-    });
+      requestAnimationFrame(() => {
+        errorRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      });
 
-    setFormData((previous) => createNextDetailForm(previous));
-    setEditingBatchIndex(null);
-    setBatchError('');
-  };
-
-  const handleEditBatchItem = (index) => {
-    const item = batchItems[index];
-
-    if (!item) return;
-
-    setFormData((previous) => ({
-      ...createFormData(item, jenisPengolahanOptions, jenisPemasaranOptions),
-      tahun: previous.tahun,
-      kabupaten_kota: previous.kabupaten_kota,
-    }));
-
-    setEditingBatchIndex(index);
-    setBatchError('');
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  const handleDeleteBatchItem = (index) => {
-    setBatchItems((previous) =>
-      previous.filter((_, itemIndex) => itemIndex !== index),
-    );
-
-    if (editingBatchIndex === index) {
-      setFormData((previous) => createNextDetailForm(previous));
-    }
-
-    setEditingBatchIndex(null);
-    setBatchError('');
-  };
-
-  const handleClearBatch = () => {
-    if (
-      batchItems.length > 0 &&
-      !window.confirm(
-        'Hapus seluruh rincian yang sudah ditambahkan ke daftar?',
-      )
-    ) {
       return;
     }
 
-    setBatchItems([]);
-    setEditingBatchIndex(null);
-    setBatchError('');
-    setFormData((previous) => createNextDetailForm(previous));
-  };
+    setError('');
 
-  const handleSaveBatch = () => {
-    if (!formData.tahun || !formData.kabupaten_kota) {
-      setBatchError(
-        'Tahun dan Kabupaten/Kota wajib dipilih sebelum menyimpan.',
-      );
+    if (typeof onSubmit !== 'function') {
+      setError('Proses simpan tidak tersedia. Muat ulang halaman lalu coba kembali.');
+      requestAnimationFrame(() => {
+        errorRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      });
       return;
     }
-
-    if (batchItems.length === 0) {
-      setBatchError(
-        'Tambahkan minimal satu rincian ke daftar sebelum menyimpan.',
-      );
-      return;
-    }
-
-    const details = batchItems.map((item) => {
-      const {
-        tahun: ignoredYear,
-        kabupaten_kota: ignoredRegion,
-        ...detail
-      } = item;
-
-      return detail;
-    });
 
     onSubmit({
-      tahun: toRawNumber(formData.tahun),
-      kabupaten_kota: formData.kabupaten_kota,
-      details,
+      tahun: Number(tahun),
+      kabupaten_kota: kabupaten,
+      details: details.map(item => ({
+        kategori_kegiatan: item.kategori_kegiatan,
+        jenis_kegiatan: item.jenis_kegiatan,
+        skala_usaha: item.skala_usaha,
+        jumlah_unit_usaha: toNumber(item.jumlah_unit_usaha),
+        hasil_kg: toNumber(item.hasil_kg),
+        hasil_rp: toNumber(item.hasil_rp),
+      })),
+      modal_by_jenis: Object.fromEntries(Object.entries(modalJenis).map(([key, value]) => [key, toNumber(value)])),
+      modal_by_skala: Object.fromEntries(Object.entries(modalSkala).map(([key, value]) => [key, toNumber(value)])),
+      dokumen: Object.fromEntries(Object.entries(dokumen).map(([group, values]) => [group, Object.fromEntries(Object.entries(values).map(([key, value]) => [key, toNumber(value)]))])),
     });
   };
 
-  const handleArrowNavigation = (event) => {
+  const currentIndex = TAB_ITEMS.findIndex(item => item.id === activeTab);
+  const goNext = () => setActiveTab(TAB_ITEMS[Math.min(currentIndex + 1, TAB_ITEMS.length - 1)].id);
+  const goPrev = () => setActiveTab(TAB_ITEMS[Math.max(currentIndex - 1, 0)].id);
+
+  const handleArrowNavigation = event => {
+    // Enter pada input biasa tidak boleh menyimpan form.
+    // Penyimpanan hanya terjadi saat tombol Simpan Data/Simpan Perubahan diklik.
+    if (
+      event.key === 'Enter' &&
+      (event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     const directionByKey = {
       ArrowLeft: 'left',
       ArrowRight: 'right',
@@ -969,7 +533,6 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
     if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
 
     const currentElement = event.target.closest?.(FORM_NAV_SELECTOR);
-
     if (!currentElement || !formRef.current?.contains(currentElement)) return;
 
     const targetElement = findDirectionalTarget(
@@ -990,404 +553,186 @@ export default function PengolahanPemasaranForm({ initialData, onSubmit, onCance
 
     if (
       targetElement instanceof HTMLInputElement &&
-      targetElement.type === 'text'
+      ['text', 'number'].includes(targetElement.type)
     ) {
       requestAnimationFrame(() => targetElement.select());
     }
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    if (isBatchMode) {
-      handleAddToBatch();
-      return;
-    }
-
-    // Mode edit tetap menyimpan satu data seperti sebelumnya.
-    onSubmit(buildApiPayload(formData));
-  };
-
   return (
-    <form
+    <div
       ref={formRef}
-      onSubmit={handleSubmit}
       onKeyDown={handleArrowNavigation}
-      className="mx-auto max-w-5xl space-y-6 p-4"
+      className="space-y-6"
     >
-      {/* Bagian 1 */}
-      <SectionCard
-        number="1"
-        title="Tahun dan Wilayah"
-        onClose={onCancel}
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className={LABEL_CLASS}>
-              Tahun <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              min="1900"
-              max="2100"
-              step="1"
-              required
-              value={formData.tahun}
-              onChange={(event) => setField('tahun', event.target.value)}
-              data-form-nav="true"
-              className={INPUT_CLASS}
-              aria-label="Tahun"
-            />
-          </div>
-          <SearchableSingleSelect
-            label="Kab/Kota"
-            value={formData.kabupaten_kota}
-            onChange={(value) => setField('kabupaten_kota', value)}
-            options={kabupatenKotaOptions}
-            placeholder="Cari atau pilih kabupaten/kota"
-            searchPlaceholder="Ketik nama kabupaten/kota..."
-          />
-        </div>
-      </SectionCard>
-
-      {/* Bagian 2 */}
-      <SectionCard
-        number="2"
-        title="Klasifikasi Jenis Usaha dan Skala Usaha"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-normal tracking-wide text-foreground">
-              Kategori Kegiatan <span className="text-rose-500">*</span>
-            </label>
-            <div className="flex items-center gap-6">
-              {[
-                { value: 'Pengolahan', label: 'Pengolahan' },
-                { value: 'Pemasaran', label: 'Pemasaran' },
-              ].map((opt) => (
-                <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                  <input
-                    type="radio"
-                    name="kategori_kegiatan"
-                    value={opt.value}
-                    checked={formData.kategori_kegiatan === opt.value}
-                    onChange={() => handleKategoriChange(opt.value)}
-                    className="h-4 w-4 text-primary focus:ring-primary"
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SearchableSingleSelect
-              label={`Jenis Kegiatan (${formData.kategori_kegiatan === 'Pengolahan' ? 'Pengolahan' : 'Pemasaran'})`}
-              value={formData.jenis_kegiatan}
-              onChange={(value) => setField('jenis_kegiatan', value)}
-              options={subJenisOptions}
-              placeholder="Pilih jenis kegiatan"
-              searchPlaceholder="Ketik jenis kegiatan..."
-            />
-            <SearchableSingleSelect
-              label="Skala Usaha"
-              value={formData.skala_usaha}
-              onChange={(value) => setField('skala_usaha', value)}
-              options={skalaUsahaOptions}
-              placeholder="Pilih skala usaha"
-              searchPlaceholder="Ketik skala usaha..."
-            />
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Bagian 3 */}
-      <SectionCard number="3" title="Unit Usaha dan Investasi Modal">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <NumberField
-            label="Jumlah Unit Usaha (Unit)"
-            value={formData.jumlah_unit_usaha}
-            onChange={(e) => setAmountField('jumlah_unit_usaha', e.target.value)}
-            onStep={(direction) => stepAmountField('jumlah_unit_usaha', direction)}
-            decimalDigits={0}
-          />
-          <NumberField
-            label="Investasi Modal (Rp)"
-            value={formData.modal_rp}
-            onChange={(e) => setAmountField('modal_rp', e.target.value)}
-            onStep={(direction) => stepAmountField('modal_rp', direction)}
-            decimalDigits={2}
-          />
-        </div>
-      </SectionCard>
-
-      {/* Bagian 4 */}
-      <SectionCard number="4" title="Capaian Hasil Produksi / Penjualan">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <NumberField
-            label="Hasil Produksi (Kg)"
-            value={formData.hasil_kg}
-            onChange={(e) => setAmountField('hasil_kg', e.target.value)}
-            onStep={(direction) => stepAmountField('hasil_kg', direction)}
-            decimalDigits={2}
-          />
-          <NumberField
-            label="Nilai Produksi (Rp)"
-            value={formData.hasil_rp}
-            onChange={(e) => setAmountField('hasil_rp', e.target.value)}
-            onStep={(direction) => stepAmountField('hasil_rp', direction)}
-            decimalDigits={2}
-          />
-        </div>
-      </SectionCard>
-
-      {/* Bagian 5 */}
-      <SectionCard
-        number="5"
-        title="Sertifikat Produk"
-      >
-        <NestedAmountGrid
-          category="sertifikat_produk"
-          list={SERTIFIKAT_PRODUK_LIST}
-          values={formData.sertifikat_produk}
-          onChangeItem={handleNestedAmountChange}
-          onStepItem={stepNestedAmount}
-        />
-      </SectionCard>
-
-      {/* Bagian 6 */}
-      <SectionCard
-        number="6"
-        title="Izin Usaha"
-      >
-        <NestedAmountGrid
-          category="izin_usaha"
-          list={IZIN_USAHA_LIST}
-          values={formData.izin_usaha}
-          onChangeItem={handleNestedAmountChange}
-          onStepItem={stepNestedAmount}
-        />
-      </SectionCard>
-
-      {/* Bagian 7 */}
-      <SectionCard
-        number="7"
-        title="Sertifikat Lahan dan Bangunan"
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <NumberField
-            label="Sertifikat Hak Milik (SHM)"
-            value={formData.shm_count}
-            onChange={(e) => setAmountField('shm_count', e.target.value)}
-            onStep={(direction) => stepAmountField('shm_count', direction)}
-            decimalDigits={0}
-          />
-          <NumberField
-            label="Non SHM (Sewa / Girik / HGB / DLL)"
-            value={formData.non_shm_count}
-            onChange={(e) => setAmountField('non_shm_count', e.target.value)}
-            onStep={(direction) => stepAmountField('non_shm_count', direction)}
-            decimalDigits={0}
-          />
-        </div>
-      </SectionCard>
-
-      {isBatchMode ? (
-        <>
-          <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-semibold text-foreground">
-                {editingBatchIndex === null
-                  ? 'Tambahkan rincian ke daftar'
-                  : 'Perbarui rincian yang sedang diedit'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleAddToBatch}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {editingBatchIndex === null
-                ? '+ Tambahkan ke Daftar'
-                : 'Perbarui Rincian'}
-            </button>
-          </div>
-
-          {batchError ? (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-500">
-              {batchError}
-            </div>
-          ) : null}
-
-          <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-border bg-muted/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="font-heading text-base font-semibold text-foreground">
-                  Daftar Rincian Sementara
-                </h2>
-              </div>
-
-              {batchItems.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleClearBatch}
-                  className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  Hapus Semua
-                </button>
-              ) : null}
-            </div>
-
-            <div className="space-y-5 p-4 md:p-5">
-              {batchItems.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                  Belum ada rincian. Isi Bagian 2 sampai 7, lalu tekan
-                  “Tambahkan ke Daftar”.
-                </div>
-              ) : (
-                ['Pengolahan', 'Pemasaran'].map((category) => {
-                  const categoryItems = batchItems
-                    .map((item, index) => ({
-                      item,
-                      index,
-                    }))
-                    .filter(
-                      ({ item }) =>
-                        normalizeKategori(item.kategori_kegiatan) ===
-                        category,
-                    );
-
-                  if (categoryItems.length === 0) return null;
-
-                  return (
-                    <div key={category} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-foreground">
-                          {category}
-                        </h3>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                          {categoryItems.length} rincian
-                        </span>
-                      </div>
-
-                      <div className="overflow-x-auto rounded-xl border border-border">
-                        <table className="min-w-full text-sm">
-                          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                            <tr>
-                              <th className="px-3 py-3">No</th>
-                              <th className="px-3 py-3">Jenis Kegiatan</th>
-                              <th className="px-3 py-3">Skala</th>
-                              <th className="px-3 py-3 text-right">Unit</th>
-                              <th className="px-3 py-3 text-right">Hasil Kg</th>
-                              <th className="px-3 py-3 text-right">Nilai Rp</th>
-                              <th className="px-3 py-3 text-center">Aksi</th>
-                            </tr>
-                          </thead>
-
-                          <tbody className="divide-y divide-border">
-                            {categoryItems.map(({ item, index }, rowIndex) => (
-                              <tr
-                                key={`${getBatchCombinationKey(item)}-${index}`}
-                                className={
-                                  editingBatchIndex === index
-                                    ? 'bg-primary/5'
-                                    : ''
-                                }
-                              >
-                                <td className="whitespace-nowrap px-3 py-3">
-                                  {rowIndex + 1}
-                                </td>
-                                <td className="min-w-56 px-3 py-3 font-medium text-foreground">
-                                  {item.jenis_kegiatan}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-3">
-                                  {item.skala_usaha}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-3 text-right">
-                                  {Number(
-                                    item.jumlah_unit_usaha || 0,
-                                  ).toLocaleString('id-ID')}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-3 text-right">
-                                  {Number(
-                                    item.hasil_kg || 0,
-                                  ).toLocaleString('id-ID')}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-3 text-right">
-                                  {Number(
-                                    item.hasil_rp || 0,
-                                  ).toLocaleString('id-ID')}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-3 text-center">
-                                  <div className="inline-flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleEditBatchItem(index)
-                                      }
-                                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteBatchItem(index)
-                                      }
-                                      className="rounded-lg border border-rose-500/30 px-2.5 py-1.5 text-xs font-medium text-rose-500 hover:bg-rose-500/10"
-                                    >
-                                      Hapus
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        </>
-      ) : null}
-
-      {/* BUTTON FOOTER */}
-      <div className="flex flex-col-reverse gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end">
+      <div className="relative rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
         <button
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          className="absolute right-5 top-5 z-10 inline-flex h-8 w-8 items-center justify-center text-slate-700 transition-opacity hover:opacity-60 dark:text-slate-200 disabled:opacity-40"
+          title="Tutup form"
+          aria-label="Tutup form"
         >
-          Batal
+          <X className="h-5 w-5" strokeWidth={2} />
         </button>
 
-        {isBatchMode ? (
-          <button
-            type="button"
-            onClick={handleSaveBatch}
-            disabled={isLoading || batchItems.length === 0}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading
-              ? 'Menyimpan Semua...'
-              : `Simpan Semua Data (${batchItems.length})`}
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:opacity-90 disabled:opacity-50"
-          >
-            {isLoading ? 'Menyimpan...' : 'Simpan Data'}
-          </button>
-        )}
+        <div className="grid grid-cols-1 gap-4 pr-10 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Tahun <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="number"
+              data-form-nav="true"
+              min="1900"
+              max="2100"
+              required
+              value={tahun}
+              onChange={event => setTahun(event.target.value)}
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Kab/Kota <span className="text-rose-500">*</span>
+            </label>
+            <SearchableSingleSelect
+              value={kabupaten}
+              onChange={setKabupaten}
+              options={options.kabupaten}
+              placeholder="Pilih Kab/Kota"
+            />
+          </div>
+        </div>
       </div>
-    </form>
+
+      <div className="flex gap-2 overflow-x-auto rounded-2xl border border-border bg-card p-2">
+        {TAB_ITEMS.map(item => (
+          <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${activeTab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {error ? (
+        <div
+          ref={errorRef}
+          className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-600"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {activeTab === 'produksi' ? (
+        <div className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Unit Usaha dan Produksi</h2>
+            </div>
+            <button type="button" onClick={addDetail} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"><Plus className="h-4 w-4" />Tambah Rincian</button>
+          </div>
+
+          <div className="space-y-3">
+            {details.map((item, index) => {
+              const jenisOptions =
+                item.kategori_kegiatan === 'Pemasaran'
+                  ? options.pemasaran
+                  : item.kategori_kegiatan === 'Pengolahan'
+                    ? options.pengolahan
+                    : [];
+              return (
+                <div key={index} className="rounded-2xl border border-border bg-muted/20 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground">Rincian {details.length - index}</span>
+                    <button type="button" onClick={() => removeDetail(index)} disabled={details.length === 1} className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-30" title="Hapus rincian"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Kategori Kegiatan <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSingleSelect
+                        value={item.kategori_kegiatan}
+                        onChange={value => setDetail(index, 'kategori_kegiatan', value)}
+                        options={['Pengolahan', 'Pemasaran']}
+                        placeholder="Kategori Kegiatan"
+                        searchable={false}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Jenis Kegiatan <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSingleSelect
+                        value={item.jenis_kegiatan}
+                        onChange={value => setDetail(index, 'jenis_kegiatan', value)}
+                        options={jenisOptions}
+                        placeholder="Jenis Kegiatan"
+                        emptyMessage={
+                          item.kategori_kegiatan
+                            ? 'Data tidak ditemukan.'
+                            : 'Pilih Kategori Kegiatan terlebih dahulu.'
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Skala Usaha <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSingleSelect
+                        value={item.skala_usaha}
+                        onChange={value => setDetail(index, 'skala_usaha', value)}
+                        options={options.skala}
+                        placeholder="Skala Usaha"
+                      />
+                    </div>
+                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Jumlah Unit Usaha</label><NumericInput value={item.jumlah_unit_usaha} onChange={value => setDetail(index, 'jumlah_unit_usaha', value)} /></div>
+                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Hasil Produksi (Kg)</label><NumericInput value={item.hasil_kg} onChange={value => setDetail(index, 'hasil_kg', value)} /></div>
+                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nilai Produksi (Rp)</label><NumericInput value={item.hasil_rp} onChange={value => setDetail(index, 'hasil_rp', value)} /></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === 'modal' ? (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <AmountMatrix title="Investasi Modal berdasarkan Jenis Kegiatan" options={allJenis} values={modalJenis} onChange={(key, value) => setModalJenis(previous => ({ ...previous, [key]: value }))} />
+            <AmountMatrix title="Investasi Modal berdasarkan Skala Usaha" options={options.skala} values={modalSkala} onChange={(key, value) => setModalSkala(previous => ({ ...previous, [key]: value }))} />
+          </div>
+          {totals.modalJenis > 0 && totals.modalSkala > 0 && totals.modalJenis !== totals.modalSkala ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Catatan: total modal menurut Jenis Kegiatan ({totals.modalJenis.toLocaleString('id-ID')}) berbeda dengan total menurut Skala ({totals.modalSkala.toLocaleString('id-ID')}). Data tetap bisa disimpan, tetapi sebaiknya dicek kembali bila keduanya merupakan dua distribusi dari total modal yang sama.</div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {activeTab === 'dokumen' ? (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <AmountMatrix title="Sertifikat Produk" options={options.sertifikatProduk} values={dokumen.sertifikat_produk} prefix="Jumlah" onChange={(key, value) => setDokumen(previous => ({ ...previous, sertifikat_produk: { ...previous.sertifikat_produk, [key]: value } }))} />
+            <AmountMatrix title="Izin Usaha" options={options.izinUsaha} values={dokumen.izin_usaha} prefix="Jumlah" onChange={(key, value) => setDokumen(previous => ({ ...previous, izin_usaha: { ...previous.izin_usaha, [key]: value } }))} />
+            <AmountMatrix title="Sertifikat Lahan dan Bangunan" options={options.sertifikatLB} values={dokumen.sertifikat_lahan_bangunan} prefix="Jumlah" onChange={(key, value) => setDokumen(previous => ({ ...previous, sertifikat_lahan_bangunan: { ...previous.sertifikat_lahan_bangunan, [key]: value } }))} />
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === 'dokumen' && error ? (
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-600">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col-reverse gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" onClick={onCancel} disabled={isLoading} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50">Batal</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {currentIndex > 0 ? <button type="button" onClick={goPrev} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" />Sebelumnya</button> : null}
+          {currentIndex < TAB_ITEMS.length - 1 ? <button type="button" onClick={goNext} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">Selanjutnya<ArrowRight className="h-4 w-4" /></button> : <button type="button" onClick={() => submit()} disabled={isLoading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{initialData ? 'Simpan Perubahan' : 'Simpan Data'}</button>}
+        </div>
+      </div>
+    </div>
   );
 }
