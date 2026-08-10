@@ -666,7 +666,11 @@ export default function PerikananTangkap() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
             <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`Rp ${formatUangPendek(localKpi.total_nilai)}`}>
-              Rp {formatUangPendek(localKpi.total_nilai)}
+              {(() => {
+                const formatted = formatUangPendek(localKpi.total_nilai);
+                const match = formatted.match(/^(.*?)\s([a-zA-Z]+)$/);
+                return match ? <>Rp {match[1]} <span className="text-sm text-muted-foreground font-normal">{match[2]}</span></> : `Rp ${formatted}`;
+              })()}
             </p>
           </div>
         </div>
@@ -805,7 +809,7 @@ export default function PerikananTangkap() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-500" />
-            <h3 className="text-lg font-semibold text-foreground">Rincian Data Pendaratan</h3>
+            <h3 className="text-lg font-semibold text-foreground">Rincian Perikanan Tangkap</h3>
           </div>
         </div>
 

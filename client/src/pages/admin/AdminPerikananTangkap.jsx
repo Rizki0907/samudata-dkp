@@ -2317,10 +2317,10 @@ const columns = useMemo(() => [
               </div>
               <DataTable
                 columns={[
+                  { accessorKey: 'status', header: 'Status', cell: (info) => <StatusBadge row={info.row.original} /> },
                   { accessorKey: 'tahun', header: 'Tahun' },
                   { accessorKey: 'sumber_data', header: 'Sumber', cell: info => info.getValue() === 'KAB_KOTA' ? 'Non Pelabuhan' : info.getValue() },
                   { accessorKey: 'wilayah', header: 'Wilayah / Pelabuhan', cell: (info) => { const row = info.row.original; return row.pelabuhan || row.kabupaten_kota || row.jenis_perairan || '-'; } },
-                  { accessorKey: 'status', header: 'Status', cell: (info) => <StatusBadge row={info.row.original} /> },
                 ]}
                 data={tahunanData.filter(item => {
                   const matchTahun = filterTahun.length === 0 || filterTahun.includes(item.tahun);
@@ -2369,7 +2369,11 @@ const columns = useMemo(() => [
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-muted-foreground truncate">Total Nilai Produksi</p>
                     <p className="text-xl xl:text-2xl font-bold text-foreground truncate" title={`Rp ${formatUangPendek(computedStats.kpi.total_nilai)}`}>
-                      Rp {formatUangPendek(computedStats.kpi.total_nilai)}
+                      {(() => {
+                        const formatted = formatUangPendek(computedStats.kpi.total_nilai);
+                        const match = formatted.match(/^(.*?)\s([a-zA-Z]+)$/);
+                        return match ? <>Rp {match[1]} <span className="text-sm text-muted-foreground font-normal">{match[2]}</span></> : `Rp ${formatted}`;
+                      })()}
                     </p>
                   </div>
                 </div>

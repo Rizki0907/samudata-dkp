@@ -294,7 +294,13 @@ export default function Overview() {
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border flex flex-col justify-center">
               <p className="text-sm text-muted-foreground mb-1">Nilai Ekspor</p>
               <p className="text-2xl font-bold text-purple-600">
-                {stats.ekspor?.nilai_usd && Number(stats.ekspor.nilai_usd) !== 0 ? `$${formatUangPendek(stats.ekspor.nilai_usd)}` : '-'}
+                {stats.ekspor?.nilai_usd && Number(stats.ekspor.nilai_usd) !== 0 ? (
+                  (() => {
+                    const formatted = formatUangPendek(stats.ekspor.nilai_usd);
+                    const parts = formatted.split(' ');
+                    return <>{`$${parts[0]}`} {parts.length > 1 && <span className="text-sm font-normal text-muted-foreground">{parts.slice(1).join(' ')}</span>}</>;
+                  })()
+                ) : '-'}
                 <span className="text-sm font-normal text-muted-foreground"> USD</span>
               </p>
             </div>

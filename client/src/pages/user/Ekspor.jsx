@@ -651,7 +651,12 @@ export default function Ekspor() {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Total Nilai Ekspor</p>
             <p className="text-2xl font-bold text-foreground">
-              {mataUangPrefix}{formatUangPendek(stats.kpi[mataUangFilter === 'RP' ? 'total_nilai_rp' : 'total_nilai'] || stats.kpi.total_nilai || 0)}
+              {mataUangPrefix}{(() => {
+                const val = stats.kpi[mataUangFilter === 'RP' ? 'total_nilai_rp' : 'total_nilai'] || stats.kpi.total_nilai || 0;
+                const formatted = formatUangPendek(val);
+                const parts = formatted.split(' ');
+                return <>{parts[0]} {parts.length > 1 && <span className="text-sm font-normal text-muted-foreground">{parts.slice(1).join(' ')}</span>}</>;
+              })()}
             </p>
           </div>
         </div>
