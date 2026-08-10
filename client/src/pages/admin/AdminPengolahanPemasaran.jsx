@@ -2391,7 +2391,7 @@ export default function AdminPengolahanPemasaran() {
           <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500"><TrendingUp className="h-5 w-5" /></div>
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-lg font-bold">
                 Top 10 Kab/Kota
               </h2>
             </div>
@@ -2419,7 +2419,7 @@ export default function AdminPengolahanPemasaran() {
           <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
             <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
             <div>
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-lg font-bold">
                 Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan
               </h2>
             </div>

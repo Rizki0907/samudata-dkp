@@ -1482,7 +1482,7 @@ export default function PengolahanPemasaran() {
                   <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500">
                     <TrendingUp className="h-5 w-5" />
                   </div>
-                  <h2 className="text-xl font-bold text-foreground">Top 10 Kab/Kota</h2>
+                  <h2 className="text-lg font-bold">Top 10 Kab/Kota</h2>
                 </div>
 
                 <ChartSelect
@@ -1511,7 +1511,7 @@ export default function PengolahanPemasaran() {
               <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
                 <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
+                  <h2 className="text-lg font-bold">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
                 </div>
               </div>
 
@@ -1525,7 +1525,7 @@ export default function PengolahanPemasaran() {
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
               <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-3">
                   <div
                     className={`rounded-xl p-2.5 ${
                       activeDetailKegiatan === 'Pengolahan'
@@ -1533,11 +1533,17 @@ export default function PengolahanPemasaran() {
                         : 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-400'
                     }`}
                   >
-                    <Factory className="h-5 w-5" />
+                    <Factory
+                      className={`h-5 w-5 ${
+                        activeDetailKegiatan === 'Pengolahan'
+                          ? 'text-[#0096C7]'
+                          : 'text-emerald-500 dark:text-emerald-400'
+                      }`}
+                    />
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Jenis Detail Kegiatan</h2>
+                    <h2 className="text-lg font-semibold">Jenis Detail Kegiatan</h2>
                   </div>
                 </div>
 
@@ -1594,7 +1600,7 @@ export default function PengolahanPemasaran() {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pengolahan</h3>
+                      <h3 className="font-semibold text-foreground">Tren Produksi Pengolahan</h3>
                     </div>
                   </div>
 
@@ -1629,7 +1635,7 @@ export default function PengolahanPemasaran() {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pemasaran</h3>
+                      <h3 className="font-semibold text-foreground">Tren Produksi Pemasaran</h3>
                     </div>
                   </div>
 
