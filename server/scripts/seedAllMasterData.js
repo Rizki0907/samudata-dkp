@@ -381,6 +381,16 @@ const DATA_MAP = {
 
 async function seedAll() {
   console.log('Mulai seeding cepat (createMany) seluruh kategori Master Data...');
+
+  console.log('Membersihkan data komoditas lama...');
+  await prisma.masterData.deleteMany({
+    where: {
+      category: {
+        in: ['KOMODITAS_TANGKAP_LAUT', 'KOMODITAS_TANGKAP_NON_PELABUHAN']
+      }
+    }
+  });
+
   for (const [cat, list] of Object.entries(DATA_MAP)) {
     const existingRows = await prisma.masterData.findMany({
       where: { category: cat },
