@@ -4,7 +4,7 @@ import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
   TableProperties, LineChart as LineChartIcon, Fish, MapPin, Info, Filter, Landmark,
-  ChevronRight, ChevronDown, Download, Clock, Edit, Search
+  ChevronRight, ChevronDown, Download, Clock, Edit, Search, PieChart, TrendingUp, FileText
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import ReactECharts from 'echarts-for-react';
@@ -1612,27 +1612,61 @@ export default function AdminKelautanPesisir() {
             <h2 className="text-xl font-bold text-foreground">Potensi Perairan</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><Globe className="w-5 h-5 text-orange-500" /><p className="text-sm font-medium text-muted-foreground">Jumlah Pulau-Pulau Kecil</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.pulau_kecil)} <span className="text-sm text-muted-foreground font-normal">Pulau</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-orange-500/10 p-4 text-orange-500">
+                <Globe className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Jumlah Pulau-Pulau Kecil</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiPotensi.pulau_kecil)}
+                  <span className="text-sm font-normal text-muted-foreground"> Pulau </span>
+                </p>
+              </div>
             </div>
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><Waves className="w-5 h-5 text-cyan-500" /><p className="text-sm font-medium text-muted-foreground">Panjang Total Garis Pantai</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.garis_pantai)} <span className="text-sm text-muted-foreground font-normal">Km</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-cyan-500/10 p-4 text-cyan-500">
+                <Waves className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Panjang Total Garis Pantai</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiPotensi.garis_pantai)}
+                  <span className="text-sm font-normal text-muted-foreground"> Km </span>
+                </p>
+              </div>
             </div>
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500"><Anchor className="w-5 h-5" /></div><p className="text-sm font-medium text-muted-foreground">Luas Wilayah Laut</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.luas_laut)} <span className="text-sm text-muted-foreground font-normal">Km²</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
+                <Anchor className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Luas Wilayah Laut</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiPotensi.luas_laut)}
+                  <span className="text-sm font-normal text-muted-foreground"> Km² </span>
+                </p>
+              </div>
             </div>
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500"><MapPin className="w-5 h-5" /></div><p className="text-sm font-medium text-muted-foreground">Jumlah Desa Pesisir</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiPotensi.desa_pesisir)} <span className="text-sm text-muted-foreground font-normal">Desa</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-pink-500/10 p-4 text-pink-500">
+                <MapPin className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Jumlah Desa Pesisir</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiPotensi.desa_pesisir)}
+                  <span className="text-sm font-normal text-muted-foreground"> Desa </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* TAB PILIHAN VISUALISASI */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 mb-6">
+          <h2 className="text-xl font-bold text-foreground">Kategori Data:</h2>
+          <div className="flex items-center gap-3 overflow-x-auto">
           {[
             { key: 'garam', label: 'Garam' },
             { key: 'mangrove', label: 'Mangrove' },
@@ -1651,38 +1685,65 @@ export default function AdminKelautanPesisir() {
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
 
         {/* ── Visualisasi Garam ── */}
         {activeVisTab === 'garam' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-xl font-bold text-foreground">Produksi Garam</h2>
-            </div>
-          </div>
+
 
           {/* Garam KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><FlaskConical className="w-5 h-5" /></div><p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.produksi)} <span className="text-sm text-muted-foreground font-normal">Ton</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                <FlaskConical className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiGaram.produksi)}
+                  <span className="text-sm font-normal text-muted-foreground"> Ton </span>
+                </p>
+              </div>
             </div>
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Fish className="w-5 h-5" /></div><p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.petambak)} <span className="text-sm text-muted-foreground font-normal">Orang</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-amber-500/10 p-4 text-amber-500">
+                <Fish className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiGaram.petambak)}
+                  <span className="text-sm font-normal text-muted-foreground"> Orang </span>
+                </p>
+              </div>
             </div>
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm relative overflow-hidden group">
-              <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500"><Landmark className="w-5 h-5" /></div><p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p></div>
-              <p className="text-3xl font-bold text-foreground">{numFmt(kpiGaram.lahan)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
+                <Landmark className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {numFmt(kpiGaram.lahan)}
+                  <span className="text-sm font-normal text-muted-foreground"> Ha </span>
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Garam Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Volume Produksi per Kab/Kota (Ton)</h3>
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Volume Produksi per Kab/Kota (Ton)</h3>
+                </div>
+              </div>
               {garamKota.length > 0
                 ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
@@ -1692,7 +1753,14 @@ export default function AdminKelautanPesisir() {
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Kelompok per Kab/Kota</h3>
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Jumlah Kelompok per Kab/Kota</h3>
+                </div>
+              </div>
               {garamKota.length > 0
                 ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
@@ -1702,19 +1770,40 @@ export default function AdminKelautanPesisir() {
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Lahan per Kab/Kota</h3>
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                    <PieChart className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Lahan per Kab/Kota</h3>
+                </div>
+              </div>
               {garamKota.length > 0
                 ? <ReactECharts option={makePieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan', isDark)} style={{ height: '320px' }} />
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Jumlah Petambak per Kab/Kota</h3>
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-500">
+                    <PieChart className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Jumlah Petambak per Kab/Kota</h3>
+                </div>
+              </div>
               {garamKota.length > 0
                 ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Tren Bulanan Produksi Garam (Ton)</h3>
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-indigo-500/10 p-2.5 text-indigo-500">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Tren Bulanan Produksi Garam (Ton)</h3>
+                </div>
+              </div>
               {garamTrenLabels.length > 0
                 ? <ReactECharts option={garamTrenOption} style={{ height: '320px' }} />
                 : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
@@ -1726,37 +1815,62 @@ export default function AdminKelautanPesisir() {
         {/* ── Visualisasi Mangrove ── */}
         {activeVisTab === 'mangrove' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <TreePine className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-xl font-bold text-foreground">Mangrove</h2>
-            </div>
-          </div>
+
 
           {/* Mangrove Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Mangrove</h3>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                    <PieChart className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Mangrove</h3>
+                </div>
+              </div>
               {kpiMangrove.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
             <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><TreePine className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                  <TreePine className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiMangrove.luas_eksisting)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500"><Leaf className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiMangrove.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-cyan-500/10 p-4 text-cyan-500">
+                  <Leaf className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiMangrove.luas_rehabilitasi)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {mangroveKota.length > 0
                 ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
@@ -1765,8 +1879,15 @@ export default function AdminKelautanPesisir() {
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {mangroveKota.length > 0
                 ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
@@ -1782,37 +1903,62 @@ export default function AdminKelautanPesisir() {
         {/* ── Visualisasi Terumbu Karang ── */}
         {activeVisTab === 'terumbu_karang' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <Waves className="w-5 h-5 text-cyan-500" />
-              <h2 className="text-xl font-bold text-foreground">Terumbu Karang</h2>
-            </div>
-          </div>
+
 
           {/* Terumbu Karang Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Terumbu Karang</h3>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500">
+                    <PieChart className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Terumbu Karang</h3>
+                </div>
+              </div>
               {kpiTerumbu.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
             <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-500"><Waves className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-sky-500/10 p-4 text-sky-500">
+                  <Waves className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiTerumbu.luas_eksisting)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500"><Leaf className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiTerumbu.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-pink-500/10 p-4 text-pink-500">
+                  <Leaf className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiTerumbu.luas_rehabilitasi)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {terumbuKota.length > 0
                 ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
@@ -1821,8 +1967,15 @@ export default function AdminKelautanPesisir() {
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {terumbuKota.length > 0
                 ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
@@ -1838,37 +1991,62 @@ export default function AdminKelautanPesisir() {
         {/* ── Visualisasi Lamun ── */}
         {activeVisTab === 'lamun' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <Leaf className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-xl font-bold text-foreground">Lamun</h2>
-            </div>
-          </div>
+
 
           {/* Lamun Charts & KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Distribusi Kategori Kondisi Lamun</h3>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                    <PieChart className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Lamun</h3>
+                </div>
+              </div>
               {kpiLamun.jumlah_lokasi > 0
                 ? <ReactECharts option={makeKondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
             <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><Leaf className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Eksisting</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_eksisting)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                  <Leaf className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiLamun.luas_eksisting)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
-              <div className="bg-card border border-border p-3 rounded-xl shadow-sm relative overflow-hidden group flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500"><TreePine className="w-5 h-5" /></div><p className="text-base font-bold text-slate-700 dark:text-slate-200">Total Luas Rehabilitasi</p></div>
-                <p className="text-3xl font-bold text-foreground">{numFmt(kpiLamun.luas_rehabilitasi)} <span className="text-base text-muted-foreground font-normal ml-1">Ha</span></p>
+              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                <div className="rounded-xl bg-purple-500/10 p-4 text-purple-500">
+                  <TreePine className="h-8 w-8" />
+                </div>
+                <div>
+                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {numFmt(kpiLamun.luas_rehabilitasi)}
+                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Eksisting per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {lamunKota.length > 0
                 ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
@@ -1877,8 +2055,15 @@ export default function AdminKelautanPesisir() {
                   ); })()
                 : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-4 text-center tracking-wide">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                </div>
+              </div>
               {lamunKota.length > 0
                 ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
                     <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
