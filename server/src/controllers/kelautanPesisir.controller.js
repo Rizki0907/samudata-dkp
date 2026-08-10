@@ -5,10 +5,10 @@ const getTriwulan = (bulan) => {
   // Ubah paksa jadi string agar tidak crash saat menerima angka 1-12
   const b = String(bulan).toLowerCase().trim();
 
-  if (['januari', 'februari', 'maret', '1', '2', '3'].includes(b)) return 'TW 1';
-  if (['april', 'mei', 'juni', '4', '5', '6'].includes(b)) return 'TW 2';
-  if (['juli', 'agustus', 'september', '7', '8', '9'].includes(b)) return 'TW 3';
-  if (['oktober', 'november', 'desember', '10', '11', '12'].includes(b)) return 'TW 4';
+  if (['januari', 'februari', 'maret', '1', '2', '3'].includes(b)) return '1';
+  if (['april', 'mei', 'juni', '4', '5', '6'].includes(b)) return '2';
+  if (['juli', 'agustus', 'september', '7', '8', '9'].includes(b)) return '3';
+  if (['oktober', 'november', 'desember', '10', '11', '12'].includes(b)) return '4';
 
   return '-';
 };

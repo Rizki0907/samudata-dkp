@@ -4,10 +4,10 @@ const ExcelJS = require('exceljs');
 // Helper function to calculate Triwulan (TW) from Bulan
 const getTriwulan = (bulan) => {
   const bulanLower = bulan.toLowerCase();
-  if (['januari', 'februari', 'maret'].includes(bulanLower)) return 'TW 1';
-  if (['april', 'mei', 'juni'].includes(bulanLower)) return 'TW 2';
-  if (['juli', 'agustus', 'september'].includes(bulanLower)) return 'TW 3';
-  if (['oktober', 'november', 'desember'].includes(bulanLower)) return 'TW 4';
+  if (['januari', 'februari', 'maret'].includes(bulanLower)) return '1';
+  if (['april', 'mei', 'juni'].includes(bulanLower)) return '2';
+  if (['juli', 'agustus', 'september'].includes(bulanLower)) return '3';
+  if (['oktober', 'november', 'desember'].includes(bulanLower)) return '4';
   return '-';
 };
 

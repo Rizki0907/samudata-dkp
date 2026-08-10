@@ -81,12 +81,13 @@ export default function AdminBudidaya() {
 
   const filteredDataTahunan = useMemo(() => {
     return dataTahunan.filter(item => {
+      if (!matchMultiFilter(filterStatus, item.status, true)) return false;
       if (!matchMultiFilter(filterKabupaten, item.kabupaten_kota)) return false;
       if (!matchMultiFilter(filterTahun, item.tahun?.toString())) return false;
       if (!matchMultiFilter(filterModul, item.modul_id)) return false;
       return true;
     }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
-  }, [dataTahunan, filterKabupaten, filterTahun, filterModul]);
+  }, [dataTahunan, filterStatus, filterKabupaten, filterTahun, filterModul]);
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
@@ -549,8 +550,7 @@ export default function AdminBudidaya() {
       .sort((a, b) => b.produksi - a.produksi);
 
     const komposisiWadah = Object.entries(wadahMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+      .map(([name, s]) => ({ name, produksi: s.produksi, nilai: s.nilai }));
 
     const top5Wadah = komposisiWadah.slice(0, 5).map(w => w.name);
 
@@ -614,7 +614,7 @@ export default function AdminBudidaya() {
       tooltip: {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          textStyle: { color: '#0f172a' },
           extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg</b>` },
       visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: isDark ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: chartSubText }, calculable: false },
       series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }, data: mapData }]
@@ -622,7 +622,9 @@ export default function AdminBudidaya() {
   }, [computedStats.produksiPerKabupaten, chartText, chartSubText, chartGridLine, isDark]);
 
   const barOption = useMemo(() => {
-    const sortedData = [...computedStats.produksiPerKabupaten].sort((a, b) => b[barFilter] - a[barFilter]);
+    const sortedData = [...computedStats.produksiPerKabupaten]
+      .filter(d => d[barFilter] > 0 && d.name && d.name.trim() !== '')
+      .sort((a, b) => b[barFilter] - a[barFilter]);
     const top10 = sortedData.slice(0, 10).reverse();
     const isProduksi = barFilter === 'produksi';
     const seriesName = isProduksi ? 'Produksi (Kg)' : 'Nilai Total (Rp)';
@@ -636,7 +638,7 @@ export default function AdminBudidaya() {
       grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
       xAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: chartSubText, fontSize: 11 } },
-      series: [{ name: seriesName, type: 'bar', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' }, { offset: 1, color: isDark ? '#2563eb' : '#1e40af' }]), borderRadius: [0, 4, 4, 0] } }]
+      series: [{ name: seriesName, type: 'bar', barWidth: '75%', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' }, { offset: 1, color: isDark ? '#2563eb' : '#1e40af' }]), borderRadius: [0, 4, 4, 0] } }]
     };
   }, [computedStats.produksiPerKabupaten, barFilter, chartGridLine, chartAxisLabel, chartSubText, isDark]);
 
@@ -676,7 +678,7 @@ export default function AdminBudidaya() {
   }, [computedStats.trenBulanan, computedStats.top5Wadah, chartAxisLabel, chartSubText, chartGridLine, isDark]);
 
   const treemapOption = useMemo(() => {
-    const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w.value }));
+    const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w[treemapFilter] || 0 })).sort((a, b) => b.value - a.value);
     return {
       tooltip: {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
@@ -685,7 +687,7 @@ export default function AdminBudidaya() {
           extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg` },
       series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`, color: '#fff', fontWeight: 'bold' }, itemStyle: {  gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
     };
-  }, [computedStats.komposisiWadah, isDark]);
+  }, [computedStats.komposisiWadah, treemapFilter, isDark]);
 
   const heatmapOption = useMemo(() => {
     const yAxisData = [...new Set(computedStats.heatmapData.map(d => d.kabupaten))].sort();
@@ -877,8 +879,8 @@ export default function AdminBudidaya() {
                   onClick={() => setActiveTab('data')}
                   className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                 >
-                  Tabel Data
-                </button>
+                    Data Bulanan
+                  </button>
                 <button
                   onClick={() => setActiveTab('tahunan')}
                   className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'tahunan' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
@@ -898,7 +900,7 @@ export default function AdminBudidaya() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Filter className="w-5 h-5 text-slate-500" />
-                    <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
+                    <h3 className="text-lg font-bold text-foreground">Filter Multidimensi</h3>
                   </div>
                   {activeTab === 'visual' && lastUpdated ? (
                     <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
@@ -909,7 +911,16 @@ export default function AdminBudidaya() {
                   ) : null}
                 </div>
                 {activeTab === 'tahunan' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+                      <SearchableMultiSelect
+                        options={[{ label: 'Verified', value: 'VERIFIED' }, { label: 'Approved', value: 'APPROVED' }, { label: 'Reject', value: 'REJECTED' }, { label: 'Pending', value: 'PENDING' }]}
+                        value={filterStatus}
+                        onChange={setFilterStatus}
+                        placeholder="Semua Status"
+                      />
+                    </div>
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                       <SearchableMultiSelect
@@ -1211,7 +1222,7 @@ export default function AdminBudidaya() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Nilai Budidaya</p>
                       <p className="text-2xl font-bold text-foreground">
-                        Rp {formatUangPendek(computedStats.kpi.total_nilai)}
+                        Rp {formatUangPendek(computedStats.kpi.total_nilai).split(' ')[0]} <span className="text-sm font-normal text-muted-foreground">{formatUangPendek(computedStats.kpi.total_nilai).split(' ').slice(1).join(' ')}</span>
                       </p>
                     </div>
                   </div>
@@ -1219,11 +1230,15 @@ export default function AdminBudidaya() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                   <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="w-5 h-5 text-primary" />
-                      <h2 className="text-lg font-semibold">Peta Sebaran Produksi</h2>
+                    <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <MapPin className="w-5 h-5 text-primary" />
+                        </div>
+                        <h2 className="text-lg font-bold">Peta Sebaran Produksi</h2>
+                      </div>
                     </div>
-                    <div className="h-[450px]">
+                    <div className="h-[400px]">
                       {hasMapData ? (
                         <ReactECharts option={mapOption} style={{ height: '100%', width: '100%' }} />
                       ) : (
@@ -1236,22 +1251,16 @@ export default function AdminBudidaya() {
                       Ketuk salah satu Kab/Kota pada peta untuk melihat rinciannya.
                     </p>
                   </div>
-                  <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-500" />
-                    <h2 className="text-lg font-semibold">Top 10 Kab/Kota</h2>
+                  <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+                    <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <h2 className="text-lg font-bold">Top 10 Kab/Kota</h2>
+                    </div>
                   </div>
-                  <select
-                    value={barFilter}
-                    onChange={(e) => setBarFilter(e.target.value)}
-                    className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
-                  >
-                    <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (Kg)</option>
-                    <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
-                  </select>
-                </div>
-                    <div className="h-[450px]">
+                    <div className="flex-1 min-h-[400px]">
                 {hasBarData ? (
                         <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
                       ) : (
@@ -1265,9 +1274,13 @@ export default function AdminBudidaya() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center gap-2 mb-6">
-                      <TrendingUp className="w-5 h-5 text-teal-500" />
-                      <h2 className="text-lg font-semibold">Tren Produksi Bulanan</h2>
+                    <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-teal-500/10 rounded-lg">
+                          <TrendingUp className="w-5 h-5 text-teal-500" />
+                        </div>
+                        <h2 className="text-lg font-bold">Tren Produksi Bulanan</h2>
+                      </div>
                     </div>
                     <div className="h-[350px]">
                       {hasLineData ? (
@@ -1280,20 +1293,14 @@ export default function AdminBudidaya() {
                     </div>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <Fish className="w-5 h-5 text-cyan-500" />
-                    <h2 className="text-lg font-semibold">Komposisi Jenis Wadah</h2>
+                    <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/10 rounded-lg">
+                        <Fish className="w-5 h-5 text-cyan-500" />
+                      </div>
+                      <h2 className="text-lg font-bold">Komposisi Jenis Wadah</h2>
+                    </div>
                   </div>
-                  <select
-                    value={treemapFilter}
-                    onChange={(e) => setTreemapFilter(e.target.value)}
-                    className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
-                  >
-                    <option value="produksi" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Produksi (Kg)</option>
-                    <option value="nilai" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Nilai Total (Rp)</option>
-                  </select>
-                </div>
                     <div className="h-[350px]">
                 {hasTreemapData ? (
                         <ReactECharts option={treemapOption} style={{ height: '100%', width: '100%' }} />
@@ -1307,9 +1314,13 @@ export default function AdminBudidaya() {
                 </div>
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-6">
-                    <MapPin className="w-5 h-5 text-rose-500" />
-                    <h2 className="text-lg font-semibold">Pola Musiman per Wilayah </h2>
+                  <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-rose-500/10 rounded-lg">
+                        <MapPin className="w-5 h-5 text-rose-500" />
+                      </div>
+                      <h2 className="text-lg font-bold">Pola Musiman per Wilayah </h2>
+                    </div>
                   </div>
                   <div className="h-[600px]">
                     {hasHeatmapData ? (

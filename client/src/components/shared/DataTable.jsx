@@ -194,7 +194,7 @@ export function DataTable({
           {!hideDefaultExport && (
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-secondary text-white dark:text-black rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-secondary text-white dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity text-sm font-medium"
             >
               <Download className="w-4 h-4" />
               Ekspor Excel

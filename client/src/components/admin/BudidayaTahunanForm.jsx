@@ -17,7 +17,7 @@ const formatTitle = (title) => {
 };
 
 
-export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
+export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
   const isEditing = !!initialData;
   const [tahun, setTahun] = useState(initialData?.tahun?.toString() || currentYear.toString());
   const [kabupaten, setKabupaten] = useState(initialData?.kabupaten_kota || '');
@@ -185,7 +185,8 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData }) {
         tahun: parseInt(tahun),
         kabupaten_kota: kabupaten,
         modul_id: activeModule,
-        data: formData
+        data: formData,
+        status: user?.role === 'admin_pusat' ? 'APPROVED' : 'PENDING'
       };
       
       await api.post('/budidaya-tahunan', payload);
