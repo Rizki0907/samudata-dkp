@@ -675,6 +675,52 @@ const makeKondisiTerumbuPieOption = (data, isDark = false) => {
   };
 };
 
+// ── ACTION DIALOG (pengganti window.prompt/confirm/alert bawaan browser) ──────
+function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
+  if (!dialog?.open) return null;
+  const themes = {
+    APPROVED: { border: 'border-blue-500/30', bg: 'bg-blue-500', soft: 'bg-blue-500/10', text: 'text-blue-600', icon: CheckCircle },
+    VERIFIED: { border: 'border-emerald-500/30', bg: 'bg-emerald-500', soft: 'bg-emerald-500/10', text: 'text-emerald-600', icon: CheckCircle },
+    REJECTED: { border: 'border-rose-500/30', bg: 'bg-rose-500', soft: 'bg-rose-500/10', text: 'text-rose-600', icon: XCircle },
+    DELETE: { border: 'border-rose-500/30', bg: 'bg-rose-500', soft: 'bg-rose-500/10', text: 'text-rose-600', icon: Trash2 },
+    INFO: { border: 'border-primary/30', bg: 'bg-primary', soft: 'bg-primary/10', text: 'text-primary', icon: Info },
+  };
+  const theme = themes[dialog.theme] || themes.INFO;
+  const Icon = theme.icon;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
+      <div className={`w-full max-w-lg overflow-hidden rounded-3xl border ${theme.border} bg-card shadow-2xl`} onClick={event => event.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.soft} ${theme.text}`}><Icon className="h-6 w-6" /></div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg font-bold text-foreground">{dialog.title}</h3>
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{dialog.message}</p>
+            </div>
+            <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted"><X className="h-5 w-5" /></button>
+          </div>
+          {dialog.input ? (
+            <div className="mt-5">
+              {dialog.multiline ? (
+                <textarea autoFocus rows={4} value={value} onChange={event => setValue(event.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+              ) : (
+                <input autoFocus type="text" value={value} onChange={event => setValue(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') onSubmit(); }} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+              )}
+            </div>
+          ) : null}
+          {dialog.error ? <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">{dialog.error}</div> : null}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border p-5">
+          {dialog.showCancel !== false ? <button type="button" onClick={onClose} className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted">Batal</button> : null}
+          <button type="button" onClick={onSubmit} disabled={dialog.loading} className={`rounded-xl px-5 py-2.5 text-sm font-semibold text-white ${theme.bg} disabled:opacity-50`}>
+            {dialog.loading ? 'Memproses...' : (dialog.confirmLabel || 'OK')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
   { key: 'garam',            label: 'Garam' },
@@ -708,6 +754,21 @@ export default function AdminKelautanPesisir() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // ── Dialog custom pengganti window.prompt/confirm/alert untuk approve/reject/hapus massal ──
+  const [actionDialog, setActionDialog] = useState(null);
+  const [dialogValue, setDialogValue] = useState('');
+
+  const closeActionDialog = () => {
+    if (actionDialog?.loading) return;
+    setActionDialog(null);
+    setDialogValue('');
+  };
+
+  const showNotice = (message, theme = 'INFO', title = 'Informasi') => {
+    setDialogValue('');
+    setActionDialog({ open: true, kind: 'notice', title, message, theme, showCancel: false, confirmLabel: 'OK' });
+  };
 
   // Filters
   const [filterTahun, setFilterTahun] = useState([]);
@@ -892,233 +953,256 @@ export default function AdminKelautanPesisir() {
     }
   };
 
-  const handleApprove = async (row) => {
-    let promptMsg = 'Pilih jenis validasi (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    if (row.status === 'APPROVED') {
-      promptMsg = 'Data ini sudah disetujui Bidang.\nKetik "2" untuk melanjutkan Validasi Program:';
-    } else if (row.status === 'PENDING') {
-      promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
+  const handleApprove = (row) => {
+    if (row.status === 'VERIFIED') {
+      showNotice('Data ini sudah VERIFIED.', 'INFO');
+      return;
     }
-
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
+    if (row.status === 'REJECTED') {
+      showNotice('Data yang ditolak harus diperbaiki terlebih dahulu agar kembali ke status APPROVED.', 'INFO');
+      return;
+    }
 
     let targetStatus = '';
     let namaValidasi = '';
     let expectedKeyword = '';
+    let theme = '';
 
-    if (jenis === '1') {
-      if (row.status === 'APPROVED' || row.status === 'VERIFIED') {
-        alert('Data sudah divalidasi oleh Bidang sebelumnya!');
-        return;
-      }
-      targetStatus = 'APPROVED'; // Approve Bidang -> APPROVED
-      namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU';
-    } else if (jenis === '2') {
-      if (row.status !== 'APPROVED') {
-        alert('Validasi Program ditolak! Pastikan data ini sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
-        return;
-      }
-      targetStatus = 'VERIFIED'; // Approve Program -> VERIFIED
-      namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC';
-    } else {
-      alert('Pilihan tidak valid. Proses dibatalkan.');
-      return;
-    }
-
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== expectedKeyword) {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      if (activeTab === 'garam') {
-        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
-        await fetchGaram();
-      } else if (activeTab === 'potensi_perairan') {
-        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
-        await fetchPotensi();
-      } else if (activeTab === 'mangrove') {
-        await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
-        await fetchMangrove();
-      } else if (activeTab === 'lamun') {
-        await api.patch(`/kelautan-pesisir/lamun/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
-        await fetchLamun();
-      } else if (activeTab === 'terumbu_karang') {
-        await api.patch(`/kelautan-pesisir/terumbu-karang/${row.id}/status`, { status: targetStatus, alasan_penolakan: null });
-        await fetchTerumbuKarang();
-      }
-    } catch (err) { 
-      console.error(err);
-      alert('Gagal menyetujui data.');
-    }
-  };
-
-  const handleReject = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (!alasan?.trim()) {
-      alert('Alasan penolakan tidak boleh kosong.');
-      return;
-    }
-    
-    const confirmText = window.prompt('Ketik "TOLAK_PESISIR" (huruf kapital) untuk menyelesaikan penolakan:');
-    if (confirmText !== 'TOLAK_PESISIR') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      if (activeTab === 'garam') {
-        await api.patch(`/kelautan-pesisir/garam/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-        await fetchGaram();
-      } else if (activeTab === 'potensi_perairan') {
-        await api.patch(`/kelautan-pesisir/potensi-perairan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-        await fetchPotensi();
-      } else if (activeTab === 'mangrove') {
-        await api.patch(`/kelautan-pesisir/mangrove/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-        await fetchMangrove();
-      } else if (activeTab === 'lamun') {
-        await api.patch(`/kelautan-pesisir/lamun/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-        await fetchLamun();
-      } else if (activeTab === 'terumbu_karang') {
-        await api.patch(`/kelautan-pesisir/terumbu-karang/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-        await fetchTerumbuKarang();
-      }
-    } catch (err) { 
-      console.error(err);
-      alert('Gagal menolak data.');
-    }
-  };
-
-  const handleBatchApprove = async (ids) => {
-    const selectedRows = filteredData.filter(row => ids.includes(row.id));
-    
-    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-    let expectedKeyword = '';
-
-    if (jenis === '1') {
-      const invalidRows = selectedRows.filter(row => row.status === 'VERIFIED' || row.status === 'APPROVED');
-      if (invalidRows.length > 0) {
-        alert('Beberapa data yang dipilih sudah divalidasi Bidang/Program! Silakan pilih data yang berstatus PENDING saja.');
-        return;
-      }
+    if (row.status === 'PENDING') {
       targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
-    } else if (jenis === '2') {
-      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED');
-      if (invalidRows.length > 0) {
-        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
-        return;
-      }
+      theme = 'APPROVED';
+    } else if (row.status === 'APPROVED') {
       targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
+      theme = 'VERIFIED';
     } else {
-      alert('Pilihan tidak valid.');
+      showNotice('Status data tidak valid untuk proses verifikasi.', 'INFO');
       return;
     }
 
-    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== expectedKeyword) {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    const payload = { ids, status: targetStatus };
-
-    try {
-      if (activeTab === 'garam') {
-        await api.post(`/kelautan-pesisir/garam/batch-status`, payload);
-        await fetchGaram();
-      } else if (activeTab === 'potensi_perairan') {
-        await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, payload);
-        await fetchPotensi();
-      } else if (activeTab === 'mangrove') {
-        await api.post(`/kelautan-pesisir/mangrove/batch-status`, payload);
-        await fetchMangrove();
-      } else if (activeTab === 'lamun') {
-        await api.post('/kelautan-pesisir/lamun/batch-status', payload);
-        await fetchLamun();
-      } else if (activeTab === 'terumbu_karang') {
-        await api.post('/kelautan-pesisir/terumbu-karang/batch-status', payload);
-        await fetchTerumbuKarang();
-      }
-    } catch (error) {
-      console.error('Error batch approve:', error);
-      alert(`Gagal menyetujui data secara massal: ${error?.response?.data?.message || error.message}`);
-    }
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'validation-confirm',
+      title: `Validasi ${namaValidasi}`,
+      message: `Data ini akan diproses menjadi status ${targetStatus}.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`,
+      theme,
+      rows: [row],
+      isBatch: false,
+      input: true,
+      targetStatus,
+      expected: expectedKeyword,
+      confirmLabel: 'Proses',
+    });
   };
 
-  const handleBatchReject = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi!');
+  const handleReject = (row) => {
+    if (row.status === 'REJECTED') {
+      showNotice('Data ini sudah ditolak.', 'INFO');
       return;
     }
-    const confirmText = window.prompt(`Ketik "TOLAK_PESISIR" (huruf kapital) untuk menyelesaikan penolakan massal:`);
-    if (confirmText !== 'TOLAK_PESISIR') {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    const payload = { ids, status: 'REJECTED', alasan_penolakan: alasan };
-
-    try {
-      if (activeTab === 'garam') {
-        await api.post(`/kelautan-pesisir/garam/batch-status`, payload);
-        await fetchGaram();
-      } else if (activeTab === 'potensi_perairan') {
-        await api.post(`/kelautan-pesisir/potensi-perairan/batch-status`, payload);
-        await fetchPotensi();
-      } else if (activeTab === 'mangrove') {
-        await api.post(`/kelautan-pesisir/mangrove/batch-status`, payload);
-        await fetchMangrove();
-      } else if (activeTab === 'lamun') {
-        await api.post(`/kelautan-pesisir/lamun/batch-status`, payload);
-        await fetchLamun();
-      } else if (activeTab === 'terumbu_karang') {
-        await api.post(`/kelautan-pesisir/terumbu-karang/batch-status`, payload);
-        await fetchTerumbuKarang();
-      }
-    } catch (error) {
-      console.error('Error batch reject:', error);
-      alert('Gagal menolak data secara massal');
-    }
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data',
+      message: `Masukkan alasan penolakan untuk ${row.kabupaten_kota || '-'} (${row.tahun || row.tahun_data || '-'}):`,
+      theme: 'REJECTED',
+      rows: [row],
+      isBatch: false,
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+    });
   };
 
-  const handleBatchDelete = async (ids) => {
-    if (window.confirm(`Yakin ingin menghapus ${ids.length} data ini secara massal?`)) {
-      try {
+  const handleBatchApprove = (ids) => {
+    const selectedRows = filteredData.filter(row => ids.includes(row.id));
+    if (!selectedRows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
+      return;
+    }
+
+    const allPending = selectedRows.every(row => row.status === 'PENDING');
+    const allApproved = selectedRows.every(row => row.status === 'APPROVED');
+
+    let targetStatus = '';
+    let namaValidasi = '';
+    let expectedKeyword = '';
+    let theme = '';
+
+    if (allPending) {
+      targetStatus = 'APPROVED';
+      namaValidasi = 'BIDANG';
+      expectedKeyword = 'SETUJU';
+      theme = 'APPROVED';
+    } else if (allApproved) {
+      targetStatus = 'VERIFIED';
+      namaValidasi = 'PROGRAM';
+      expectedKeyword = 'ACC';
+      theme = 'VERIFIED';
+    } else {
+      showNotice('Data yang dipilih harus berstatus sama (semua PENDING untuk Validasi Bidang, atau semua APPROVED untuk Validasi Program).', 'INFO');
+      return;
+    }
+
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'validation-confirm',
+      title: `Validasi ${namaValidasi} Massal`,
+      message: `Anda akan memproses ${selectedRows.length} data menjadi status ${targetStatus}.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`,
+      theme,
+      rows: selectedRows,
+      isBatch: true,
+      input: true,
+      targetStatus,
+      expected: expectedKeyword,
+      confirmLabel: 'Proses',
+    });
+  };
+
+  const handleBatchReject = (ids) => {
+    const selectedRows = filteredData.filter(row => ids.includes(row.id));
+    if (!selectedRows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
+      return;
+    }
+    if (selectedRows.some(row => row.status === 'REJECTED')) {
+      showNotice('Ada data yang sudah REJECTED. Pilih data lain.', 'INFO');
+      return;
+    }
+    setDialogValue('');
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data Terpilih',
+      message: `Masukkan alasan penolakan untuk ${selectedRows.length} data:`,
+      theme: 'REJECTED',
+      rows: selectedRows,
+      isBatch: true,
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+    });
+  };
+
+  const handleBatchDelete = (ids) => {
+    const selectedRows = filteredData.filter(row => ids.includes(row.id));
+    if (!selectedRows.length) {
+      showNotice('Tidak ada data yang dipilih.', 'INFO');
+      return;
+    }
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data Terpilih',
+      message: `Yakin ingin menghapus ${selectedRows.length} data terpilih secara massal?`,
+      theme: 'DELETE',
+      rows: selectedRows,
+      isBatch: true,
+      confirmLabel: 'Hapus',
+    });
+  };
+
+  // ── Eksekusi aksi dialog (approve / reject / delete massal atau tunggal) ──
+  const submitActionDialog = async () => {
+    if (!actionDialog) return;
+    if (actionDialog.kind === 'notice') {
+      closeActionDialog();
+      return;
+    }
+    if (actionDialog.kind === 'validation-confirm' && dialogValue !== actionDialog.expected) {
+      setActionDialog(previous => ({ ...previous, error: `Konfirmasi dibatalkan atau kata kunci tidak sesuai. Ketik "${previous.expected}".` }));
+      return;
+    }
+    if (actionDialog.kind === 'reject' && !dialogValue.trim()) {
+      setActionDialog(previous => ({ ...previous, error: 'Alasan penolakan wajib diisi.' }));
+      return;
+    }
+
+    setActionDialog(previous => ({ ...previous, loading: true, error: '' }));
+    const rows = actionDialog.rows || [];
+    const ids = rows.map(row => row.id);
+    const isBatch = actionDialog.isBatch;
+
+    const callByTab = async (single, batch) => {
+      if (activeTab === 'garam') {
+        isBatch ? await api.post('/kelautan-pesisir/garam/batch-status', batch) : await api.patch(`/kelautan-pesisir/garam/${rows[0].id}/status`, single);
+        await fetchGaram();
+      } else if (activeTab === 'potensi_perairan') {
+        isBatch ? await api.post('/kelautan-pesisir/potensi-perairan/batch-status', batch) : await api.patch(`/kelautan-pesisir/potensi-perairan/${rows[0].id}/status`, single);
+        await fetchPotensi();
+      } else if (activeTab === 'mangrove') {
+        isBatch ? await api.post('/kelautan-pesisir/mangrove/batch-status', batch) : await api.patch(`/kelautan-pesisir/mangrove/${rows[0].id}/status`, single);
+        await fetchMangrove();
+      } else if (activeTab === 'lamun') {
+        isBatch ? await api.post('/kelautan-pesisir/lamun/batch-status', batch) : await api.patch(`/kelautan-pesisir/lamun/${rows[0].id}/status`, single);
+        await fetchLamun();
+      } else if (activeTab === 'terumbu_karang') {
+        isBatch ? await api.post('/kelautan-pesisir/terumbu-karang/batch-status', batch) : await api.patch(`/kelautan-pesisir/terumbu-karang/${rows[0].id}/status`, single);
+        await fetchTerumbuKarang();
+      }
+    };
+
+    try {
+      if (actionDialog.kind === 'delete') {
         if (activeTab === 'garam') {
-          await api.post(`/kelautan-pesisir/garam/batch-delete`, { ids });
+          isBatch ? await api.post('/kelautan-pesisir/garam/batch-delete', { ids }) : await api.delete(`/kelautan-pesisir/garam/${rows[0].id}`);
           await fetchGaram();
         } else if (activeTab === 'potensi_perairan') {
-          await api.post(`/kelautan-pesisir/potensi-perairan/batch-delete`, { ids });
+          isBatch ? await api.post('/kelautan-pesisir/potensi-perairan/batch-delete', { ids }) : await api.delete(`/kelautan-pesisir/potensi-perairan/${rows[0].id}`);
           await fetchPotensi();
         } else if (activeTab === 'mangrove') {
-          await api.post(`/kelautan-pesisir/mangrove/batch-delete`, { ids });
+          isBatch ? await api.post('/kelautan-pesisir/mangrove/batch-delete', { ids }) : await api.delete(`/kelautan-pesisir/mangrove/${rows[0].id}`);
           await fetchMangrove();
         } else if (activeTab === 'lamun') {
-          await api.post(`/kelautan-pesisir/lamun/batch-delete`, { ids });
+          isBatch ? await api.post('/kelautan-pesisir/lamun/batch-delete', { ids }) : await api.delete(`/kelautan-pesisir/lamun/${rows[0].id}`);
           await fetchLamun();
         } else if (activeTab === 'terumbu_karang') {
-          await api.post(`/kelautan-pesisir/terumbu-karang/batch-delete`, { ids });
+          isBatch ? await api.post('/kelautan-pesisir/terumbu-karang/batch-delete', { ids }) : await api.delete(`/kelautan-pesisir/terumbu-karang/${rows[0].id}`);
           await fetchTerumbuKarang();
         }
-      } catch (error) {
-        console.error('Error batch delete:', error);
-        alert('Gagal menghapus data secara massal');
+        setActionDialog(null);
+        setDialogValue('');
+        showNotice(rows.length === 1 ? 'Data berhasil dihapus.' : `${rows.length} data berhasil dihapus.`, 'DELETE', 'Penghapusan Berhasil');
+        return;
       }
+
+      if (actionDialog.kind === 'reject') {
+        const alasan = dialogValue.trim();
+        await callByTab(
+          { status: 'REJECTED', alasan_penolakan: alasan },
+          { ids, status: 'REJECTED', alasan_penolakan: alasan }
+        );
+        setActionDialog(null);
+        setDialogValue('');
+        showNotice(rows.length === 1 ? 'Data berhasil ditolak.' : `${rows.length} data berhasil ditolak.`, 'REJECTED', 'Penolakan Berhasil');
+        return;
+      }
+
+      if (actionDialog.kind === 'validation-confirm') {
+        await callByTab(
+          { status: actionDialog.targetStatus, alasan_penolakan: null },
+          { ids, status: actionDialog.targetStatus }
+        );
+        setActionDialog(null);
+        setDialogValue('');
+        showNotice(
+          rows.length === 1 ? `Data berhasil diubah statusnya menjadi ${actionDialog.targetStatus}.` : `${rows.length} data berhasil diubah menjadi ${actionDialog.targetStatus}.`,
+          actionDialog.targetStatus === 'VERIFIED' ? 'VERIFIED' : 'APPROVED',
+          `${actionDialog.targetStatus} Berhasil`
+        );
+      }
+    } catch (error) {
+      console.error('Error action dialog:', error);
+      const message = error?.response?.data?.message || error?.response?.data?.error || error.message || 'Terjadi kesalahan. Silakan coba lagi.';
+      setActionDialog(null);
+      setDialogValue('');
+      showNotice(message, 'REJECTED', 'Proses Gagal');
     }
   };
 
@@ -2244,6 +2328,14 @@ export default function AdminKelautanPesisir() {
           {renderVisualisasi()}
         </div>
       )}
+
+      <ActionDialog
+        dialog={actionDialog}
+        value={dialogValue}
+        setValue={setDialogValue}
+        onClose={closeActionDialog}
+        onSubmit={submitActionDialog}
+      />
     </div>
   );
 }
