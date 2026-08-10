@@ -693,7 +693,7 @@ export default function KelautanPesisir() {
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
   const lastUpdated = latestDate 
-    ? format(latestDate, "dd MMM yyyy HH:mm", { locale: idLocale })
+    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : '-';
 
   return (

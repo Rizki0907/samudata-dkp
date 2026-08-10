@@ -11,7 +11,7 @@ import ReactECharts from 'echarts-for-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
@@ -1998,8 +1998,8 @@ export default function AdminKelautanPesisir() {
     .map(d => d.getTime());
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
-  const lastUpdated = latestDate 
-    ? format(latestDate, "dd MMM yyyy HH:mm", { locale: idLocale })
+  const lastUpdated = latestDate
+    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : '-';
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
