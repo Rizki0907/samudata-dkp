@@ -1287,6 +1287,10 @@ export default function AdminPerikananTangkap() {
 
     let totalKeseluruhanVol = 0;
     let totalKeseluruhanNilai = 0;
+    let totalLangsungVol = 0;
+    let totalLangsungNilai = 0;
+    let totalAlihMuatVol = 0;
+    let totalAlihMuatNilai = 0;
     const apiSummaryMap = {};
     const logistikSummaryMap = {};
 
@@ -1315,22 +1319,37 @@ export default function AdminPerikananTangkap() {
       totalKeseluruhanVol += totalVol;
       totalKeseluruhanNilai += totalNilai;
 
+      const hasKapalPengangkut = row.kapal_pengangkut && row.kapal_pengangkut.trim() !== '';
+      if (hasKapalPengangkut) {
+        totalAlihMuatVol += totalVol;
+        totalAlihMuatNilai += totalNilai;
+      } else {
+        totalLangsungVol += totalVol;
+        totalLangsungNilai += totalNilai;
+      }
+
       const apiName = row.alat_tangkap || 'Tidak Diketahui';
-      if (!apiSummaryMap[apiName]) apiSummaryMap[apiName] = { vol: 0, nilai: 0 };
-      apiSummaryMap[apiName].vol += totalVol;
-      apiSummaryMap[apiName].nilai += totalNilai;
+      if (!apiSummaryMap[apiName]) apiSummaryMap[apiName] = { vol: 0, nilai: 0, alihMuatVol: 0, alihMuatNilai: 0 };
+      
+      if (hasKapalPengangkut) {
+        apiSummaryMap[apiName].alihMuatVol += totalVol;
+        apiSummaryMap[apiName].alihMuatNilai += totalNilai;
+      } else {
+        apiSummaryMap[apiName].vol += totalVol;
+        apiSummaryMap[apiName].nilai += totalNilai;
+      }
 
       const baseRow = [
         idx + 1,
         row.tanggal ? formatDate(row.tanggal) : '-',
         row.jam_labuh || '-',
         row.jam_bongkar || '-',
-        'Hasil Tangkapan',
+        hasKapalPengangkut ? 'Alih Muat' : 'Hasil Tangkapan',
         '', // WPPNRI dikosongkan sesuai permintaan
         row.nama_kapal || '-',
         row.gt_kapal || '-',
         row.alat_tangkap || '-',
-        ''
+        hasKapalPengangkut ? row.kapal_pengangkut : ''
       ];
       
       const logistikData = {};
@@ -1396,14 +1415,14 @@ export default function AdminPerikananTangkap() {
       summaryRows.push([
         summaryIndex++,
         apiName.toUpperCase(),
-        apiSummaryMap[apiName].vol,
-        apiSummaryMap[apiName].nilai,
-        '-',
-        '-'
+        apiSummaryMap[apiName].vol || '-',
+        apiSummaryMap[apiName].nilai || '-',
+        apiSummaryMap[apiName].alihMuatVol || '-',
+        apiSummaryMap[apiName].alihMuatNilai || '-'
       ]);
     });
     
-    const summaryTotalRow = ['Total Produksi', '', totalKeseluruhanVol, totalKeseluruhanNilai, '-', '-'];
+    const summaryTotalRow = ['Total Produksi', '', totalLangsungVol || '-', totalLangsungNilai || '-', totalAlihMuatVol || '-', totalAlihMuatNilai || '-'];
 
     
     const operasionalHeader = ['2. OPERASIONAL PELABUHAN'];

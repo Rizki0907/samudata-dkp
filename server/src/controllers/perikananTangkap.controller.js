@@ -61,7 +61,7 @@ const getAdminData = async (req, res) => {
 // POST new data [ADMIN]
 const createData = async (req, res) => {
   try {
-    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, kapal_pengangkut, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
     
     if (!tangkapan || tangkapan.length === 0) {
       return res.status(400).json({ success: false, message: 'Data tangkapan kosong' });
@@ -101,6 +101,7 @@ const createData = async (req, res) => {
         pelabuhan,
         kabupaten_kota,
         nama_kapal,
+        kapal_pengangkut,
         gt_kapal,
         alat_tangkap,
         logistik: typeof logistik === 'object' ? JSON.stringify(logistik) : logistik,
@@ -125,7 +126,7 @@ const createData = async (req, res) => {
 const updateData = async (req, res) => {
   try {
     const { id } = req.params;
-    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
+    const { sumber_data, tanggal, jam_labuh, jam_bongkar, pelabuhan, kabupaten_kota, nama_kapal, kapal_pengangkut, gt_kapal, alat_tangkap, logistik, tangkapan, jenis_perairan, pud_populasi_alat, pud_jumlah_sampel } = req.body;
     
     // Check permission
     const existing = await prisma.perikananTangkap.findUnique({ where: { id: parseInt(id) } });
@@ -182,6 +183,7 @@ const updateData = async (req, res) => {
         pelabuhan,
         kabupaten_kota,
         nama_kapal,
+        kapal_pengangkut,
         gt_kapal,
         alat_tangkap,
         logistik: typeof logistik === 'object' ? JSON.stringify(logistik) : logistik,

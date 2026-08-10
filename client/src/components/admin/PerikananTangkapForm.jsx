@@ -39,6 +39,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     pud_populasi_alat: '',
     pud_jumlah_sampel: '',
     logistik: [{ nama: '', jumlah: '' }],
+    kapal_pengangkut: '',
     gt_kapal: '',
     alat_tangkap: '',
     tangkapan: [
@@ -72,6 +73,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
             return [{ nama: '', jumlah: '', legacy: initialData.logistik }];
           }
         })(),
+        kapal_pengangkut: initialData.kapal_pengangkut || '',
         gt_kapal: initialData.gt_kapal || '',
         alat_tangkap: initialData.alat_tangkap || '',
         tangkapan: [
@@ -424,6 +426,38 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                   />
                   {errors.nama_kapal && <p className="text-xs text-destructive mt-1">{errors.nama_kapal}</p>}
                 </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">Ada Kapal Pengangkut?</label>
+                  <select
+                    value={formData.kapal_pengangkut === null || formData.kapal_pengangkut === '' ? 'tidak' : 'ya'}
+                    onChange={(e) => {
+                      if (e.target.value === 'tidak') {
+                        setFormData(prev => ({ ...prev, kapal_pengangkut: '' }));
+                      } else {
+                        setFormData(prev => ({ ...prev, kapal_pengangkut: ' ' }));
+                      }
+                    }}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="tidak">Tidak</option>
+                    <option value="ya">Ya</option>
+                  </select>
+                </div>
+
+                {formData.kapal_pengangkut !== null && formData.kapal_pengangkut !== '' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Nama Kapal Pengangkut</label>
+                    <input 
+                      type="text" 
+                      name="kapal_pengangkut"
+                      placeholder="Cth: KM Pengangkut Jaya"
+                      value={formData.kapal_pengangkut.trim()}
+                      onChange={handleChange}
+                      className={cn("w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50", errors.kapal_pengangkut ? "border-destructive" : "border-input")}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium mb-2">GT Kapal</label>
