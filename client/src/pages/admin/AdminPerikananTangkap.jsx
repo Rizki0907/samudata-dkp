@@ -151,7 +151,7 @@ export default function AdminPerikananTangkap() {
       fetchData();
     } catch (error) {
       console.error('Error saving data:', error);
-      alert('Gagal menyimpan data');
+      setActionDialog({ open: true, theme: 'REJECTED', title: 'Gagal', message: 'Gagal menyimpan data', showCancel: false });
     } finally {
       setSubmitLoading(false);
     }
@@ -170,7 +170,7 @@ export default function AdminPerikananTangkap() {
       fetchData();
     } catch (error) {
       console.error('Error saving data tahunan:', error);
-      alert('Gagal menyimpan data tahunan');
+      setActionDialog({ open: true, theme: 'REJECTED', title: 'Gagal', message: 'Gagal menyimpan data tahunan', showCancel: false });
     } finally {
       setSubmitLoading(false);
     }

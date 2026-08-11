@@ -3,6 +3,7 @@ import api from '@/services/api';
 import { Plus, Trash2, Edit2, Loader2, Save, X, AlertCircle, CheckCircle2, Database, Fish } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import ActionDialog from '@/components/shared/ActionDialog';
 
 export default function InputOverviewTangkap({ showToast, onDataChange }) {
   const [items, setItems] = useState([]);
@@ -19,6 +20,8 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     nelayan: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionDialog, setActionDialog] = useState(null);
+  const closeActionDialog = () => setActionDialog(null);
 
   useEffect(() => {
     fetchOverviewTangkap();
@@ -64,16 +67,29 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data overview tangkap ini?')) return;
+  const handleDelete = (id) => {
+    setActionDialog({
+      open: true,
+      theme: 'DELETE',
+      title: 'Hapus Data',
+      message: 'Apakah Anda yakin ingin menghapus data overview tangkap ini?',
+      kind: 'delete-overview',
+      targetId: id
+    });
+  };
+
+  const executeDelete = async (id) => {
     try {
+      setActionDialog(prev => ({ ...prev, loading: true }));
       const res = await api.delete(`/master-data/${id}`);
       if (res.data?.success) {
         showToast && showToast('Data overview tangkap berhasil dihapus');
         fetchOverviewTangkap();
         onDataChange && onDataChange();
       }
+      closeActionDialog();
     } catch (err) {
+      setActionDialog(prev => ({ ...prev, loading: false, error: err.response?.data?.message || 'Gagal menghapus data' }));
       showToast && showToast(err.response?.data?.message || 'Gagal menghapus data', 'error');
     }
   };
@@ -320,6 +336,22 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
           </div>
         )}
       </AnimatePresence>
+
+      {actionDialog && (
+        <ActionDialog
+          dialog={actionDialog}
+          value={actionDialog.value || ''}
+          setValue={(val) => setActionDialog(prev => ({ ...prev, value: val }))}
+          onClose={closeActionDialog}
+          onSubmit={async () => {
+            if (actionDialog.kind === 'delete-overview') {
+              await executeDelete(actionDialog.targetId);
+            } else {
+              closeActionDialog();
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

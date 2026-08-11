@@ -4,6 +4,7 @@ import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
+import ActionDialog from '@/components/shared/ActionDialog';
 import { Edit2, RotateCcw, AlertCircle, CheckCircle, Save, X, Download, FileText } from 'lucide-react';
 import { formatRupiah } from '@/utils/formatRupiah';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,6 +26,8 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   const [submitLoading, setSubmitLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [batchVolumePct, setBatchVolumePct] = useState('');
+  const [actionDialog, setActionDialog] = useState(null);
+  const closeActionDialog = () => setActionDialog(null);
   const { user } = useAuthStore();
   const isPusat = !isPublic && (user?.role === 'admin_pusat' || user?.role === 'admin_bidang');
 
@@ -73,26 +76,38 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       fetchData();
     } catch (error) {
       console.error('Error updating target:', error);
-      alert('Gagal menyimpan validasi');
+      setActionDialog({ open: true, theme: 'REJECTED', title: 'Gagal', message: 'Gagal menyimpan validasi', showCancel: false });
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleReset = async (id) => {
-    if (window.confirm('Yakin ingin mereset data ini ke kalkulasi default sistem?')) {
-      try {
-        await api.post(`/bulanan-tangkap/${id}/reset`);
-        fetchData();
-      } catch (error) {
-        console.error('Error resetting target:', error);
-        alert('Gagal mereset validasi');
-      }
+  const handleReset = (id) => {
+    setActionDialog({
+      open: true,
+      theme: 'INFO',
+      title: 'Konfirmasi Reset',
+      message: 'Yakin ingin mereset data ini ke kalkulasi default sistem?',
+      kind: 'reset-validasi',
+      targetId: id
+    });
+  };
+
+  const executeReset = async (id) => {
+    try {
+      setActionDialog(prev => ({ ...prev, loading: true }));
+      await api.post(`/bulanan-tangkap/${id}/reset`);
+      fetchData();
+      closeActionDialog();
+      setActionDialog({ open: true, theme: 'APPROVED', title: 'Berhasil', message: 'Data berhasil direset.', showCancel: false });
+    } catch (error) {
+      console.error('Error resetting target:', error);
+      setActionDialog(prev => ({ ...prev, loading: false, error: 'Gagal mereset validasi' }));
     }
   };
 
   const handleBatchAdjust = async (selectedIds, clearSelection) => {
-    if (!batchVolumePct) return alert("Masukkan persentase koreksi Volume!");
+    if (!batchVolumePct) return setActionDialog({ open: true, theme: 'INFO', title: 'Perhatian', message: 'Masukkan persentase koreksi Volume!', showCancel: false });
     try {
       setSubmitLoading(true);
 
@@ -105,7 +120,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
         }
       });
 
-      if (realIds.length === 0) return alert("Tidak ada data validasi yang dipilih");
+      if (realIds.length === 0) return setActionDialog({ open: true, theme: 'INFO', title: 'Perhatian', message: 'Tidak ada data validasi yang dipilih', showCancel: false });
 
       await api.post('/bulanan-tangkap/batch-target', {
         ids: realIds,
@@ -116,9 +131,10 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
       setBatchMode(false);
       setBatchVolumePct('');
       fetchData();
+      setActionDialog({ open: true, theme: 'APPROVED', title: 'Berhasil', message: 'Koreksi massal berhasil dilakukan.', showCancel: false });
     } catch (err) {
       console.error('Error batch update:', err);
-      alert("Gagal melakukan koreksi massal");
+      setActionDialog({ open: true, theme: 'REJECTED', title: 'Gagal', message: 'Gagal melakukan koreksi massal', showCancel: false });
     } finally {
       setSubmitLoading(false);
     }
