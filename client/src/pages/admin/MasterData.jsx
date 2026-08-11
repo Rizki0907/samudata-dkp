@@ -261,7 +261,17 @@ export default function MasterData() {
         if (bId) return 1;
       }
 
-      if (['JENIS_PENGOLAHAN', 'JENIS_PEMASARAN', 'KATEGORI_SKALA_USAHA'].includes(activeCategory)) {
+      // Khusus Pengolahan dan Pemasaran selain Kab/Kota:
+      // data lama tetap di atas dan data baru masuk paling bawah (urut ID ASC),
+      // bukan diurutkan alfabetis.
+      if ([
+        'JENIS_PENGOLAHAN',
+        'JENIS_PEMASARAN',
+        'KATEGORI_SKALA_USAHA',
+        'SERTIFIKAT_PRODUK',
+        'IZIN_USAHA',
+        'SERTIFIKAT_LAHAN_BANGUNAN',
+      ].includes(activeCategory)) {
         return Number(a.id ?? 0) - Number(b.id ?? 0);
       }
 
