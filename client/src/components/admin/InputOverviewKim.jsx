@@ -78,6 +78,11 @@ export default function InputOverviewKim({ showToast, onDataChange }) {
       return;
     }
 
+    if (!isEditing && items.some(item => String(item.value) === String(formData.tahun))) {
+      showToast && showToast('Data untuk tahun ini sudah ada. Silakan gunakan tombol Edit di tabel aksi.', 'error');
+      return;
+    }
+
     const payload = {
       category: 'OVERVIEW_KIM',
       value: String(formData.tahun),

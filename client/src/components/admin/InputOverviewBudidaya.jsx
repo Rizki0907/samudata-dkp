@@ -88,6 +88,11 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
       return;
     }
 
+    if (!isEditing && items.some(item => String(item.value) === String(formData.tahun))) {
+      showToast && showToast('Data untuk tahun ini sudah ada. Silakan gunakan tombol Edit di tabel aksi.', 'error');
+      return;
+    }
+
     const payload = {
       category: 'OVERVIEW_BUDIDAYA',
       value: String(formData.tahun),

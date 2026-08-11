@@ -149,6 +149,14 @@ const getOverviewStats = async (req, res) => {
       total_konsumsi: (kimOverview && kimOverview.metadata && kimOverview.metadata.total_konsumsi !== undefined && kimOverview.metadata.total_konsumsi !== "") ? Number(kimOverview.metadata.total_konsumsi) : null
     };
 
+    // === AVAILABLE YEARS ===
+    const allOverview = await prisma.masterData.findMany({
+      where: { category: { startsWith: 'OVERVIEW_' } },
+      select: { value: true }
+    });
+    const uniqueYearsSet = new Set(allOverview.map(item => Number(item.value)));
+    const availableYears = Array.from(uniqueYearsSet).sort((a, b) => b - a).map(String);
+
     res.status(200).json({
       success: true,
       data: {
@@ -157,7 +165,8 @@ const getOverviewStats = async (req, res) => {
         pemasaran,
         garam,
         ekspor,
-        kim
+        kim,
+        availableYears
       }
     });
   } catch (error) {

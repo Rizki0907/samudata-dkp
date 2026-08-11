@@ -11,10 +11,7 @@ import iconDKP from '@/assets/icon_DKP.png';
 import imgLaut from '@/assets/laut.jpg';
 import imgKapal from '@/assets/kapal.jpg';
 
-const currentYear = new Date().getFullYear();
-const maxYear = currentYear - 1;
-// Generate 10 years ending at maxYear
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (maxYear - 9 + i).toString());
+
 
 // Format angka: kosong/null/undefined/0 (angka atau string "0") -> "-"
 const fmt = (value, opts = {}) => {
@@ -28,7 +25,8 @@ export default function Overview() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [loading, setLoading] = useState(true);
-  const [selectedTahun, setSelectedTahun] = useState(maxYear.toString());
+  const [selectedTahun, setSelectedTahun] = useState(new Date().getFullYear().toString());
+  const [tahunOptions, setTahunOptions] = useState([]);
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
     budidaya: { produksi: 0, pembudidaya: null, top_komoditas: '-', luas_lahan: null },
@@ -50,6 +48,13 @@ export default function Overview() {
         });
         if (res.data.success) {
           setStats(res.data.data);
+          if (res.data.data.availableYears?.length > 0) {
+            setTahunOptions(res.data.data.availableYears);
+            if (!res.data.data.availableYears.includes(selectedTahun)) {
+              // If current selected year is not in available years, switch to the latest available year
+              setSelectedTahun(res.data.data.availableYears[0]);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch overview stats', error);
@@ -109,11 +114,16 @@ export default function Overview() {
             id="filter-tahun-overview"
             value={selectedTahun}
             onChange={(e) => setSelectedTahun(e.target.value)}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px]"
+            className="px-4 pr-10 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px] appearance-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
           >
-            {TAHUN_OPTIONS.map((th) => (
-              <option key={th} value={th}>{th}</option>
-            ))}
+            {tahunOptions.length > 0 ? (
+              tahunOptions.map((th) => (
+                <option key={th} value={th}>{th}</option>
+              ))
+            ) : (
+              <option value={selectedTahun}>{selectedTahun}</option>
+            )}
           </select>
         </div>
       </div>
