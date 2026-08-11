@@ -1,5 +1,6 @@
 // Force IDE refresh for Decimal changes
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, Loader2, Map, Waves, TreePine, Trash2, X, FlaskConical, Layers,
   BarChart3, CheckCircle, XCircle, FileSpreadsheet, Leaf, Anchor, Globe,
@@ -107,10 +108,10 @@ const cellStyle = (opts = {}) => ({
   fill: opts.fill ? { fgColor: { rgb: opts.fill } } : undefined,
 });
 
-const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, filterKab) => {
+const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, filterKab, notifyEmpty = (msg) => alert(msg)) => {
   const data = dataRaw.filter(d => d.status === 'VERIFIED');
   if (data.length === 0) {
-    alert("Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.");
+    notifyEmpty("Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.");
     return;
   }
 
@@ -342,8 +343,8 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
 
 const fmtExcel = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : v.toLocaleString('id-ID'));
 
-const exportMangroveExcel = (data) => {
-  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+const exportMangroveExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
+  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA MANGROVE JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Padat (Ha)', 'Sedang (Ha)', 'Jarang (Ha)', ''];
@@ -370,8 +371,8 @@ const exportMangroveExcel = (data) => {
   buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Mangrove');
 };
 
-const exportLamunExcel = (data) => {
-  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+const exportLamunExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
+  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA LAMUN JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Kaya (Ha)', 'Kurang Kaya (Ha)', 'Miskin (Ha)', ''];
@@ -399,8 +400,8 @@ const exportLamunExcel = (data) => {
   buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Lamun');
 };
 
-const exportTerumbuKarangExcel = (data) => {
-  if (data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+const exportTerumbuKarangExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
+  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
   const title = 'DATA TERUMBU KARANG JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Baik (Ha)', 'Baik (Ha)', 'Sedang (Ha)', 'Rusak (Ha)', ''];
@@ -486,10 +487,10 @@ const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix
   XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
-const exportPotensiExcel = (dataRaw) => {
+const exportPotensiExcel = (dataRaw, notifyEmpty = (msg) => alert(msg)) => {
   const data = dataRaw.filter(d => d.status === 'VERIFIED');
   if (data.length === 0) {
-    alert("Tidak ada data berstatus VERIFIED untuk diekspor!");
+    notifyEmpty("Tidak ada data berstatus VERIFIED untuk diekspor!");
     return;
   }
 
@@ -692,8 +693,9 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
   };
   const theme = themes[dialog.theme] || themes.INFO;
   const Icon = theme.icon;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/60 px-4 py-8" onClick={onClose}>
       <div className={`w-full max-w-lg overflow-hidden rounded-3xl border ${theme.border} bg-card shadow-2xl`} onClick={event => event.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-start gap-4">
@@ -722,7 +724,8 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -774,6 +777,10 @@ export default function AdminKelautanPesisir() {
     setDialogValue('');
     setActionDialog({ open: true, kind: 'notice', title, message, theme, showCancel: false, confirmLabel: 'OK' });
   };
+
+  // Notifikasi khusus untuk ekspor data kosong, memakai dialog custom yang sama
+  // (pengganti alert() bawaan browser) agar konsisten dengan Admin Pengolahan Pemasaran.
+  const notifyExportEmpty = (message) => showNotice(message, 'INFO', 'Ekspor Data');
 
   // Filters
   const [filterTahun, setFilterTahun] = useState([]);
@@ -923,7 +930,7 @@ export default function AdminKelautanPesisir() {
     } catch (err) {
       console.error('Gagal menyimpan data:', err);
       const errorMessage = err.response?.data?.message || 'Gagal menyimpan data. Silakan coba lagi.';
-      alert(errorMessage);
+      showNotice(errorMessage, 'REJECTED', 'Penyimpanan Gagal');
     } finally {
       setSubmitLoading(false);
       setIsFormOpen(false);
@@ -953,7 +960,7 @@ export default function AdminKelautanPesisir() {
       }
     } catch (err) {
       console.error('Gagal menghapus data:', err);
-      alert('Gagal menghapus data.');
+      showNotice(err.response?.data?.message || 'Gagal menghapus data.', 'REJECTED', 'Penghapusan Gagal');
     } finally {
       setItemToDelete(null);
     }
@@ -1215,12 +1222,12 @@ export default function AdminKelautanPesisir() {
   const handleExport = (data, type) => {
     if (activeTab === 'garam') {
       if (type === 'tahunan') {
-        exportGaramExcelPintar(data, filterTahun?.length ? filterTahun.join(', ') : '', '', '', '');
+        exportGaramExcelPintar(data, filterTahun?.length ? filterTahun.join(', ') : '', '', '', '', notifyExportEmpty);
       } else {
-        exportGaramExcelPintar(data, '', '', '', '');
+        exportGaramExcelPintar(data, '', '', '', '', notifyExportEmpty);
       }
     } else {
-      exportPotensiExcel(data);
+      exportPotensiExcel(data, notifyExportEmpty);
     }
   };
 
@@ -2194,15 +2201,15 @@ export default function AdminKelautanPesisir() {
       const strTw = filterTw?.length > 0 ? filterTw.join(', ') : '';
       const strBulan = filterBulan?.length > 0 ? filterBulan.join(', ') : '';
       const strKab = filterKab?.length > 0 ? filterKab.join(', ') : '';
-      exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab);
+      exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab, notifyExportEmpty);
     } else if (activeTab === 'potensi_perairan') {
-      exportPotensiExcel(data);
+      exportPotensiExcel(data, notifyExportEmpty);
     } else if (activeTab === 'mangrove') {
-      exportMangroveExcel(data);
+      exportMangroveExcel(data, notifyExportEmpty);
     } else if (activeTab === 'lamun') {
-      exportLamunExcel(data);
+      exportLamunExcel(data, notifyExportEmpty);
     } else if (activeTab === 'terumbu_karang') {
-      exportTerumbuKarangExcel(data);
+      exportTerumbuKarangExcel(data, notifyExportEmpty);
     }
   };
 
