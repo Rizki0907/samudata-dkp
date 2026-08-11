@@ -11,10 +11,7 @@ import iconDKP from '@/assets/icon_DKP.png';
 import imgLaut from '@/assets/laut.jpg';
 import imgKapal from '@/assets/kapal.jpg';
 
-const currentYear = new Date().getFullYear();
-const maxYear = currentYear - 1;
-// Generate 10 years ending at maxYear
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (maxYear - 9 + i).toString());
+
 
 // Format angka: kosong/null/undefined/0 (angka atau string "0") -> "-"
 const fmt = (value, opts = {}) => {
@@ -28,7 +25,8 @@ export default function Overview() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [loading, setLoading] = useState(true);
-  const [selectedTahun, setSelectedTahun] = useState(maxYear.toString());
+  const [selectedTahun, setSelectedTahun] = useState(new Date().getFullYear().toString());
+  const [tahunOptions, setTahunOptions] = useState([]);
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },
     budidaya: { produksi: 0, pembudidaya: null, top_komoditas: '-', luas_lahan: null },
@@ -50,6 +48,17 @@ export default function Overview() {
         });
         if (res.data.success) {
           setStats(res.data.data);
+          if (res.data.data.availableYears?.length > 0) {
+            // Apply n-1 rule (only show years <= maxYear)
+            const maxYearStr = (new Date().getFullYear() - 1).toString();
+            const validYears = res.data.data.availableYears.filter(y => Number(y) <= Number(maxYearStr));
+            
+            setTahunOptions(validYears);
+            if (validYears.length > 0 && !validYears.includes(selectedTahun)) {
+              // If current selected year is not in available years, switch to the latest available year
+              setSelectedTahun(validYears[0]);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch overview stats', error);
@@ -71,15 +80,15 @@ export default function Overview() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-      
+
       {/* Hero Section */}
       <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl border border-border">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${oceanBg})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/90 to-cyan-900/80" />
-        
+
         <div className="relative z-10 p-8 md:p-14 flex flex-col items-center text-center">
           <div className="flex items-center justify-center gap-1 mb-5">
             <img src={iconDKP} alt="Icon DKP" className="h-24 drop-shadow-lg" />
@@ -87,12 +96,12 @@ export default function Overview() {
             <img src={logoDKP} alt="Logo DKP Jatim" className="h-16 drop-shadow-lg" />
           </div>
           <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-white mb-6 tracking-tight">
-            Potensi Kelautan dan Perikanan<br/>
+            Potensi Kelautan dan Perikanan<br />
             <span className="text-cyan-300">Provinsi Jawa Timur</span>
           </h1>
           <p className="text-blue-100 max-w-4xl text-base md:text-lg leading-relaxed">
             Provinsi Jawa Timur dengan <b className="text-white">panjang garis pantai 3.543,54 km
-            luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah 
+              luas laut 5.202.579,34 Ha</b> memiliki potensi sumber daya kelautan dan perikanan melimpah
             yang tersebar di <b className="text-white">38 Kab/Kota</b>, pesisir, Pulau Madura, serta pulau-pulau kecil lainnya.
           </p>
         </div>
@@ -102,25 +111,30 @@ export default function Overview() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card border border-border p-4 px-6 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
           <Filter className="w-5 h-5 text-primary" />
-          <span className="font-semibold text-foreground text-sm">Filter Data Potensi Perikanan:</span>
+          <span className="font-semibold text-foreground text-sm">Filter Data</span>
         </div>
         <div className="flex items-center gap-3">
           <select
             id="filter-tahun-overview"
             value={selectedTahun}
             onChange={(e) => setSelectedTahun(e.target.value)}
-            className="px-4 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px]"
+            className="px-4 pr-10 py-2 bg-background border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm min-w-[140px] appearance-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
           >
-            {TAHUN_OPTIONS.map((th) => (
-              <option key={th} value={th}>{th}</option>
-            ))}
+            {tahunOptions.length > 0 ? (
+              tahunOptions.map((th) => (
+                <option key={th} value={th}>{th}</option>
+              ))
+            ) : (
+              <option value={selectedTahun}>{selectedTahun}</option>
+            )}
           </select>
         </div>
       </div>
 
       {/* Bento Grid 2-Column Layout (V1 Style with Inner Boxes) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Card 1: Perikanan Tangkap */}
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
           <div className="flex items-center gap-4 mb-6">
@@ -172,8 +186,8 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya</p>
-              <p className="text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}>
-                {fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}
+              <p className="text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.produksi, { maximumFractionDigits: 2 })}>
+                {fmt(stats.budidaya.produksi, { maximumFractionDigits: 2 })}
                 <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
@@ -201,7 +215,7 @@ export default function Overview() {
         </div>
 
         {/* Card 3: Pengolahan & Pemasaran */}
-            <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-200/50 rounded-3xl p-8 hover:shadow-lg transition-all group">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
               <Package className="w-8 h-8" />

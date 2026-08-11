@@ -45,16 +45,7 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 2. PERIKANAN BUDIDAYA ===
-    const budidayaWhere = { ...statusFilter };
-    if (tahun && tahun !== 'Semua') {
-      budidayaWhere.tahun = String(tahun);
-    }
-
-    const budidayaStats = await prisma.budidaya.aggregate({
-      where: budidayaWhere,
-      _sum: { produksi_kg: true },
-      _count: { id: true }
-    });
+    // (Tidak ada agregasi otomatis)
 
     const budidayaOverviewWhere = { category: 'OVERVIEW_BUDIDAYA' };
     if (tahun && tahun !== 'Semua') {
@@ -67,7 +58,7 @@ const getOverviewStats = async (req, res) => {
     });
 
     const budidaya = {
-      produksi: budidayaStats._sum.produksi_kg || 0, // Dalam KG
+      produksi: budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.produksi_budidaya !== undefined && budidayaOverview.metadata.produksi_budidaya !== "" ? Number(budidayaOverview.metadata.produksi_budidaya) : null,
       pembudidaya: budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.jumlah_pembudidaya !== undefined && budidayaOverview.metadata.jumlah_pembudidaya !== "" ? Number(budidayaOverview.metadata.jumlah_pembudidaya) : null,
       top_komoditas: (budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.komoditas_unggulan) ? budidayaOverview.metadata.komoditas_unggulan : '-',
       luas_lahan: budidayaOverview && budidayaOverview.metadata && budidayaOverview.metadata.luas_lahan !== undefined && budidayaOverview.metadata.luas_lahan !== "" ? Number(budidayaOverview.metadata.luas_lahan) : null,
@@ -98,52 +89,7 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 4. GARAM (Kelautan & Pesisir) ===
-    const garamWhere = { ...statusFilter };
-    if (tahun && tahun !== 'Semua') {
-      garamWhere.tahun = Number(tahun);
-    }
-
-    const allGaram = await prisma.garam.findMany({
-      where: garamWhere,
-      orderBy: { created_at: 'desc' }
-    });
-
-    let totalGaramProduksi = 0;
-    
-    // Mapping bulan ke angka untuk mencari bulan terakhir
-    const monthOrder = {
-      'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
-      'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
-      'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
-    };
-
-    const latestDataPerKabKota = {};
-
-    for (const g of allGaram) {
-      // Produksi selalu diakumulasi (total setahun)
-      totalGaramProduksi += g.total_produksi_ton || 0;
-      
-      const mName = (g.bulan || '').toLowerCase();
-      const mIndex = monthOrder[mName] || 0;
-
-      // Ambil petambak dan luas lahan dari bulan terakhir (tertinggi)
-      if (!latestDataPerKabKota[g.kabupaten_kota]) {
-        latestDataPerKabKota[g.kabupaten_kota] = { monthIndex: mIndex, petambak: g.jumlah_petambak || 0, luas: g.luas_total_ha || 0 };
-      } else {
-        if (mIndex > latestDataPerKabKota[g.kabupaten_kota].monthIndex) {
-          latestDataPerKabKota[g.kabupaten_kota].monthIndex = mIndex;
-          latestDataPerKabKota[g.kabupaten_kota].petambak = g.jumlah_petambak || 0;
-          latestDataPerKabKota[g.kabupaten_kota].luas = g.luas_total_ha || 0;
-        }
-      }
-    }
-
-    let totalGaramPetambak = 0;
-    let totalGaramLuas = 0;
-    for (const kab in latestDataPerKabKota) {
-      totalGaramPetambak += latestDataPerKabKota[kab].petambak;
-      totalGaramLuas += latestDataPerKabKota[kab].luas;
-    }
+    // (Tidak ada agregasi otomatis)
 
     const kelautanOverviewWhere = { category: 'OVERVIEW_KELAUTAN' };
     if (tahun && tahun !== 'Semua') {
@@ -154,43 +100,22 @@ const getOverviewStats = async (req, res) => {
       orderBy: { value: 'desc' }
     });
 
-    const hasGaramData = allGaram.length > 0;
+
 
     const garam = {
       produksi: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.produksi_garam !== undefined && kelautanOverview.metadata.produksi_garam !== "") 
         ? Number(kelautanOverview.metadata.produksi_garam) 
-        : totalGaramProduksi,
+        : null,
       petambak: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.jumlah_petambak !== undefined && kelautanOverview.metadata.jumlah_petambak !== "") 
         ? Number(kelautanOverview.metadata.jumlah_petambak) 
-        : (hasGaramData ? totalGaramPetambak : null),
+        : null,
       luas_lahan: (kelautanOverview && kelautanOverview.metadata && kelautanOverview.metadata.luas_lahan_garam !== undefined && kelautanOverview.metadata.luas_lahan_garam !== "") 
         ? Number(kelautanOverview.metadata.luas_lahan_garam) 
-        : (hasGaramData ? totalGaramLuas : null)
+        : null
     };
 
     // === 5. EKSPOR PERIKANAN ===
-    const eksporWhere = {
-      ...statusFilter,
-      satuan_volume: {
-        in: ['Kilogram', 'KG', 'kg', 'Kg', 'KILOGRAM', 'kilogram']
-      }
-    };
-    if (tahun && tahun !== 'Semua') {
-      eksporWhere.tahun = String(tahun);
-    }
-
-    const eksporAgg = await prisma.ekspor.aggregate({
-      where: eksporWhere,
-      _sum: {
-        volume: true,
-        nilai_usd: true
-      }
-    });
-
-    // Volume pada DB disimpan dalam KG, konversikan ke Ton maksimal 2 angka di belakang koma
-    const eksporVolumeKg = eksporAgg._sum.volume || 0;
-    const eksporVolumeTon = Number((eksporVolumeKg / 1000).toFixed(2));
-    const eksporNilaiUsd = Number((eksporAgg._sum.nilai_usd || 0).toFixed(2));
+    // (Tidak ada agregasi otomatis)
 
     const eksporOverviewWhere = { category: 'OVERVIEW_EKSPOR' };
     if (tahun && tahun !== 'Semua') {
@@ -204,10 +129,10 @@ const getOverviewStats = async (req, res) => {
     const ekspor = {
       volume_ton: (eksporOverview && eksporOverview.metadata && eksporOverview.metadata.volume_ton !== undefined && eksporOverview.metadata.volume_ton !== "") 
         ? Number(eksporOverview.metadata.volume_ton) 
-        : eksporVolumeTon,
+        : null,
       nilai_usd: (eksporOverview && eksporOverview.metadata && eksporOverview.metadata.nilai_usd !== undefined && eksporOverview.metadata.nilai_usd !== "") 
         ? Number(eksporOverview.metadata.nilai_usd) 
-        : eksporNilaiUsd
+        : null
     };
 
     // === 6. KONSUMSI IKAN MASYARAKAT (KIM) ===
@@ -224,6 +149,14 @@ const getOverviewStats = async (req, res) => {
       total_konsumsi: (kimOverview && kimOverview.metadata && kimOverview.metadata.total_konsumsi !== undefined && kimOverview.metadata.total_konsumsi !== "") ? Number(kimOverview.metadata.total_konsumsi) : null
     };
 
+    // === AVAILABLE YEARS ===
+    const allOverview = await prisma.masterData.findMany({
+      where: { category: { startsWith: 'OVERVIEW_' } },
+      select: { value: true }
+    });
+    const uniqueYearsSet = new Set(allOverview.map(item => Number(item.value)));
+    const availableYears = Array.from(uniqueYearsSet).sort((a, b) => b - a).map(String);
+
     res.status(200).json({
       success: true,
       data: {
@@ -232,7 +165,8 @@ const getOverviewStats = async (req, res) => {
         pemasaran,
         garam,
         ekspor,
-        kim
+        kim,
+        availableYears
       }
     });
   } catch (error) {
