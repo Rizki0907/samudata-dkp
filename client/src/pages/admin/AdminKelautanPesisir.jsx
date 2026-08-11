@@ -1681,8 +1681,7 @@ export default function AdminKelautanPesisir() {
 
         {/* TAB PILIHAN VISUALISASI */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 mb-6">
-          <h2 className="text-xl font-bold text-foreground">Kategori Data:</h2>
-          <div className="flex items-center gap-3 overflow-x-auto">
+          <div className="flex items-center gap-4 overflow-x-auto">
             {[
               { key: 'garam', label: 'Garam' },
               { key: 'mangrove', label: 'Mangrove' },
