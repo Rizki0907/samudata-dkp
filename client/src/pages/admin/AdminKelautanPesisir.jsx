@@ -15,7 +15,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
+import { GaramForm } from '@/components/admin/GaramForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 import { MangroveForm } from '@/components/admin/MangroveForm';
 import { LamunForm } from '@/components/admin/LamunForm';
@@ -2215,15 +2215,20 @@ export default function AdminKelautanPesisir() {
     .map(d => d.getTime());
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
+  const formatBulan3Huruf = (date) => {
+    const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return bulan[date.getMonth()];
+  };
+
   const lastUpdated = latestDate
-    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    ? `${String(latestDate.getDate()).padStart(2, '0')} ${formatBulan3Huruf(latestDate)} ${latestDate.getFullYear()} ${latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
     : '-';
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
   const renderForm = () => {
     if (activeTab === 'garam') {
       return (
-        <KelautanPesisirForm
+        <GaramForm
           initialData={editingData}
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}

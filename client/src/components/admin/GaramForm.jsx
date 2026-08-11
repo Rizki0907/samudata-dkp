@@ -96,7 +96,7 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
-export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
@@ -332,7 +332,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
         <section>
           <div className="bg-muted/10 border border-border rounded-xl p-5">
             <h3 className={sectionTitleClass}>
-              <span className={sectionBadgeClass}>∑</span>
+              <span className={sectionBadgeClass}>3</span>
               Kalkulasi Otomatis
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
