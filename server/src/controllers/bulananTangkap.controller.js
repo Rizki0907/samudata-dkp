@@ -46,62 +46,67 @@ const syncDataBulananInternal = async () => {
       }
     }
 
-    // Reset original_volume & original_nilai = 0 untuk semua record (jaga-jaga jika data aslinya dihapus)
-    await prisma.dataBulananTangkap.updateMany({
-      data: { original_volume: 0, original_nilai: 0 }
-    });
-
-    // Reset volume & nilai = 0 HANYA untuk record yang belum di-adjust (belum disentuh admin)
-    await prisma.dataBulananTangkap.updateMany({
-      where: { is_adjusted: false },
-      data: { volume: 0, nilai: 0 }
-    });
-
-    const aggrVals = Object.values(aggregated);
-    for (const item of aggrVals) {
-      const existing = await prisma.dataBulananTangkap.findUnique({
-        where: {
-          bulan_sumber_data_pelabuhan_jenis_perairan_komoditas: {
-            bulan: item.bulan,
-            sumber_data: item.sumber_data,
-            pelabuhan: item.pelabuhan,
-            jenis_perairan: item.jenis_perairan,
-            komoditas: item.komoditas
-          }
-        }
+    await prisma.$transaction(async (tx) => {
+      // Reset original_volume & original_nilai = 0 untuk semua record (jaga-jaga jika data aslinya dihapus)
+      await tx.dataBulananTangkap.updateMany({
+        data: { original_volume: 0, original_nilai: 0 }
       });
 
-      if (!existing) {
-        await prisma.dataBulananTangkap.create({ 
-          data: {
-            ...item,
-            original_volume: item.volume,
-            original_nilai: item.nilai
+      // Reset volume & nilai = 0 HANYA untuk record yang belum di-adjust (belum disentuh admin)
+      await tx.dataBulananTangkap.updateMany({
+        where: { is_adjusted: false },
+        data: { volume: 0, nilai: 0 }
+      });
+
+      const aggrVals = Object.values(aggregated);
+      for (const item of aggrVals) {
+        const existing = await tx.dataBulananTangkap.findUnique({
+          where: {
+            bulan_sumber_data_pelabuhan_jenis_perairan_komoditas: {
+              bulan: item.bulan,
+              sumber_data: item.sumber_data,
+              pelabuhan: item.pelabuhan,
+              jenis_perairan: item.jenis_perairan,
+              komoditas: item.komoditas
+            }
           }
         });
-      } else {
-        const updateData = {
-          original_volume: item.volume,
-          original_nilai: item.nilai
-        };
-        // Jika belum di-adjust admin, target volume & nilai ikut diperbarui sesuai data asli
-        if (!existing.is_adjusted) {
-          updateData.volume = item.volume;
-          updateData.nilai = item.nilai;
-        }
-        await prisma.dataBulananTangkap.update({
-          where: { id: existing.id },
-          data: updateData
-        });
-      }
-    }
 
-    // Cleanup: hapus baris yang kosong/yatim (tidak memiliki data mentah) bahkan jika sempat dimodifikasi admin
-    await prisma.dataBulananTangkap.deleteMany({
-      where: {
-        original_volume: 0,
-        original_nilai: 0
+        if (!existing) {
+          await tx.dataBulananTangkap.create({ 
+            data: {
+              ...item,
+              original_volume: item.volume,
+              original_nilai: item.nilai
+            }
+          });
+        } else {
+          const updateData = {
+            original_volume: item.volume,
+            original_nilai: item.nilai
+          };
+          // Jika belum di-adjust admin, target volume & nilai ikut diperbarui sesuai data asli
+          if (!existing.is_adjusted) {
+            updateData.volume = item.volume;
+            updateData.nilai = item.nilai;
+          }
+          await tx.dataBulananTangkap.update({
+            where: { id: existing.id },
+            data: updateData
+          });
+        }
       }
+
+      // Cleanup: hapus baris yang kosong/yatim (tidak memiliki data mentah) bahkan jika sempat dimodifikasi admin
+      await tx.dataBulananTangkap.deleteMany({
+        where: {
+          original_volume: 0,
+          original_nilai: 0
+        }
+      });
+    }, {
+      maxWait: 10000,
+      timeout: 30000
     });
 
     return true;
