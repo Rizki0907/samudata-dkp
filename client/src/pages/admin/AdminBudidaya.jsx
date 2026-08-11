@@ -12,6 +12,8 @@ import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 import { useThemeStore } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
+import PromptModal from '@/components/shared/PromptModal';
+import { usePromptModal } from '@/hooks/usePromptModal';
 
 echarts.registerMap('jawa_timur', geoJsonData);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -29,6 +31,7 @@ const TwBadge = ({ tw }) => {
 };
 
 export default function AdminBudidaya() {
+  const { prompt, modalProps } = usePromptModal();
   const { theme } = useThemeStore();
   const user = useAuthStore(state => state.user);
   const isDark = theme === 'dark';
@@ -192,7 +195,7 @@ export default function AdminBudidaya() {
       promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
     }
 
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -216,7 +219,7 @@ export default function AdminBudidaya() {
       return;
     }
 
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    const confirmText = await prompt('Konfirmasi Validasi', `Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
     if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
@@ -231,7 +234,7 @@ export default function AdminBudidaya() {
   };
 
   const handleRejectTahunan = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
+    const alasan = await prompt('Tolak Data', 'Masukkan alasan penolakan:');
     if (alasan) {
       try {
         await api.put(`/budidaya-tahunan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
@@ -261,7 +264,7 @@ export default function AdminBudidaya() {
       promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
     }
 
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -285,7 +288,7 @@ export default function AdminBudidaya() {
       return;
     }
 
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    const confirmText = await prompt('Konfirmasi Validasi', `Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
     if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
@@ -301,7 +304,7 @@ export default function AdminBudidaya() {
   };
 
   const handleReject = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
+    const alasan = await prompt('Tolak Data', 'Masukkan alasan penolakan:');
     if (alasan === null) return;
     if (!alasan.trim()) {
       alert('Alasan penolakan wajib diisi!');
@@ -319,7 +322,7 @@ export default function AdminBudidaya() {
 
   const handleBatchApprove = async (ids) => {
     const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -339,7 +342,7 @@ export default function AdminBudidaya() {
       return;
     }
 
-    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    const confirmText = await prompt('Konfirmasi Validasi Bulk', `Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
     if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
@@ -355,7 +358,7 @@ export default function AdminBudidaya() {
   };
 
   const handleBatchReject = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    const alasan = await prompt('Tolak Data Bulk', `Masukkan alasan penolakan untuk ${ids.length} data:`);
     if (alasan === null) return;
     if (!alasan.trim()) {
       alert('Alasan penolakan wajib diisi!');
@@ -384,7 +387,7 @@ export default function AdminBudidaya() {
 
   const handleBatchApproveTahunan = async (ids) => {
     const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -404,7 +407,7 @@ export default function AdminBudidaya() {
       return;
     }
 
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" untuk mengonfirmasi validasi ${namaValidasi} untuk ${ids.length} data:`);
+    const confirmText = await prompt('Konfirmasi Validasi Bulk', `Ketik "${expectedKeyword}" untuk mengonfirmasi validasi ${namaValidasi} untuk ${ids.length} data:`);
     if (confirmText !== expectedKeyword) {
       alert('Validasi dibatalkan karena teks konfirmasi tidak sesuai.');
       return;
@@ -420,7 +423,7 @@ export default function AdminBudidaya() {
   };
 
   const handleBatchRejectTahunan = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    const alasan = await prompt('Tolak Data Bulk', `Masukkan alasan penolakan untuk ${ids.length} data:`);
     if (alasan === null) return;
     if (!alasan.trim()) {
       alert('Alasan penolakan wajib diisi!');
@@ -1126,7 +1129,7 @@ export default function AdminBudidaya() {
                   customExportButton={
                     <button
                       onClick={() => setIsExportModalOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:text-black rounded-xl transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:text-slate-900 rounded-xl transition-colors text-sm font-medium"
                     >
                       <Download className="w-4 h-4" />
                       Rekap Statistik
@@ -1216,7 +1219,7 @@ export default function AdminBudidaya() {
                   customExportButton={
                     <button
                       onClick={() => setIsExportModalOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:text-slate-900 rounded-xl transition-colors text-sm font-medium"
                     >
                       <Download className="w-4 h-4" />
                       Rekap Statistik
@@ -1446,6 +1449,7 @@ export default function AdminBudidaya() {
           )}
         </>
       )}
+      <PromptModal {...modalProps} />
     </div>
   );
 }

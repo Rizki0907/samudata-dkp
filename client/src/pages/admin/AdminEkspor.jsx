@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Loader2, Globe, Box, Target, LineChart, TrendingUp, Filter, Clock } from 'lucide-react';
+import { Plus, Loader2, Globe, Box, Target, LineChart, TrendingUp, Filter, Clock, ChevronDown } from 'lucide-react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -7,6 +7,8 @@ import { EksporForm } from '@/components/admin/EksporForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
 import { useThemeStore } from '@/store/themeStore';
+import PromptModal from '@/components/shared/PromptModal';
+import { usePromptModal } from '@/hooks/usePromptModal';
 import { formatUangPendek } from '@/utils/formatRupiah';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -15,6 +17,7 @@ const currentYear = new Date().getFullYear();
 
 export default function AdminEkspor() {
   const { theme } = useThemeStore();
+  const { prompt, modalProps } = usePromptModal();
   const isDark = theme === 'dark';
   const chartText = isDark ? '#e2e8f0' : '#0f172a';
   const chartSubText = isDark ? '#94a3b8' : '#334155';
@@ -141,7 +144,7 @@ export default function AdminEkspor() {
       promptMsg = 'Data berstatus PENDING.\nKetik "1" untuk Validasi Bidang\nKetik "2" untuk Validasi Program';
     }
 
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -165,7 +168,7 @@ export default function AdminEkspor() {
       return;
     }
 
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    const confirmText = await prompt('Konfirmasi Validasi', `Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
     if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
@@ -181,7 +184,7 @@ export default function AdminEkspor() {
   };
 
   const handleReject = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
+    const alasan = await prompt('Tolak Data', 'Masukkan alasan penolakan:');
     if (alasan === null) return;
     if (!alasan.trim()) {
       alert('Alasan penolakan wajib diisi!');
@@ -199,7 +202,7 @@ export default function AdminEkspor() {
 
   const handleBatchApprove = async (ids) => {
     const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const jenis = window.prompt(promptMsg);
+    const jenis = await prompt('Verifikasi Data', promptMsg);
     if (!jenis) return;
 
     let targetStatus = '';
@@ -219,7 +222,7 @@ export default function AdminEkspor() {
       return;
     }
 
-    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
+    const confirmText = await prompt('Konfirmasi Validasi Bulk', `Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
     if (confirmText !== expectedKeyword) {
       alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
       return;
@@ -235,7 +238,7 @@ export default function AdminEkspor() {
   };
 
   const handleBatchReject = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
+    const alasan = await prompt('Tolak Data Bulk', `Masukkan alasan penolakan untuk ${ids.length} data:`);
     if (alasan === null) return;
     if (!alasan.trim()) {
       alert('Alasan penolakan wajib diisi!');
@@ -507,7 +510,7 @@ export default function AdminEkspor() {
         { type: 'value', name: `Nilai (${computedStats.mataUangPrefix})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { formatter: `${computedStats.mataUangPrefix}{value}`, color: chartAxisColor, fontSize: 12, fontWeight: '500' }, splitLine: { show: false } }
       ],
       series: [
-        { name: volumeLabel, type: 'bar', itemStyle: { color: '#8b5cf6' }, data: volumeData },
+        { name: volumeLabel, type: 'bar', itemStyle: { color: '#0ea5e9' }, data: volumeData },
         { name: `Nilai (${mataUangFilter})`, type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
@@ -539,7 +542,7 @@ export default function AdminEkspor() {
           name: 'Nilai',
           type: 'bar',
           data: values,
-          itemStyle: { color: '#ec4899', borderRadius: [0, 4, 4, 0] },
+          itemStyle: { color: '#3b82f6', borderRadius: [0, 4, 4, 0] },
           label: { show: true, position: 'right', color: chartSubText, fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
@@ -579,7 +582,7 @@ export default function AdminEkspor() {
           type: 'bar',
           barWidth: '60%',
           data: values,
-          itemStyle: { color: '#14b8a6', borderRadius: [0, 4, 4, 0] },
+          itemStyle: { color: '#f43f5e', borderRadius: [0, 4, 4, 0] },
           label: { show: true, position: 'right', color: chartSubText, fontSize: 13, fontWeight: 'bold', formatter: (params) => {
             const val = params.value;
             if (val >= 1000000000) return `${computedStats.mataUangPrefix}${(val / 1000000000).toFixed(1)}b`;
@@ -716,9 +719,7 @@ export default function AdminEkspor() {
             <button 
               onClick={() => setActiveTab('data')}
               className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'data' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              Tabel Data
-            </button>
+            >Data Bulanan</button>
             <button 
               onClick={() => setActiveTab('visual')}
               className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'visual' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
@@ -732,7 +733,7 @@ export default function AdminEkspor() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-slate-500" />
-                <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
+                <h2 className="text-lg font-bold">Filter Multidimensi</h2>
               </div>
               {activeTab === 'visual' && lastUpdated ? (
                 <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
@@ -794,12 +795,15 @@ export default function AdminEkspor() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Mata Uang (Chart)</label>
-                <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                  <option value="" disabled hidden>Mata Uang</option>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Nilai</label>
+                <div className="relative">
+                  <select value={mataUangFilter} onChange={(e) => setMataUangFilter(e.target.value)} className="w-full appearance-none rounded-lg border bg-background px-3 py-2 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/50 hover:border-primary/50 transition-colors cursor-pointer select-none">
+                  <option value="" disabled hidden>Nilai</option>
                   <option value="USD">USD ($)</option>
                   <option value="RP">Rupiah (Rp)</option>
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
               </div>
             </div>
             {(filterStatus.length > 0 || filterTahun.length > 0 || filterBulan.length > 0 || filterKomoditas.length > 0 || filterNegara.length > 0) && (
@@ -861,7 +865,7 @@ export default function AdminEkspor() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Volume</p>
                   <p className="text-2xl font-bold text-foreground">
-                    {computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Kg/PCS</span>
+                    {computedStats.kpi.total_volume.toLocaleString('id-ID')} <span className="text-sm font-normal text-muted-foreground">Kg</span>
                   </p>
                 </div>
               </div>
@@ -881,7 +885,7 @@ export default function AdminEkspor() {
                   <Globe className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Top 10 Negara Tujuan</p>
+                  <p className="text-sm font-medium text-muted-foreground">Top Negara Tujuan</p>
                   <p className="text-2xl font-bold text-foreground break-words line-clamp-2">
                     {computedStats.negara_tujuan && computedStats.negara_tujuan.length > 0 ? computedStats.negara_tujuan[0].negara_tujuan : '-'}
                   </p>
@@ -891,10 +895,14 @@ export default function AdminEkspor() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                <Box className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-semibold text-foreground">Komposisi Ekspor per Komoditas</h3>
-              </div>
+                <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-500/10 rounded-lg">
+                      <Box className="w-5 h-5 text-cyan-500" />
+                    </div>
+                    <h2 className="text-lg font-bold">Komposisi Ekspor per Komoditas</h2>
+                  </div>
+                </div>
                 {hasTreemapData ? (
                   <ReactECharts option={treemapOption} style={{ height: '500px', width: '100%' }} />
                 ) : (
@@ -904,9 +912,13 @@ export default function AdminEkspor() {
                 )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="w-5 h-5 text-pink-500" />
-                  <h3 className="text-lg font-semibold text-foreground">Top 10 Komoditas Berdasarkan Nilai</h3>
+                <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Target className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <h2 className="text-lg font-bold">Top 10 Komoditas Berdasarkan Nilai</h2>
+                  </div>
                 </div>
                 {hasRankingData ? (
                   <ReactECharts option={rankingOption} style={{ height: '500px', width: '100%' }} />
@@ -919,10 +931,14 @@ export default function AdminEkspor() {
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <LineChart className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-lg font-semibold text-foreground">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h3>
-              </div>
+              <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-teal-500/10 rounded-lg">
+                      <LineChart className="w-5 h-5 text-teal-500" />
+                    </div>
+                    <h2 className="text-lg font-bold">Top 5 Komoditas Dengan Tren Nilai Ekspor Bulanan</h2>
+                  </div>
+                </div>
               {hasLineData ? (
                 <ReactECharts option={lineChartOption} style={{ height: '450px', width: '100%' }} />
               ) : (
@@ -934,44 +950,55 @@ export default function AdminEkspor() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-2 whitespace-nowrap">
-                    <TrendingUp className="w-5 h-5 text-purple-500" />
-                    <h3 className="text-lg font-semibold text-foreground">Agregat Nilai dan Volume</h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-4 mb-4">
+                  <div className="flex items-center gap-3 whitespace-nowrap">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                    </div>
+                    <h2 className="text-lg font-bold">Agregat Nilai dan Volume</h2>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={agregatFilter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAgregatFilter(val);
-                        setSatuanFilter(val === 'Segar dan Olahan' ? 'KG' : 'PCS');
-                      }}
-                      className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
-                    >
-                      <option value="Segar dan Olahan" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Segar & Olahan</option>
-                      <option value="Hidup" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Hidup</option>
-                    </select>
-                    {agregatFilter === 'Segar dan Olahan' && (
+                    <div className="relative">
                       <select
-                        value={satuanFilter}
-                        onChange={(e) => setSatuanFilter(e.target.value)}
-                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
+                        value={agregatFilter}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAgregatFilter(val);
+                          setSatuanFilter(val === 'Segar dan Olahan' ? 'KG' : 'PCS');
+                        }}
+                        className="appearance-none bg-background dark:bg-slate-900 border border-input rounded-lg px-3 py-2 pr-8 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer hover:border-primary/50 h-[38px] w-full shadow-none"
                       >
-                        <option value="KG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Kg</option>
-                        <option value="LITER" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Liter</option>
+                        <option value="Segar dan Olahan">Segar & Olahan</option>
+                        <option value="Hidup">Hidup</option>
                       </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    {agregatFilter === 'Segar dan Olahan' && (
+                      <div className="relative">
+                        <select
+                          value={satuanFilter}
+                          onChange={(e) => setSatuanFilter(e.target.value)}
+                          className="appearance-none bg-background dark:bg-slate-900 border border-input rounded-lg px-3 py-2 pr-8 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer hover:border-primary/50 h-[38px] w-full shadow-none"
+                        >
+                          <option value="KG">Kg</option>
+                          <option value="LITER">Liter</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      </div>
                     )}
                     {agregatFilter === 'Hidup' && (
-                      <select
-                        value={satuanFilter}
-                        onChange={(e) => setSatuanFilter(e.target.value)}
-                        className="bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-700/50 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600 text-sm font-medium rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all cursor-pointer shadow-sm"
-                      >
-                        <option value="PCS" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Pcs</option>
-                        <option value="EKOR" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Ekor</option>
-                        <option value="BATANG" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Batang</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={satuanFilter}
+                          onChange={(e) => setSatuanFilter(e.target.value)}
+                          className="appearance-none bg-background dark:bg-slate-900 border border-input rounded-lg px-3 py-2 pr-8 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer hover:border-primary/50 h-[38px] w-full shadow-none"
+                        >
+                          <option value="PCS">Pcs</option>
+                          <option value="EKOR">Ekor</option>
+                          <option value="BATANG">Batang</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -984,9 +1011,13 @@ export default function AdminEkspor() {
                 )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Globe className="w-5 h-5 text-teal-500" />
-                  <h3 className="text-lg font-semibold text-foreground">Top 10 Negara Tujuan</h3>
+                <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-rose-500/10 rounded-lg">
+                      <Globe className="w-5 h-5 text-rose-500" />
+                    </div>
+                    <h2 className="text-lg font-bold">Top Negara Tujuan</h2>
+                  </div>
                 </div>
                 {hasNegaraData ? (
                   <ReactECharts option={negaraOption} style={{ height: '500px', width: '100%' }} />
@@ -1002,6 +1033,7 @@ export default function AdminEkspor() {
       )}
       </>
       )}
+      <PromptModal {...modalProps} />
     </div>
   );
 }
