@@ -31,12 +31,14 @@ const CATEGORY_MAP = {
     { value: 'WPP', label: 'WPP', icon: Database }
   ],
   'Perikanan Tangkap Non Pelabuhan': [
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin },
     { value: 'KOMODITAS_TANGKAP_NON_PELABUHAN', label: 'Komoditas', icon: Package },
     { value: 'ALAT_TANGKAP_NON_PELABUHAN', label: 'Alat Tangkap', icon: Anchor },
     { value: 'GT_KAPAL_NON_PELABUHAN', label: 'GT / Ukuran Kapal', icon: Ship },
     { value: 'WPP_NON_PELABUHAN', label: 'WPP', icon: Database }
   ],
   'Perikanan Tangkap PUD': [
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin },
     { value: 'KOMODITAS_TANGKAP_PUD', label: 'Komoditas PUD', icon: Package },
     { value: 'ALAT_TANGKAP_PUD', label: 'Alat Tangkap PUD', icon: Anchor },
     { value: 'JENIS_PERAHU_PUD', label: 'GT / Jenis Perahu', icon: Ship }
@@ -63,10 +65,6 @@ const CATEGORY_MAP = {
   'Kelautan dan Pesisir': [
     { value: 'JENIS_GARAM', label: 'Jenis Garam', icon: Package },
     { value: 'KATEGORI_PETAMBAK', label: 'Kategori Petambak', icon: Database }
-  ],
-  'Global / Umum': [
-    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin },
-    { value: 'PROVINSI', label: 'Provinsi', icon: MapPin }
   ]
 };
 
@@ -303,10 +301,6 @@ export default function MasterData() {
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/10 text-sm font-medium mb-4">
-              <Database className="w-4 h-4" /> 
-              Super Admin Control
-            </div>
             <h1 className="text-4xl font-heading font-extrabold tracking-tight mb-3">Master Data Induk</h1>
             <p className="text-primary-foreground/80 text-lg leading-relaxed">
               Pusat kendali seluruh referensi data yang digunakan dalam formulir laporan. Penambahan atau perubahan disini akan otomatis beresonansi ke seluruh sistem dashboard.

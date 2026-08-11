@@ -15,6 +15,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
     tahun: new Date().getFullYear(),
+    produksi_tangkap: '',
     kapal_perikanan: '',
     pelabuhan: '',
     nelayan: ''
@@ -48,6 +49,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     setEditId(null);
     setFormData({
       tahun: new Date().getFullYear(),
+      produksi_tangkap: '',
       kapal_perikanan: '',
       pelabuhan: '',
       nelayan: ''
@@ -60,6 +62,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     setEditId(item.id);
     setFormData({
       tahun: item.value || '',
+      produksi_tangkap: item.metadata?.produksi_tangkap ?? '',
       kapal_perikanan: item.metadata?.kapal_perikanan ?? '',
       pelabuhan: item.metadata?.pelabuhan ?? '',
       nelayan: item.metadata?.nelayan ?? ''
@@ -106,6 +109,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
       value: String(formData.tahun),
       metadata: {
         tahun: Number(formData.tahun),
+        produksi_tangkap: Number(formData.produksi_tangkap || 0),
         kapal_perikanan: Number(formData.kapal_perikanan || 0),
         pelabuhan: Number(formData.pelabuhan || 0),
         nelayan: Number(formData.nelayan || 0)
@@ -176,6 +180,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-4 px-6 text-center">Tahun</th>
+                  <th className="py-4 px-6 text-center">Produksi Tangkap (Ton)</th>
                   <th className="py-4 px-6 text-center">Kapal Perikanan (Unit)</th>
                   <th className="py-4 px-6 text-center">Pelabuhan (Unit)</th>
                   <th className="py-4 px-6 text-center">Nelayan (Orang)</th>
@@ -188,6 +193,11 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
                   return (
                     <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="py-4 px-6 font-semibold text-foreground text-center">{item.value}</td>
+                      <td className="py-4 px-6 text-center">
+                        {meta.produksi_tangkap !== undefined && meta.produksi_tangkap !== ''
+                          ? `${Number(meta.produksi_tangkap).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton`
+                          : '-'}
+                      </td>
                       <td className="py-4 px-6 text-center">
                         {meta.kapal_perikanan !== undefined && meta.kapal_perikanan !== ''
                           ? `${Number(meta.kapal_perikanan).toLocaleString('id-ID')} Unit`
@@ -263,6 +273,22 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
                     value={formData.tahun}
                     onChange={(e) => setFormData({ ...formData, tahun: e.target.value })}
                     placeholder="Contoh: 2024"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                  />
+                </div>
+
+                {/* 1.5 Produksi Tangkap */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Produksi Tangkap (Ton) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.produksi_tangkap}
+                    onChange={(e) => setFormData({ ...formData, produksi_tangkap: e.target.value })}
+                    placeholder="Contoh: 111.26"
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     required
                   />
