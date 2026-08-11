@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
-import { FileText, Map as MapIcon, Layers, Package, TrendingUp, DollarSign, Download, Filter, BarChart3, Clock, AlertCircle, Loader2, MapPin, Fish, Box, LineChart, X } from 'lucide-react';
+import { FileText, TrendingUp, Download, BarChart3, Clock, Loader2, MapPin, Fish, Box, LineChart, X, ChevronDown } from 'lucide-react';
 import { formatUangPendek } from '@/utils/formatRupiah';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
@@ -13,18 +13,6 @@ import { useThemeStore } from '@/store/themeStore';
 echarts.registerMap('jawa_timur', geoJsonData);
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-const TwBadge = ({ tw }) => {
-  const twStr = String(tw).startsWith('TW') ? String(tw) : `TW ${tw}`;
-  const colorMap = {
-    'TW 1': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    'TW 2': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    'TW 3': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    'TW 4': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  };
-  const cls = colorMap[twStr] ?? 'bg-muted text-muted-foreground border-border';
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>{twStr}</span>;
-};
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
@@ -53,8 +41,7 @@ export default function Budidaya() {
   const [filterTableBulan, setFilterTableBulan] = useState([]);
   const [filterTableTahun, setFilterTableTahun] = useState([]);
 
-  const [barFilter, setBarFilter] = useState('produksi');
-  const [treemapFilter, setTreemapFilter] = useState('produksi');
+  const [visualisasiTipe, setVisualisasiTipe] = useState('produksi');
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
@@ -172,11 +159,12 @@ export default function Budidaya() {
       }
 
       if (!heatmapRaw[kab]) {
-        heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0 }));
+        heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0, nilai: 0 }));
       }
       const bIndex = MONTHS.indexOf(item.bulan);
       if (bIndex !== -1) {
         heatmapRaw[kab][bIndex].produksi += vol;
+        heatmapRaw[kab][bIndex].nilai += nilai;
       }
     });
 
@@ -186,6 +174,15 @@ export default function Budidaya() {
       if (prod > maxKomoditasProd) {
         maxKomoditasProd = prod;
         top_komoditas = kom;
+      }
+    }
+
+    let top_kabupaten = '-';
+    let maxKabupatenProd = 0;
+    for (const [kab, s] of Object.entries(kabMap)) {
+      if (s.produksi > maxKabupatenProd) {
+        maxKabupatenProd = s.produksi;
+        top_kabupaten = kab;
       }
     }
 
@@ -199,8 +196,8 @@ export default function Budidaya() {
     const top5Wadah = komposisiWadah.slice(0, 5).map(w => w.name);
 
     const trenBulanan = MONTHS.map(bulan => {
-      const monthData = { bulan, Lainnya: 0 };
-      top5Wadah.forEach(w => monthData[w] = 0);
+      const monthData = { bulan, Lainnya: { produksi: 0, nilai: 0 } };
+      top5Wadah.forEach(w => monthData[w] = { produksi: 0, nilai: 0 });
       return monthData;
     });
 
@@ -209,10 +206,14 @@ export default function Budidaya() {
       if (bIndex === -1) return;
 
       const vol = Number(item.produksi_kg) || 0;
+      const nilai = Number(item.nilai_rp) || 0;
+      
       if (top5Wadah.includes(item.jenis_wadah)) {
-        trenBulanan[bIndex][item.jenis_wadah] += vol;
+        trenBulanan[bIndex][item.jenis_wadah].produksi += vol;
+        trenBulanan[bIndex][item.jenis_wadah].nilai += nilai;
       } else {
-        trenBulanan[bIndex].Lainnya += vol;
+        trenBulanan[bIndex].Lainnya.produksi += vol;
+        trenBulanan[bIndex].Lainnya.nilai += nilai;
       }
     });
 
@@ -221,26 +222,34 @@ export default function Budidaya() {
       const bulanArr = heatmapRaw[kab];
       const maxProd = Math.max(...bulanArr.map(b => b.produksi));
       const minProd = Math.min(...bulanArr.map(b => b.produksi));
-      const range = maxProd - minProd;
+      const rangeProd = maxProd - minProd;
+
+      const maxNilai = Math.max(...bulanArr.map(b => b.nilai));
+      const minNilai = Math.min(...bulanArr.map(b => b.nilai));
+      const rangeNilai = maxNilai - minNilai;
 
       bulanArr.forEach(b => {
-        let normalized = 0;
-        if (range > 0) {
-          normalized = (b.produksi - minProd) / range;
-        } else if (maxProd > 0) {
-          normalized = 1;
-        }
+        let normProd = 0;
+        if (rangeProd > 0) normProd = (b.produksi - minProd) / rangeProd;
+        else if (maxProd > 0) normProd = 1;
+
+        let normNilai = 0;
+        if (rangeNilai > 0) normNilai = (b.nilai - minNilai) / rangeNilai;
+        else if (maxNilai > 0) normNilai = 1;
+
         heatmapData.push({
           kabupaten: kab,
           bulan: b.bulan,
           produksi: b.produksi,
-          normalized: parseFloat(normalized.toFixed(4))
+          nilai: b.nilai,
+          normalizedProduksi: parseFloat(normProd.toFixed(4)),
+          normalizedNilai: parseFloat(normNilai.toFixed(4))
         });
       });
     });
 
     return {
-      kpi: { total_volume, top_komoditas, total_nilai },
+      kpi: { total_volume, top_komoditas, top_kabupaten, total_nilai },
       produksiPerKabupaten,
       komposisiWadah,
       top5Wadah,
@@ -261,6 +270,14 @@ export default function Budidaya() {
     { header: 'Harga (Rp)', accessorKey: 'harga_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } },
     { header: 'Nilai Total (Rp)', accessorKey: 'nilai_rp', cell: info => { const val = info.getValue() || 0; return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val); } }
   ], []);
+
+  const isProduksi = visualisasiTipe === 'produksi';
+  const formatValue = React.useCallback((val) => {
+    return isProduksi 
+      ? Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg'
+      : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+  }, [isProduksi]);
+  const seriesName = isProduksi ? 'Produksi' : 'Nilai (Rp)';
 
   // 1. Peta Choropleth Jawa Timur (Log Scale)
   const mapOption = useMemo(() => {
@@ -285,18 +302,12 @@ export default function Budidaya() {
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
           extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
         trigger: 'item',
-        
-        
-        
-        formatter: (params) => {
-          const val = params.value || 0;
-          return `${params.name}<br/>Total Produksi: <b>${Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg</b>`;
-        }
+        formatter: (params) => `${params.name}<br/>Total ${seriesName}: <b>${formatValue(params.value || 0)}</b>`
       },
       visualMap: {
         left: 'right',
         min: 0,
-        max: maxVal || 100,
+        max: maxVal,
         inRange: {
           color: isDark
             ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399']
@@ -308,7 +319,7 @@ export default function Budidaya() {
       },
       series: [
         {
-          name: 'Produksi Budidaya',
+          name: seriesName,
           type: 'map',
           map: 'jawa_timur',
           roam: true,
@@ -328,20 +339,14 @@ export default function Budidaya() {
         }
       ]
     };
-  }, [stats.produksiPerKabupaten, chartText, chartSubText, chartGridLine, isDark]);
+  }, [stats.produksiPerKabupaten, visualisasiTipe, formatValue, seriesName, chartText, chartSubText, chartGridLine, isDark]);
 
   // 2. Bar Chart Top Kabupaten
   const barOption = useMemo(() => {
     const sortedData = [...stats.produksiPerKabupaten]
-      .filter(d => d[barFilter] > 0 && d.name && d.name.trim() !== '')
-      .sort((a, b) => b[barFilter] - a[barFilter]);
+      .filter(d => d[visualisasiTipe] > 0 && d.name && d.name.trim() !== '')
+      .sort((a, b) => b[visualisasiTipe] - a[visualisasiTipe]);
     const top10 = sortedData.slice(0, 10).reverse();
-
-    const isProduksi = barFilter === 'produksi';
-    const seriesName = isProduksi ? 'Produksi (Kg)' : 'Nilai Total (Rp)';
-    const formatter = isProduksi ?
-      val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' :
-      val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
 
     return {
       tooltip: {
@@ -353,7 +358,7 @@ export default function Budidaya() {
         axisPointer: { type: 'shadow' },
         formatter: (params) => {
           const val = params[0].value || 0;
-          return `${params[0].name}<br/>${seriesName}: <b>${formatter(val)}</b>`;
+          return `${params[0].name}<br/>${seriesName}: <b>${formatValue(val)}</b>`;
         }
       },
       grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
@@ -381,7 +386,7 @@ export default function Budidaya() {
           name: seriesName,
           type: 'bar',
           barWidth: '75%',
-          data: top10.map(d => d[barFilter]),
+          data: top10.map(d => d[visualisasiTipe]),
           itemStyle: {
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' },
@@ -392,7 +397,7 @@ export default function Budidaya() {
         }
       ]
     };
-  }, [stats.produksiPerKabupaten, barFilter, chartGridLine, chartAxisLabel, chartSubText, isDark]);
+  }, [stats.produksiPerKabupaten, visualisasiTipe, formatValue, seriesName, chartGridLine, chartAxisLabel, chartSubText, isDark]);
 
   // 3. Line Chart Tren Bulanan
   const lineOption = useMemo(() => {
@@ -404,7 +409,7 @@ export default function Budidaya() {
       symbolSize: 6,
       lineStyle: { width: 2.5 },
       emphasis: { focus: 'series' },
-      data: stats.trenBulanan.map(m => m[wadah] || 0)
+      data: stats.trenBulanan.map(m => m[wadah]?.[visualisasiTipe] || 0)
     }));
     seriesData.push({
       name: 'Lainnya',
@@ -413,7 +418,7 @@ export default function Budidaya() {
       symbolSize: 6,
       lineStyle: { type: 'dashed', width: 2.5 },
       emphasis: { focus: 'series' },
-      data: stats.trenBulanan.map(m => m.Lainnya || 0)
+      data: stats.trenBulanan.map(m => m.Lainnya?.[visualisasiTipe] || 0)
     });
 
     return {
@@ -422,7 +427,10 @@ export default function Budidaya() {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' : '0' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', 
+          trigger: 'axis', 
+          valueFormatter: (value) => formatValue(value || 0) 
+      },
       legend: {
         data: [...stats.top5Wadah, 'Lainnya'],
         textStyle: { color: chartSubText },
@@ -438,15 +446,15 @@ export default function Budidaya() {
       yAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } },
-        axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } }
+        axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } }
       },
       series: seriesData
     };
-  }, [stats.trenBulanan, stats.top5Wadah, chartAxisLabel, chartSubText, chartGridLine, isDark]);
+  }, [stats.trenBulanan, stats.top5Wadah, visualisasiTipe, formatValue, chartAxisLabel, chartSubText, chartGridLine, isDark]);
 
   // 4. Treemap Komposisi Wadah
   const treemapOption = useMemo(() => {
-    const data = stats.komposisiWadah.map(w => ({ name: w.name, value: w[treemapFilter] || 0 })).sort((a, b) => b.value - a.value);
+    const data = stats.komposisiWadah.map(w => ({ name: w.name, value: w[visualisasiTipe] || 0 })).sort((a, b) => b.value - a.value);
 
     return {
       tooltip: {
@@ -454,12 +462,9 @@ export default function Budidaya() {
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
           extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
-        
-        
-        
         formatter: (info) => {
           const val = info.value || 0;
-          return `<b>${info.name}</b><br/>Total Produksi: ${Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`;
+          return `<b>${info.name}</b><br/>Total ${seriesName}: ${formatValue(val)}`;
         }
       },
       series: [{
@@ -475,7 +480,7 @@ export default function Budidaya() {
         breadcrumb: { show: false },
         label: { 
           show: true, 
-          formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`, 
+          formatter: (params) => `${params.name}\n\n${formatValue(params.value || 0)}`, 
           color: '#fff', 
           fontWeight: 'bold' 
         },
@@ -492,11 +497,10 @@ export default function Budidaya() {
         }
       }]
     };
-  }, [stats.komposisiWadah, treemapFilter, isDark]);
+  }, [stats.komposisiWadah, visualisasiTipe, formatValue, seriesName, isDark]);
 
   // 5. Heatmap Kabupaten x Bulan
   const heatmapOption = useMemo(() => {
-    // ECharts heatmap requires data as [xIndex, yIndex, value]
     const yAxisData = [...new Set(stats.heatmapData.map(d => d.kabupaten))].sort();
     const xAxisData = MONTHS;
 
@@ -507,8 +511,12 @@ export default function Budidaya() {
       const xIndex = xAxisData.indexOf(item.bulan);
       const yIndex = yAxisData.indexOf(item.kabupaten);
       if (xIndex !== -1 && yIndex !== -1) {
-        dataPairs.push([xIndex, yIndex, item.normalized]);
-        tooltipRawData[`${xIndex}-${yIndex}`] = item.produksi;
+        dataPairs.push([
+          xIndex, 
+          yIndex, 
+          visualisasiTipe === 'produksi' ? item.normalizedProduksi : item.normalizedNilai
+        ]);
+        tooltipRawData[`${xIndex}-${yIndex}`] = item[visualisasiTipe];
       }
     });
 
@@ -523,7 +531,7 @@ export default function Budidaya() {
           const xIndex = params.data[0];
           const yIndex = params.data[1];
           const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0;
-          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`;
+          return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>${seriesName}: ${formatValue(rawValue)}`;
         }
       },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
@@ -564,20 +572,20 @@ export default function Budidaya() {
         }
       }]
     };
-  }, [stats.heatmapData, chartSubText, isDark]);
+  }, [stats.heatmapData, visualisasiTipe, formatValue, seriesName, chartSubText, isDark]);
 
   const hasMapData = useMemo(() => stats.produksiPerKabupaten && stats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x.value || 0) > 0), [stats.produksiPerKabupaten]);
-  const hasBarData = useMemo(() => stats.produksiPerKabupaten && stats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x[barFilter] || 0) > 0), [stats.produksiPerKabupaten, barFilter]);
+  const hasBarData = useMemo(() => stats.produksiPerKabupaten && stats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x[visualisasiTipe] || 0) > 0), [stats.produksiPerKabupaten, visualisasiTipe]);
   const hasLineData = useMemo(() => {
     if (!stats.trenBulanan || !Array.isArray(stats.trenBulanan)) return false;
     return stats.trenBulanan.some(x => {
-      return Object.entries(x).some(([key, val]) => key !== 'bulan' && Number(val || 0) > 0);
+      return Object.entries(x).some(([key, val]) => key !== 'bulan' && (Number(val?.produksi || 0) > 0 || Number(val?.nilai || 0) > 0));
     });
   }, [stats.trenBulanan]);
   const hasTreemapData = useMemo(() => stats.komposisiWadah && stats.komposisiWadah.some(x => (x.value || 0) > 0 || (x.produksi || 0) > 0 || (x.nilai || 0) > 0), [stats.komposisiWadah]);
   const hasHeatmapData = useMemo(() => {
     if (!stats.heatmapData || !Array.isArray(stats.heatmapData)) return false;
-    return stats.heatmapData.some(item => (Number(item.produksi) || 0) > 0 || (Number(item.value) || 0) > 0);
+    return stats.heatmapData.some(item => (Number(item.produksi) || 0) > 0 || (Number(item.nilai) || 0) > 0);
   }, [stats.heatmapData]);
 
   return (
@@ -586,26 +594,19 @@ export default function Budidaya() {
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Statistik Perikanan Budidaya</h1>
         </div>
-
+        {lastUpdated ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400">
+            <Clock className="h-4 w-4 animate-pulse" />
+            <span className="opacity-80">Terakhir Diperbarui:</span>
+            <span className="font-semibold">{lastUpdated}</span>
+          </div>
+        ) : null}
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-slate-500" />
-            <h3 className="text-lg font-bold text-foreground">Filter Multidimensi</h3>
-          </div>
-          {lastUpdated ? (
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-400 sm:self-auto">
-              <Clock className="h-4 w-4 animate-pulse" />
-              <span className="opacity-80">Terakhir Diperbarui:</span>
-              <span className="font-semibold">{lastUpdated}</span>
-            </div>
-          ) : null}
-        </div>
+      <div className="mb-6">
 
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <SearchableMultiSelect
               options={tahunOptions}
               value={filterTahun}
@@ -636,6 +637,17 @@ export default function Budidaya() {
               onChange={setFilterWadah}
               placeholder="Semua Wadah"
             />
+            <div className="relative">
+              <select
+                value={visualisasiTipe}
+                onChange={(e) => setVisualisasiTipe(e.target.value)}
+                className="appearance-none bg-background dark:bg-slate-900 border border-input rounded-lg px-3 py-2 pr-8 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer hover:border-primary/50 h-[38px] w-full shadow-none"
+              >
+                <option value="produksi">Volume (Kg)</option>
+                <option value="nilai">Nilai (Rp)</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
           {(filterKomoditas.length > 0 || filterKabupaten.length > 0 || filterWadah.length > 0 || filterBulan.length > 0 || filterTahun.length > 0) && (
             <div className="flex justify-end mt-2">
@@ -664,7 +676,7 @@ export default function Budidaya() {
       ) : (
         <div className="space-y-6">
           {/* KPI Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
                 <Box className="w-6 h-6" />
@@ -690,6 +702,18 @@ export default function Budidaya() {
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Top Kab/Kota</p>
+                <p className="text-2xl font-bold text-foreground leading-tight">
+                  {stats.kpi.top_kabupaten}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
               <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
                 <LineChart className="w-6 h-6" />
               </div>
@@ -701,6 +725,8 @@ export default function Budidaya() {
               </div>
             </div>
           </div>
+
+
 
           {/* Top Visualizations Row */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

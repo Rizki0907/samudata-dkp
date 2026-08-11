@@ -46,8 +46,7 @@ export default function AdminBudidaya() {
   const [editingData, setEditingData] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('data');
-  const [barFilter, setBarFilter] = useState('produksi');
-  const [treemapFilter, setTreemapFilter] = useState('produksi');
+  const [visualisasiTipe, setVisualisasiTipe] = useState('produksi');
   const [filterKomoditas, setFilterKomoditas] = useState([]);
   const [filterKabupaten, setFilterKabupaten] = useState([]);
   const [filterWadah, setFilterWadah] = useState([]);
@@ -528,11 +527,12 @@ export default function AdminBudidaya() {
       }
 
       if (!heatmapRaw[kab]) {
-        heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0 }));
+        heatmapRaw[kab] = MONTHS.map(b => ({ bulan: b, produksi: 0, nilai: 0 }));
       }
       const bIndex = MONTHS.indexOf(item.bulan);
       if (bIndex !== -1) {
         heatmapRaw[kab][bIndex].produksi += vol;
+        heatmapRaw[kab][bIndex].nilai += nilai;
       }
     });
 
@@ -542,6 +542,15 @@ export default function AdminBudidaya() {
       if (prod > maxKomoditasProd) {
         maxKomoditasProd = prod;
         top_komoditas = kom;
+      }
+    }
+
+    let top_kabupaten = '-';
+    let maxKabupatenProd = 0;
+    for (const [kab, s] of Object.entries(kabMap)) {
+      if (s.produksi > maxKabupatenProd) {
+        maxKabupatenProd = s.produksi;
+        top_kabupaten = kab;
       }
     }
 
@@ -555,8 +564,8 @@ export default function AdminBudidaya() {
     const top5Wadah = komposisiWadah.slice(0, 5).map(w => w.name);
 
     const trenBulanan = MONTHS.map(bulan => {
-      const monthData = { bulan, Lainnya: 0 };
-      top5Wadah.forEach(w => monthData[w] = 0);
+      const monthData = { bulan, Lainnya: { produksi: 0, nilai: 0 } };
+      top5Wadah.forEach(w => monthData[w] = { produksi: 0, nilai: 0 });
       return monthData;
     });
 
@@ -566,10 +575,14 @@ export default function AdminBudidaya() {
       if (bIndex === -1) return;
 
       const vol = Number(item.produksi_kg) || 0;
+      const nilai = Number(item.nilai_rp) || 0;
+      
       if (top5Wadah.includes(item.jenis_wadah)) {
-        trenBulanan[bIndex][item.jenis_wadah] += vol;
+        trenBulanan[bIndex][item.jenis_wadah].produksi += vol;
+        trenBulanan[bIndex][item.jenis_wadah].nilai += nilai;
       } else {
-        trenBulanan[bIndex].Lainnya += vol;
+        trenBulanan[bIndex].Lainnya.produksi += vol;
+        trenBulanan[bIndex].Lainnya.nilai += nilai;
       }
     });
 
@@ -578,26 +591,34 @@ export default function AdminBudidaya() {
       const bulanArr = heatmapRaw[kab];
       const maxProd = Math.max(...bulanArr.map(b => b.produksi));
       const minProd = Math.min(...bulanArr.map(b => b.produksi));
-      const range = maxProd - minProd;
+      const rangeProd = maxProd - minProd;
+
+      const maxNilai = Math.max(...bulanArr.map(b => b.nilai));
+      const minNilai = Math.min(...bulanArr.map(b => b.nilai));
+      const rangeNilai = maxNilai - minNilai;
 
       bulanArr.forEach(b => {
-        let normalized = 0;
-        if (range > 0) {
-          normalized = (b.produksi - minProd) / range;
-        } else if (maxProd > 0) {
-          normalized = 1;
-        }
+        let normProd = 0;
+        if (rangeProd > 0) normProd = (b.produksi - minProd) / rangeProd;
+        else if (maxProd > 0) normProd = 1;
+
+        let normNilai = 0;
+        if (rangeNilai > 0) normNilai = (b.nilai - minNilai) / rangeNilai;
+        else if (maxNilai > 0) normNilai = 1;
+
         heatmapData.push({
           kabupaten: kab,
           bulan: b.bulan,
           produksi: b.produksi,
-          normalized: parseFloat(normalized.toFixed(4))
+          nilai: b.nilai,
+          normalizedProduksi: parseFloat(normProd.toFixed(4)),
+          normalizedNilai: parseFloat(normNilai.toFixed(4))
         });
       });
     });
 
     return {
-      kpi: { total_volume, top_komoditas, total_nilai },
+      kpi: { total_volume, top_komoditas, top_kabupaten, total_nilai },
       produksiPerKabupaten,
       komposisiWadah,
       top5Wadah,
@@ -606,41 +627,49 @@ export default function AdminBudidaya() {
     };
   }, [filteredData]);
 
-  const mapOption = useMemo(() => {
-    const mapData = computedStats.produksiPerKabupaten.map(item => ({ name: item.name, value: item.produksi }));
-    const maxVal = mapData.length > 0 ? Math.max(...mapData.map(d => d.value)) : 0;
-    return {
-      title: { text: 'Produksi Budidaya per Kab/Kota', textStyle: { color: chartText, fontSize: 16, fontFamily: 'Inter' }, left: 'center', top: 10 },
-      tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (params) => `${params.name}<br/>Total Produksi: <b>${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg</b>` },
-      visualMap: { left: 'right', min: 0, max: maxVal || 100, inRange: { color: isDark ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: chartSubText }, calculable: false },
-      series: [{ name: 'Produksi Budidaya', type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }, data: mapData }]
-    };
-  }, [computedStats.produksiPerKabupaten, chartText, chartSubText, chartGridLine, isDark]);
+  const isProduksi = visualisasiTipe === 'produksi';
+  const formatValue = React.useCallback((val) => {
+    return isProduksi 
+      ? Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg'
+      : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+  }, [isProduksi]);
+  const seriesName = isProduksi ? 'Produksi' : 'Nilai (Rp)';
 
-  const barOption = useMemo(() => {
-    const sortedData = [...computedStats.produksiPerKabupaten]
-      .filter(d => d[barFilter] > 0 && d.name && d.name.trim() !== '')
-      .sort((a, b) => b[barFilter] - a[barFilter]);
-    const top10 = sortedData.slice(0, 10).reverse();
-    const isProduksi = barFilter === 'produksi';
-    const seriesName = isProduksi ? 'Produksi (Kg)' : 'Nilai Total (Rp)';
-    const formatter = isProduksi ? val => Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' : val => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+  const mapOption = useMemo(() => {
+    const mapData = computedStats.produksiPerKabupaten.map(k => ({
+      name: k.name,
+      value: k[visualisasiTipe] || 0
+    }));
+    const maxVal = Math.max(...mapData.map(d => d.value), 1);
     return {
       tooltip: {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => `${params[0].name}<br/>${seriesName}: <b>${formatter(params[0].value || 0)}</b>` },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (params) => `${params.name}<br/>Total ${seriesName}: <b>${formatValue(params.value || 0)}</b>` },
+      visualMap: { left: 'right', min: 0, max: maxVal, inRange: { color: isDark ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399'] : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'] }, text: ['Tinggi', 'Rendah'], textStyle: { color: chartSubText }, calculable: false },
+      series: [{ name: seriesName, type: 'map', map: 'jawa_timur', roam: true, label: { show: false, color: '#fff' }, emphasis: { label: { show: true, color: '#fff' }, itemStyle: { areaColor: '#f59e0b' } }, itemStyle: { areaColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#cbd5e1' }, data: mapData }]
+    };
+  }, [computedStats.produksiPerKabupaten, visualisasiTipe, formatValue, seriesName, chartText, chartSubText, chartGridLine, isDark]);
+
+  const barOption = useMemo(() => {
+    const sortedData = [...computedStats.produksiPerKabupaten]
+      .filter(d => d[visualisasiTipe] > 0 && d.name && d.name.trim() !== '')
+      .sort((a, b) => b[visualisasiTipe] - a[visualisasiTipe]);
+    const top10 = sortedData.slice(0, 10).reverse();
+
+    return {
+      tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          borderColor: isDark ? '#334155' : '#e2e8f0',
+          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params) => { const val = params[0].value || 0; return `${params[0].name}<br/>${seriesName}: <b>${formatValue(val)}</b>`; } },
       grid: { left: '3%', right: '4%', top: '5%', bottom: '8%', containLabel: true },
       xAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       yAxis: { type: 'category', data: top10.map(d => d.name), axisLabel: { color: chartSubText, fontSize: 11 } },
-      series: [{ name: seriesName, type: 'bar', barWidth: '75%', data: top10.map(d => d[barFilter]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' }, { offset: 1, color: isDark ? '#2563eb' : '#1e40af' }]), borderRadius: [0, 4, 4, 0] } }]
+      series: [{ name: seriesName, type: 'bar', barWidth: '75%', data: top10.map(d => d[visualisasiTipe]), itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: isDark ? '#0ea5e9' : '#0284c7' }, { offset: 1, color: isDark ? '#2563eb' : '#1e40af' }]), borderRadius: [0, 4, 4, 0] } }]
     };
-  }, [computedStats.produksiPerKabupaten, barFilter, chartGridLine, chartAxisLabel, chartSubText, isDark]);
+  }, [computedStats.produksiPerKabupaten, visualisasiTipe, formatValue, seriesName, chartGridLine, chartAxisLabel, chartSubText, isDark]);
 
   const lineOption = useMemo(() => {
     const wadahColors = ['#0284c7', '#059669', '#d97706', '#ea580c', '#7c3aed', '#dc2626', '#0891b2', '#4f46e5'];
@@ -651,7 +680,7 @@ export default function AdminBudidaya() {
       symbolSize: 6,
       lineStyle: { width: 2.5 },
       emphasis: { focus: 'series' },
-      data: computedStats.trenBulanan.map(m => m[wadah] || 0)
+      data: computedStats.trenBulanan.map(m => m[wadah]?.[visualisasiTipe] || 0)
     }));
     seriesData.push({
       name: 'Lainnya',
@@ -660,7 +689,7 @@ export default function AdminBudidaya() {
       symbolSize: 6,
       lineStyle: { type: 'dashed', width: 2.5 },
       emphasis: { focus: 'series' },
-      data: computedStats.trenBulanan.map(m => m.Lainnya || 0)
+      data: computedStats.trenBulanan.map(m => m.Lainnya?.[visualisasiTipe] || 0)
     });
     return {
       color: wadahColors,
@@ -668,26 +697,26 @@ export default function AdminBudidaya() {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', valueFormatter: (value) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg' : '0' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', valueFormatter: (value) => formatValue(value || 0) },
       legend: { data: [...computedStats.top5Wadah, 'Lainnya'], textStyle: { color: chartSubText }, top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: chartAxisLabel, fontSize: 11, rotate: 30 } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: chartGridLine, type: 'dashed' } }, axisLabel: { color: chartAxisLabel, formatter: (val) => { if (val >= 1000000000000) return (val / 1000000000000).toFixed(1) + 'T'; if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'M'; if (val >= 1000000) return (val / 1000000).toFixed(1) + 'Jt'; if (val >= 1000) return (val / 1000).toFixed(1) + 'rb'; return val; } } },
       series: seriesData
     };
-  }, [computedStats.trenBulanan, computedStats.top5Wadah, chartAxisLabel, chartSubText, chartGridLine, isDark]);
+  }, [computedStats.trenBulanan, computedStats.top5Wadah, visualisasiTipe, formatValue, chartAxisLabel, chartSubText, chartGridLine, isDark]);
 
   const treemapOption = useMemo(() => {
-    const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w[treemapFilter] || 0 })).sort((a, b) => b.value - a.value);
+    const data = computedStats.komposisiWadah.map(w => ({ name: w.name, value: w[visualisasiTipe] || 0 })).sort((a, b) => b.value - a.value);
     return {
       tooltip: {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', formatter: (info) => `<b>${info.name}</b><br/>Total Produksi: ${Number(info.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg` },
-      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${Number(params.value || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`, color: '#fff', fontWeight: 'bold' }, itemStyle: {  gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', formatter: (info) => `<b>${info.name}</b><br/>Total ${seriesName}: ${formatValue(info.value || 0)}` },
+      series: [{ type: 'treemap', width: '100%', height: '100%', top: 0, bottom: 0, left: 0, right: 0, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: (params) => `${params.name}\n\n${formatValue(params.value || 0)}`, color: '#fff', fontWeight: 'bold' }, itemStyle: {  gapWidth: 2 }, data: data, colorMappingBy: 'value', visualMap: { show: false, inRange: { color: isDark ? ['#0f766e', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'] : ['#134e4a', '#0f766e', '#0d9488', '#0369a1', '#1d4ed8'] } } }]
     };
-  }, [computedStats.komposisiWadah, treemapFilter, isDark]);
+  }, [computedStats.komposisiWadah, visualisasiTipe, formatValue, seriesName, isDark]);
 
   const heatmapOption = useMemo(() => {
     const yAxisData = [...new Set(computedStats.heatmapData.map(d => d.kabupaten))].sort();
@@ -698,8 +727,12 @@ export default function AdminBudidaya() {
       const xIndex = xAxisData.indexOf(item.bulan);
       const yIndex = yAxisData.indexOf(item.kabupaten);
       if (xIndex !== -1 && yIndex !== -1) {
-        dataPairs.push([xIndex, yIndex, item.normalized]);
-        tooltipRawData[`${xIndex}-${yIndex}`] = item.produksi;
+        dataPairs.push([
+          xIndex, 
+          yIndex, 
+          visualisasiTipe === 'produksi' ? item.normalizedProduksi : item.normalizedNilai
+        ]);
+        tooltipRawData[`${xIndex}-${yIndex}`] = item[visualisasiTipe];
       }
     });
     return {
@@ -708,16 +741,14 @@ export default function AdminBudidaya() {
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
           extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', position: 'top', 
-        
-        
-        formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>Produksi: ${Number(rawValue).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Kg`; } },
+        formatter: (params) => { const xIndex = params.data[0]; const yIndex = params.data[1]; const rawValue = tooltipRawData[`${xIndex}-${yIndex}`] || 0; return `<b>${yAxisData[yIndex]}</b><br/>${xAxisData[xIndex]}<br/>${seriesName}: ${formatValue(rawValue)}`; } },
       grid: { left: '3%', right: '4%', top: '3%', bottom: '5%', containLabel: true },
       xAxis: { type: 'category', data: xAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, rotate: 45 } },
       yAxis: { type: 'category', data: yAxisData, splitArea: { show: true }, axisLabel: { color: chartSubText, fontSize: 10 } },
       visualMap: { min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: '0%', inRange: { color: isDark ? ['#0f172a', '#2563eb', '#06b6d4', '#facc15', '#22c55e'] : ['#f0f9ff', '#bae6fd', '#0284c7', '#0369a1', '#155e75'] }, textStyle: { color: chartSubText }, formatter: (value) => value.toFixed(1) },
       series: [{ name: 'Heatmap', type: 'heatmap', data: dataPairs, label: { show: false }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } } }]
     };
-  }, [computedStats.heatmapData, chartSubText, isDark]);
+  }, [computedStats.heatmapData, visualisasiTipe, formatValue, seriesName, chartSubText, isDark]);
 
   const columns = useMemo(() => [
     {
@@ -755,17 +786,17 @@ export default function AdminBudidaya() {
   ], []);
 
   const hasMapData = useMemo(() => computedStats.produksiPerKabupaten && computedStats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x.value || 0) > 0), [computedStats.produksiPerKabupaten]);
-  const hasBarData = useMemo(() => computedStats.produksiPerKabupaten && computedStats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x[barFilter] || 0) > 0), [computedStats.produksiPerKabupaten, barFilter]);
+  const hasBarData = useMemo(() => computedStats.produksiPerKabupaten && computedStats.produksiPerKabupaten.some(x => (x.produksi || 0) > 0 || (x.nilai || 0) > 0 || (x[visualisasiTipe] || 0) > 0), [computedStats.produksiPerKabupaten, visualisasiTipe]);
   const hasLineData = useMemo(() => {
     if (!computedStats.trenBulanan || !Array.isArray(computedStats.trenBulanan)) return false;
     return computedStats.trenBulanan.some(x => {
-      return Object.entries(x).some(([key, val]) => key !== 'bulan' && Number(val || 0) > 0);
+      return Object.entries(x).some(([key, val]) => key !== 'bulan' && (Number(val?.produksi || 0) > 0 || Number(val?.nilai || 0) > 0));
     });
   }, [computedStats.trenBulanan]);
-  const hasTreemapData = useMemo(() => computedStats.komposisiWadah && computedStats.komposisiWadah.some(x => (x.value || 0) > 0 || (x.produksi || 0) > 0), [computedStats.komposisiWadah]);
+  const hasTreemapData = useMemo(() => computedStats.komposisiWadah && computedStats.komposisiWadah.some(x => (x.value || 0) > 0 || (x.produksi || 0) > 0 || (x.nilai || 0) > 0), [computedStats.komposisiWadah]);
   const hasHeatmapData = useMemo(() => {
     if (!computedStats.heatmapData || !Array.isArray(computedStats.heatmapData)) return false;
-    return computedStats.heatmapData.some(item => (Number(item.produksi) || 0) > 0 || (Number(item.value) || 0) > 0);
+    return computedStats.heatmapData.some(item => (Number(item.produksi) || 0) > 0 || (Number(item.nilai) || 0) > 0);
   }, [computedStats.heatmapData]);
 
   return (
@@ -950,7 +981,7 @@ export default function AdminBudidaya() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
                       <SearchableMultiSelect
@@ -1009,6 +1040,20 @@ export default function AdminBudidaya() {
                         onChange={setFilterWadah}
                         placeholder="Semua Wadah"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Visualisasi Data</label>
+                      <div className="relative">
+                        <select
+                          value={visualisasiTipe}
+                          onChange={(e) => setVisualisasiTipe(e.target.value)}
+                          className="appearance-none bg-background dark:bg-slate-900 border border-input rounded-lg px-3 py-2 pr-8 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer hover:border-primary/50 h-[38px] w-full shadow-none"
+                        >
+                          <option value="produksi">Volume (Kg)</option>
+                          <option value="nilai">Nilai (Rp)</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1194,7 +1239,7 @@ export default function AdminBudidaya() {
               </div>
             ) : (
               <div className="space-y-6 mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                     <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
                       <Box className="w-6 h-6" />
@@ -1216,6 +1261,15 @@ export default function AdminBudidaya() {
                     </div>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500">
+                      <MapPin className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Top Kab/Kota</p>
+                      <p className="text-2xl font-bold text-foreground leading-tight">{computedStats.kpi.top_kabupaten}</p>
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                     <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
                       <LineChart className="w-6 h-6" />
                     </div>
@@ -1227,6 +1281,8 @@ export default function AdminBudidaya() {
                     </div>
                   </div>
                 </div>
+
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                   <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 shadow-sm">
