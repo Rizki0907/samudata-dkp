@@ -2367,9 +2367,7 @@ export default function AdminKelautanPesisir() {
                       options={[
                         { label: 'Verified', value: 'VERIFIED' },
                         { label: 'Approved', value: 'APPROVED' },
-                        { label: 'Rejected', value: 'REJECTED' },
-                        { label: 'Pending', value: 'PENDING' }
-                      ]}
+                        { label: 'Rejected', value: 'REJECTED' }                      ]}
                     />
                   </div>
                   <div className="w-full md:flex-1 md:min-w-[180px]">
