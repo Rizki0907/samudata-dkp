@@ -692,8 +692,13 @@ export default function KelautanPesisir() {
     .map(d => d.getTime());
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
+  const formatBulan3Huruf = (date) => {
+    const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return bulan[date.getMonth()];
+  };
+
   const lastUpdated = latestDate 
-    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    ? `${String(latestDate.getDate()).padStart(2, '0')} ${formatBulan3Huruf(latestDate)} ${latestDate.getFullYear()} ${latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
     : '-';
 
   return (
