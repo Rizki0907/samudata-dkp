@@ -4,6 +4,7 @@ import { BUDIDAYA_TAHUNAN_CONFIG } from '@/utils/BudidayaTahunanConfig';
 import { AlertCircle, Loader2, CheckCircle2, Plus } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import api from '@/services/api';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 
 const currentYear = new Date().getFullYear();
@@ -28,6 +29,14 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const masterData = useMasterDataStore(state => state.data);
+  const getOptions = useMasterDataStore(state => state.getOptions);
+
+  const kabKotaOptions = React.useMemo(() => {
+    const opts = getOptions('KABUPATEN_KOTA');
+    return opts?.length > 0 ? opts : KAB_KOTA_OPTIONS;
+  }, [masterData, getOptions]);
 
   // Auto-save logic
   useEffect(() => {
@@ -229,7 +238,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
                 name="kabupaten"
                 value={kabupaten}
                 onChange={(e) => setKabupaten(e.target.value)}
-                options={KAB_KOTA_OPTIONS}
+                options={kabKotaOptions}
                 placeholder="Pilih Kab/Kota"
                 className="py-2 h-[42px]"
               />

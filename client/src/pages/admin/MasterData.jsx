@@ -44,6 +44,7 @@ const CATEGORY_MAP = {
     { value: 'JENIS_PERAHU_PUD', label: 'GT / Jenis Perahu', icon: Ship }
   ],
   'Perikanan Budidaya': [
+    { value: 'KABUPATEN_KOTA', label: 'Kab/Kota', icon: MapPin, hasMetadata: 'id_wilayah' },
     { value: 'KOMODITAS_BUDIDAYA', label: 'Komoditas Budidaya', icon: Package },
     { value: 'JENIS_WADAH', label: 'Jenis Wadah', icon: Database }
   ],
@@ -260,7 +261,17 @@ export default function MasterData() {
         if (bId) return 1;
       }
 
-      if (['JENIS_PENGOLAHAN', 'JENIS_PEMASARAN', 'KATEGORI_SKALA_USAHA'].includes(activeCategory)) {
+      // Khusus Pengolahan dan Pemasaran selain Kab/Kota:
+      // data lama tetap di atas dan data baru masuk paling bawah (urut ID ASC),
+      // bukan diurutkan alfabetis.
+      if ([
+        'JENIS_PENGOLAHAN',
+        'JENIS_PEMASARAN',
+        'KATEGORI_SKALA_USAHA',
+        'SERTIFIKAT_PRODUK',
+        'IZIN_USAHA',
+        'SERTIFIKAT_LAHAN_BANGUNAN',
+      ].includes(activeCategory)) {
         return Number(a.id ?? 0) - Number(b.id ?? 0);
       }
 

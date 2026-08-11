@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database, X } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
+import { useMasterDataStore } from '@/store/masterDataStore';
 
 const KABUPATEN_KOTA_OPTIONS = [
   'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
@@ -54,6 +55,19 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
   });
 
   const [errors, setErrors] = useState({});
+
+  const masterData = useMasterDataStore(state => state.data);
+  const getOptions = useMasterDataStore(state => state.getOptions);
+
+  const kabKotaOptions = React.useMemo(() => {
+    const opts = getOptions('KABUPATEN_KOTA');
+    return opts?.length > 0 ? opts : KABUPATEN_KOTA_OPTIONS;
+  }, [masterData, getOptions]);
+
+  const wadahOptions = React.useMemo(() => {
+    const opts = getOptions('JENIS_WADAH');
+    return opts?.length > 0 ? opts : JENIS_WADAH_OPTIONS;
+  }, [masterData, getOptions]);
 
   useEffect(() => {
     if (initialData) {
@@ -147,7 +161,7 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
                 name="kabupaten_kota"
                 value={formData.kabupaten_kota}
                 onChange={handleChange}
-                options={KABUPATEN_KOTA_OPTIONS}
+                options={kabKotaOptions}
                 placeholder="Pilih Kab/Kota"
                 className={errors.kabupaten_kota ? "border-destructive" : "border-input"}
               />
@@ -198,7 +212,7 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
                 name="jenis_wadah"
                 value={formData.jenis_wadah}
                 onChange={handleChange}
-                options={JENIS_WADAH_OPTIONS}
+                options={wadahOptions}
                 placeholder="Pilih Jenis Wadah"
                 className={errors.jenis_wadah ? "border-destructive" : "border-input"}
               />
