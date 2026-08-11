@@ -2126,7 +2126,187 @@ export default function AdminPerikananTangkap() {
                 exportName={`Perikanan_Tangkap_${filterCabang && filterCabang.length > 0 ? filterCabang.join('_') : 'All'}_${filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All'}`}
                 renderSubComponent={renderSubComponent}
                 customExportButton={null}
-                onCustomExport={() => setIsExportModalOpen(true)}
+                onCustomExport={(exportData) => {
+                    let komoditasArray = [];
+                    if (!filterCabang || filterCabang.length === 0) {
+                      komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
+                    } else if (filterCabang.includes('PUD') && filterCabang.length === 1) {
+                      komoditasArray = [...KOMODITAS_PUD_OPTIONS];
+                    } else if (filterCabang.includes('KAB_KOTA') && filterCabang.length === 1) {
+                      komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
+                    } else {
+                      komoditasArray = [...KOMODITAS_OPTIONS];
+                    }
+
+                  const showLogistikCols = !filterCabang || filterCabang.length === 0 || filterCabang.includes('PELABUHAN');
+
+                  const headerRow1 = ['Status', 'Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
+                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
+                  
+                  if (showLogistikCols) {
+                    headerRow1.push('Logistik / Perbekalan');
+                    headerRow2.push(`${PERBEKALAN_OPTIONS[0].nama} (${PERBEKALAN_OPTIONS[0].satuan})`);
+                    for (let i = 1; i < PERBEKALAN_OPTIONS.length; i++) {
+                      headerRow1.push('');
+                      headerRow2.push(`${PERBEKALAN_OPTIONS[i].nama} (${PERBEKALAN_OPTIONS[i].satuan})`);
+                    }
+                  }
+
+                  headerRow1.push('Total Volume (Kg)', 'Total Nilai (Rp)');
+                  headerRow2.push('', '');
+
+                  komoditasArray.forEach(kom => {
+                    headerRow1.push(kom, '', '');
+                    headerRow2.push('Volume (Kg)', 'Harga', 'Nilai (Rp)');
+                  });
+
+                  const dataRows = exportData.map(row => {
+                    let totalVol = 0;
+                    let totalNilai = 0;
+                    const komMap = {};
+                    
+                    if (row.tangkapan && Array.isArray(row.tangkapan)) {
+                      row.tangkapan.forEach(t => {
+                        totalVol += Number(t.volume) || 0;
+                        totalNilai += Number(t.nilai) || 0;
+                        komMap[t.komoditas] = {
+                          vol: t.volume,
+                          harga: t.harga,
+                          nilai: t.nilai
+                        };
+                      });
+                    }
+
+                    const baseRow = [
+                      row.status || '-',
+                      row.tanggal ? row.tanggal.split('T')[0] : '-',
+                      row.sumber_data === 'PUD' ? 'Perairan PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Perairan Non Pelabuhan' : 'Perairan Pelabuhan'),
+                      row.sumber_data === 'PUD' ? (row.jenis_perairan || '-') : '-',
+                      row.jam_labuh || '-',
+                      row.jam_bongkar || '-',
+                      row.sumber_data === 'PUD' ? (row.pud_populasi_alat ? `${row.pud_populasi_alat} Unit` : '-') : (row.nama_kapal || '-'),
+                      row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
+                      row.alat_tangkap || '-',
+                      row.pelabuhan || row.kabupaten_kota || '-',
+                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : '-'
+                    ];
+
+                    if (showLogistikCols) {
+                      const logistikData = {};
+                      if (row.logistik && row.sumber_data === 'PELABUHAN') {
+                        try {
+                          const parsed = JSON.parse(row.logistik);
+                          if (Array.isArray(parsed)) {
+                            parsed.forEach(item => {
+                              logistikData[item.nama] = parseFloat(item.jumlah) || '';
+                            });
+                          }
+                        } catch(e) {}
+                      }
+                      PERBEKALAN_OPTIONS.forEach(pb => {
+                        baseRow.push(logistikData[pb.nama] || '');
+                      });
+                    }
+
+                    baseRow.push(totalVol, totalNilai);
+
+                    komoditasArray.forEach(kom => {
+                      if (komMap[kom]) {
+                        baseRow.push(komMap[kom].vol, komMap[kom].harga, komMap[kom].nilai);
+                      } else {
+                        baseRow.push('-', '-', '-');
+                      }
+                    });
+
+                    return baseRow;
+                  });
+
+                  const ws = XLSX.utils.aoa_to_sheet([headerRow1, headerRow2, ...dataRows]);
+
+                  const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                  const headerStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
+                  const komoditasHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
+                  const subHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
+                  const dataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
+                  
+                  const logistikHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "EAD1DC" } } };
+
+                  const totalBaseCols = 11;
+                  const totalLogistikCols = showLogistikCols ? PERBEKALAN_OPTIONS.length : 0;
+                  const totalTotalsCols = 2; // Total Volume, Total Nilai
+                  
+                  const logistikStartCol = totalBaseCols;
+                  const totalsStartCol = totalBaseCols + totalLogistikCols;
+                  const komoditasStartCol = totalsStartCol + totalTotalsCols;
+
+                  const range = XLSX.utils.decode_range(ws['!ref']);
+                  for (let R = range.s.r; R <= range.e.r; ++R) {
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                      const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+                      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+
+                      if (R === 0) {
+                        if (C >= komoditasStartCol) ws[cellRef].s = komoditasHeaderStyle;
+                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = logistikHeaderStyle;
+                        else ws[cellRef].s = headerStyle;
+                      } else if (R === 1) {
+                        if (C >= komoditasStartCol) ws[cellRef].s = subHeaderStyle;
+                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = subHeaderStyle;
+                        else ws[cellRef].s = headerStyle;
+                      } else {
+                        ws[cellRef].s = dataStyle;
+                        if (typeof ws[cellRef].v === 'number') {
+                          if (ws[cellRef].v === 0) {
+                            ws[cellRef].v = '-';
+                            ws[cellRef].t = 's';
+                          } else {
+                            ws[cellRef].z = '#,##0';
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  const merges = [];
+                  // Base columns merged vertically
+                  for (let i = 0; i < totalBaseCols; i++) {
+                    merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
+                  }
+                  
+                  if (showLogistikCols) {
+                    // Logistik main header merged horizontally
+                    merges.push({ s: { r: 0, c: logistikStartCol }, e: { r: 0, c: totalsStartCol - 1 } });
+                  }
+                  
+                  // Totals merged vertically
+                  merges.push({ s: { r: 0, c: totalsStartCol }, e: { r: 1, c: totalsStartCol } });
+                  merges.push({ s: { r: 0, c: totalsStartCol + 1 }, e: { r: 1, c: totalsStartCol + 1 } });
+                  
+                  let currentCol = komoditasStartCol;
+                  komoditasArray.forEach(() => {
+                    merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
+                    currentCol += 3;
+                  });
+                  ws['!merges'] = merges;
+
+                  const colWidths = [
+                      { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, 
+                      { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }
+                    ];
+                    if (showLogistikCols) {
+                      PERBEKALAN_OPTIONS.forEach(() => colWidths.push({ wch: 15 }));
+                    }
+                    colWidths.push({ wch: 20 }, { wch: 20 });
+                  komoditasArray.forEach(() => {
+                    colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
+                  });
+                  ws['!cols'] = colWidths;
+
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, "Perikanan_Tangkap");
+                  XLSX.writeFile(wb, `Perikanan_Tangkap_${new Date().toISOString().split('T')[0]}.xlsx`);
+                }}
+
               />
             </div>
           ) : activeTab === 'publik' ? (
