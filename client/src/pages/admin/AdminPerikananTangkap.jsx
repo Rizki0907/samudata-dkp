@@ -1008,6 +1008,868 @@ export default function AdminPerikananTangkap() {
     );
   };
 
+    const handleExportLMPelabuhan = (exportData, tahun, bulan, wilayah) => {
+    if (!wilayah) {
+       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Monitoring.");
+       return;
+    }
+    const pelabuhanName = wilayah.toUpperCase();
+    let kotaName = '-';
+    // PELABUHAN_TO_KABKOTA might not map the exact string depending on spacing, so let's do a safe lookup
+    Object.keys(PELABUHAN_TO_KABKOTA).forEach(k => {
+        if (k.toUpperCase() === pelabuhanName) {
+            kotaName = PELABUHAN_TO_KABKOTA[k].toUpperCase();
+        }
+    });
+    
+    let totalVol = 0;
+    let totalNilai = 0;
+    const logistikSummaryMap = {};
+    const apiToKomoditasMap = {};
+    const bentukIkanMap = {};
+
+    exportData.forEach(row => {
+      // Logistik
+      if (row.logistik) {
+        try {
+          const parsed = JSON.parse(row.logistik);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+              const val = parseFloat(item.jumlah) || 0;
+              logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
+            });
+          }
+        } catch(e) {}
+      }
+
+      // Komoditas
+      const apiName = (row.alat_tangkap || 'TIDAK DIKETAHUI').toUpperCase();
+      if (!apiToKomoditasMap[apiName]) {
+        apiToKomoditasMap[apiName] = {};
+      }
+      
+      if (row.tangkapan && Array.isArray(row.tangkapan)) {
+        row.tangkapan.forEach(t => {
+          const kName = t.komoditas.toUpperCase();
+          const v = parseFloat(t.volume) || 0;
+          const n = parseFloat(t.nilai) || 0;
+          
+          if (!apiToKomoditasMap[apiName][kName]) {
+             apiToKomoditasMap[apiName][kName] = { vol: 0, nilai: 0 };
+          }
+          apiToKomoditasMap[apiName][kName].vol += v;
+          apiToKomoditasMap[apiName][kName].nilai += n;
+          
+          totalVol += v;
+          totalNilai += n;
+
+          const bentuk = t.bentuk_ikan || 'Segar';
+          if (bentuk === 'Segar' || bentuk === 'Beku') {
+             const bKey = kName + '||' + bentuk;
+             if (!bentukIkanMap[bKey]) bentukIkanMap[bKey] = 0;
+             bentukIkanMap[bKey] += v;
+          }
+        });
+      }
+    });
+
+    const rows = [];
+    
+    // HEADER
+    rows.push(['LAPORAN MONITORING PELABUHAN PERIKANAN (PP)', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['LAPORAN BULANAN (12 X 1 TAHUN)', '', '', 'KODE LAPORAN', ': ', '']);
+    rows.push(['', '', '', 'PROVINSI', ': JAWA TIMUR', '']);
+    rows.push(['LAPORAN MONITORING', '', '', 'KOTA', `: ${kotaName}`, '']);
+    rows.push(['PELABUHAN PERIKANAN (PP)', '', '', 'PPP', `: ${pelabuhanName}`, '']);
+    rows.push(['', '', '', 'TAHUN', `: ${tahun || 'Semua'}`, '']);
+    
+    let namaBulan = 'Semua';
+    if (bulan) {
+       const blnInt = parseInt(bulan);
+       if (blnInt >= 1 && blnInt <= 12) {
+          namaBulan = BULAN_OPTIONS[blnInt - 1].toUpperCase();
+       }
+    }
+    rows.push(['', '', '', 'BULAN', `: ${namaBulan}`, '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 1 
+    rows.push(['No', 'Uraian', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Nelayan', '', '', '', '']);
+    rows.push(['', ' - Nelayan Utama', '', 'Orang', '', '']);
+    rows.push(['', ' - Nelayan Sambilan', '', 'Orang', '', '']);
+    rows.push(['2', 'Armada Perikanan', '', '', '', '']);
+    rows.push(['', 'a. Kapal Motor', '', 'Unit', '', '']);
+    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 31 - 50 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 51 - 100 GT', '', 'Unit', '', '']);
+    rows.push(['', '*101 - 200 GT', '', 'Unit', '', '']);
+    rows.push(['', '*201 - 300 GT', '', 'Unit', '', '']);
+    rows.push(['', '*301 - 500 GT', '', 'Unit', '', '']);
+    rows.push(['', '* > 500 GT', '', 'Unit', '', '']);
+    rows.push(['', 'b.  Motor Tempel', '', 'Unit', '', '']);
+    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
+    rows.push(['', '* > 30 GT', '', 'Unit', '', '']);
+    rows.push(['', 'c. Perahu Tanpa Motor', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Kecil', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Sedang', '', 'Unit', '', '']);
+    rows.push(['', '   -  Perahu Papan Besar', '', 'Unit', '', '']);
+    rows.push(['', 'd. Jukung', '', 'Unit', '', '']);
+    
+    // TABEL (Lanjutan 1)
+    rows.push(['3', 'Alat Penangkap Ikan (unit)', '', '', '', '']);
+    rows.push(['', '* Jaring lingkar bertali kerut (Purse Seine)', '', 'Unit', '', '']);
+    rows.push(['', '* Pancing Ulur Tuna', '', 'Unit', '', '']);
+    rows.push(['', '* Tonda', '', 'Unit', '', '']);
+    rows.push(['', '* Rawai Dasar', '', 'Unit', '', '']);
+    rows.push(['', '* Payang', '', 'Unit', '', '']);
+    rows.push(['', '* Jaring Insang Hanyut/J. insang oseanik', '', 'Unit', '', '']);
+    rows.push(['', '* Lain-2', '', 'Unit', '', '']);
+    
+    rows.push(['4', 'Kapal Pengangkut', '', 'Unit', '', '']);
+    rows.push(['5', 'Bakul / Pedagang (orang)', '', 'Orang', '', '']);
+    rows.push(['6', 'Pengolah (unit)', '', 'Unit', '', '']);
+    rows.push(['', '* (harap disesuaikan dengan alat tangkap masing masing di pelabuhan)', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 2 (Data Kapal)
+    rows.push(['2.    Data Kapal yang bersandar', '', '', '', '', '']);
+    rows.push(['No', 'Kategori Kapal', 'Jumlah (Unit)', 'Frekuensi (Kali)', 'Rata-Rata Periode Operasi (Hari)', 'Keterangan']);
+    rows.push(['1.', 'Kapal Motor', '', '', '', '']);
+    rows.push(['', '* < 5 GT', '', '', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
+    rows.push(['', '* 31 - 50 GT', '', '', '', '']);
+    rows.push(['', '* 51 - 100 GT', '', '', '', '']);
+    rows.push(['', '*101 - 200 GT', '', '', '', '']);
+    rows.push(['', '*201 - 300 GT', '', '', '', '']);
+    rows.push(['', '*301 - 500 GT', '', '', '', '']);
+    rows.push(['', '* > 500 GT', '', '', '', '']);
+    rows.push(['2.', 'Motor Tempel', '', '', '', '']);
+    rows.push(['', '* < 5 GT', '', '', '', '']);
+    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
+    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
+    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
+    rows.push(['', '* > 30 GT', '', '', '', '']);
+    rows.push(['3.', 'Perahu Tanpa Motor', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Kecil', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Sedang', '', '', '', '']);
+    rows.push(['', '   -  Perahu Papan Besar', '', '', '', '']);
+    rows.push(['4.', 'Jukung', '', '', '', '']);
+    rows.push(['Jumlah', '', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 3 (Operasional)
+    rows.push(['3.    Data Operasional Kapal Perikanan dan ABK', '', '', '', '', '']);
+    rows.push(['No.', 'Uraian Kegiatan', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Jumlah Kapal', '', '', '', '']);
+    rows.push(['', '* Melaut', '', 'Kapal', '', '']);
+    rows.push(['', '* Tidak Melaut', '', 'Kapal', '', '']);
+    rows.push(['', '* dI Daerah Lain', '', 'Kapal', '', '']);
+    rows.push(['2', 'Jumlah ABK', '', '', '', '']);
+    rows.push(['', '* Melaut', '', 'Orang', '', '']);
+    rows.push(['', '* Tidak Melaut', '', 'Orang', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 4 (Produksi)
+    rows.push(['4.    Produksi, Nilai Produksi serta Retribusi Lelang', '', '', '', '', '']);
+    rows.push(['No.', 'Uraian Data', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    rows.push(['1', 'Produksi Ikan', totalVol, 'Kilogram', '', '']);
+    rows.push(['2', 'Nilai Produksi', totalNilai, 'Rupiah', '', '']);
+    rows.push(['3', 'Retribusi Lelang', '', 'Rupiah', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 5 (Alat Tangkap)
+    rows.push(['5.    Jenis Ikan dan Alat Tangkap yang Digunakan', '', '', '', '', '']);
+    
+    let counter5 = 1;
+    Object.keys(apiToKomoditasMap).sort().forEach(api => {
+       rows.push([`5.${counter5} ${api}`, '', '', '', '', '']);
+       rows.push(['No.', 'Jenis Ikan', 'Volume (Kg)', 'Harga (Rp)', 'Nilai (Rp)', 'Keterangan']);
+       
+       let subCounter = 1;
+       let subTotalVol = 0;
+       let subTotalNilai = 0;
+       
+       Object.keys(apiToKomoditasMap[api]).sort().forEach(kom => {
+           const valObj = apiToKomoditasMap[api][kom];
+           const hargaRata = valObj.vol > 0 ? (valObj.nilai / valObj.vol) : 0;
+           subTotalVol += valObj.vol;
+           subTotalNilai += valObj.nilai;
+           
+           rows.push([subCounter++, kom, valObj.vol, hargaRata, valObj.nilai, '']);
+       });
+       
+       rows.push(['', 'TOTAL', subTotalVol, '', subTotalNilai, '']);
+       rows.push(['', '', '', '', '', '']);
+       counter5++;
+    });
+    
+    // TABEL 6
+    rows.push(['6.    Daerah Pemasaran dan Tujuan Pemasaran Ikan', '', '', '', '', '']);
+    rows.push(['No.', 'Wilayah', 'Kota', 'Jumlah', 'Keterangan', '']);
+    rows.push(['1', 'Dalam Kota', '', '', '', '']);
+    rows.push(['2', 'Luar Kota', '', '', '', '']);
+    rows.push(['3', 'Luar Provinsi', '', '', '', '']);
+    rows.push(['4', 'Luar Negeri', '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 7
+    rows.push(['7.    Bentuk Ikan yang Dipasarkan', '', '', '', '', '']);
+    rows.push(['No.', 'Jenis Ikan', 'Segar/Beku', 'Jumlah (Kg)', 'Keterangan', '']);
+    
+    let table7Total = 0;
+    let counter7 = 1;
+    const sortedKeys = Object.keys(bentukIkanMap).sort();
+    sortedKeys.forEach(key => {
+       const volume = bentukIkanMap[key];
+       if (volume > 0) {
+          const [jenis, bentuk] = key.split('||');
+          rows.push([counter7++, jenis, bentuk, volume, '', '']);
+          table7Total += volume;
+       }
+    });
+    
+    if (counter7 === 1) {
+       rows.push(['1', '-', '-', 0, '', '']);
+    }
+    
+    rows.push(['', 'TOTAL', '', table7Total, '', '']);
+    rows.push(['', '', '', '', '', '']);
+    
+    // TABEL 8
+    rows.push(['8.    Perbekalan Kapal', '', '', '', '', '']);
+    rows.push(['No.', 'Perbekalan', 'Jumlah', 'Satuan', 'Keterangan', '']);
+    
+    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
+        const val = logistikSummaryMap[pb.nama] || '';
+        rows.push([idx + 1, pb.nama, val, pb.satuan, '', '']);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    const merges = [];
+    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+    merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 1 } });
+    merges.push({ s: { r: 5, c: 0 }, e: { r: 5, c: 1 } });
+    merges.push({ s: { r: 6, c: 0 }, e: { r: 6, c: 1 } });
+    ws['!merges'] = merges;
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    let activeEndCol = 5;
+    
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const firstCell = rows[R] ? rows[R][0] : '';
+      
+      let isRowEmpty = true;
+      for (let C = 0; C <= 5; ++C) {
+         if (rows[R] && rows[R][C] !== '') {
+             isRowEmpty = false;
+         }
+      }
+      
+      if (isRowEmpty) {
+         activeEndCol = 0;
+         continue;
+      }
+
+      const isMainTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.\s+/);
+      const isSubTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.[0-9]+/);
+      const isTableTitle = isMainTableTitle || isSubTableTitle;
+      const isTableHeader = firstCell === 'No' || firstCell === 'No.';
+      
+      if (isTableHeader) {
+         let maxCol = 0;
+         for (let C = 0; C <= 5; ++C) {
+            if (rows[R][C] !== '') maxCol = C;
+         }
+         activeEndCol = maxCol;
+      }
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+
+        if (typeof ws[cellRef].v === 'number') {
+            if (ws[cellRef].v === 0) {
+               ws[cellRef].v = '-';
+               ws[cellRef].t = 's';
+            } else {
+               ws[cellRef].z = '#,##0';
+            }
+        }
+
+        if (R === 0) {
+           ws[cellRef].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } };
+        } else if (R >= 3 && R <= 8) {
+           ws[cellRef].s = { font: { bold: true } };
+        } else if (R >= 10 && !isRowEmpty) {
+           if (isTableTitle) {
+              if (C === 0) {
+                 ws[cellRef].s = { 
+                    font: { bold: true, sz: 11, color: { rgb: "1E293B" } }, 
+                    fill: { fgColor: { rgb: "F1F5F9" } },
+                    alignment: { vertical: 'center' }
+                 };
+                 if (!ws['!merges']) ws['!merges'] = [];
+                 ws['!merges'].push({ s: { r: R, c: 0 }, e: { r: R, c: 5 } });
+              }
+           } else if (C <= activeEndCol) {
+               const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+               ws[cellRef].s = { border: borderStyle, alignment: { vertical: 'center' } };
+               
+               if (isTableHeader) {
+                  ws[cellRef].s.font = { bold: true, color: { rgb: "FFFFFF" } };
+                  ws[cellRef].s.fill = { fgColor: { rgb: "3B82F6" } };
+                  ws[cellRef].s.alignment = { horizontal: 'center', vertical: 'center' };
+               } else {
+                  if (C === 0 && typeof ws[cellRef].v === 'string' && ws[cellRef].v.match(/^[0-9]\.$/)) {
+                     ws[cellRef].s.font = { bold: true };
+                  }
+                  if (rows[R][1] === 'TOTAL' || rows[R][0] === 'Jumlah') {
+                     ws[cellRef].s.font = { bold: true };
+                     ws[cellRef].s.fill = { fgColor: { rgb: "F8FAFC" } };
+                  }
+               }
+           }
+        }
+      }
+    }
+
+    const colWidths = [{ wch: 8 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 25 }];
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan_Monitoring");
+    XLSX.writeFile(wb, `LM_${pelabuhanName}_${namaBulan}_${tahun || ''}.xlsx`);
+  };
+
+  const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah, jenisPerairan) => {
+    try {
+      const pudData = exportData;
+      if (pudData.length === 0) {
+        alert("Tidak ada data untuk diekspor pada filter ini.");
+        return;
+      }
+
+      const ids = pudData.map(d => d.id);
+      
+      const response = await api.post('/perikanan-tangkap/export-pud', {
+        ids,
+        tahun: tahun,
+        bulan: bulan,
+        wilayah: wilayah,
+        jenis_perairan: jenisPerairan
+      }, { responseType: 'blob' });
+
+      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      const fileWilayah = wilayah || 'Semua';
+      const fileJenis = jenisPerairan || 'PUD';
+      const fileTahun = tahun || 'All';
+      
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PUHIT_${fileJenis}_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal melakukan export PUD: " + err.message);
+    }
+  };
+
+  const handleExportLaporanNonPelabuhan = async (exportData, tahun, bulan, wilayah) => {
+    try {
+      const npData = exportData;
+      if (npData.length === 0) {
+        alert("Tidak ada data untuk diekspor pada filter ini.");
+        return;
+      }
+
+      const ids = npData.map(d => d.id);
+      
+      const response = await api.post('/perikanan-tangkap/export-non-pelabuhan', {
+        ids,
+        tahun: tahun,
+        bulan: bulan,
+        wilayah: wilayah
+      }, { responseType: 'blob' });
+
+      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
+      const fileWilayah = wilayah || 'Semua';
+      const fileTahun = tahun || 'All';
+      
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PRODUKSI_LHIT_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal melakukan export Non Pelabuhan: " + err.message);
+    }
+  };
+
+    const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
+    if (!wilayah) {
+       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Rekap.");
+       return;
+    }
+    const pelabuhanName = wilayah.toUpperCase();
+    const dateStr = tahun ? (bulan ? `${bulan}/${tahun}` : tahun) : 'Semua Waktu';
+    
+    let summaryDateStr = dateStr;
+    if (tahun && bulan) {
+       summaryDateStr = 'BULAN INI';
+    } else if (filterTahun) {
+       summaryDateStr = 'TAHUN INI';
+    } else {
+       summaryDateStr = 'SELURUH WAKTU';
+    }
+    
+    // Rows
+    const row0 = [`REKAPITULASI DATA LAYANAN PELABUHAN ${pelabuhanName}`];
+    const row1 = [`Hari, Tgl / Bln / Thn : ${dateStr}`];
+    const row2 = [];
+    const row3 = ['1. PRODUKSI PELABUHAN'];
+    
+    const row4 = ['NO', 'TANGGAL', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Logistik / Perbekalan'];
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length - 1; i++) row4.push('');
+    row4.push('Total Produksi', '', 'I k a n');
+    
+    const row5 = ['', '', '', '', '', '', '', '', '', ''];
+    const row6 = ['', '', '', '', '', '', '', '', '', ''];
+    
+    PERBEKALAN_OPTIONS.forEach(pb => {
+      row5.push(`${pb.nama} (${pb.satuan})`);
+      row6.push('');
+    });
+    
+    row5.push('', '');
+    row6.push('Volume', 'Nilai');
+    
+    const komoditasTotalMap = {};
+    const komoditasArray = [...KOMODITAS_OPTIONS];
+    komoditasArray.forEach(kom => {
+      row5.push(kom, '', '');
+      row6.push('Vol', 'Harga', 'Nilai');
+      komoditasTotalMap[kom] = { vol: 0, nilai: 0 };
+    });
+
+    let totalKeseluruhanVol = 0;
+    let totalKeseluruhanNilai = 0;
+    let totalLangsungVol = 0;
+    let totalLangsungNilai = 0;
+    let totalAlihMuatVol = 0;
+    let totalAlihMuatNilai = 0;
+    const apiSummaryMap = {};
+    const logistikSummaryMap = {};
+
+    const dataRows = exportData.map((row, idx) => {
+      let totalVol = 0;
+      let totalNilai = 0;
+      const komMap = {};
+      
+      if (row.tangkapan && Array.isArray(row.tangkapan)) {
+        row.tangkapan.forEach(t => {
+          totalVol += Number(t.volume) || 0;
+          totalNilai += Number(t.nilai) || 0;
+          komMap[t.komoditas] = {
+            vol: t.volume,
+            harga: t.harga,
+            nilai: t.nilai
+          };
+          
+          if (komoditasTotalMap[t.komoditas]) {
+            komoditasTotalMap[t.komoditas].vol += Number(t.volume) || 0;
+            komoditasTotalMap[t.komoditas].nilai += Number(t.nilai) || 0;
+          }
+        });
+      }
+
+      totalKeseluruhanVol += totalVol;
+      totalKeseluruhanNilai += totalNilai;
+
+      const hasKapalPengangkut = row.kapal_pengangkut && row.kapal_pengangkut.trim() !== '';
+      if (hasKapalPengangkut) {
+        totalAlihMuatVol += totalVol;
+        totalAlihMuatNilai += totalNilai;
+      } else {
+        totalLangsungVol += totalVol;
+        totalLangsungNilai += totalNilai;
+      }
+
+      const apiName = row.alat_tangkap || 'Tidak Diketahui';
+      if (!apiSummaryMap[apiName]) apiSummaryMap[apiName] = { vol: 0, nilai: 0, alihMuatVol: 0, alihMuatNilai: 0 };
+      
+      if (hasKapalPengangkut) {
+        apiSummaryMap[apiName].alihMuatVol += totalVol;
+        apiSummaryMap[apiName].alihMuatNilai += totalNilai;
+      } else {
+        apiSummaryMap[apiName].vol += totalVol;
+        apiSummaryMap[apiName].nilai += totalNilai;
+      }
+
+      const baseRow = [
+        idx + 1,
+        row.tanggal ? formatDate(row.tanggal) : '-',
+        row.jam_labuh || '-',
+        row.jam_bongkar || '-',
+        hasKapalPengangkut ? 'Alih Muat' : 'Hasil Tangkapan',
+        '', // WPPNRI dikosongkan sesuai permintaan
+        row.nama_kapal || '-',
+        row.gt_kapal || '-',
+        row.alat_tangkap || '-',
+        hasKapalPengangkut ? row.kapal_pengangkut : ''
+      ];
+      
+      const logistikData = {};
+      if (row.logistik) {
+        try {
+          const parsed = JSON.parse(row.logistik);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => { 
+                const val = parseFloat(item.jumlah) || 0;
+                logistikData[item.nama] = val; 
+                logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
+              });
+          }
+        } catch(e) {}
+      }
+      PERBEKALAN_OPTIONS.forEach(pb => {
+        baseRow.push(logistikData[pb.nama] || '');
+      });
+
+      baseRow.push(totalVol, totalNilai);
+
+      komoditasArray.forEach(kom => {
+        if (komMap[kom]) {
+          baseRow.push(komMap[kom].vol, komMap[kom].harga, komMap[kom].nilai);
+        } else {
+          baseRow.push('-', '-', '-');
+        }
+      });
+      return baseRow;
+    });
+
+    const rowTotal1 = ['TOTAL TANGKAPAN', '', '', '', '', '', '', '', '', ''];
+    const rowTotal2 = ['Nilai', '', '', '', '', '', '', '', '', ''];
+    
+    PERBEKALAN_OPTIONS.forEach(() => {
+        rowTotal1.push('');
+        rowTotal2.push('');
+    });
+    rowTotal1.push(totalKeseluruhanVol, '');
+    rowTotal2.push('', totalKeseluruhanNilai);
+    
+    komoditasArray.forEach(kom => {
+      const tot = komoditasTotalMap[kom];
+      if (tot.vol > 0 || tot.nilai > 0) {
+        rowTotal1.push(tot.vol, '', '');
+        rowTotal2.push('', '', tot.nilai);
+      } else {
+        rowTotal1.push('-', '-', '-');
+        rowTotal2.push('-', '-', '-');
+      }
+    });
+
+    const emptyRow = [];
+    
+    // Tabel TOTAL PENDARATAN IKAN API
+    const summaryHeader1 = [`TOTAL PENDARATAN IKAN ${summaryDateStr}`];
+    const summaryHeader2 = ['No.', 'Alat Penangkapan Ikan', 'Pendaratan Langsung', '', 'Alih Muat', ''];
+    const summaryHeader3 = ['', '', 'Volume (Kg)', 'Nilai (Rp)', 'Volume (Kg)', 'Nilai (Rp)'];
+    
+    const summaryRows = [];
+    let summaryIndex = 1;
+    Object.keys(apiSummaryMap).sort().forEach(apiName => {
+      summaryRows.push([
+        summaryIndex++,
+        apiName.toUpperCase(),
+        apiSummaryMap[apiName].vol || '-',
+        apiSummaryMap[apiName].nilai || '-',
+        apiSummaryMap[apiName].alihMuatVol || '-',
+        apiSummaryMap[apiName].alihMuatNilai || '-'
+      ]);
+    });
+    
+    const summaryTotalRow = ['Total Produksi', '', totalLangsungVol || '-', totalLangsungNilai || '-', totalAlihMuatVol || '-', totalAlihMuatNilai || '-'];
+
+    
+    const operasionalHeader = ['2. OPERASIONAL PELABUHAN'];
+    const operasionalRows = [
+      ['1', 'Jumlah kapal yang terlayani', '', '', '', '', '', '', '', ''],
+      ['', 'a. Di dalam Kolam Labuh', '', '', '', '', '', '', 'Unit', ''],
+      ['', 'b. Di luar kolam (Area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
+      ['', 'c. Diluar kolam (luar area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
+      ['2', 'Trip Kapal', '', '', '', '', '', '', 'Trip', ''],
+      ['3', 'STBLKK', '', '', '', '', '', '', '', ''],
+      ['', 'a. Keberangkatan', '', '', '', '', '', '', 'Dokumen', ''],
+      ['', 'b. Kedatangan', '', '', '', '', '', '', 'Dokumen', ''],
+      ['4', 'Rekomendasi BBM Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
+      ['5', 'Rekomendasi BBM Non Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
+      ['6', 'Penerbitan SPB', '', '', '', '', '', '', 'Dokumen', ''],
+      ['7', 'Penerbitan CPIB', '', '', '', '', '', '', 'Dokumen', ''],
+      ['8', 'Penerimaan Logbook', '', '', '', '', '', '', 'Dokumen', ''],
+      ['9', 'Penerbitan SHTI', '', '', '', '', '', '', 'Dokumen', ''],
+      ['10', 'Penerbitan ICCAT', '', '', '', '', '', '', 'Dokumen', ''],
+      ['11', 'Data Logistik :', '', '', '', '', '', '', '', '']
+    ];
+
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
+        const logistikTotalValue = logistikSummaryMap[pb.nama] || 0;
+        const letter = alphabet[idx] || '';
+        operasionalRows.push(['', `${letter}. ${pb.nama}`, '', '', '', '', logistikTotalValue > 0 ? logistikTotalValue : '-', '', pb.satuan, '']);
+    });
+
+    const allRowsToRender = [
+      row0, row1, row2, row3, row4, row5, row6, 
+      ...dataRows, 
+      rowTotal1, rowTotal2, 
+      emptyRow, emptyRow,
+      summaryHeader1, summaryHeader2, summaryHeader3,
+      ...summaryRows,
+      summaryTotalRow,
+      emptyRow, emptyRow,
+      operasionalHeader,
+      ...operasionalRows
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
+
+    const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    const boldCenter = { font: { bold: true, color: { rgb: "000000" } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
+    const normalCenter = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
+    
+    const totalRowStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
+    const totalRowStyle2 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
+    const summaryHeaderStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
+    const summaryDataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
+    const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } };
+    const summaryGreenStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
+
+    const summaryStartRowIndex = 7 + dataRows.length + 4; // index 0-based
+
+    
+    const operasionalStartIndex = allRowsToRender.indexOf(operasionalHeader);
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+
+        if (R === 0) ws[cellRef].s = { font: { bold: true, sz: 14 } };
+        else if (R === 3) ws[cellRef].s = { font: { bold: true } };
+        else if (R >= 4 && R <= 6) ws[cellRef].s = boldCenter;
+        else if (R >= 7 && R < 7 + dataRows.length) {
+            ws[cellRef].s = normalCenter;
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
+        } else if (R === 7 + dataRows.length) {
+            ws[cellRef].s = totalRowStyle1; 
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
+        } else if (R === 7 + dataRows.length + 1) {
+            ws[cellRef].s = totalRowStyle2;
+            if (typeof ws[cellRef].v === 'number') {
+              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+              else ws[cellRef].z = '#,##0';
+            }
+        } else if (R === summaryStartRowIndex || R === summaryStartRowIndex + 1 || R === summaryStartRowIndex + 2) {
+            if (C <= 5) ws[cellRef].s = summaryHeaderStyle1;
+        } else if (R > summaryStartRowIndex + 2 && R < summaryStartRowIndex + 3 + summaryRows.length) {
+            if (C <= 5) {
+              ws[cellRef].s = summaryDataStyle;
+              if (typeof ws[cellRef].v === 'number') {
+                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+                else ws[cellRef].z = '#,##0';
+              }
+            }
+        } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
+            if (C <= 5) {
+              ws[cellRef].s = summaryTotalStyle;
+              if (typeof ws[cellRef].v === 'number') {
+                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
+                else ws[cellRef].z = '#,##0';
+              }
+            }
+        } else if (R === operasionalStartIndex) {
+            if (C <= 9) ws[cellRef].s = { font: { bold: true, sz: 12 }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E69138" } } };
+        } else if (R > operasionalStartIndex && R <= operasionalStartIndex + operasionalRows.length) {
+            if (C <= 9) {
+               ws[cellRef].s = { alignment: { vertical: 'center' }, border: borderStyle };
+               if (C === 0) ws[cellRef].s.alignment.horizontal = 'center'; // No.
+               if (C === 6) ws[cellRef].s.alignment.horizontal = 'center'; // Value
+               if (C === 8) ws[cellRef].s.alignment.horizontal = 'center'; // Unit
+               if (C === 6 && typeof ws[cellRef].v === 'number') {
+                  ws[cellRef].z = '#,##0';
+               }
+            }
+        }
+      }
+    }
+
+    const totalBaseCols = 10 + PERBEKALAN_OPTIONS.length + 2;
+    const totalCols = totalBaseCols + (komoditasArray.length * 3);
+    const totalColStart = 10 + PERBEKALAN_OPTIONS.length;
+    const ikanColStart = totalColStart + 2;
+    
+    const merges = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } }
+    ];
+    
+    for (let i = 0; i < 10; i++) {
+      merges.push({ s: { r: 4, c: i }, e: { r: 6, c: i } });
+    }
+    
+    merges.push({ s: { r: 4, c: 10 }, e: { r: 4, c: 10 + PERBEKALAN_OPTIONS.length - 1 } });
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) {
+      merges.push({ s: { r: 5, c: 10 + i }, e: { r: 6, c: 10 + i } });
+    }
+    
+    merges.push({ s: { r: 4, c: totalColStart }, e: { r: 5, c: totalColStart + 1 } });
+    merges.push({ s: { r: 4, c: ikanColStart }, e: { r: 4, c: totalCols - 1 } });
+    
+    let currentCol = ikanColStart;
+    komoditasArray.forEach(() => {
+      merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 2 } });
+      currentCol += 3;
+    });
+
+    // Merge TOTAL TANGKAPAN (dari NO ke ujung Logistik)
+    merges.push({ s: { r: 7 + dataRows.length, c: 0 }, e: { r: 7 + dataRows.length, c: totalColStart - 1 } });
+    // Merge Nilai (dari NO ke Total Produksi Volume)
+    merges.push({ s: { r: 7 + dataRows.length + 1, c: 0 }, e: { r: 7 + dataRows.length + 1, c: totalColStart } });
+
+    
+    // Merges for summary table
+    merges.push({ s: { r: summaryStartRowIndex, c: 0 }, e: { r: summaryStartRowIndex, c: 5 } });
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 0 }, e: { r: summaryStartRowIndex + 2, c: 0 } }); // No.
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 1 }, e: { r: summaryStartRowIndex + 2, c: 1 } }); // Alat Penangkapan Ikan
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 2 }, e: { r: summaryStartRowIndex + 1, c: 3 } }); // Pendaratan Langsung
+    merges.push({ s: { r: summaryStartRowIndex + 1, c: 4 }, e: { r: summaryStartRowIndex + 1, c: 5 } }); // Alih Muat
+    merges.push({ s: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 0 }, e: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 1 } }); // Total Produksi
+
+    // Merges for Operasional table
+    merges.push({ s: { r: operasionalStartIndex, c: 0 }, e: { r: operasionalStartIndex, c: 9 } });
+    for (let rIdx = 0; rIdx < operasionalRows.length; rIdx++) {
+       const actRow = operasionalStartIndex + 1 + rIdx;
+       merges.push({ s: { r: actRow, c: 1 }, e: { r: actRow, c: 5 } }); // Nama item (cols 1-5)
+       merges.push({ s: { r: actRow, c: 6 }, e: { r: actRow, c: 7 } }); // Value (cols 6-7)
+       merges.push({ s: { r: actRow, c: 8 }, e: { r: actRow, c: 9 } }); // Unit (cols 8-9)
+    }
+
+    ws['!merges'] = merges;
+
+    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) colWidths.push({ wch: 15 });
+    colWidths.push({ wch: 15 }, { wch: 20 }); // Total Produksi Vol & Nilai
+    
+    komoditasArray.forEach(() => colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 12 }));
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produksi_Pelabuhan");
+    XLSX.writeFile(wb, `Laporan_${pelabuhanName}_${dateStr.replace('/', '-')}.xlsx`);
+  };
+
+  const handleModalExport = () => {
+    if (activeTab === 'tahunan') {
+      let dataToExport = tahunanData;
+      if (exportModalTahun) dataToExport = dataToExport.filter(d => d.tahun === exportModalTahun);
+      if (exportModalPerairan) dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
+      if (exportModalWilayah) dataToExport = dataToExport.filter(d => (d.pelabuhan || d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase());
+      
+      exportTahunan(dataToExport, exportModalTahun, exportModalPerairan);
+      setIsExportModalOpen(false);
+      return;
+    }
+
+    // Filter by status if selected, otherwise all
+    let dataToExport = data;
+    if (filterStatus && filterStatus.length > 0) {
+      dataToExport = dataToExport.filter(d => filterStatus.includes(d.status));
+    }
+    
+    if (exportModalPerairan) {
+      dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
+    }
+    
+    if (exportModalTahun) {
+      dataToExport = dataToExport.filter(d => {
+        if (!d.tanggal) return false;
+        const dYear = new Date(d.tanggal).getFullYear().toString();
+        return dYear === exportModalTahun;
+      });
+    }
+    
+    if (exportModalBulan) {
+      dataToExport = dataToExport.filter(d => {
+        if (!d.tanggal) return false;
+        const dMonth = String(new Date(d.tanggal).getMonth() + 1);
+        return dMonth === exportModalBulan || dMonth.padStart(2, '0') === exportModalBulan;
+      });
+    }
+    
+    if (exportModalWilayah) {
+        dataToExport = dataToExport.filter(d => {
+           const matchesPelabuhan = (d.pelabuhan || '').toUpperCase() === exportModalWilayah.toUpperCase();
+           const matchesKabKota = (d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase();
+           return matchesPelabuhan || matchesKabKota;
+        });
+      }
+
+      if (exportModalPerairan === 'PUD' && exportModalJenisPerairan) {
+        dataToExport = dataToExport.filter(d => d.jenis_perairan === exportModalJenisPerairan);
+      }
+    
+    if (exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'LM') {
+      handleExportLMPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+      setIsExportModalOpen(false);
+      return;
+    }
+    
+      if (exportModalPerairan === 'PELABUHAN') {
+        handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+      } else if (exportModalPerairan === 'PUD') {
+        handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, exportModalJenisPerairan);
+      } else if (exportModalPerairan === 'KAB_KOTA') {
+        handleExportLaporanNonPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
+      } else {
+        alert('Pilih Sumber Perairan terlebih dahulu.');
+      }
+    setIsExportModalOpen(false);
+  };
+
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1264,186 +2126,7 @@ export default function AdminPerikananTangkap() {
                 exportName={`Perikanan_Tangkap_${filterCabang && filterCabang.length > 0 ? filterCabang.join('_') : 'All'}_${filterTahun && filterTahun.length > 0 ? filterTahun.join('_') : 'All'}`}
                 renderSubComponent={renderSubComponent}
                 customExportButton={null}
-                onCustomExport={(exportData) => {
-                    let komoditasArray = [];
-                    if (!filterCabang || filterCabang.length === 0) {
-                      komoditasArray = [...new Set([...KOMODITAS_OPTIONS, ...KOMODITAS_LAUT_OPTIONS, ...KOMODITAS_PUD_OPTIONS])];
-                    } else if (filterCabang.includes('PUD') && filterCabang.length === 1) {
-                      komoditasArray = [...KOMODITAS_PUD_OPTIONS];
-                    } else if (filterCabang.includes('KAB_KOTA') && filterCabang.length === 1) {
-                      komoditasArray = [...KOMODITAS_LAUT_OPTIONS];
-                    } else {
-                      komoditasArray = [...KOMODITAS_OPTIONS];
-                    }
-
-                  const showLogistikCols = !filterCabang || filterCabang.length === 0 || filterCabang.includes('PELABUHAN');
-
-                  const headerRow1 = ['Status', 'Tanggal', 'Perairan', 'Jenis Perairan (Khusus PUD)', 'Jam Labuh', 'Jam Bongkar', 'Nama Kapal / Populasi Alat (PUD)', 'Ukuran/GT', 'Alat Tangkap', 'Pelabuhan/Lokasi', 'Jumlah Sampel'];
-                  const headerRow2 = ['', '', '', '', '', '', '', '', '', '', ''];
-                  
-                  if (showLogistikCols) {
-                    headerRow1.push('Logistik / Perbekalan');
-                    headerRow2.push(`${PERBEKALAN_OPTIONS[0].nama} (${PERBEKALAN_OPTIONS[0].satuan})`);
-                    for (let i = 1; i < PERBEKALAN_OPTIONS.length; i++) {
-                      headerRow1.push('');
-                      headerRow2.push(`${PERBEKALAN_OPTIONS[i].nama} (${PERBEKALAN_OPTIONS[i].satuan})`);
-                    }
-                  }
-
-                  headerRow1.push('Total Volume (Kg)', 'Total Nilai (Rp)');
-                  headerRow2.push('', '');
-
-                  komoditasArray.forEach(kom => {
-                    headerRow1.push(kom, '', '');
-                    headerRow2.push('Volume (Kg)', 'Harga', 'Nilai (Rp)');
-                  });
-
-                  const dataRows = exportData.map(row => {
-                    let totalVol = 0;
-                    let totalNilai = 0;
-                    const komMap = {};
-                    
-                    if (row.tangkapan && Array.isArray(row.tangkapan)) {
-                      row.tangkapan.forEach(t => {
-                        totalVol += Number(t.volume) || 0;
-                        totalNilai += Number(t.nilai) || 0;
-                        komMap[t.komoditas] = {
-                          vol: t.volume,
-                          harga: t.harga,
-                          nilai: t.nilai
-                        };
-                      });
-                    }
-
-                    const baseRow = [
-                      row.status || '-',
-                      row.tanggal ? row.tanggal.split('T')[0] : '-',
-                      row.sumber_data === 'PUD' ? 'Perairan PUD' : (row.sumber_data === 'KAB_KOTA' ? 'Perairan Non Pelabuhan' : 'Perairan Pelabuhan'),
-                      row.sumber_data === 'PUD' ? (row.jenis_perairan || '-') : '-',
-                      row.jam_labuh || '-',
-                      row.jam_bongkar || '-',
-                      row.sumber_data === 'PUD' ? (row.pud_populasi_alat ? `${row.pud_populasi_alat} Unit` : '-') : (row.nama_kapal || '-'),
-                      row.sumber_data === 'PUD' ? '-' : (row.gt_kapal || '-'),
-                      row.alat_tangkap || '-',
-                      row.pelabuhan || row.kabupaten_kota || '-',
-                      row.sumber_data === 'PUD' ? (row.pud_jumlah_sampel ? `${row.pud_jumlah_sampel} Unit` : '-') : '-'
-                    ];
-
-                    if (showLogistikCols) {
-                      const logistikData = {};
-                      if (row.logistik && row.sumber_data === 'PELABUHAN') {
-                        try {
-                          const parsed = JSON.parse(row.logistik);
-                          if (Array.isArray(parsed)) {
-                            parsed.forEach(item => {
-                              logistikData[item.nama] = parseFloat(item.jumlah) || '';
-                            });
-                          }
-                        } catch(e) {}
-                      }
-                      PERBEKALAN_OPTIONS.forEach(pb => {
-                        baseRow.push(logistikData[pb.nama] || '');
-                      });
-                    }
-
-                    baseRow.push(totalVol, totalNilai);
-
-                    komoditasArray.forEach(kom => {
-                      if (komMap[kom]) {
-                        baseRow.push(komMap[kom].vol, komMap[kom].harga, komMap[kom].nilai);
-                      } else {
-                        baseRow.push('-', '-', '-');
-                      }
-                    });
-
-                    return baseRow;
-                  });
-
-                  const ws = XLSX.utils.aoa_to_sheet([headerRow1, headerRow2, ...dataRows]);
-
-                  const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-                  const headerStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
-                  const komoditasHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
-                  const subHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
-                  const dataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
-                  
-                  const logistikHeaderStyle = { ...headerStyle, fill: { fgColor: { rgb: "EAD1DC" } } };
-
-                  const totalBaseCols = 11;
-                  const totalLogistikCols = showLogistikCols ? PERBEKALAN_OPTIONS.length : 0;
-                  const totalTotalsCols = 2; // Total Volume, Total Nilai
-                  
-                  const logistikStartCol = totalBaseCols;
-                  const totalsStartCol = totalBaseCols + totalLogistikCols;
-                  const komoditasStartCol = totalsStartCol + totalTotalsCols;
-
-                  const range = XLSX.utils.decode_range(ws['!ref']);
-                  for (let R = range.s.r; R <= range.e.r; ++R) {
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                      const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-                      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-
-                      if (R === 0) {
-                        if (C >= komoditasStartCol) ws[cellRef].s = komoditasHeaderStyle;
-                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = logistikHeaderStyle;
-                        else ws[cellRef].s = headerStyle;
-                      } else if (R === 1) {
-                        if (C >= komoditasStartCol) ws[cellRef].s = subHeaderStyle;
-                        else if (showLogistikCols && C >= logistikStartCol && C < totalsStartCol) ws[cellRef].s = subHeaderStyle;
-                        else ws[cellRef].s = headerStyle;
-                      } else {
-                        ws[cellRef].s = dataStyle;
-                        if (typeof ws[cellRef].v === 'number') {
-                          if (ws[cellRef].v === 0) {
-                            ws[cellRef].v = '-';
-                            ws[cellRef].t = 's';
-                          } else {
-                            ws[cellRef].z = '#,##0';
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  const merges = [];
-                  // Base columns merged vertically
-                  for (let i = 0; i < totalBaseCols; i++) {
-                    merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
-                  }
-                  
-                  if (showLogistikCols) {
-                    // Logistik main header merged horizontally
-                    merges.push({ s: { r: 0, c: logistikStartCol }, e: { r: 0, c: totalsStartCol - 1 } });
-                  }
-                  
-                  // Totals merged vertically
-                  merges.push({ s: { r: 0, c: totalsStartCol }, e: { r: 1, c: totalsStartCol } });
-                  merges.push({ s: { r: 0, c: totalsStartCol + 1 }, e: { r: 1, c: totalsStartCol + 1 } });
-                  
-                  let currentCol = komoditasStartCol;
-                  komoditasArray.forEach(() => {
-                    merges.push({ s: { r: 0, c: currentCol }, e: { r: 0, c: currentCol + 2 } });
-                    currentCol += 3;
-                  });
-                  ws['!merges'] = merges;
-
-                  const colWidths = [
-                      { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, 
-                      { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 }
-                    ];
-                    if (showLogistikCols) {
-                      PERBEKALAN_OPTIONS.forEach(() => colWidths.push({ wch: 15 }));
-                    }
-                    colWidths.push({ wch: 20 }, { wch: 20 });
-                  komoditasArray.forEach(() => {
-                    colWidths.push({ wch: 12 }, { wch: 12 }, { wch: 15 });
-                  });
-                  ws['!cols'] = colWidths;
-
-                  const wb = XLSX.utils.book_new();
-                  XLSX.utils.book_append_sheet(wb, ws, "Perikanan_Tangkap");
-                  XLSX.writeFile(wb, `Perikanan_Tangkap_${new Date().toISOString().split('T')[0]}.xlsx`);
-                }}
+                onCustomExport={() => setIsExportModalOpen(true)}
               />
             </div>
           ) : activeTab === 'publik' ? (
