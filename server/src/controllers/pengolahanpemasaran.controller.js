@@ -285,20 +285,12 @@ const validatePackage = pkg => {
   const seen = new Set();
   for (let i = 0; i < pkg.details.length; i += 1) {
     const item = pkg.details[i];
+    if (!item.kategori_kegiatan) return `Rincian ke-${i + 1}: Kategori kegiatan wajib dipilih.`;
     if (!item.jenis_kegiatan) return `Rincian ke-${i + 1}: Jenis kegiatan wajib dipilih.`;
     if (!item.skala_usaha) return `Rincian ke-${i + 1}: Skala usaha wajib dipilih.`;
     const key = `${item.kategori_kegiatan}|${item.jenis_kegiatan}|${item.skala_usaha}`.toLowerCase();
     if (seen.has(key)) return `Rincian ${item.jenis_kegiatan} - ${item.skala_usaha} tercantum lebih dari satu kali.`;
     seen.add(key);
-  }
-  const totalModalJenis = sumObject(pkg.modal_by_jenis);
-  const totalModalSkala = sumObject(pkg.modal_by_skala);
-  if (totalModalJenis > 0 && totalModalSkala > 0 && Math.abs(totalModalJenis - totalModalSkala) > 0.5) {
-    return 'Total modal berdasarkan Jenis Kegiatan harus sama dengan total modal berdasarkan Skala Usaha.';
-  }
-  const unsupported = unsupportedDocumentLabels(pkg.dokumen);
-  if (unsupported.length) {
-    return `Dokumen ${unsupported.join(', ')} belum dapat disimpan tanpa perubahan struktur database. Gunakan jenis dokumen yang sudah tersedia.`;
   }
   return null;
 };
@@ -372,14 +364,58 @@ const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
 
 const createBatchData = async (req, res) => {
   try {
-    const pkg = parsePackageBody(req.body); const error = validatePackage(pkg);
-    if (error) return res.status(400).json({ success: false, message: error });
-    const exists = await db.findFirst({ where: { tahun: pkg.tahun, kabupaten_kota: pkg.kabupaten_kota } });
-    if (exists) return res.status(409).json({ success: false, message: 'Data untuk Tahun dan Kabupaten/Kota tersebut sudah tersedia. Gunakan Edit Data.' });
-    const created = await prisma.$transaction(createPackageRows(pkg).map(data => db.create({ data })));
+    const pkg = parsePackageBody(req.body);
+    const error = validatePackage(pkg);
+
+    if (error) {
+      return res.status(400).json({ success: false, message: error });
+    }
+
+    const exists = await db.findFirst({
+      where: {
+        tahun: pkg.tahun,
+        kabupaten_kota: pkg.kabupaten_kota,
+      },
+    });
+
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: 'Data untuk Tahun dan Kab/Kota tersebut sudah tersedia. Gunakan Edit Data.',
+      });
+    }
+
+    const unsupported = unsupportedDocumentLabels(pkg.dokumen);
+    const rows = createPackageRows(pkg);
+
+    if (!rows.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada data yang dapat disimpan.',
+      });
+    }
+
+    const created = await prisma.$transaction(
+      rows.map(data => db.create({ data })),
+    );
+
     const result = groupRowsToPackages(created)[0];
-    res.status(201).json({ success: true, data: result, message: 'Data berhasil disimpan dengan status APPROVED.' });
-  } catch (error) { console.error('createBatchData:', error); res.status(500).json({ success: false, message: error.message || 'Gagal menyimpan data.' }); }
+
+    return res.status(201).json({
+      success: true,
+      data: result,
+      message: 'Data berhasil disimpan dengan status APPROVED.',
+      warning: unsupported.length
+        ? `Jenis dokumen ${unsupported.join(', ')} belum memiliki kolom penyimpanan di database sehingga nilainya belum ikut disimpan.`
+        : null,
+    });
+  } catch (error) {
+    console.error('createBatchData:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Gagal menyimpan data.',
+    });
+  }
 };
 
 const createData = createBatchData;
@@ -485,102 +521,1478 @@ const regionInfo = async () => {
     .sort((a, b) => String(a.id).localeCompare(String(b.id), 'id', { numeric: true }) || a.name.localeCompare(b.name, 'id'));
 };
 
-// -------------------- Excel helpers --------------------
-const BLUE = '1F4E78'; const BLUE2 = '5B9BD5'; const WHITE = 'FFFFFF'; const BORDER = '7F8C8D';
-const thinBorder = { top: { style: 'thin', color: { argb: BORDER } }, left: { style: 'thin', color: { argb: BORDER } }, bottom: { style: 'thin', color: { argb: BORDER } }, right: { style: 'thin', color: { argb: BORDER } } };
-const styleTitle = cell => { cell.font = { bold: true, size: 12, color: { argb: '000000' } }; cell.alignment = { vertical: 'middle', horizontal: 'left' }; };
-const styleHeader = cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }; cell.font = { bold: true, color: { argb: WHITE } }; cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; cell.border = thinBorder; };
-const styleSubHeader = cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE2 } }; cell.font = { bold: true, color: { argb: WHITE } }; cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; cell.border = thinBorder; };
-const styleBody = cell => { cell.border = thinBorder; cell.alignment = { vertical: 'middle', horizontal: typeof cell.value === 'number' ? 'right' : 'left', wrapText: true }; };
-const autosize = sheet => sheet.columns.forEach((column, index) => { let width = index < 2 ? 14 : 12; column.eachCell({ includeEmpty: false }, cell => { width = Math.max(width, Math.min(28, String(cell.value ?? '').length + 2)); }); column.width = width; });
+const EXCEL_BLUE = '1F4E79';
+const EXCEL_SUB_BLUE = '1F4E79';
+const EXCEL_WHITE = 'FFFFFF';
+const EXCEL_BLACK = '000000';
+const EXCEL_BORDER = '000000';
 
-const addMatrixTable = ({ sheet, startRow, title, regions, columns, valueFor, unit = 'number', totalLabel = 'Jumlah Total' }) => {
-  const startCol = 1; const endCol = 3 + columns.length;
-  sheet.mergeCells(startRow, startCol, startRow, endCol); sheet.getCell(startRow, startCol).value = title; styleTitle(sheet.getCell(startRow, startCol));
-  const h1 = startRow + 1; const h2 = startRow + 2;
-  sheet.mergeCells(h1, 1, h2, 1); sheet.getCell(h1, 1).value = 'No'; styleHeader(sheet.getCell(h1, 1));
-  sheet.mergeCells(h1, 2, h2, 2); sheet.getCell(h1, 2).value = 'ID Wilayah'; styleHeader(sheet.getCell(h1, 2));
-  sheet.mergeCells(h1, 3, h2, 3); sheet.getCell(h1, 3).value = 'Kabupaten/Kota'; styleHeader(sheet.getCell(h1, 3));
-  if (columns.length) { sheet.mergeCells(h1, 4, h1, 3 + columns.length); sheet.getCell(h1, 4).value = title.replace(/^.*?berdasarkan\s+/i, '').replace(/^.*?Berdasarkan\s+/i, ''); styleHeader(sheet.getCell(h1, 4)); }
-  columns.forEach((name, i) => { const cell = sheet.getCell(h2, 4 + i); cell.value = name; styleSubHeader(cell); });
-  const totalCol = 4 + columns.length; sheet.mergeCells(h1, totalCol, h2, totalCol); sheet.getCell(h1, totalCol).value = totalLabel; styleHeader(sheet.getCell(h1, totalCol));
-  regions.forEach((region, rIndex) => {
-    const rowNo = h2 + 1 + rIndex; const values = columns.map(col => toNumber(valueFor(region.name, col)));
-    sheet.getCell(rowNo, 1).value = rIndex + 1; sheet.getCell(rowNo, 2).value = region.id; sheet.getCell(rowNo, 3).value = region.name;
-    values.forEach((value, i) => { sheet.getCell(rowNo, 4 + i).value = value; if (unit === 'currency') sheet.getCell(rowNo, 4 + i).numFmt = 'Rp #,##0'; else sheet.getCell(rowNo, 4 + i).numFmt = '#,##0.##'; });
-    const total = values.reduce((a, b) => a + b, 0); sheet.getCell(rowNo, totalCol).value = total; sheet.getCell(rowNo, totalCol).numFmt = unit === 'currency' ? 'Rp #,##0' : '#,##0.##';
-    for (let c = 1; c <= totalCol; c += 1) styleBody(sheet.getCell(rowNo, c));
-  });
-  return h2 + regions.length + 2;
+const excelBorder = {
+  top: { style: 'thin', color: { argb: EXCEL_BORDER } },
+  left: { style: 'thin', color: { argb: EXCEL_BORDER } },
+  bottom: { style: 'thin', color: { argb: EXCEL_BORDER } },
+  right: { style: 'thin', color: { argb: EXCEL_BORDER } },
 };
 
-const selectPackagesForExport = async ({ ids, tahun, regions, admin }) => {
-  const rows = await getRawRows({ verifiedOnly: !admin }); let packages = groupRowsToPackages(rows);
-  if (Array.isArray(ids) && ids.length) { const set = new Set(ids.map(String)); packages = packages.filter(pkg => set.has(String(pkg.id))); }
-  if (tahun) packages = packages.filter(pkg => Number(pkg.tahun) === toInt(tahun));
-  if (Array.isArray(regions) && regions.length) { const set = new Set(regions); packages = packages.filter(pkg => set.has(pkg.kabupaten_kota)); }
-  if (!admin) packages = packages.filter(pkg => pkg.status === 'VERIFIED');
+const excelCleanText = value => {
+  const text = clean(value);
+  if (!text) return '-';
+  return text.replace(/\s*&\s*/g, ' dan ');
+};
+
+const excelMetricValue = value => {
+  const number = toNumber(value);
+  return number === 0 ? '-' : number;
+};
+
+const styleExcelTitle = cell => {
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: EXCEL_WHITE },
+  };
+  cell.font = {
+    bold: true,
+    size: 12,
+    color: { argb: EXCEL_BLACK },
+  };
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: 'left',
+    wrapText: true,
+  };
+};
+
+const styleExcelHeader = cell => {
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: EXCEL_BLUE },
+  };
+  cell.font = {
+    bold: true,
+    size: 10,
+    color: { argb: EXCEL_WHITE },
+  };
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: 'center',
+    wrapText: true,
+  };
+  cell.border = excelBorder;
+};
+
+const styleExcelSubHeader = cell => {
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: EXCEL_SUB_BLUE },
+  };
+  cell.font = {
+    bold: true,
+    size: 9,
+    color: { argb: EXCEL_WHITE },
+  };
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: 'center',
+    wrapText: true,
+  };
+  cell.border = excelBorder;
+};
+
+const styleExcelBody = cell => {
+  cell.border = excelBorder;
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: typeof cell.value === 'number' ? 'right' : 'left',
+    wrapText: true,
+  };
+};
+
+const styleExcelTotal = cell => {
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: EXCEL_BLUE },
+  };
+  cell.font = {
+    bold: true,
+    color: { argb: EXCEL_WHITE },
+  };
+  cell.border = excelBorder;
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: typeof cell.value === 'number' ? 'right' : 'center',
+    wrapText: true,
+  };
+};
+
+const setExcelMetricCell = (cell, value, unit = 'number') => {
+  const number = toNumber(value);
+
+  if (number === 0) {
+    cell.value = '-';
+    cell.alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+    };
+    return;
+  }
+
+  cell.value = number;
+
+  if (unit === 'currency') {
+    cell.numFmt = '"Rp" #,##0';
+  } else {
+    // Angka bulat: tidak ada koma/desimal menggantung seperti "25,"
+    cell.numFmt = '#,##0';
+  }
+
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: 'right',
+  };
+};
+
+const setExcelRegionId = (cell, value) => {
+  const raw = clean(value);
+  const numeric = Number(raw);
+
+  if (raw && Number.isFinite(numeric)) {
+
+    cell.value = numeric;
+    cell.numFmt = '00';
+  } else {
+    cell.value = raw || '-';
+  }
+
+  cell.alignment = {
+    vertical: 'middle',
+    horizontal: 'center',
+  };
+};
+
+const autoSizeExcel = sheet => {
+  sheet.columns.forEach((column, index) => {
+    let width = index === 0 ? 6 : 8;
+
+    column.eachCell({ includeEmpty: false }, cell => {
+      if (cell.row <= 2) return;
+
+      const rawValue = cell.value?.text ?? cell.value;
+      const textValue = String(rawValue ?? '');
+
+      // Untuk teks panjang, wrap tetap aktif sehingga kolom tidak melebar berlebihan.
+      const measured = Math.min(textValue.length + 1.5, 22);
+      width = Math.max(width, measured);
+    });
+
+    // Kab/Kota / kolom teks panjang tetap cukup terbaca, tetapi tidak kelebaran.
+    column.width = Math.min(Math.max(width, 6), 22);
+  });
+};
+
+const formatExcelDate = () =>
+  new Date().toLocaleString('id-ID');
+
+const selectPackagesForExport = async ({
+  ids,
+  tahun,
+  regions,
+  admin,
+}) => {
+  // Ambil seluruh row dulu, bentuk package dulu, lalu filter.
+  // Ini penting supaya meta row Modal/Dokumen tidak terpotong.
+  let packages = groupRowsToPackages(await getRawRows());
+
+  if (Array.isArray(ids) && ids.length) {
+    const selected = new Set(ids.map(String));
+    packages = packages.filter(
+      pkg =>
+        selected.has(String(pkg.id)) ||
+        (pkg.row_ids || []).some(id => selected.has(String(id))),
+    );
+  }
+
+  if (tahun) {
+    packages = packages.filter(
+      pkg => Number(pkg.tahun) === toInt(tahun),
+    );
+  }
+
+  if (Array.isArray(regions) && regions.length) {
+    const selected = new Set(
+      regions.map(region => normalizeKab(region)),
+    );
+
+    packages = packages.filter(
+      pkg => selected.has(normalizeKab(pkg.kabupaten_kota)),
+    );
+  }
+
+  if (!admin) {
+    packages = packages.filter(pkg => pkg.status === 'VERIFIED');
+  }
+
   return packages;
 };
 
-const buildDataWorkbook = async packages => {
-  const workbook = new ExcelJS.Workbook(); const regionMap = new Map((await regionInfo()).map(item => [item.name, item.id]));
-  const prod = workbook.addWorksheet('Unit & Produksi');
-  prod.addRow(['Status','Tahun','ID Wilayah','Kabupaten/Kota','Kategori','Jenis Kegiatan','Skala Usaha','Jumlah Unit Usaha','Hasil Produksi (Kg)','Nilai Produksi (Rp)']);
-  packages.forEach(pkg => pkg.details.forEach(detail => prod.addRow([pkg.status,pkg.tahun,regionMap.get(pkg.kabupaten_kota)||'',pkg.kabupaten_kota,detail.kategori_kegiatan,detail.jenis_kegiatan,detail.skala_usaha,detail.jumlah_unit_usaha,detail.hasil_kg,detail.hasil_rp])));
-  const modalJ = workbook.addWorksheet('Modal Jenis'); modalJ.addRow(['Status','Tahun','ID Wilayah','Kabupaten/Kota','Jenis Kegiatan','Investasi Modal (Rp)']);
-  packages.forEach(pkg => Object.entries(pkg.modal_by_jenis || {}).filter(([,v])=>toNumber(v)>0).forEach(([k,v])=>modalJ.addRow([pkg.status,pkg.tahun,regionMap.get(pkg.kabupaten_kota)||'',pkg.kabupaten_kota,k,toNumber(v)])));
-  const modalS = workbook.addWorksheet('Modal Skala'); modalS.addRow(['Status','Tahun','ID Wilayah','Kabupaten/Kota','Skala Usaha','Investasi Modal (Rp)']);
-  packages.forEach(pkg => Object.entries(pkg.modal_by_skala || {}).filter(([,v])=>toNumber(v)>0).forEach(([k,v])=>modalS.addRow([pkg.status,pkg.tahun,regionMap.get(pkg.kabupaten_kota)||'',pkg.kabupaten_kota,k,toNumber(v)])));
-  const docs = workbook.addWorksheet('Dokumen'); docs.addRow(['Status','Tahun','ID Wilayah','Kabupaten/Kota','Kelompok Dokumen','Jenis Dokumen','Jumlah']);
-  packages.forEach(pkg => Object.entries(pkg.dokumen || {}).forEach(([group, entries]) => Object.entries(jsonObject(entries)).filter(([,v])=>toNumber(v)>0).forEach(([k,v])=>docs.addRow([pkg.status,pkg.tahun,regionMap.get(pkg.kabupaten_kota)||'',pkg.kabupaten_kota,group,k,toNumber(v)]))));
-  workbook.worksheets.forEach(sheet => { sheet.getRow(1).eachCell(styleHeader); sheet.views = [{ state: 'frozen', ySplit: 1 }]; autosize(sheet); });
-  return workbook;
+const prepareSimpleExportSheet = (
+  sheet,
+  title,
+  headers,
+) => {
+  const lastCol = headers.length;
+
+  sheet.mergeCells(1, 1, 1, lastCol);
+  sheet.getCell(1, 1).value = excelCleanText(title);
+  styleExcelTitle(sheet.getCell(1, 1));
+
+  sheet.mergeCells(2, 1, 2, lastCol);
+  sheet.getCell(2, 1).value =
+    `Tanggal ekspor: ${formatExcelDate()}`;
+  styleExcelTitle(sheet.getCell(2, 1));
+
+  headers.forEach((header, index) => {
+    const cell = sheet.getCell(3, index + 1);
+    cell.value = excelCleanText(header);
+    styleExcelHeader(cell);
+  });
+
+  sheet.getRow(1).height = 24;
+  sheet.getRow(2).height = 22;
+  sheet.getRow(3).height = 32;
+  sheet.views = [{ state: 'frozen', ySplit: 3 }];
 };
 
-const buildRekapWorkbook = async (packages, year) => {
-  const workbook = new ExcelJS.Workbook(); const allRegions = await regionInfo(); const used = new Set(packages.map(pkg => pkg.kabupaten_kota)); const regions = allRegions.filter(r => used.has(r.name));
-  const pengolahan = await masterValues('JENIS_PENGOLAHAN'); const pemasaran = await masterValues('JENIS_PEMASARAN'); const allTypes = [...pengolahan, ...pemasaran]; const scales = await masterValues('KATEGORI_SKALA_USAHA');
-  const mapPkg = new Map(packages.map(pkg => [pkg.kabupaten_kota, pkg]));
-  const metric = (region, type, field, category = null, scale = null) => {
-    const pkg = mapPkg.get(region); if (!pkg) return 0;
-    return pkg.details.filter(d => (!type || d.jenis_kegiatan === type) && (!category || d.kategori_kegiatan === category) && (!scale || d.skala_usaha === scale)).reduce((s,d)=>s+toNumber(d[field]),0);
-  };
-  const addMetricSheet = (name, field, label, unit) => {
-    const sheet = workbook.addWorksheet(name); let row = 1;
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Jenis Kegiatan Tahun ${year}`, regions, columns: allTypes, valueFor: (r,c)=>metric(r,c,field), unit });
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Jenis Kegiatan Pengolahan Tahun ${year}`, regions, columns: pengolahan, valueFor:(r,c)=>metric(r,c,field,'Pengolahan'), unit });
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Jenis Kegiatan Pemasaran Tahun ${year}`, regions, columns: pemasaran, valueFor:(r,c)=>metric(r,c,field,'Pemasaran'), unit });
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Skala Usaha Tahun ${year}`, regions, columns: scales, valueFor:(r,c)=>{ const pkg=mapPkg.get(r); return pkg?pkg.details.filter(d=>d.skala_usaha===c).reduce((s,d)=>s+toNumber(d[field]),0):0; }, unit });
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Skala Usaha pada Kegiatan Pengolahan Tahun ${year}`, regions, columns: scales, valueFor:(r,c)=>{ const pkg=mapPkg.get(r); return pkg?pkg.details.filter(d=>d.kategori_kegiatan==='Pengolahan'&&d.skala_usaha===c).reduce((s,d)=>s+toNumber(d[field]),0):0; }, unit });
-    row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Skala Usaha pada Kegiatan Pemasaran Tahun ${year}`, regions, columns: scales, valueFor:(r,c)=>{ const pkg=mapPkg.get(r); return pkg?pkg.details.filter(d=>d.kategori_kegiatan==='Pemasaran'&&d.skala_usaha===c).reduce((s,d)=>s+toNumber(d[field]),0):0; }, unit });
-    allTypes.forEach(type => { row = addMatrixTable({ sheet, startRow: row, title: `${label} Berdasarkan Skala Usaha pada Jenis Kegiatan ${type} Tahun ${year}`, regions, columns: scales, valueFor:(r,c)=>metric(r,type,field,null,c), unit }); });
-    autosize(sheet);
-  };
-  addMetricSheet('Unit Usaha','jumlah_unit_usaha','Jumlah Unit Usaha','number'); addMetricSheet('Hasil (Kg)','hasil_kg','Hasil Produksi (Kg)','number'); addMetricSheet('Hasil (Rp)','hasil_rp','Nilai Produksi (Rp)','currency');
+const styleSimpleDataRow = (
+  row,
+  {
+    idColumn = 2,
+    numericColumns = [],
+    currencyColumns = [],
+  } = {},
+) => {
+  row.eachCell({ includeEmpty: true }, styleExcelBody);
 
-  const modalSheet = workbook.addWorksheet('Modal'); let mr = 1;
-  mr = addMatrixTable({ sheet: modalSheet, startRow: mr, title: `Jumlah Investasi Modal (Rp) Berdasarkan Jenis Kegiatan Tahun ${year}`, regions, columns: allTypes, valueFor:(r,c)=>toNumber(mapPkg.get(r)?.modal_by_jenis?.[c]), unit:'currency' });
-  addMatrixTable({ sheet: modalSheet, startRow: mr, title: `Jumlah Investasi Modal (Rp) Berdasarkan Skala Usaha Tahun ${year}`, regions, columns: scales, valueFor:(r,c)=>toNumber(mapPkg.get(r)?.modal_by_skala?.[c]), unit:'currency' }); autosize(modalSheet);
-
-  const docSheets = [
-    ['Sertifikat Produk','SERTIFIKAT_PRODUK','sertifikat_produk','Jumlah Sertifikat Produk'],
-    ['Ijin Usaha','IZIN_USAHA','izin_usaha','Jumlah Izin Usaha'],
-    ['Sertifikat LB','SERTIFIKAT_LAHAN_BANGUNAN','sertifikat_lahan_bangunan','Jumlah Sertifikat Lahan & Bangunan'],
-  ];
-  for (const [sheetName, category, key, label] of docSheets) {
-    const options = await masterValues(category); const sheet = workbook.addWorksheet(sheetName);
-    addMatrixTable({ sheet, startRow: 1, title: `${label} per Kabupaten/Kota Tahun ${year}`, regions, columns: options, valueFor:(r,c)=>toNumber(mapPkg.get(r)?.dokumen?.[key]?.[c]), unit:'number' }); autosize(sheet);
+  if (idColumn) {
+    setExcelRegionId(
+      row.getCell(idColumn),
+      row.getCell(idColumn).value,
+    );
   }
+
+  numericColumns.forEach(column => {
+    setExcelMetricCell(
+      row.getCell(column),
+      row.getCell(column).value,
+      'number',
+    );
+  });
+
+  currencyColumns.forEach(column => {
+    setExcelMetricCell(
+      row.getCell(column),
+      row.getCell(column).value,
+      'currency',
+    );
+  });
+};
+
+const buildDataWorkbook = async packages => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Dinas Kelautan dan Perikanan';
+  workbook.created = new Date();
+
+  const regionMap = new Map(
+    (await regionInfo()).map(item => [
+      normalizeKab(item.name),
+      item.id,
+    ]),
+  );
+
+  // ---------- 1. Unit dan Produksi ----------
+  const produksi = workbook.addWorksheet('Unit dan Produksi');
+
+  prepareSimpleExportSheet(
+    produksi,
+    'DATA UNIT DAN PRODUKSI PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
+    [
+      'No',
+      'ID Wilayah',
+      'Status',
+      'Tahun',
+      'Kab/Kota',
+      'Kategori Kegiatan',
+      'Jenis Kegiatan',
+      'Skala Usaha',
+      'Jumlah Unit Usaha',
+      'Hasil Produksi (Kg)',
+      'Nilai Produksi (Rp)',
+    ],
+  );
+
+  let noProduksi = 1;
+
+  packages.forEach(pkg => {
+    (pkg.details || []).forEach(detail => {
+      const row = produksi.addRow([
+        noProduksi,
+        regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+        pkg.status || '-',
+        pkg.tahun || '-',
+        excelCleanText(pkg.kabupaten_kota),
+        excelCleanText(detail.kategori_kegiatan),
+        excelCleanText(detail.jenis_kegiatan),
+        excelCleanText(detail.skala_usaha),
+        toNumber(detail.jumlah_unit_usaha),
+        toNumber(detail.hasil_kg),
+        toNumber(detail.hasil_rp),
+      ]);
+
+      styleSimpleDataRow(row, {
+        idColumn: 2,
+        numericColumns: [9, 10],
+        currencyColumns: [11],
+      });
+
+      noProduksi += 1;
+    });
+  });
+
+  // ---------- 2. Modal ----------
+  const modal = workbook.addWorksheet('Modal');
+
+  prepareSimpleExportSheet(
+    modal,
+    'DATA MODAL PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
+    [
+      'No',
+      'ID Wilayah',
+      'Status',
+      'Tahun',
+      'Kab/Kota',
+      'Dasar Modal',
+      'Rincian',
+      'Investasi Modal (Rp)',
+    ],
+  );
+
+  let noModal = 1;
+
+  packages.forEach(pkg => {
+    Object.entries(pkg.modal_by_jenis || {}).forEach(
+      ([jenis, value]) => {
+        const row = modal.addRow([
+          noModal,
+          regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+          pkg.status || '-',
+          pkg.tahun || '-',
+          excelCleanText(pkg.kabupaten_kota),
+          'Jenis Kegiatan',
+          excelCleanText(jenis),
+          toNumber(value),
+        ]);
+
+        styleSimpleDataRow(row, {
+          idColumn: 2,
+          currencyColumns: [8],
+        });
+
+        noModal += 1;
+      },
+    );
+
+    Object.entries(pkg.modal_by_skala || {}).forEach(
+      ([skala, value]) => {
+        const row = modal.addRow([
+          noModal,
+          regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+          pkg.status || '-',
+          pkg.tahun || '-',
+          excelCleanText(pkg.kabupaten_kota),
+          'Skala Usaha',
+          excelCleanText(skala),
+          toNumber(value),
+        ]);
+
+        styleSimpleDataRow(row, {
+          idColumn: 2,
+          currencyColumns: [8],
+        });
+
+        noModal += 1;
+      },
+    );
+  });
+
+  // ---------- 3. Sertifikat dan Izin ----------
+  const dokumen = workbook.addWorksheet('Sertifikat dan Izin');
+
+  prepareSimpleExportSheet(
+    dokumen,
+    'DATA SERTIFIKAT DAN IZIN PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
+    [
+      'No',
+      'ID Wilayah',
+      'Status',
+      'Tahun',
+      'Kab/Kota',
+      'Kelompok Dokumen',
+      'Jenis Dokumen',
+      'Jumlah',
+    ],
+  );
+
+  const groupLabels = {
+    sertifikat_produk: 'Sertifikat Produk',
+    izin_usaha: 'Izin Usaha',
+    sertifikat_lahan_bangunan:
+      'Sertifikat Lahan dan Bangunan',
+  };
+
+  let noDokumen = 1;
+
+  packages.forEach(pkg => {
+    Object.entries(pkg.dokumen || {}).forEach(
+      ([group, entries]) => {
+        Object.entries(jsonObject(entries)).forEach(
+          ([jenis, value]) => {
+            const row = dokumen.addRow([
+              noDokumen,
+              regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+              pkg.status || '-',
+              pkg.tahun || '-',
+              excelCleanText(pkg.kabupaten_kota),
+              groupLabels[group] || excelCleanText(group),
+              excelCleanText(jenis),
+              toNumber(value),
+            ]);
+
+            styleSimpleDataRow(row, {
+              idColumn: 2,
+              numericColumns: [8],
+            });
+
+            noDokumen += 1;
+          },
+        );
+      },
+    );
+  });
+
+  workbook.worksheets.forEach(autoSizeExcel);
   return workbook;
 };
 
-const sendWorkbook = async (res, workbook, filename) => {
-  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); res.setHeader('Content-Disposition',`attachment; filename="${filename}"`); await workbook.xlsx.write(res); res.end();
+// ============================================================================
+// REKAP STATISTIK
+// Bentuk mengikuti HASIL ANALISIS:
+// - banyak tabel putih dalam satu sheet
+// - tabel berjajar ke kanan
+// - subheader berwarna BIRU
+// - nilai 0 / kosong = "-"
+// ============================================================================
+
+const buildAnalysisRegionRows = ({
+  packages,
+  regions,
+  columns,
+  valueFor,
+}) => {
+  const rows = regions.map(region => {
+    const values = columns.map(column =>
+      toNumber(valueFor(region.name, column)),
+    );
+
+    return {
+      region,
+      values,
+      total: values.reduce((sum, value) => sum + value, 0),
+    };
+  });
+
+  const totals = columns.map((_, index) =>
+    rows.reduce(
+      (sum, row) => sum + toNumber(row.values[index]),
+      0,
+    ),
+  );
+
+  return {
+    rows,
+    totals,
+    grandTotal: totals.reduce(
+      (sum, value) => sum + value,
+      0,
+    ),
+  };
 };
-const exportDataAdmin = async (req,res) => { try { const pkgs=await selectPackagesForExport({ids:req.body?.ids,admin:true}); if(!pkgs.length)return res.status(404).json({success:false,message:'Tidak ada data untuk diekspor.'}); await sendWorkbook(res,await buildDataWorkbook(pkgs),`Pengolahan_Pemasaran_${Date.now()}.xlsx`);} catch(e){console.error(e); if(!res.headersSent)res.status(500).json({success:false,message:e.message});} };
-const exportDataPublic = async (req,res) => { try { const pkgs=await selectPackagesForExport({ids:req.body?.ids,admin:false}); if(!pkgs.length)return res.status(404).json({success:false,message:'Tidak ada data VERIFIED untuk diekspor.'}); await sendWorkbook(res,await buildDataWorkbook(pkgs),`Pengolahan_Pemasaran_${Date.now()}.xlsx`);} catch(e){console.error(e); if(!res.headersSent)res.status(500).json({success:false,message:e.message});} };
-const exportRekapAdmin = async (req,res) => { try { const year=toInt(req.body?.tahun); if(!year)return res.status(400).json({success:false,message:'Tahun wajib dipilih.'}); const pkgs=await selectPackagesForExport({tahun:year,regions:req.body?.regions,admin:true}); const verified=pkgs.filter(p=>p.status==='VERIFIED'); if(!verified.length)return res.status(404).json({success:false,message:'Tidak ada data VERIFIED pada tahun tersebut.'}); await sendWorkbook(res,await buildRekapWorkbook(verified,year),`Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`);} catch(e){console.error(e); if(!res.headersSent)res.status(500).json({success:false,message:e.message});} };
-const exportRekapPublic = async (req,res) => { try { const year=toInt(req.body?.tahun); if(!year)return res.status(400).json({success:false,message:'Tahun wajib dipilih.'}); const pkgs=await selectPackagesForExport({tahun:year,regions:req.body?.regions,admin:false}); if(!pkgs.length)return res.status(404).json({success:false,message:'Tidak ada data VERIFIED pada tahun tersebut.'}); await sendWorkbook(res,await buildRekapWorkbook(pkgs,year),`Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`);} catch(e){console.error(e); if(!res.headersSent)res.status(500).json({success:false,message:e.message});} };
+
+const writeAnalysisTable = ({
+  worksheet,
+  startCol,
+  title,
+  groupLabel,
+  columns,
+  regions,
+  valueFor,
+  unit = 'number',
+}) => {
+  const titleRow = 1;
+  const groupRow = 2;
+  const headerRow = 3;
+  const dataStartRow = 4;
+
+  const width = 3 + columns.length;
+  const endCol = startCol + width - 1;
+
+  worksheet.mergeCells(
+    titleRow,
+    startCol,
+    titleRow,
+    endCol,
+  );
+
+  worksheet.getCell(titleRow, startCol).value =
+    excelCleanText(title);
+  styleExcelTitle(
+    worksheet.getCell(titleRow, startCol),
+  );
+
+  // Header dasar
+  worksheet.mergeCells(
+    groupRow,
+    startCol,
+    headerRow,
+    startCol,
+  );
+  worksheet.getCell(groupRow, startCol).value = 'No';
+  styleExcelHeader(
+    worksheet.getCell(groupRow, startCol),
+  );
+
+  worksheet.mergeCells(
+    groupRow,
+    startCol + 1,
+    headerRow,
+    startCol + 1,
+  );
+  worksheet.getCell(groupRow, startCol + 1).value =
+    'Kab/Kota';
+  styleExcelHeader(
+    worksheet.getCell(groupRow, startCol + 1),
+  );
+
+  if (columns.length) {
+    worksheet.mergeCells(
+      groupRow,
+      startCol + 2,
+      groupRow,
+      startCol + 1 + columns.length,
+    );
+
+    worksheet.getCell(groupRow, startCol + 2).value =
+      excelCleanText(groupLabel);
+    styleExcelHeader(
+      worksheet.getCell(groupRow, startCol + 2),
+    );
+  }
+
+  columns.forEach((column, index) => {
+    const cell = worksheet.getCell(
+      headerRow,
+      startCol + 2 + index,
+    );
+    cell.value = excelCleanText(column);
+    styleExcelSubHeader(cell);
+  });
+
+  const totalCol = endCol;
+
+  worksheet.mergeCells(
+    groupRow,
+    totalCol,
+    headerRow,
+    totalCol,
+  );
+  worksheet.getCell(groupRow, totalCol).value =
+    'Jumlah Total';
+  styleExcelHeader(
+    worksheet.getCell(groupRow, totalCol),
+  );
+
+  const summary = buildAnalysisRegionRows({
+    packages: [],
+    regions,
+    columns,
+    valueFor,
+  });
+
+  summary.rows.forEach((rowInfo, index) => {
+    const rowNo = dataStartRow + index;
+
+    setExcelRegionId(
+      worksheet.getCell(rowNo, startCol),
+      rowInfo.region.id,
+    );
+
+    worksheet.getCell(rowNo, startCol + 1).value =
+      excelCleanText(rowInfo.region.name);
+
+    rowInfo.values.forEach((value, valueIndex) => {
+      setExcelMetricCell(
+        worksheet.getCell(
+          rowNo,
+          startCol + 2 + valueIndex,
+        ),
+        value,
+        unit,
+      );
+    });
+
+    setExcelMetricCell(
+      worksheet.getCell(rowNo, totalCol),
+      rowInfo.total,
+      unit,
+    );
+
+    for (
+      let col = startCol;
+      col <= endCol;
+      col += 1
+    ) {
+      styleExcelBody(
+        worksheet.getCell(rowNo, col),
+      );
+    }
+  });
+
+  const totalRow =
+    dataStartRow + summary.rows.length;
+
+  worksheet.getCell(totalRow, startCol).value = '';
+  worksheet.getCell(
+    totalRow,
+    startCol + 1,
+  ).value = 'JUMLAH JAWA TIMUR';
+
+  summary.totals.forEach((value, index) => {
+    const cell = worksheet.getCell(
+      totalRow,
+      startCol + 2 + index,
+    );
+
+    setExcelMetricCell(cell, value, unit);
+  });
+
+  setExcelMetricCell(
+    worksheet.getCell(totalRow, totalCol),
+    summary.grandTotal,
+    unit,
+  );
+
+  for (
+    let col = startCol;
+    col <= endCol;
+    col += 1
+  ) {
+    styleExcelTotal(
+      worksheet.getCell(totalRow, col),
+    );
+  }
+
+  // Width seperti tabel Hasil Analisis
+  worksheet.getColumn(startCol).width = 7;
+  worksheet.getColumn(startCol + 1).width = 24;
+
+  for (
+    let col = startCol + 2;
+    col <= endCol;
+    col += 1
+  ) {
+    worksheet.getColumn(col).width = 14;
+  }
+
+  worksheet.getRow(titleRow).height = 32;
+  worksheet.getRow(groupRow).height = 28;
+  worksheet.getRow(headerRow).height = 38;
+
+  return {
+    title,
+    cell: worksheet.getCell(
+      titleRow,
+      startCol,
+    ).address,
+    width,
+  };
+};
+
+const createMetricAnalysisSheet = ({
+  workbook,
+  packages,
+  regions,
+  config,
+  sheetName,
+  metricLabel,
+  field,
+  unit,
+  tableCounter,
+  daftarIsi,
+}) => {
+  const worksheet =
+    workbook.addWorksheet(sheetName);
+
+  let startCol = 1;
+
+  const packageMap = new Map(
+    packages.map(pkg => [
+      normalizeKab(pkg.kabupaten_kota),
+      pkg,
+    ]),
+  );
+
+  const metric = (
+    region,
+    {
+      jenis = null,
+      kategori = null,
+      skala = null,
+    } = {},
+  ) => {
+    const pkg =
+      packageMap.get(normalizeKab(region));
+
+    if (!pkg) return 0;
+
+    return (pkg.details || [])
+      .filter(detail =>
+        (!jenis ||
+          normalizeKab(detail.jenis_kegiatan) ===
+            normalizeKab(jenis)) &&
+        (!kategori ||
+          detail.kategori_kegiatan === kategori) &&
+        (!skala ||
+          normalizeKab(detail.skala_usaha) ===
+            normalizeKab(skala))
+      )
+      .reduce(
+        (sum, detail) =>
+          sum + toNumber(detail[field]),
+        0,
+      );
+  };
+
+  const addTable = ({
+    suffix,
+    groupLabel,
+    columns,
+    valueFor,
+  }) => {
+    const tableNumber = tableCounter.value++;
+
+    const title =
+      `Tabel ${tableNumber} ${metricLabel} ${suffix} ` +
+      `Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
+
+    const meta = writeAnalysisTable({
+      worksheet,
+      startCol,
+      title,
+      groupLabel,
+      columns,
+      regions,
+      valueFor,
+      unit,
+    });
+
+    daftarIsi.push({
+      title,
+      sheetName,
+      cell: meta.cell,
+    });
+
+    startCol += meta.width + 2;
+  };
+
+  // Urutan mengikuti pola Hasil Analisis.
+  addTable({
+    suffix: 'berdasarkan Jenis Kegiatan',
+    groupLabel: 'Jenis Kegiatan',
+    columns: config.kegiatan,
+    valueFor: (region, jenis) =>
+      metric(region, { jenis }),
+  });
+
+  addTable({
+    suffix:
+      'berdasarkan Jenis Kegiatan Pengolahan',
+    groupLabel: 'Jenis Kegiatan Pengolahan',
+    columns: config.pengolahan,
+    valueFor: (region, jenis) =>
+      metric(region, {
+        jenis,
+        kategori: 'Pengolahan',
+      }),
+  });
+
+  addTable({
+    suffix:
+      'berdasarkan Jenis Kegiatan Pemasaran',
+    groupLabel: 'Jenis Kegiatan Pemasaran',
+    columns: config.pemasaran,
+    valueFor: (region, jenis) =>
+      metric(region, {
+        jenis,
+        kategori: 'Pemasaran',
+      }),
+  });
+
+  addTable({
+    suffix: 'berdasarkan Skala Usaha',
+    groupLabel: 'Skala Usaha',
+    columns: config.scales,
+    valueFor: (region, skala) =>
+      metric(region, { skala }),
+  });
+
+  addTable({
+    suffix:
+      'berdasarkan Skala Usaha pada Kegiatan Pengolahan',
+    groupLabel: 'Skala Usaha',
+    columns: config.scales,
+    valueFor: (region, skala) =>
+      metric(region, {
+        kategori: 'Pengolahan',
+        skala,
+      }),
+  });
+
+  addTable({
+    suffix:
+      'berdasarkan Skala Usaha pada Kegiatan Pemasaran',
+    groupLabel: 'Skala Usaha',
+    columns: config.scales,
+    valueFor: (region, skala) =>
+      metric(region, {
+        kategori: 'Pemasaran',
+        skala,
+      }),
+  });
+
+  config.kegiatan.forEach(jenis => {
+    addTable({
+      suffix:
+        `berdasarkan Skala Usaha pada Jenis Kegiatan ${excelCleanText(jenis)}`,
+      groupLabel: 'Skala Usaha',
+      columns: config.scales,
+      valueFor: (region, skala) =>
+        metric(region, {
+          jenis,
+          skala,
+        }),
+    });
+  });
+
+  worksheet.views = [
+    {
+      state: 'frozen',
+      xSplit: 2,
+      ySplit: 3,
+    },
+  ];
+
+  return worksheet;
+};
+
+const createModalAnalysisSheet = ({
+  workbook,
+  packages,
+  regions,
+  config,
+  tableCounter,
+  daftarIsi,
+}) => {
+  const worksheet =
+    workbook.addWorksheet('Modal');
+
+  const packageMap = new Map(
+    packages.map(pkg => [
+      normalizeKab(pkg.kabupaten_kota),
+      pkg,
+    ]),
+  );
+
+  let startCol = 1;
+
+  const definitions = [
+    {
+      suffix: 'berdasarkan Jenis Kegiatan',
+      groupLabel: 'Jenis Kegiatan',
+      columns: config.kegiatan,
+      valueFor: (region, jenis) =>
+        toNumber(
+          packageMap.get(normalizeKab(region))
+            ?.modal_by_jenis?.[jenis],
+        ),
+    },
+    {
+      suffix: 'berdasarkan Skala Usaha',
+      groupLabel: 'Skala Usaha',
+      columns: config.scales,
+      valueFor: (region, skala) =>
+        toNumber(
+          packageMap.get(normalizeKab(region))
+            ?.modal_by_skala?.[skala],
+        ),
+    },
+  ];
+
+  definitions.forEach(definition => {
+    const tableNumber = tableCounter.value++;
+
+    const title =
+      `Tabel ${tableNumber} Jumlah Investasi Modal (Rp) ` +
+      `${definition.suffix} Pengolahan dan Pemasaran ` +
+      `Produk Kelautan dan Perikanan`;
+
+    const meta = writeAnalysisTable({
+      worksheet,
+      startCol,
+      title,
+      groupLabel: definition.groupLabel,
+      columns: definition.columns,
+      regions,
+      valueFor: definition.valueFor,
+      unit: 'currency',
+    });
+
+    daftarIsi.push({
+      title,
+      sheetName: 'Modal',
+      cell: meta.cell,
+    });
+
+    startCol += meta.width + 2;
+  });
+
+  worksheet.views = [
+    {
+      state: 'frozen',
+      xSplit: 2,
+      ySplit: 3,
+    },
+  ];
+
+  return worksheet;
+};
+
+const createDocumentAnalysisSheet = ({
+  workbook,
+  packages,
+  regions,
+  config,
+  sheetName,
+  titleLabel,
+  key,
+  options,
+  tableCounter,
+  daftarIsi,
+}) => {
+  const worksheet =
+    workbook.addWorksheet(sheetName);
+
+  const packageMap = new Map(
+    packages.map(pkg => [
+      normalizeKab(pkg.kabupaten_kota),
+      pkg,
+    ]),
+  );
+
+  let startCol = 1;
+
+  const definitions = [
+    {
+      suffix: 'per Kab/Kota',
+      dimensionHeader: 'Jenis Dokumen',
+      columns: options,
+      groupLabel: 'Jenis Dokumen',
+      valueFor: (region, option) =>
+        toNumber(
+          packageMap.get(normalizeKab(region))
+            ?.dokumen?.[key]?.[option],
+        ),
+    },
+  ];
+
+  definitions.forEach(definition => {
+    const tableNumber = tableCounter.value++;
+
+    const title =
+      `Tabel ${tableNumber} ${titleLabel} ${definition.suffix} ` +
+      `Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
+
+    const meta = writeAnalysisTable({
+      worksheet,
+      startCol,
+      title,
+      groupLabel: definition.groupLabel,
+      columns: definition.columns,
+      regions,
+      valueFor: definition.valueFor,
+      unit: 'number',
+    });
+
+    daftarIsi.push({
+      title,
+      sheetName,
+      cell: meta.cell,
+    });
+
+    startCol += meta.width + 2;
+  });
+
+  worksheet.views = [
+    {
+      state: 'frozen',
+      xSplit: 2,
+      ySplit: 3,
+    },
+  ];
+
+  return worksheet;
+};
+
+const createDynamicDaftarIsiSheet = (
+  worksheet,
+  year,
+  entries,
+) => {
+  worksheet.mergeCells('A1:B1');
+  worksheet.getCell('A1').value =
+    'DAFTAR ISI REKAP STATISTIK PENGOLAHAN DAN PEMASARAN';
+  styleExcelTitle(worksheet.getCell('A1'));
+
+  worksheet.mergeCells('A2:B2');
+  worksheet.getCell('A2').value =
+    `PRODUK KELAUTAN DAN PERIKANAN PROVINSI JAWA TIMUR TAHUN ${year}`;
+  styleExcelTitle(worksheet.getCell('A2'));
+
+  worksheet.getCell('A4').value = 'Daftar Tabel';
+  worksheet.getCell('B4').value = 'Sheet';
+  styleExcelHeader(worksheet.getCell('A4'));
+  styleExcelHeader(worksheet.getCell('B4'));
+
+  entries.forEach((entry, index) => {
+    const row = index + 5;
+
+    const linkCell = worksheet.getCell(row, 1);
+    linkCell.value = {
+      text: excelCleanText(entry.title),
+      hyperlink:
+        `#'${entry.sheetName.replace(/'/g, "''")}'!${entry.cell}`,
+      tooltip: `Buka ${entry.sheetName}`,
+    };
+
+    linkCell.font = {
+      color: { argb: '0563C1' },
+      underline: true,
+    };
+    linkCell.border = excelBorder;
+    linkCell.alignment = {
+      vertical: 'middle',
+      horizontal: 'left',
+      wrapText: false,
+    };
+
+    const sheetCell =
+      worksheet.getCell(row, 2);
+    sheetCell.value = entry.sheetName;
+    styleExcelBody(sheetCell);
+  });
+
+  worksheet.getColumn(1).width = 250;
+  worksheet.getColumn(2).width = 18;
+
+  worksheet.views = [
+    {
+      state: 'frozen',
+      ySplit: 4,
+    },
+  ];
+};
+
+const buildRekapWorkbook = async (
+  packages,
+  year,
+) => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Dinas Kelautan dan Perikanan';
+  workbook.created = new Date();
+
+  // Seluruh Master Data Kab/Kota ditampilkan,
+  // sehingga format rekap konsisten dengan Hasil Analisis.
+  const regions = await regionInfo();
+
+  const pengolahan =
+    await masterValues('JENIS_PENGOLAHAN');
+
+  const pemasaran =
+    await masterValues('JENIS_PEMASARAN');
+
+  const scales =
+    await masterValues('KATEGORI_SKALA_USAHA');
+
+  const sertifikatProduk =
+    await masterValues('SERTIFIKAT_PRODUK');
+
+  const izinUsaha =
+    await masterValues('IZIN_USAHA');
+
+  const sertifikatLb =
+    await masterValues(
+      'SERTIFIKAT_LAHAN_BANGUNAN',
+    );
+
+  const config = {
+    pengolahan,
+    pemasaran,
+    kegiatan: [...pengolahan, ...pemasaran],
+    scales,
+  };
+
+  const daftarIsiSheet =
+    workbook.addWorksheet('Daftar Isi');
+
+  const daftarIsi = [];
+  const tableCounter = { value: 1 };
+
+  createMetricAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Unit Usaha',
+    metricLabel: 'Jumlah Unit Usaha Aktif',
+    field: 'jumlah_unit_usaha',
+    unit: 'number',
+    tableCounter,
+    daftarIsi,
+  });
+
+  createMetricAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Hasil (Kg)',
+    metricLabel: 'Jumlah Hasil Produksi (Kg)',
+    field: 'hasil_kg',
+    unit: 'number',
+    tableCounter,
+    daftarIsi,
+  });
+
+  createMetricAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Hasil (Rp)',
+    metricLabel: 'Jumlah Hasil Produksi (Rp)',
+    field: 'hasil_rp',
+    unit: 'currency',
+    tableCounter,
+    daftarIsi,
+  });
+
+  createModalAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDocumentAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Sertifikat Produk',
+    titleLabel:
+      'Jumlah Kepemilikan Sertifikat Produk',
+    key: 'sertifikat_produk',
+    options: sertifikatProduk,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDocumentAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Izin Usaha',
+    titleLabel:
+      'Jumlah Kepemilikan Izin Usaha',
+    key: 'izin_usaha',
+    options: izinUsaha,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDocumentAnalysisSheet({
+    workbook,
+    packages,
+    regions,
+    config,
+    sheetName: 'Sertifikat LB',
+    titleLabel:
+      'Jumlah Kepemilikan Sertifikat Lahan dan Bangunan',
+    key: 'sertifikat_lahan_bangunan',
+    options: sertifikatLb,
+    tableCounter,
+    daftarIsi,
+  });
+
+  createDynamicDaftarIsiSheet(
+    daftarIsiSheet,
+    year,
+    daftarIsi,
+  );
+
+  // Auto-size semua sheet selain Daftar Isi.
+  // Daftar Isi punya lebar kolom khusus supaya judul tabel memanjang.
+  workbook.worksheets
+    .filter(sheet => sheet.name !== 'Daftar Isi')
+    .forEach(autoSizeExcel);
+
+  // Paksa ukuran kolom Daftar Isi setelah proses auto-size,
+  // supaya tidak ditimpa lagi oleh batas maksimum autoSizeExcel.
+  daftarIsiSheet.getColumn(1).width = 150;
+  daftarIsiSheet.getColumn(2).width = 18;
+
+  daftarIsiSheet.orderNo = 0;
+
+  return workbook;
+};
+
+const sendWorkbook = async (
+  res,
+  workbook,
+  filename,
+) => {
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${filename}"`,
+  );
+
+  await workbook.xlsx.write(res);
+  res.end();
+};
+
+const exportDataAdmin = async (req, res) => {
+  try {
+    const packages =
+      await selectPackagesForExport({
+        ids: req.body?.ids,
+        admin: true,
+      });
+
+    if (!packages.length) {
+      return res.status(404).json({
+        success: false,
+        message:
+          'Tidak ada data yang dapat diekspor.',
+      });
+    }
+
+    return sendWorkbook(
+      res,
+      await buildDataWorkbook(packages),
+      `Pengolahan_Pemasaran_${new Date()
+        .toISOString()
+        .split('T')[0]}.xlsx`,
+    );
+  } catch (error) {
+    console.error(
+      'Error export data admin:',
+      error,
+    );
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          'Gagal mengekspor data.',
+      });
+    }
+
+    return undefined;
+  }
+};
+
+const exportDataPublic = async (req, res) => {
+  try {
+    const packages =
+      await selectPackagesForExport({
+        ids: req.body?.ids,
+        admin: false,
+      });
+
+    if (!packages.length) {
+      return res.status(404).json({
+        success: false,
+        message:
+          'Tidak ada data VERIFIED yang dapat diekspor.',
+      });
+    }
+
+    return sendWorkbook(
+      res,
+      await buildDataWorkbook(packages),
+      `Pengolahan_Pemasaran_${new Date()
+        .toISOString()
+        .split('T')[0]}.xlsx`,
+    );
+  } catch (error) {
+    console.error(
+      'Error export data public:',
+      error,
+    );
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          'Gagal mengekspor data.',
+      });
+    }
+
+    return undefined;
+  }
+};
+
+const exportRekapAdmin = async (req, res) => {
+  try {
+    const year = toInt(req.body?.tahun);
+
+    if (!year) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Pilih tepat satu tahun sebelum mengekspor rekap statistik.',
+      });
+    }
+
+    const packages =
+      await selectPackagesForExport({
+        tahun: year,
+        regions: req.body?.regions,
+        admin: true,
+      });
+
+    const verified = packages.filter(
+      pkg => pkg.status === 'VERIFIED',
+    );
+
+    if (!verified.length) {
+      return res.status(404).json({
+        success: false,
+        message:
+          'Tidak ada data VERIFIED pada tahun yang dipilih.',
+      });
+    }
+
+    return sendWorkbook(
+      res,
+      await buildRekapWorkbook(
+        verified,
+        year,
+      ),
+      `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
+    );
+  } catch (error) {
+    console.error(
+      'Error export rekap admin:',
+      error,
+    );
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          'Gagal mengekspor rekap statistik.',
+      });
+    }
+
+    return undefined;
+  }
+};
+
+const exportRekapPublic = async (req, res) => {
+  try {
+    const year = toInt(req.body?.tahun);
+
+    if (!year) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Pilih tepat satu tahun sebelum mengekspor rekap statistik.',
+      });
+    }
+
+    const packages =
+      await selectPackagesForExport({
+        tahun: year,
+        regions: req.body?.regions,
+        admin: false,
+      });
+
+    if (!packages.length) {
+      return res.status(404).json({
+        success: false,
+        message:
+          'Tidak ada data VERIFIED pada tahun yang dipilih.',
+      });
+    }
+
+    return sendWorkbook(
+      res,
+      await buildRekapWorkbook(
+        packages,
+        year,
+      ),
+      `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
+    );
+  } catch (error) {
+    console.error(
+      'Error export rekap public:',
+      error,
+    );
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          'Gagal mengekspor rekap statistik.',
+      });
+    }
+
+    return undefined;
+  }
+};
 
 module.exports = { getAllData, getAdminData, getStats, getDashboardStats, createData, createBatchData, updateData, deleteData, updateStatus, batchStatus, batchDelete, exportDataAdmin, exportDataPublic, exportRekapAdmin, exportRekapPublic };

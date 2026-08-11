@@ -71,6 +71,16 @@ const formatRupiah = (value) =>
     maximumFractionDigits: 0,
   }).format(toNumber(value));
 
+const displayNumber = value => {
+  const number = toNumber(value);
+  return number === 0 ? '-' : number.toLocaleString('id-ID');
+};
+
+const displayCurrency = value => {
+  const number = toNumber(value);
+  return number === 0 ? '-' : formatRupiah(number);
+};
+
 const formatCompactRupiah = value => {
   const number = Math.abs(toNumber(value));
   const sign = toNumber(value) < 0 ? '-' : '';
@@ -626,9 +636,9 @@ export default function PengolahanPemasaran() {
                     <td className="px-4 py-3">{detail.kategori_kegiatan || '-'}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{detail.jenis_kegiatan || '-'}</td>
                     <td className="px-4 py-3">{detail.skala_usaha || '-'}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.jumlah_unit_usaha).toLocaleString('id-ID')}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{toNumber(detail.hasil_kg).toLocaleString('id-ID')}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatRupiah(detail.hasil_rp)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{displayNumber(detail.jumlah_unit_usaha)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{displayNumber(detail.hasil_kg)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{displayCurrency(detail.hasil_rp)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -644,7 +654,7 @@ export default function PengolahanPemasaran() {
                 {modalJenis.map(([name, value]) => (
                   <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
                     <span className="text-muted-foreground">{name}</span>
-                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{displayCurrency(value)}</span>
                   </div>
                 ))}
               </div>
@@ -658,7 +668,7 @@ export default function PengolahanPemasaran() {
                 {modalSkala.map(([name, value]) => (
                   <div key={name} className="flex items-center justify-between gap-4 border-b border-border/60 pb-2 text-sm last:border-0 last:pb-0">
                     <span className="text-muted-foreground">{name}</span>
-                    <span className="font-semibold tabular-nums text-foreground">{formatRupiah(value)}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{displayCurrency(value)}</span>
                   </div>
                 ))}
               </div>
@@ -680,10 +690,10 @@ export default function PengolahanPemasaran() {
           return <span className="text-muted-foreground"><b className="text-foreground">{row.jumlah_rincian || 0} rincian</b> • {row.jumlah_skala || 0} skala</span>;
         },
       },
-      { header: 'Total Unit', accessorKey: 'jumlah_unit_usaha', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
-      { header: 'Hasil Produksi (Kg)', accessorKey: 'hasil_kg', cell: info => toNumber(info.getValue()).toLocaleString('id-ID') },
-      { header: 'Nilai Produksi (Rp)', accessorKey: 'hasil_rp', cell: info => formatRupiah(info.getValue()) },
-      { header: 'Total Modal (Rp)', accessorKey: 'modal_rp', cell: info => formatRupiah(info.getValue()) },
+      { header: 'Total Unit', accessorKey: 'jumlah_unit_usaha', cell: info => displayNumber(info.getValue()) },
+      { header: 'Hasil Produksi (Kg)', accessorKey: 'hasil_kg', cell: info => displayNumber(info.getValue()) },
+      { header: 'Nilai Produksi (Rp)', accessorKey: 'hasil_rp', cell: info => displayCurrency(info.getValue()) },
+      { header: 'Total Modal (Rp)', accessorKey: 'modal_rp', cell: info => displayCurrency(info.getValue()) },
     ],
     [],
   );
@@ -1371,7 +1381,7 @@ export default function PengolahanPemasaran() {
                   const compactNilai = splitCompactRupiah(stats.kpi.total_nilai);
                   return (
                     <div className="flex items-end gap-1.5">
-                      <span className="text-xl font-bold leading-tight text-foreground">
+                      <span className="text-xl font-bold leading-tight text-foreground xl:text-2xl">
                         {compactNilai.amount}
                       </span>
                       {compactNilai.unit ? (
@@ -1482,7 +1492,7 @@ export default function PengolahanPemasaran() {
                   <div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-500">
                     <TrendingUp className="h-5 w-5" />
                   </div>
-                  <h2 className="text-lg font-bold">Top 10 Kab/Kota</h2>
+                  <h2 className="text-xl font-bold text-foreground">Top 10 Kab/Kota</h2>
                 </div>
 
                 <ChartSelect
@@ -1511,7 +1521,7 @@ export default function PengolahanPemasaran() {
               <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
                 <div className="rounded-xl bg-purple-500/10 p-2.5 text-purple-500"><Users className="h-5 w-5" /></div>
                 <div>
-                  <h2 className="text-lg font-bold">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
+                  <h2 className="text-xl font-bold text-foreground">Perbandingan Jumlah Unit Usaha Berdasarkan Kategori Kegiatan</h2>
                 </div>
               </div>
 
@@ -1543,7 +1553,7 @@ export default function PengolahanPemasaran() {
                   </div>
 
                   <div>
-                    <h2 className="text-lg font-semibold">Jenis Detail Kegiatan</h2>
+                    <h2 className="text-xl font-bold text-foreground">Jenis Detail Kegiatan</h2>
                   </div>
                 </div>
 
@@ -1600,7 +1610,7 @@ export default function PengolahanPemasaran() {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Tren Produksi Pengolahan</h3>
+                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pengolahan</h3>
                     </div>
                   </div>
 
@@ -1635,7 +1645,7 @@ export default function PengolahanPemasaran() {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Tren Produksi Pemasaran</h3>
+                      <h3 className="text-xl font-bold text-foreground">Tren Produksi Pemasaran</h3>
                     </div>
                   </div>
 
