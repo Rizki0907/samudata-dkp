@@ -267,7 +267,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
                     step="any"
                     value={formData.produksi_garam}
                     onChange={(e) => setFormData({ ...formData, produksi_garam: e.target.value })}
-                    placeholder="Opsional, akan mengambil dari data jika kosong"
+                    placeholder="Contoh: 0.00"
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -281,7 +281,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
                     type="number"
                     value={formData.jumlah_petambak}
                     onChange={(e) => setFormData({ ...formData, jumlah_petambak: e.target.value })}
-                    placeholder="Opsional, akan mengambil dari data jika kosong"
+                    placeholder="Contoh: 0"
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -296,7 +296,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
                     step="any"
                     value={formData.luas_lahan_garam}
                     onChange={(e) => setFormData({ ...formData, luas_lahan_garam: e.target.value })}
-                    placeholder="Opsional, akan mengambil dari data jika kosong"
+                    placeholder="Contoh:0.00"
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>

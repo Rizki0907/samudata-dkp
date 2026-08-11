@@ -1,3 +1,8 @@
+// File ini digunakan untuk menampilkan dan mengelola formulir input data Pengolahan dan Pemasaran.
+// Di dalamnya terdapat pengisian form, pilihan data dari Master Data, 
+// pengaturan matriks berdasarkan Jenis Kegiatan dan Skala Usaha,
+// validasi isian, serta penyusunan data sebelum dikirim ke proses simpan.
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { useMasterDataStore } from '@/store/masterDataStore';
@@ -37,6 +42,7 @@ const getElementCenter = element => {
   };
 };
 
+// Menentukan input terdekat saat pengguna berpindah menggunakan tombol panah pada keyboard.
 const findDirectionalTarget = (formElement, currentElement, direction) => {
   if (!formElement || !currentElement) return null;
 
@@ -110,6 +116,7 @@ const formatInputNumber = value => {
   return raw.includes(',') ? `${grouped},${decimal.slice(0, 2)}` : grouped;
 };
 
+// Menyiapkan nilai angka untuk setiap pilihan Master Data tanpa menghilangkan nilai yang sudah tersimpan.
 const normalizeNumericMap = (options, source = {}) => Object.fromEntries(
   [...new Set([...(options || []), ...Object.keys(source || {})])].map(option => [
     option,
@@ -122,6 +129,66 @@ const normalizeDocs = (options, source = {}) => ({
   izin_usaha: normalizeNumericMap(options.izinUsaha, source?.izin_usaha),
   sertifikat_lahan_bangunan: normalizeNumericMap(options.sertifikatLB, source?.sertifikat_lahan_bangunan),
 });
+
+const normalizeOrderKey = value => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .replace(/\s*\/\s*/g, '/')
+  .replace(/\s+/g, ' ');
+
+const moveLainLainToBottom = values => {
+  const list = [...(values || [])];
+  const normal = list.filter(value => {
+    const key = normalizeOrderKey(value);
+    return key !== 'lain-lain' && key !== 'pengolahan lainnya';
+  });
+  const lainnya = list.filter(value => {
+    const key = normalizeOrderKey(value);
+    return key === 'lain-lain' || key === 'pengolahan lainnya';
+  });
+  return [...normal, ...lainnya];
+};
+
+// Mengatur urutan Jenis Kegiatan dan menjaga pilihan Lain-lain tetap berada di bagian akhir.
+const orderByPreferred = (values, preferredValues, lastValues = []) => {
+  const list = [...(values || [])];
+  const preferredKeys = preferredValues.map(normalizeOrderKey);
+  const lastKeys = new Set(lastValues.map(normalizeOrderKey));
+  const byKey = new Map(list.map(value => [normalizeOrderKey(value), value]));
+
+  const preferred = preferredKeys
+    .map(key => byKey.get(key))
+    .filter(Boolean);
+
+  const preferredSet = new Set(preferredKeys);
+  const dynamic = list.filter(value => {
+    const key = normalizeOrderKey(value);
+    return !preferredSet.has(key) && !lastKeys.has(key);
+  });
+
+  const last = lastValues
+    .map(value => byKey.get(normalizeOrderKey(value)))
+    .filter(Boolean);
+
+  return [...preferred, ...dynamic, ...last];
+};
+
+const PREFERRED_PENGOLAHAN = [
+  'Fermentasi',
+  'Pelumatan Daging Ikan',
+  'Pembekuan',
+  'Pemindangan',
+  'Penanganan Produk Segar',
+  'Pengalengan',
+  'Pengasapan/Pemanggangan',
+  'Penggaraman/Pengeringan',
+  'Pereduksian/Ekstraksi',
+];
+
+const PREFERRED_PEMASARAN = [
+  'Pengumpul/Pedagang Besar/Distributor',
+  'Pengecer',
+];
 
 const emptyDetail = () => ({
   kategori_kegiatan: '',
@@ -146,6 +213,7 @@ function NumericInput({ value, onChange, placeholder = '0' }) {
   );
 }
 
+// Dropdown yang dapat dicari dan dapat digunakan dengan keyboard.
 function SearchableSingleSelect({
   value,
   onChange,
@@ -344,6 +412,7 @@ function SearchableSingleSelect({
   );
 }
 
+// Komponen daftar input angka untuk Modal, Sertifikat, dan Izin.
 function AmountMatrix({ title, options, values, onChange, prefix = 'Rp' }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -365,6 +434,42 @@ function AmountMatrix({ title, options, values, onChange, prefix = 'Rp' }) {
   );
 }
 
+// Menampilkan input Investasi Modal berdasarkan Jenis Kegiatan dengan pemisah Pengolahan dan Pemasaran.
+function ModalJenisMatrix({ pengolahanOptions, pemasaranOptions, values, onChange }) {
+  const renderRows = options => (
+    <div className="divide-y divide-border">
+      {(options || []).map(option => (
+        <div key={option} className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+          <span className="text-sm font-medium text-foreground">{option}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">Rp</span>
+            <NumericInput value={values?.[option] ?? ''} onChange={value => onChange(option, value)} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/40 px-4 py-3">
+        <h3 className="font-semibold text-foreground">Investasi Modal berdasarkan Jenis Kegiatan</h3>
+      </div>
+
+      <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+        <h4 className="text-sm font-semibold text-foreground">Pengolahan</h4>
+      </div>
+      {renderRows(pengolahanOptions)}
+
+      <div className="border-y border-border bg-muted/20 px-4 py-2.5">
+        <h4 className="text-sm font-semibold text-foreground">Pemasaran</h4>
+      </div>
+      {renderRows(pemasaranOptions)}
+    </div>
+  );
+}
+
+// Membentuk matriks kosong berdasarkan Jenis Kegiatan dan Skala Usaha dari Master Data.
 const createEmptyProductionMatrix = (jenisOptions, scaleOptions) => Object.fromEntries(
   (jenisOptions || []).map(jenis => [
     jenis,
@@ -381,6 +486,7 @@ const createEmptyProductionMatrix = (jenisOptions, scaleOptions) => Object.fromE
   ]),
 );
 
+// Mengisi kembali matriks Unit dan Produksi ketika pengguna membuka data untuk diedit.
 const hydrateProductionMatrix = ({
   jenisOptions,
   scaleOptions,
@@ -442,6 +548,7 @@ const syncProductionMatrix = (current, jenisOptions, scaleOptions) => {
   return next;
 };
 
+// Menampilkan matriks Unit dan Produksi dengan baris Jenis Kegiatan dan kolom Skala Usaha.
 function ProductionMatrix({
   title,
   jenisOptions,
@@ -466,7 +573,7 @@ function ProductionMatrix({
               {scaleOptions.map(skala => (
                 <th
                   key={skala}
-                  className="min-w-[150px] border-r border-border px-3 py-3 text-center text-xs font-semibold text-muted-foreground last:border-r-0"
+                  className="min-w-[150px] border-r border-border px-3 py-3 text-center text-xs font-semibold text-foreground last:border-r-0"
                 >
                   {skala}
                 </th>
@@ -512,6 +619,7 @@ function ProductionMatrix({
   );
 }
 
+// Form utama untuk input satu paket data berdasarkan Tahun dan Kab/Kota.
 export default function PengolahanPemasaranForm({ initialData, isLoading = false, onSubmit, onCancel }) {
   const formRef = useRef(null);
   const errorRef = useRef(null);
@@ -524,14 +632,22 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     if (!masterData.length) fetchMasterData();
   }, [masterData.length, fetchMasterData]);
 
+  // Mengambil seluruh pilihan formulir dari Master Data agar penambahan data baru dapat langsung digunakan.
   const options = useMemo(() => ({
     kabupaten: getOptions('KABUPATEN_KOTA'),
-    pengolahan: getOptions('JENIS_PENGOLAHAN'),
-    pemasaran: getOptions('JENIS_PEMASARAN'),
+    pengolahan: orderByPreferred(
+      getOptions('JENIS_PENGOLAHAN'),
+      PREFERRED_PENGOLAHAN,
+      ['Pengolahan Lainnya'],
+    ),
+    pemasaran: orderByPreferred(
+      getOptions('JENIS_PEMASARAN'),
+      PREFERRED_PEMASARAN,
+    ),
     skala: getOptions('KATEGORI_SKALA_USAHA'),
-    sertifikatProduk: getOptions('SERTIFIKAT_PRODUK'),
-    izinUsaha: getOptions('IZIN_USAHA'),
-    sertifikatLB: getOptions('SERTIFIKAT_LAHAN_BANGUNAN'),
+    sertifikatProduk: moveLainLainToBottom(getOptions('SERTIFIKAT_PRODUK')),
+    izinUsaha: moveLainLainToBottom(getOptions('IZIN_USAHA')),
+    sertifikatLB: moveLainLainToBottom(getOptions('SERTIFIKAT_LAHAN_BANGUNAN')),
   }), [masterData, getOptions]);
 
   const allJenis = useMemo(() => [...options.pengolahan, ...options.pemasaran], [options.pengolahan, options.pemasaran]);
@@ -579,6 +695,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     }));
   }, [allJenis, options.pengolahan, options.pemasaran, options.skala, options.sertifikatProduk, options.izinUsaha, options.sertifikatLB]);
 
+  // Memperbarui satu sel pada matriks Unit dan Produksi sesuai kategori, jenis kegiatan, dan skala.
   const updateProductionMatrix = (kategori, jenis, skala, field, value) => {
     const setter = kategori === 'Pemasaran'
       ? setPemasaranMatrix
@@ -600,6 +717,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     }));
   };
 
+  // Mengubah isi matriks menjadi daftar rincian yang dikirim ke backend saat disimpan.
   const matrixToDetails = (kategori, matrix, jenisOptions, scaleOptions) => {
     const result = [];
 
@@ -639,6 +757,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     modalSkala: Object.values(modalSkala).reduce((sum, value) => sum + toNumber(value), 0),
   }), [details, modalJenis, modalSkala]);
 
+  // Memeriksa isian wajib sebelum paket data dikirim untuk disimpan.
   const validate = () => {
     if (!tahun || Number(tahun) < 1900) return 'Tahun wajib diisi dengan benar.';
     if (!kabupaten) return 'Kab/Kota wajib dipilih.';
@@ -646,6 +765,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     return '';
   };
 
+  // Menyiapkan payload akhir dan meneruskan data ke proses simpan pada halaman Admin.
   const submit = () => {
     const validation = validate();
     if (validation) {
@@ -918,7 +1038,12 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
       {activeTab === 'modal' ? (
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <AmountMatrix title="Investasi Modal berdasarkan Jenis Kegiatan" options={allJenis} values={modalJenis} onChange={(key, value) => setModalJenis(previous => ({ ...previous, [key]: value }))} />
+            <ModalJenisMatrix
+              pengolahanOptions={options.pengolahan}
+              pemasaranOptions={options.pemasaran}
+              values={modalJenis}
+              onChange={(key, value) => setModalJenis(previous => ({ ...previous, [key]: value }))}
+            />
             <AmountMatrix title="Investasi Modal berdasarkan Skala Usaha" options={options.skala} values={modalSkala} onChange={(key, value) => setModalSkala(previous => ({ ...previous, [key]: value }))} />
           </div>
 

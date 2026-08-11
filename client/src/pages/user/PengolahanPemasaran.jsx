@@ -1,29 +1,21 @@
+// File ini digunakan sebagai halaman publik Pengolahan dan Pemasaran.
+// Halaman ini hanya menampilkan data yang telah berstatus VERIFIED,
+// serta menyediakan tabel data, filter, pencarian, ekspor data,
+// Rekap Statistik, dan berbagai visualisasi statistik untuk pengguna publik.
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
-import {
-  Box,
-  Factory,
-  FileText,
-  LineChart,
-  Loader2,
-  MapPin,
-  TrendingUp,
-  Users,
-  Clock,
-  Download,
-  ChevronDown,
-  Search,
-  X,
-} from 'lucide-react';
+import {Box, Factory, FileText, LineChart, Loader2, MapPin, TrendingUp, Users, Clock, Download, ChevronDown, Search, X, } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
+// Menyamakan format nama Kab/Kota agar data dapat dicocokkan dengan wilayah pada peta.
 const normalizeRegionKey = (value) => {
   let text = String(value ?? '')
     .trim()
@@ -64,6 +56,7 @@ const getGeoRegionName = (databaseName) => {
 // Registrasi peta Jawa Timur
 echarts.registerMap('jawa_timur', geoJsonData);
 
+// Fungsi bantuan untuk mengubah angka menjadi format tampilan Rupiah dan angka ringkas.
 const formatRupiah = (value) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -148,6 +141,7 @@ const toNumber = (value) => {
 };
 
 
+// Menyiapkan beberapa bentuk angka agar pencarian tabel tetap bekerja pada angka biasa maupun angka berformat.
 const getSearchNumberVariants = (value) => {
   if (value === null || value === undefined || value === '') return [];
 
@@ -176,6 +170,15 @@ const flattenPackageDetails = packages =>
     })),
   );
 
+const getRowUpdatedAt = row =>
+  row?.updated_at ??
+  row?.updatedAt ??
+  row?.updated_At ??
+  row?.created_at ??
+  row?.createdAt ??
+  null;
+
+// Memeriksa apakah satu paket data sesuai dengan filter Jenis Kegiatan dan Skala Usaha yang dipilih.
 const packageMatchesDetailFilters = (item, filterJenisKegiatan, filterSkalaUsaha) => {
   const details = Array.isArray(item?.details) ? item.details : [];
   if (
@@ -222,6 +225,7 @@ const normalizeKategori = (value) =>
     ? 'Pemasaran'
     : 'Pengolahan';
 
+// Mengunduh file Excel dari endpoint backend dan menampilkan pesan jika proses ekspor gagal.
 const downloadExcelFromApi = async (endpoint, payload, fileName) => {
   try {
     const response = await api.post(endpoint, payload, {
@@ -258,7 +262,6 @@ const downloadExcelFromApi = async (endpoint, payload, fileName) => {
 
         message = errorJson.message || message;
       } catch {
-        // Gunakan pesan default bila response error bukan JSON.
       }
     } else if (responseData?.message) {
       message = responseData.message;
@@ -268,20 +271,17 @@ const downloadExcelFromApi = async (endpoint, payload, fileName) => {
   }
 };
 
+// Halaman publik Pengolahan dan Pemasaran. Data yang ditampilkan hanya data berstatus VERIFIED.
 export default function PengolahanPemasaran() {
   const theme = useThemeStore((state) => state.theme);
   const isDark = theme === 'dark';
 
   // Master data dinamis: menambah/menghapus data di halaman Master Data
-  // (kategori KABUPATEN_KOTA & KATEGORI_SKALA_USAHA) otomatis mengubah
-  // opsi filter di sini, tanpa perlu edit kode.
+  // Mengambil pilihan Kab/Kota dan Skala Usaha dari Master Data.
   const { getOptions } = useMasterDataStore();
   const KABUPATEN_KOTA_OPTIONS = getOptions('KABUPATEN_KOTA');
   const SKALA_USAHA_OPTIONS = getOptions('KATEGORI_SKALA_USAHA');
 
-  // Palet warna chart yang menyesuaikan mode aktif.
-  // Di light mode kita pakai warna gelap (slate-700/900) agar teks
-  // terbaca jelas di atas background putih/terang.
   const chartColors = useMemo(
     () => ({
       textStrong: isDark ? '#e2e8f0' : '#1e293b', // label kategori, judul angka besar
@@ -291,19 +291,16 @@ export default function PengolahanPemasaran() {
       tooltipBg: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.98)',
       tooltipBorder: isDark ? '#334155' : '#e2e8f0',
       tooltipText: isDark ? '#f8fafc' : '#0f172a',
-      mapArea: isDark ? '#1e293b' : '#f8fafc', // wilayah tanpa data (disamakan dgn peta Budidaya)
+      mapArea: isDark ? '#1e293b' : '#f8fafc',
       mapBorder: isDark ? '#334155' : '#cbd5e1',
       mapLabel: isDark ? '#ffffff' : '#0f172a',
       mapEmphasisBorder: isDark ? '#ffffff' : '#0f172a',
       mapHoverArea: isDark ? '#38bdf8' : '#f59e0b',
       mapSelectedArea: isDark ? '#0284c7' : '#f59e0b',
       pieBorder: isDark ? '#0f172a' : '#ffffff',
-      // Skala warna choropleth peta — disamakan dengan peta Budidaya:
-      // light mode pakai gradasi biru, dark mode pakai gradasi merah→hijau.
       mapInRange: isDark
         ? ['#dc2626', '#f97316', '#facc15', '#a3e635', '#34d399']
         : ['#e0f2fe', '#7dd3fc', '#0284c7', '#0369a1', '#0c4a6e'],
-      // Gradasi warna bar Top 10 — disamakan dengan bar Top 10 Budidaya.
       barGradientStart: isDark ? '#0ea5e9' : '#0284c7',
       barGradientEnd: isDark ? '#2563eb' : '#1e40af',
       categoryPengolahan: '#0096C7',
@@ -312,6 +309,7 @@ export default function PengolahanPemasaran() {
     [isDark],
   );
 
+  // State utama untuk data, status pemuatan, filter, pilihan grafik, dan dialog Rekap Statistik.
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState('-');
@@ -416,17 +414,25 @@ export default function PengolahanPemasaran() {
     [data],
   );
 
+  // Menyaring data sesuai filter aktif dan menempatkan data yang paling baru diperbarui di urutan atas.
   const filteredData = useMemo(
     () =>
-      data.filter(item => {
-        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
-        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
-        return true;
-      }),
+      data
+        .filter(item => {
+          if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+          if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+          if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const timeA = new Date(getRowUpdatedAt(a) || 0).getTime();
+          const timeB = new Date(getRowUpdatedAt(b) || 0).getTime();
+          return timeB - timeA;
+        }),
     [data, filterTahun, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha],
   );
 
+  // Menangani ekspor data tabel yang sedang dipilih atau ditampilkan.
   const handleExportData = async (rows) => {
     const exportRows = Array.isArray(rows) ? rows : [];
 
@@ -480,6 +486,7 @@ export default function PengolahanPemasaran() {
     openRekapDialog();
   };
 
+  // Mengolah data VERIFIED menjadi nilai KPI serta sumber data untuk seluruh visualisasi.
   const stats = useMemo(() => {
     const rows = flattenPackageDetails(filteredData);
 
@@ -608,6 +615,7 @@ export default function PengolahanPemasaran() {
 
   const showDetailKegiatanToggle = filterJenisKegiatan.length !== 1;
 
+  // Menampilkan rincian Unit dan Produksi serta Modal ketika satu baris tabel dibuka.
   const renderPackageDetail = ({ row }) => {
     const pkg = row.original;
     const details = Array.isArray(pkg.details) ? pkg.details : [];
@@ -679,6 +687,7 @@ export default function PengolahanPemasaran() {
     );
   };
 
+  // Mendefinisikan kolom pada tabel data publik.
   const columns = useMemo(
     () => [
       { header: 'Tahun', accessorKey: 'tahun' },
@@ -698,6 +707,7 @@ export default function PengolahanPemasaran() {
     [],
   );
 
+  // Menyusun konfigurasi peta persebaran data Pengolahan dan Pemasaran per Kab/Kota.
   const mapOption = useMemo(() => {
     const mapData = stats.produksiPerKabupaten.map((item) => ({
       name: getGeoRegionName(item.name),
@@ -782,7 +792,6 @@ export default function PengolahanPemasaran() {
         },
 
         inRange: {
-          // Disamakan dengan skala warna peta Budidaya: biru (light) / merah→hijau (dark).
           color: chartColors.mapInRange,
         },
       },
@@ -879,6 +888,7 @@ export default function PengolahanPemasaran() {
     [],
   );
 
+  // Menyusun grafik Top 10 Kab/Kota berdasarkan metrik yang dipilih.
   const barOption = useMemo(() => {
     const top10 = [...stats.produksiPerKabupaten]
       .filter((item) => item[topKabFilter] > 0)
@@ -960,7 +970,6 @@ export default function PengolahanPemasaran() {
             },
           },
           itemStyle: {
-            // Disamakan dengan gradasi bar Top 10 Budidaya, beda warna light/dark.
             color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: chartColors.barGradientStart },
               { offset: 1, color: chartColors.barGradientEnd },
@@ -972,6 +981,7 @@ export default function PengolahanPemasaran() {
     };
   }, [stats.produksiPerKabupaten, topKabFilter, chartColors]);
 
+  // Menyusun grafik perbandingan jumlah unit usaha berdasarkan kategori kegiatan.
   const pieOption = useMemo(() => {
     const total = stats.rasioKegiatan.reduce((sum, item) => sum + item.value, 0);
 
@@ -1046,6 +1056,7 @@ export default function PengolahanPemasaran() {
     };
   }, [stats.rasioKegiatan, chartColors]);
 
+  // Menyusun grafik rincian Jenis Kegiatan Pengolahan atau Pemasaran.
   const detailKegiatanOption = useMemo(() => {
     const chartData = [...(stats.detailKegiatan?.[activeDetailKegiatan] || [])]
       .filter((item) => item.value > 0)
@@ -1156,6 +1167,7 @@ export default function PengolahanPemasaran() {
     };
   }, [activeDetailKegiatan, stats.detailKegiatan, chartColors]);
 
+  // Menyusun grafik tren tahunan Pengolahan dan Pemasaran.
   const trendOptions = useMemo(() => {
     const createTrendOption = (category, metric, color, areaTop, areaBottom) => {
       const isProduksi = metric === 'produksi';

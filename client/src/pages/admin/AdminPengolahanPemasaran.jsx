@@ -1,3 +1,8 @@
+// File ini digunakan sebagai halaman utama Pengolahan dan Pemasaran untuk Admin.
+// Halaman ini menangani tampilan tabel data, tambah dan edit data, perubahan status,
+// verifikasi dan penolakan oleh Admin Pusat, filter, pencarian, ekspor data,
+// Rekap Statistik, serta Visualisasi Statistik dari data yang telah diverifikasi.
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, CheckCircle, XCircle, Trash2, } from 'lucide-react';
@@ -243,6 +248,7 @@ const normalizePinjaman = value => {
 };
 
 // ==== Util Waktu Relatif (untuk kolom "Terakhir Diperbarui") ====
+// Mengambil waktu perubahan terakhir untuk menampilkan informasi "Terakhir Diperbarui" dan mengurutkan data.
 const getRowUpdatedAt = row =>
   row?.updated_at ??
   row?.updatedAt ??
@@ -350,6 +356,7 @@ function ChartSelect({ value, onChange, options, ariaLabel }) {
   );
 }
 
+// Dialog konfirmasi untuk proses verifikasi, penolakan, penghapusan, dan penyampaian informasi.
 function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
   if (!dialog?.open) return null;
   const themes = {
@@ -518,6 +525,7 @@ const createInitialForm = initialData => {
 };
 
 
+// Menampilkan status data. Khusus data REJECTED, pengguna dapat melihat alasan dan membuka perbaikan data.
 function StatusBadge({ row, onEdit }) {
   const [showModal, setShowModal] = useState(false);
 
@@ -730,6 +738,7 @@ const packageMatchesDetailFilters = (item, filterJenisKegiatan, filterSkalaUsaha
   return true;
 };
 
+// Menggabungkan isi satu paket menjadi teks pencarian agar seluruh informasi penting dapat dicari dari tabel.
 const buildTableSearchText = (row, includeStatus = false) => {
   const parts = [];
   if (includeStatus) parts.push(row?.status);
@@ -829,6 +838,7 @@ const downloadExcelFromApi = async (
   }
 };
 
+// Halaman Admin Pengolahan dan Pemasaran untuk input, pengelolaan, verifikasi, tabel data, dan visualisasi statistik.
 export default function AdminPengolahanPemasaran() {
   const { user } = useAuthStore();
   const isAdminPusat = user?.role === 'admin_pusat';
@@ -887,7 +897,6 @@ export default function AdminPengolahanPemasaran() {
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
 
-  // Palet visualisasi disamakan dengan halaman user publik.
   // Light mode memakai teks slate yang lebih gelap agar mudah dibaca.
   const chartTheme = useMemo(
     () => ({
@@ -965,6 +974,7 @@ export default function AdminPengolahanPemasaran() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Mengambil seluruh paket data Pengolahan dan Pemasaran untuk kebutuhan halaman admin.
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -985,6 +995,7 @@ export default function AdminPengolahanPemasaran() {
     fetchData();
   }, []);
 
+  // Menyimpan data baru atau perubahan data dari formulir tanpa mengubah alur status yang berlaku.
   const handleCreateOrUpdate = async formData => {
     try {
       setSubmitLoading(true);
@@ -1041,6 +1052,7 @@ export default function AdminPengolahanPemasaran() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Membuka dialog tindakan untuk verifikasi atau penolakan data, baik satu data maupun beberapa data sekaligus.
   const openValidationDialog = (rows, isBatch = false) => {
     const targetRows = Array.isArray(rows) ? rows : [rows];
     if (!isAdminPusat) {
@@ -1166,6 +1178,7 @@ export default function AdminPengolahanPemasaran() {
     });
   };
 
+  // Menjalankan tindakan yang sudah dikonfirmasi pada dialog, termasuk perubahan status dan penghapusan.
   const submitActionDialog = async () => {
     if (!actionDialog) return;
     if (actionDialog.kind === 'notice') {
@@ -1246,18 +1259,26 @@ export default function AdminPengolahanPemasaran() {
     [data],
   );
 
+  // Menyaring tabel sesuai filter aktif dan mengurutkan data berdasarkan aktivitas terbaru.
   const filteredData = useMemo(
     () =>
-      data.filter(item => {
-        if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
-        if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
-        if (filterStatus.length && !filterStatus.includes(item.status)) return false;
-        return true;
-      }),
+      data
+        .filter(item => {
+          if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
+          if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
+          if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
+          if (filterStatus.length && !filterStatus.includes(item.status)) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const timeA = new Date(getRowUpdatedAt(a) || 0).getTime();
+          const timeB = new Date(getRowUpdatedAt(b) || 0).getTime();
+          return timeB - timeA;
+        }),
     [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun, filterStatus],
   );
 
+  // Menangani ekspor data tabel Admin ke file Excel.
   const handleExportData = async rows => {
     const exportRows = Array.isArray(rows) ? rows : [];
 
@@ -1283,6 +1304,7 @@ export default function AdminPengolahanPemasaran() {
     }
   };
 
+  // Membuka pilihan tahun untuk pembuatan Rekap Statistik.
   const openRekapDialog = () => {
     setRekapTahun('');
     setRekapError('');
@@ -1359,6 +1381,7 @@ export default function AdminPengolahanPemasaran() {
       }, [filteredData]);
 
   // Data sumber visualisasi hanya VERIFIED. Tabel utama tetap satu baris per paket Tahun + Kab/Kota.
+  // Menyiapkan hanya paket berstatus VERIFIED sebagai sumber perhitungan Visualisasi Statistik.
   const verifiedPackages = useMemo(
     () =>
       data.filter(item => {
@@ -1376,6 +1399,7 @@ export default function AdminPengolahanPemasaran() {
     [verifiedPackages],
   );
 
+  // Mengolah data VERIFIED menjadi KPI dan data sumber seluruh grafik.
   const stats = useMemo(() => {
     const rows = verifiedData;
 
@@ -2149,6 +2173,7 @@ export default function AdminPengolahanPemasaran() {
 
   // ==== Akhir Visualisasi Data ====
 
+  // Menampilkan rincian isi paket ketika baris pada tabel dibuka.
   const renderPackageDetail = ({ row }) => {
     const pkg = row.original;
     const details = Array.isArray(pkg.details) ? pkg.details : [];
@@ -2220,6 +2245,7 @@ export default function AdminPengolahanPemasaran() {
     );
   };
 
+  // Mendefinisikan kolom tabel Admin, termasuk Status, Terakhir Diperbarui, dan Aksi.
   const columns = useMemo(
     () => [
       {
@@ -2243,6 +2269,7 @@ export default function AdminPengolahanPemasaran() {
     [],
   );
 
+  // Bagian Tabel Data yang memuat pencarian, filter, ekspor, dan tindakan pengelolaan data.
   const dataPreview = (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <DataTable
@@ -2277,6 +2304,7 @@ export default function AdminPengolahanPemasaran() {
   );
 
   // ==== Blok Visualisasi Data (ditampilkan di atas tabel, hanya saat form tertutup) ====
+  // Bagian Visualisasi Statistik yang menggunakan data berstatus VERIFIED.
   const dataVisualization = (
     <div className="space-y-6">
       {/* Baris 1 — KPI */}
