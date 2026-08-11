@@ -7,11 +7,11 @@ import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import { TangkapTahunanForm } from '@/components/admin/TangkapTahunanForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import SearchableSelect from '@/components/shared/SearchableSelect';
-import {  
-  Plus, Loader2, Database, TrendingUp, Ship, Anchor, 
-  Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle,
-  Clock, Download, Calendar, Map, Layers, ChevronDown, Droplet, Search, Trash2, Edit, Save, X, Eye, CheckCircle, XCircle, Scale, FileSpreadsheet
+import { 
+  Loader2, Plus, MapPin, TrendingUp, Ship, Navigation, LineChart, Anchor, Filter, ChevronDown, Search, X, CheckCircle, XCircle, FileText, Download, Upload, Info, AlertTriangle, Settings, Scale, Coins, Clock, ArrowRight, Database, BarChart3, AlertCircle, Calendar, Map, Layers, Droplet, Trash2, Edit, Save, Eye, FileSpreadsheet
 } from 'lucide-react';
+
+import ActionDialog from '@/components/shared/ActionDialog';
 import { formatDate } from '@/utils/dateHelper';
 import { formatRupiah, formatUangPendek } from '@/utils/formatRupiah';
 import { exportTahunan } from '@/utils/exportTahunan';
@@ -98,6 +98,10 @@ export default function AdminPerikananTangkap() {
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
 
+  // Action Dialog State
+  const [actionDialog, setActionDialog] = useState(null);
+  const [dialogValue, setDialogValue] = useState('');
+
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
     komoditas: [],
@@ -172,28 +176,119 @@ export default function AdminPerikananTangkap() {
     }
   };
 
-  const handleDelete = async (row) => {
-    if (window.confirm(`Yakin ingin menghapus data kapal ${row.nama_kapal}?`)) {
-      try {
-        await api.delete(`/perikanan-tangkap/${row.id}`);
-        fetchData();
-      } catch (error) {
-        console.error('Error deleting data:', error);
-        alert('Gagal menghapus data');
+  const submitActionDialog = async () => {
+    if (!actionDialog) return;
+
+    if (actionDialog.kind === 'reject' && !dialogValue.trim()) {
+      setActionDialog(prev => ({ ...prev, error: 'Alasan penolakan wajib diisi.' }));
+      return;
+    }
+
+    if (actionDialog.kind === 'validation-choice') {
+      if (dialogValue !== actionDialog.expected) {
+        setActionDialog(prev => ({ ...prev, error: 'Pilihan tidak valid.' }));
+        return;
       }
+      setDialogValue('');
+      setActionDialog(prev => ({
+        ...prev,
+        kind: 'validation-confirm',
+        message: `Ketik "${prev.expectedConfirm}" (huruf kapital) untuk menyelesaikan Validasi ${prev.namaValidasi}:`,
+        expected: prev.expectedConfirm,
+        error: ''
+      }));
+      return;
+    }
+
+    if (actionDialog.kind === 'batch-validation-choice') {
+      const jenis = dialogValue;
+      const { selectedRows } = actionDialog.payload;
+      let targetStatus, namaValidasi, expectedConfirm;
+
+      if (jenis === '1') {
+        if (selectedRows.some(r => r.status === 'VERIFIED' || r.status === 'APPROVED')) {
+          setActionDialog(prev => ({ ...prev, error: 'Beberapa data sudah divalidasi Bidang/Program! Pilih PENDING saja.' }));
+          return;
+        }
+        targetStatus = 'APPROVED'; namaValidasi = 'BIDANG'; expectedConfirm = 'SETUJU';
+      } else if (jenis === '2') {
+        if (selectedRows.some(r => r.status !== 'APPROVED')) {
+          setActionDialog(prev => ({ ...prev, error: 'Validasi Program ditolak! Pastikan SEMUA data sudah APPROVED terlebih dahulu.' }));
+          return;
+        }
+        targetStatus = 'VERIFIED'; namaValidasi = 'PROGRAM'; expectedConfirm = 'ACC';
+      } else {
+        setActionDialog(prev => ({ ...prev, error: 'Pilihan tidak valid. Ketik 1 atau 2.' }));
+        return;
+      }
+      setDialogValue('');
+      setActionDialog(prev => ({
+        ...prev,
+        kind: 'validation-confirm',
+        message: `Anda akan menyetujui ${selectedRows.length} data.\nKetik "${expectedConfirm}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`,
+        expected: expectedConfirm,
+        targetStatus,
+        error: ''
+      }));
+      return;
+    }
+
+    if (actionDialog.kind === 'validation-confirm' && dialogValue !== actionDialog.expected) {
+      setActionDialog(prev => ({ ...prev, error: 'Konfirmasi dibatalkan atau kata kunci tidak sesuai.' }));
+      return;
+    }
+
+    setActionDialog(prev => ({ ...prev, loading: true, error: '' }));
+
+    try {
+      const { endpoint, id, isBatch, ids, method = 'put' } = actionDialog.payload;
+
+      if (actionDialog.kind === 'delete') {
+        if (isBatch) await api.post(`${endpoint}/batch-delete`, { ids });
+        else await api.delete(`${endpoint}/${id}`);
+      } 
+      else if (actionDialog.kind === 'reject') {
+        if (isBatch) await api.post(`${endpoint}/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: dialogValue });
+        else await api[method](`${endpoint}/${id}/status`, { status: 'REJECTED', alasan_penolakan: dialogValue });
+      }
+      else if (actionDialog.kind === 'validation-confirm') {
+        const targetStatus = actionDialog.targetStatus;
+        if (isBatch) await api.post(`${endpoint}/batch-status`, { ids, status: targetStatus });
+        else await api[method](`${endpoint}/${id}/status`, { status: targetStatus });
+      }
+
+      setActionDialog(null);
+      setDialogValue('');
+      fetchData();
+      toast.success('Berhasil!');
+    } catch (error) {
+      console.error('Action error:', error);
+      setActionDialog(prev => ({ ...prev, loading: false, error: error?.response?.data?.message || 'Gagal memproses data' }));
     }
   };
 
-  const handleDeleteTahunan = async (row) => {
-    if (window.confirm(`Yakin ingin menghapus data tahunan ${row.tahun} ini?`)) {
-      try {
-        await api.delete(`/tangkap-tahunan/${row.id}`);
-        fetchData();
-      } catch (error) {
-        console.error('Error deleting data tahunan:', error);
-        alert('Gagal menghapus data tahunan');
-      }
-    }
+  const handleDelete = (row) => {
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data Kapal',
+      message: `Yakin ingin menghapus data kapal ${row.nama_kapal}?`,
+      theme: 'DELETE',
+      confirmLabel: 'Hapus',
+      payload: { endpoint: '/perikanan-tangkap', id: row.id }
+    });
+  };
+
+  const handleDeleteTahunan = (row) => {
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data Tahunan',
+      message: `Yakin ingin menghapus data tahunan ${row.tahun} ini?`,
+      theme: 'DELETE',
+      confirmLabel: 'Hapus',
+      payload: { endpoint: '/tangkap-tahunan', id: row.id }
+    });
   };
 
   const handleEdit = (row) => {
@@ -202,261 +297,178 @@ export default function AdminPerikananTangkap() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleApprove = async (row) => {
-    
-
-    let promptMsg = '';
-    let targetStatus = '';
-    let namaValidasi = '';
-    let expectedKeyword = '';
-
+  const handleApprove = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
-      promptMsg = 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:';
-      const jenis = window.prompt(promptMsg);
-      if (jenis !== '1') {
-         if (jenis === '2') alert('Validasi Program ditolak! Data harus divalidasi Bidang terlebih dahulu.');
-         else if (jenis) alert('Pilihan tidak valid.');
-         return;
-      }
-      targetStatus = 'APPROVED';
-      namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU';
+      setActionDialog({
+        open: true,
+        kind: 'validation-choice',
+        title: 'Validasi Bidang',
+        message: 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:',
+        theme: 'INFO',
+        input: true,
+        expected: '1',
+        confirmLabel: 'Lanjut',
+        targetStatus: 'APPROVED',
+        namaValidasi: 'BIDANG',
+        expectedConfirm: 'SETUJU',
+        payload: { endpoint: '/perikanan-tangkap', id: row.id, method: 'put' }
+      });
     } else if (row.status === 'APPROVED') {
-      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:';
-      const jenis = window.prompt(promptMsg);
-      if (jenis !== '2') {
-         if (jenis) alert('Pilihan tidak valid.');
-         return;
-      }
-      targetStatus = 'VERIFIED';
-      namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC';
-    }
-
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== expectedKeyword) {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      await api.put(`/perikanan-tangkap/${row.id}/status`, { status: targetStatus });
-      fetchData();
-    } catch (error) {
-      console.error('Error approving data:', error);
-      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
+      setActionDialog({
+        open: true,
+        kind: 'validation-choice',
+        title: 'Validasi Program',
+        message: 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:',
+        theme: 'INFO',
+        input: true,
+        expected: '2',
+        confirmLabel: 'Lanjut',
+        targetStatus: 'VERIFIED',
+        namaValidasi: 'PROGRAM',
+        expectedConfirm: 'ACC',
+        payload: { endpoint: '/perikanan-tangkap', id: row.id, method: 'put' }
+      });
     }
   };
 
-  const handleReject = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi!');
-      return;
-    }
-    
-    try {
-      await api.put(`/perikanan-tangkap/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-      fetchData();
-    } catch (error) {
-      console.error('Error rejecting data:', error);
-      alert('Gagal menolak data');
-    }
+  const handleReject = (row) => {
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data',
+      message: 'Masukkan alasan penolakan:',
+      theme: 'REJECTED',
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+      payload: { endpoint: '/perikanan-tangkap', id: row.id, method: 'put' }
+    });
   };
 
-  const handleApproveTahunan = async (row) => {
-    let promptMsg = '';
-    let targetStatus = '';
-    let namaValidasi = '';
-    let expectedKeyword = '';
-
+  const handleApproveTahunan = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
-      promptMsg = 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:';
-      const jenis = window.prompt(promptMsg);
-      if (jenis !== '1') {
-         if (jenis === '2') alert('Validasi Program ditolak! Data harus divalidasi Bidang terlebih dahulu.');
-         else if (jenis) alert('Pilihan tidak valid.');
-         return;
-      }
-      targetStatus = 'APPROVED';
-      namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU';
+      setActionDialog({
+        open: true,
+        kind: 'validation-choice',
+        title: 'Validasi Bidang Tahunan',
+        message: 'Data saat ini belum divalidasi Bidang.\nKetik "1" untuk melakukan Validasi Bidang:',
+        theme: 'INFO',
+        input: true,
+        expected: '1',
+        confirmLabel: 'Lanjut',
+        targetStatus: 'APPROVED',
+        namaValidasi: 'BIDANG',
+        expectedConfirm: 'SETUJU',
+        payload: { endpoint: '/tangkap-tahunan', id: row.id, method: 'patch' }
+      });
     } else if (row.status === 'APPROVED') {
-      promptMsg = 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:';
-      const jenis = window.prompt(promptMsg);
-      if (jenis !== '2') {
-         if (jenis) alert('Pilihan tidak valid.');
-         return;
-      }
-      targetStatus = 'VERIFIED';
-      namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC';
-    }
-
-    const confirmText = window.prompt(`Ketik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== expectedKeyword) {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      await api.patch(`/tangkap-tahunan/${row.id}/status`, { status: targetStatus });
-      fetchData();
-    } catch (error) {
-      console.error('Error approving data tahunan:', error);
-      alert(`Gagal menyetujui data: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-  const handleRejectTahunan = async (row) => {
-    const alasan = window.prompt('Masukkan alasan penolakan:');
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi!');
-      return;
-    }
-    
-    try {
-      await api.patch(`/tangkap-tahunan/${row.id}/status`, { status: 'REJECTED', alasan_penolakan: alasan });
-      fetchData();
-    } catch (error) {
-      console.error('Error rejecting data tahunan:', error);
-      alert('Gagal menolak data');
-    }
-  };
-
-  const handleBatchApprove = async (ids) => {
-    const selectedRows = data.filter(row => ids.includes(row.id));
-    
-    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const jenis = window.prompt(promptMsg);
-    if (!jenis) return;
-
-    let targetStatus = '';
-    let namaValidasi = '';
-    let expectedKeyword = '';
-
-    if (jenis === '1') {
-      const invalidRows = selectedRows.filter(row => row.status === 'VERIFIED' || row.status === 'APPROVED');
-      if (invalidRows.length > 0) {
-        alert('Beberapa data yang dipilih sudah divalidasi Bidang/Program! Silakan pilih data yang berstatus PENDING saja.');
-        return;
-      }
-      targetStatus = 'APPROVED';
-      namaValidasi = 'BIDANG';
-      expectedKeyword = 'SETUJU';
-    } else if (jenis === '2') {
-      const invalidRows = selectedRows.filter(row => row.status !== 'APPROVED');
-      if (invalidRows.length > 0) {
-        alert('Validasi Program ditolak! Pastikan SEMUA data yang dipilih sudah divalidasi oleh Bidang (Status: APPROVED) terlebih dahulu.');
-        return;
-      }
-      targetStatus = 'VERIFIED';
-      namaValidasi = 'PROGRAM';
-      expectedKeyword = 'ACC';
-    } else {
-      alert('Pilihan tidak valid.');
-      return;
-    }
-
-    const confirmText = window.prompt(`Anda akan menyetujui ${ids.length} data.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`);
-    if (confirmText !== expectedKeyword) {
-      alert('Konfirmasi dibatalkan atau kata kunci tidak sesuai.');
-      return;
-    }
-
-    try {
-      await api.post(`/perikanan-tangkap/batch-status`, { ids, status: targetStatus });
-      fetchData();
-    } catch (error) {
-      console.error('Error batch approve:', error);
-      alert(`Gagal menyetujui data secara massal: ${error?.response?.data?.message || error.message}`);
-    }
-  };
-
-  const handleBatchReject = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data:`);
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan wajib diisi!');
-      return;
-    }
-    try {
-      await api.post(`/perikanan-tangkap/batch-status`, { ids, status: 'REJECTED', alasan_penolakan: alasan });
-      fetchData();
-    } catch (error) {
-      console.error('Error batch reject:', error);
-      alert('Gagal menolak data secara massal');
-    }
-  };
-
-  const handleBatchDelete = async (ids) => {
-    if (window.confirm(`Yakin ingin menghapus ${ids.length} data ini?`)) {
-      try {
-        await api.post(`/perikanan-tangkap/batch-delete`, { ids });
-        fetchData();
-      } catch (error) {
-        console.error('Error batch delete:', error);
-        alert('Gagal menghapus data secara massal');
-      }
-    }
-  };
-
-  const handleBatchApproveTahunan = async (ids) => {
-    const promptMsg = 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program';
-    const tipeValidasi = window.prompt(promptMsg);
-    
-    if (tipeValidasi === null) return;
-    if (tipeValidasi !== '1' && tipeValidasi !== '2') {
-      alert('Pilihan tidak valid');
-      return;
-    }
-    const targetStatus = tipeValidasi === '1' ? 'VERIFIED' : 'APPROVED';
-
-    try {
-      await api.post(`/tangkap-tahunan/batch-status`, { 
-        ids, 
-        status: targetStatus 
+      setActionDialog({
+        open: true,
+        kind: 'validation-choice',
+        title: 'Validasi Program Tahunan',
+        message: 'Data sudah divalidasi Bidang.\nKetik "2" untuk melakukan Validasi Program:',
+        theme: 'INFO',
+        input: true,
+        expected: '2',
+        confirmLabel: 'Lanjut',
+        targetStatus: 'VERIFIED',
+        namaValidasi: 'PROGRAM',
+        expectedConfirm: 'ACC',
+        payload: { endpoint: '/tangkap-tahunan', id: row.id, method: 'patch' }
       });
-      fetchData();
-    } catch (error) {
-      console.error('Error batch approve tahunan:', error);
-      alert('Gagal menyetujui data secara massal');
     }
   };
 
-  const handleBatchRejectTahunan = async (ids) => {
-    const alasan = window.prompt(`Masukkan alasan penolakan untuk ${ids.length} data tahunan:`);
-    if (alasan === null) return;
-    if (!alasan.trim()) {
-      alert('Alasan penolakan harus diisi');
-      return;
-    }
-
-    try {
-      await api.post(`/tangkap-tahunan/batch-status`, { 
-        ids, 
-        status: 'REJECTED',
-        alasan_penolakan: alasan 
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error batch reject tahunan:', error);
-      alert('Gagal menolak data secara massal');
-    }
+  const handleRejectTahunan = (row) => {
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Data Tahunan',
+      message: 'Masukkan alasan penolakan:',
+      theme: 'REJECTED',
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+      payload: { endpoint: '/tangkap-tahunan', id: row.id, method: 'patch' }
+    });
   };
 
-  const handleBatchDeleteTahunan = async (ids) => {
-    if (window.confirm(`Yakin ingin menghapus ${ids.length} data tahunan ini?`)) {
-      try {
-        await api.post(`/tangkap-tahunan/batch-delete`, { ids });
-        fetchData();
-      } catch (error) {
-        console.error('Error batch delete tahunan:', error);
-        alert('Gagal menghapus data secara massal');
-      }
-    }
+  const handleBatchApprove = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'batch-validation-choice',
+      title: 'Validasi Massal Kapal',
+      message: 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program',
+      theme: 'INFO',
+      input: true,
+      confirmLabel: 'Lanjut',
+      payload: { endpoint: '/perikanan-tangkap', isBatch: true, ids, selectedRows: data.filter(row => ids.includes(row.id)) }
+    });
+  };
+
+  const handleBatchReject = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Massal Kapal',
+      message: `Masukkan alasan penolakan untuk ${ids.length} data:`,
+      theme: 'REJECTED',
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+      payload: { endpoint: '/perikanan-tangkap', isBatch: true, ids }
+    });
+  };
+
+  const handleBatchDelete = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Massal Kapal',
+      message: `Yakin ingin menghapus ${ids.length} data ini?`,
+      theme: 'DELETE',
+      confirmLabel: 'Hapus',
+      payload: { endpoint: '/perikanan-tangkap', isBatch: true, ids }
+    });
+  };
+
+  const handleBatchApproveTahunan = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'batch-validation-choice',
+      title: 'Validasi Massal Tahunan',
+      message: 'Pilih jenis validasi massal (Ketik angka):\n1. Validasi Bidang\n2. Validasi Program',
+      theme: 'INFO',
+      input: true,
+      confirmLabel: 'Lanjut',
+      payload: { endpoint: '/tangkap-tahunan', isBatch: true, ids, selectedRows: tahunanData.filter(row => ids.includes(row.id)) }
+    });
+  };
+
+  const handleBatchRejectTahunan = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'reject',
+      title: 'Tolak Massal Tahunan',
+      message: `Masukkan alasan penolakan untuk ${ids.length} data tahunan:`,
+      theme: 'REJECTED',
+      input: true,
+      multiline: true,
+      confirmLabel: 'Tolak',
+      payload: { endpoint: '/tangkap-tahunan', isBatch: true, ids }
+    });
+  };
+
+  const handleBatchDeleteTahunan = (ids) => {
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Massal Tahunan',
+      message: `Yakin ingin menghapus ${ids.length} data tahunan ini?`,
+      theme: 'DELETE',
+      confirmLabel: 'Hapus',
+      payload: { endpoint: '/tangkap-tahunan', isBatch: true, ids }
+    });
   };
 
   const filteredData = useMemo(() => {
@@ -814,980 +826,6 @@ export default function AdminPerikananTangkap() {
     };
   }, [lautVsPudData, isDark]);
 
-
-
-  
-  const handleExportLMPelabuhan = (exportData, tahun, bulan, wilayah) => {
-    if (!wilayah) {
-       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Monitoring.");
-       return;
-    }
-    const pelabuhanName = wilayah.toUpperCase();
-    let kotaName = '-';
-    // PELABUHAN_TO_KABKOTA might not map the exact string depending on spacing, so let's do a safe lookup
-    Object.keys(PELABUHAN_TO_KABKOTA).forEach(k => {
-        if (k.toUpperCase() === pelabuhanName) {
-            kotaName = PELABUHAN_TO_KABKOTA[k].toUpperCase();
-        }
-    });
-    
-    let totalVol = 0;
-    let totalNilai = 0;
-    const logistikSummaryMap = {};
-    const apiToKomoditasMap = {};
-    const bentukIkanMap = {};
-
-    exportData.forEach(row => {
-      // Logistik
-      if (row.logistik) {
-        try {
-          const parsed = JSON.parse(row.logistik);
-          if (Array.isArray(parsed)) {
-            parsed.forEach(item => {
-              const val = parseFloat(item.jumlah) || 0;
-              logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
-            });
-          }
-        } catch(e) {}
-      }
-
-      // Komoditas
-      const apiName = (row.alat_tangkap || 'TIDAK DIKETAHUI').toUpperCase();
-      if (!apiToKomoditasMap[apiName]) {
-        apiToKomoditasMap[apiName] = {};
-      }
-      
-      if (row.tangkapan && Array.isArray(row.tangkapan)) {
-        row.tangkapan.forEach(t => {
-          const kName = t.komoditas.toUpperCase();
-          const v = parseFloat(t.volume) || 0;
-          const n = parseFloat(t.nilai) || 0;
-          
-          if (!apiToKomoditasMap[apiName][kName]) {
-             apiToKomoditasMap[apiName][kName] = { vol: 0, nilai: 0 };
-          }
-          apiToKomoditasMap[apiName][kName].vol += v;
-          apiToKomoditasMap[apiName][kName].nilai += n;
-          
-          totalVol += v;
-          totalNilai += n;
-
-          const bentuk = t.bentuk_ikan || 'Segar';
-          if (bentuk === 'Segar' || bentuk === 'Beku') {
-             const bKey = kName + '||' + bentuk;
-             if (!bentukIkanMap[bKey]) bentukIkanMap[bKey] = 0;
-             bentukIkanMap[bKey] += v;
-          }
-        });
-      }
-    });
-
-    const rows = [];
-    
-    // HEADER
-    rows.push(['LAPORAN MONITORING PELABUHAN PERIKANAN (PP)', '', '', '', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    rows.push(['LAPORAN BULANAN (12 X 1 TAHUN)', '', '', 'KODE LAPORAN', ': ', '']);
-    rows.push(['', '', '', 'PROVINSI', ': JAWA TIMUR', '']);
-    rows.push(['LAPORAN MONITORING', '', '', 'KOTA', `: ${kotaName}`, '']);
-    rows.push(['PELABUHAN PERIKANAN (PP)', '', '', 'PPP', `: ${pelabuhanName}`, '']);
-    rows.push(['', '', '', 'TAHUN', `: ${tahun || 'Semua'}`, '']);
-    
-    let namaBulan = 'Semua';
-    if (bulan) {
-       const blnInt = parseInt(bulan);
-       if (blnInt >= 1 && blnInt <= 12) {
-          namaBulan = BULAN_OPTIONS[blnInt - 1].toUpperCase();
-       }
-    }
-    rows.push(['', '', '', 'BULAN', `: ${namaBulan}`, '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 1 
-    rows.push(['No', 'Uraian', 'Jumlah', 'Satuan', 'Keterangan', '']);
-    rows.push(['1', 'Nelayan', '', '', '', '']);
-    rows.push(['', ' - Nelayan Utama', '', 'Orang', '', '']);
-    rows.push(['', ' - Nelayan Sambilan', '', 'Orang', '', '']);
-    rows.push(['2', 'Armada Perikanan', '', '', '', '']);
-    rows.push(['', 'a. Kapal Motor', '', 'Unit', '', '']);
-    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 31 - 50 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 51 - 100 GT', '', 'Unit', '', '']);
-    rows.push(['', '*101 - 200 GT', '', 'Unit', '', '']);
-    rows.push(['', '*201 - 300 GT', '', 'Unit', '', '']);
-    rows.push(['', '*301 - 500 GT', '', 'Unit', '', '']);
-    rows.push(['', '* > 500 GT', '', 'Unit', '', '']);
-    rows.push(['', 'b.  Motor Tempel', '', 'Unit', '', '']);
-    rows.push(['', '* < 5 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 6 - 10 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 11 - 20 GT', '', 'Unit', '', '']);
-    rows.push(['', '* 21 - 30 GT', '', 'Unit', '', '']);
-    rows.push(['', '* > 30 GT', '', 'Unit', '', '']);
-    rows.push(['', 'c. Perahu Tanpa Motor', '', 'Unit', '', '']);
-    rows.push(['', '   -  Perahu Papan Kecil', '', 'Unit', '', '']);
-    rows.push(['', '   -  Perahu Papan Sedang', '', 'Unit', '', '']);
-    rows.push(['', '   -  Perahu Papan Besar', '', 'Unit', '', '']);
-    rows.push(['', 'd. Jukung', '', 'Unit', '', '']);
-    
-    // TABEL (Lanjutan 1)
-    rows.push(['3', 'Alat Penangkap Ikan (unit)', '', '', '', '']);
-    rows.push(['', '* Jaring lingkar bertali kerut (Purse Seine)', '', 'Unit', '', '']);
-    rows.push(['', '* Pancing Ulur Tuna', '', 'Unit', '', '']);
-    rows.push(['', '* Tonda', '', 'Unit', '', '']);
-    rows.push(['', '* Rawai Dasar', '', 'Unit', '', '']);
-    rows.push(['', '* Payang', '', 'Unit', '', '']);
-    rows.push(['', '* Jaring Insang Hanyut/J. insang oseanik', '', 'Unit', '', '']);
-    rows.push(['', '* Lain-2', '', 'Unit', '', '']);
-    
-    rows.push(['4', 'Kapal Pengangkut', '', 'Unit', '', '']);
-    rows.push(['5', 'Bakul / Pedagang (orang)', '', 'Orang', '', '']);
-    rows.push(['6', 'Pengolah (unit)', '', 'Unit', '', '']);
-    rows.push(['', '* (harap disesuaikan dengan alat tangkap masing masing di pelabuhan)', '', '', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 2 (Data Kapal)
-    rows.push(['2.    Data Kapal yang bersandar', '', '', '', '', '']);
-    rows.push(['No', 'Kategori Kapal', 'Jumlah (Unit)', 'Frekuensi (Kali)', 'Rata-Rata Periode Operasi (Hari)', 'Keterangan']);
-    rows.push(['1.', 'Kapal Motor', '', '', '', '']);
-    rows.push(['', '* < 5 GT', '', '', '', '']);
-    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
-    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
-    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
-    rows.push(['', '* 31 - 50 GT', '', '', '', '']);
-    rows.push(['', '* 51 - 100 GT', '', '', '', '']);
-    rows.push(['', '*101 - 200 GT', '', '', '', '']);
-    rows.push(['', '*201 - 300 GT', '', '', '', '']);
-    rows.push(['', '*301 - 500 GT', '', '', '', '']);
-    rows.push(['', '* > 500 GT', '', '', '', '']);
-    rows.push(['2.', 'Motor Tempel', '', '', '', '']);
-    rows.push(['', '* < 5 GT', '', '', '', '']);
-    rows.push(['', '* 6 - 10 GT', '', '', '', '']);
-    rows.push(['', '* 11 - 20 GT', '', '', '', '']);
-    rows.push(['', '* 21 - 30 GT', '', '', '', '']);
-    rows.push(['', '* > 30 GT', '', '', '', '']);
-    rows.push(['3.', 'Perahu Tanpa Motor', '', '', '', '']);
-    rows.push(['', '   -  Perahu Papan Kecil', '', '', '', '']);
-    rows.push(['', '   -  Perahu Papan Sedang', '', '', '', '']);
-    rows.push(['', '   -  Perahu Papan Besar', '', '', '', '']);
-    rows.push(['4.', 'Jukung', '', '', '', '']);
-    rows.push(['Jumlah', '', '', '', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 3 (Operasional)
-    rows.push(['3.    Data Operasional Kapal Perikanan dan ABK', '', '', '', '', '']);
-    rows.push(['No.', 'Uraian Kegiatan', 'Jumlah', 'Satuan', 'Keterangan', '']);
-    rows.push(['1', 'Jumlah Kapal', '', '', '', '']);
-    rows.push(['', '* Melaut', '', 'Kapal', '', '']);
-    rows.push(['', '* Tidak Melaut', '', 'Kapal', '', '']);
-    rows.push(['', '* dI Daerah Lain', '', 'Kapal', '', '']);
-    rows.push(['2', 'Jumlah ABK', '', '', '', '']);
-    rows.push(['', '* Melaut', '', 'Orang', '', '']);
-    rows.push(['', '* Tidak Melaut', '', 'Orang', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 4 (Produksi)
-    rows.push(['4.    Produksi, Nilai Produksi serta Retribusi Lelang', '', '', '', '', '']);
-    rows.push(['No.', 'Uraian Data', 'Jumlah', 'Satuan', 'Keterangan', '']);
-    rows.push(['1', 'Produksi Ikan', totalVol, 'Kilogram', '', '']);
-    rows.push(['2', 'Nilai Produksi', totalNilai, 'Rupiah', '', '']);
-    rows.push(['3', 'Retribusi Lelang', '', 'Rupiah', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 5 (Alat Tangkap)
-    rows.push(['5.    Jenis Ikan dan Alat Tangkap yang Digunakan', '', '', '', '', '']);
-    
-    let counter5 = 1;
-    Object.keys(apiToKomoditasMap).sort().forEach(api => {
-       rows.push([`5.${counter5} ${api}`, '', '', '', '', '']);
-       rows.push(['No.', 'Jenis Ikan', 'Volume (Kg)', 'Harga (Rp)', 'Nilai (Rp)', 'Keterangan']);
-       
-       let subCounter = 1;
-       let subTotalVol = 0;
-       let subTotalNilai = 0;
-       
-       Object.keys(apiToKomoditasMap[api]).sort().forEach(kom => {
-           const valObj = apiToKomoditasMap[api][kom];
-           const hargaRata = valObj.vol > 0 ? (valObj.nilai / valObj.vol) : 0;
-           subTotalVol += valObj.vol;
-           subTotalNilai += valObj.nilai;
-           
-           rows.push([subCounter++, kom, valObj.vol, hargaRata, valObj.nilai, '']);
-       });
-       
-       rows.push(['', 'TOTAL', subTotalVol, '', subTotalNilai, '']);
-       rows.push(['', '', '', '', '', '']);
-       counter5++;
-    });
-    
-    // TABEL 6
-    rows.push(['6.    Daerah Pemasaran dan Tujuan Pemasaran Ikan', '', '', '', '', '']);
-    rows.push(['No.', 'Wilayah', 'Kota', 'Jumlah', 'Keterangan', '']);
-    rows.push(['1', 'Dalam Kota', '', '', '', '']);
-    rows.push(['2', 'Luar Kota', '', '', '', '']);
-    rows.push(['3', 'Luar Provinsi', '', '', '', '']);
-    rows.push(['4', 'Luar Negeri', '', '', '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 7
-    rows.push(['7.    Bentuk Ikan yang Dipasarkan', '', '', '', '', '']);
-    rows.push(['No.', 'Jenis Ikan', 'Segar/Beku', 'Jumlah (Kg)', 'Keterangan', '']);
-    
-    let table7Total = 0;
-    let counter7 = 1;
-    const sortedKeys = Object.keys(bentukIkanMap).sort();
-    sortedKeys.forEach(key => {
-       const volume = bentukIkanMap[key];
-       if (volume > 0) {
-          const [jenis, bentuk] = key.split('||');
-          rows.push([counter7++, jenis, bentuk, volume, '', '']);
-          table7Total += volume;
-       }
-    });
-    
-    if (counter7 === 1) {
-       rows.push(['1', '-', '-', 0, '', '']);
-    }
-    
-    rows.push(['', 'TOTAL', '', table7Total, '', '']);
-    rows.push(['', '', '', '', '', '']);
-    
-    // TABEL 8
-    rows.push(['8.    Perbekalan Kapal', '', '', '', '', '']);
-    rows.push(['No.', 'Perbekalan', 'Jumlah', 'Satuan', 'Keterangan', '']);
-    
-    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
-        const val = logistikSummaryMap[pb.nama] || '';
-        rows.push([idx + 1, pb.nama, val, pb.satuan, '', '']);
-    });
-    
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-
-    const merges = [];
-    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
-    merges.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 1 } });
-    merges.push({ s: { r: 5, c: 0 }, e: { r: 5, c: 1 } });
-    merges.push({ s: { r: 6, c: 0 }, e: { r: 6, c: 1 } });
-    ws['!merges'] = merges;
-
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    
-    let activeEndCol = 5;
-    
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      const firstCell = rows[R] ? rows[R][0] : '';
-      
-      let isRowEmpty = true;
-      for (let C = 0; C <= 5; ++C) {
-         if (rows[R] && rows[R][C] !== '') {
-             isRowEmpty = false;
-         }
-      }
-      
-      if (isRowEmpty) {
-         activeEndCol = 0;
-         continue;
-      }
-
-      const isMainTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.\s+/);
-      const isSubTableTitle = typeof firstCell === 'string' && firstCell.match(/^[0-9]+\.[0-9]+/);
-      const isTableTitle = isMainTableTitle || isSubTableTitle;
-      const isTableHeader = firstCell === 'No' || firstCell === 'No.';
-      
-      if (isTableHeader) {
-         let maxCol = 0;
-         for (let C = 0; C <= 5; ++C) {
-            if (rows[R][C] !== '') maxCol = C;
-         }
-         activeEndCol = maxCol;
-      }
-
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-
-        if (typeof ws[cellRef].v === 'number') {
-            if (ws[cellRef].v === 0) {
-               ws[cellRef].v = '-';
-               ws[cellRef].t = 's';
-            } else {
-               ws[cellRef].z = '#,##0';
-            }
-        }
-
-        if (R === 0) {
-           ws[cellRef].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } };
-        } else if (R >= 3 && R <= 8) {
-           ws[cellRef].s = { font: { bold: true } };
-        } else if (R >= 10 && !isRowEmpty) {
-           if (isTableTitle) {
-              if (C === 0) {
-                 ws[cellRef].s = { 
-                    font: { bold: true, sz: 11, color: { rgb: "1E293B" } }, 
-                    fill: { fgColor: { rgb: "F1F5F9" } },
-                    alignment: { vertical: 'center' }
-                 };
-                 if (!ws['!merges']) ws['!merges'] = [];
-                 ws['!merges'].push({ s: { r: R, c: 0 }, e: { r: R, c: 5 } });
-              }
-           } else if (C <= activeEndCol) {
-               const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-               ws[cellRef].s = { border: borderStyle, alignment: { vertical: 'center' } };
-               
-               if (isTableHeader) {
-                  ws[cellRef].s.font = { bold: true, color: { rgb: "FFFFFF" } };
-                  ws[cellRef].s.fill = { fgColor: { rgb: "3B82F6" } };
-                  ws[cellRef].s.alignment = { horizontal: 'center', vertical: 'center' };
-               } else {
-                  if (C === 0 && typeof ws[cellRef].v === 'string' && ws[cellRef].v.match(/^[0-9]\.$/)) {
-                     ws[cellRef].s.font = { bold: true };
-                  }
-                  if (rows[R][1] === 'TOTAL' || rows[R][0] === 'Jumlah') {
-                     ws[cellRef].s.font = { bold: true };
-                     ws[cellRef].s.fill = { fgColor: { rgb: "F8FAFC" } };
-                  }
-               }
-           }
-        }
-      }
-    }
-
-    const colWidths = [{ wch: 8 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 25 }];
-    ws['!cols'] = colWidths;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Laporan_Monitoring");
-    XLSX.writeFile(wb, `LM_${pelabuhanName}_${namaBulan}_${tahun || ''}.xlsx`);
-  };
-
-  const handleExportLaporanPUD = async (exportData, tahun, bulan, wilayah, jenisPerairan) => {
-    try {
-      const pudData = exportData;
-      if (pudData.length === 0) {
-        alert("Tidak ada data untuk diekspor pada filter ini.");
-        return;
-      }
-
-      const ids = pudData.map(d => d.id);
-      
-      const response = await api.post('/perikanan-tangkap/export-pud', {
-        ids,
-        tahun: tahun,
-        bulan: bulan,
-        wilayah: wilayah,
-        jenis_perairan: jenisPerairan
-      }, { responseType: 'blob' });
-
-      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
-      const fileWilayah = wilayah || 'Semua';
-      const fileJenis = jenisPerairan || 'PUD';
-      const fileTahun = tahun || 'All';
-      
-      const url = window.URL.createObjectURL(response.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `PUHIT_${fileJenis}_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      console.error(err);
-      alert("Gagal melakukan export PUD: " + err.message);
-    }
-  };
-
-  const handleExportLaporanNonPelabuhan = async (exportData, tahun, bulan, wilayah) => {
-    try {
-      const npData = exportData;
-      if (npData.length === 0) {
-        alert("Tidak ada data untuk diekspor pada filter ini.");
-        return;
-      }
-
-      const ids = npData.map(d => d.id);
-      
-      const response = await api.post('/perikanan-tangkap/export-non-pelabuhan', {
-        ids,
-        tahun: tahun,
-        bulan: bulan,
-        wilayah: wilayah
-      }, { responseType: 'blob' });
-
-      const namaBulanMap = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-      const fileBulan = bulan ? namaBulanMap[Number(bulan)] : 'AllBulan';
-      const fileWilayah = wilayah || 'Semua';
-      const fileTahun = tahun || 'All';
-      
-      const url = window.URL.createObjectURL(response.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `PRODUKSI_LHIT_${fileWilayah}_${fileBulan}_${fileTahun}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      console.error(err);
-      alert("Gagal melakukan export Non Pelabuhan: " + err.message);
-    }
-  };
-
-    const handleExportLaporanPelabuhan = (exportData, tahun, bulan, wilayah) => {
-    if (!wilayah) {
-       alert("Pilih Pelabuhan terlebih dahulu untuk ekspor Laporan Rekap.");
-       return;
-    }
-    const pelabuhanName = wilayah.toUpperCase();
-    const dateStr = tahun ? (bulan ? `${bulan}/${tahun}` : tahun) : 'Semua Waktu';
-    
-    let summaryDateStr = dateStr;
-    if (tahun && bulan) {
-       summaryDateStr = 'BULAN INI';
-    } else if (filterTahun) {
-       summaryDateStr = 'TAHUN INI';
-    } else {
-       summaryDateStr = 'SELURUH WAKTU';
-    }
-    
-    // Rows
-    const row0 = [`REKAPITULASI DATA LAYANAN PELABUHAN ${pelabuhanName}`];
-    const row1 = [`Hari, Tgl / Bln / Thn : ${dateStr}`];
-    const row2 = [];
-    const row3 = ['1. PRODUKSI PELABUHAN'];
-    
-    const row4 = ['NO', 'TANGGAL', 'WAKTU LABUH', 'WAKTU BONGKAR', 'Jenis Muatan', 'WPPNRI', 'Nama Kapal', 'Ukuran', 'API', 'Kapal Pengangkut', 'Logistik / Perbekalan'];
-    for (let i = 0; i < PERBEKALAN_OPTIONS.length - 1; i++) row4.push('');
-    row4.push('Total Produksi', '', 'I k a n');
-    
-    const row5 = ['', '', '', '', '', '', '', '', '', ''];
-    const row6 = ['', '', '', '', '', '', '', '', '', ''];
-    
-    PERBEKALAN_OPTIONS.forEach(pb => {
-      row5.push(`${pb.nama} (${pb.satuan})`);
-      row6.push('');
-    });
-    
-    row5.push('', '');
-    row6.push('Volume', 'Nilai');
-    
-    const komoditasTotalMap = {};
-    const komoditasArray = [...KOMODITAS_OPTIONS];
-    komoditasArray.forEach(kom => {
-      row5.push(kom, '', '');
-      row6.push('Vol', 'Harga', 'Nilai');
-      komoditasTotalMap[kom] = { vol: 0, nilai: 0 };
-    });
-
-    let totalKeseluruhanVol = 0;
-    let totalKeseluruhanNilai = 0;
-    let totalLangsungVol = 0;
-    let totalLangsungNilai = 0;
-    let totalAlihMuatVol = 0;
-    let totalAlihMuatNilai = 0;
-    const apiSummaryMap = {};
-    const logistikSummaryMap = {};
-
-    const dataRows = exportData.map((row, idx) => {
-      let totalVol = 0;
-      let totalNilai = 0;
-      const komMap = {};
-      
-      if (row.tangkapan && Array.isArray(row.tangkapan)) {
-        row.tangkapan.forEach(t => {
-          totalVol += Number(t.volume) || 0;
-          totalNilai += Number(t.nilai) || 0;
-          komMap[t.komoditas] = {
-            vol: t.volume,
-            harga: t.harga,
-            nilai: t.nilai
-          };
-          
-          if (komoditasTotalMap[t.komoditas]) {
-            komoditasTotalMap[t.komoditas].vol += Number(t.volume) || 0;
-            komoditasTotalMap[t.komoditas].nilai += Number(t.nilai) || 0;
-          }
-        });
-      }
-
-      totalKeseluruhanVol += totalVol;
-      totalKeseluruhanNilai += totalNilai;
-
-      const hasKapalPengangkut = row.kapal_pengangkut && row.kapal_pengangkut.trim() !== '';
-      if (hasKapalPengangkut) {
-        totalAlihMuatVol += totalVol;
-        totalAlihMuatNilai += totalNilai;
-      } else {
-        totalLangsungVol += totalVol;
-        totalLangsungNilai += totalNilai;
-      }
-
-      const apiName = row.alat_tangkap || 'Tidak Diketahui';
-      if (!apiSummaryMap[apiName]) apiSummaryMap[apiName] = { vol: 0, nilai: 0, alihMuatVol: 0, alihMuatNilai: 0 };
-      
-      if (hasKapalPengangkut) {
-        apiSummaryMap[apiName].alihMuatVol += totalVol;
-        apiSummaryMap[apiName].alihMuatNilai += totalNilai;
-      } else {
-        apiSummaryMap[apiName].vol += totalVol;
-        apiSummaryMap[apiName].nilai += totalNilai;
-      }
-
-      const baseRow = [
-        idx + 1,
-        row.tanggal ? formatDate(row.tanggal) : '-',
-        row.jam_labuh || '-',
-        row.jam_bongkar || '-',
-        hasKapalPengangkut ? 'Alih Muat' : 'Hasil Tangkapan',
-        '', // WPPNRI dikosongkan sesuai permintaan
-        row.nama_kapal || '-',
-        row.gt_kapal || '-',
-        row.alat_tangkap || '-',
-        hasKapalPengangkut ? row.kapal_pengangkut : ''
-      ];
-      
-      const logistikData = {};
-      if (row.logistik) {
-        try {
-          const parsed = JSON.parse(row.logistik);
-          if (Array.isArray(parsed)) {
-            parsed.forEach(item => { 
-                const val = parseFloat(item.jumlah) || 0;
-                logistikData[item.nama] = val; 
-                logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
-              });
-          }
-        } catch(e) {}
-      }
-      PERBEKALAN_OPTIONS.forEach(pb => {
-        baseRow.push(logistikData[pb.nama] || '');
-      });
-
-      baseRow.push(totalVol, totalNilai);
-
-      komoditasArray.forEach(kom => {
-        if (komMap[kom]) {
-          baseRow.push(komMap[kom].vol, komMap[kom].harga, komMap[kom].nilai);
-        } else {
-          baseRow.push('-', '-', '-');
-        }
-      });
-      return baseRow;
-    });
-
-    const rowTotal1 = ['TOTAL TANGKAPAN', '', '', '', '', '', '', '', '', ''];
-    const rowTotal2 = ['Nilai', '', '', '', '', '', '', '', '', ''];
-    
-    PERBEKALAN_OPTIONS.forEach(() => {
-        rowTotal1.push('');
-        rowTotal2.push('');
-    });
-    rowTotal1.push(totalKeseluruhanVol, '');
-    rowTotal2.push('', totalKeseluruhanNilai);
-    
-    komoditasArray.forEach(kom => {
-      const tot = komoditasTotalMap[kom];
-      if (tot.vol > 0 || tot.nilai > 0) {
-        rowTotal1.push(tot.vol, '', '');
-        rowTotal2.push('', '', tot.nilai);
-      } else {
-        rowTotal1.push('-', '-', '-');
-        rowTotal2.push('-', '-', '-');
-      }
-    });
-
-    const emptyRow = [];
-    
-    // Tabel TOTAL PENDARATAN IKAN API
-    const summaryHeader1 = [`TOTAL PENDARATAN IKAN ${summaryDateStr}`];
-    const summaryHeader2 = ['No.', 'Alat Penangkapan Ikan', 'Pendaratan Langsung', '', 'Alih Muat', ''];
-    const summaryHeader3 = ['', '', 'Volume (Kg)', 'Nilai (Rp)', 'Volume (Kg)', 'Nilai (Rp)'];
-    
-    const summaryRows = [];
-    let summaryIndex = 1;
-    Object.keys(apiSummaryMap).sort().forEach(apiName => {
-      summaryRows.push([
-        summaryIndex++,
-        apiName.toUpperCase(),
-        apiSummaryMap[apiName].vol || '-',
-        apiSummaryMap[apiName].nilai || '-',
-        apiSummaryMap[apiName].alihMuatVol || '-',
-        apiSummaryMap[apiName].alihMuatNilai || '-'
-      ]);
-    });
-    
-    const summaryTotalRow = ['Total Produksi', '', totalLangsungVol || '-', totalLangsungNilai || '-', totalAlihMuatVol || '-', totalAlihMuatNilai || '-'];
-
-    
-    const operasionalHeader = ['2. OPERASIONAL PELABUHAN'];
-    const operasionalRows = [
-      ['1', 'Jumlah kapal yang terlayani', '', '', '', '', '', '', '', ''],
-      ['', 'a. Di dalam Kolam Labuh', '', '', '', '', '', '', 'Unit', ''],
-      ['', 'b. Di luar kolam (Area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
-      ['', 'c. Diluar kolam (luar area WKOPP)', '', '', '', '', '', '', 'Unit', ''],
-      ['2', 'Trip Kapal', '', '', '', '', '', '', 'Trip', ''],
-      ['3', 'STBLKK', '', '', '', '', '', '', '', ''],
-      ['', 'a. Keberangkatan', '', '', '', '', '', '', 'Dokumen', ''],
-      ['', 'b. Kedatangan', '', '', '', '', '', '', 'Dokumen', ''],
-      ['4', 'Rekomendasi BBM Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
-      ['5', 'Rekomendasi BBM Non Subsidi', '', '', '', '', '', '', 'Dokumen', ''],
-      ['6', 'Penerbitan SPB', '', '', '', '', '', '', 'Dokumen', ''],
-      ['7', 'Penerbitan CPIB', '', '', '', '', '', '', 'Dokumen', ''],
-      ['8', 'Penerimaan Logbook', '', '', '', '', '', '', 'Dokumen', ''],
-      ['9', 'Penerbitan SHTI', '', '', '', '', '', '', 'Dokumen', ''],
-      ['10', 'Penerbitan ICCAT', '', '', '', '', '', '', 'Dokumen', ''],
-      ['11', 'Data Logistik :', '', '', '', '', '', '', '', '']
-    ];
-
-    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-    PERBEKALAN_OPTIONS.forEach((pb, idx) => {
-        const logistikTotalValue = logistikSummaryMap[pb.nama] || 0;
-        const letter = alphabet[idx] || '';
-        operasionalRows.push(['', `${letter}. ${pb.nama}`, '', '', '', '', logistikTotalValue > 0 ? logistikTotalValue : '-', '', pb.satuan, '']);
-    });
-
-    const allRowsToRender = [
-      row0, row1, row2, row3, row4, row5, row6, 
-      ...dataRows, 
-      rowTotal1, rowTotal2, 
-      emptyRow, emptyRow,
-      summaryHeader1, summaryHeader2, summaryHeader3,
-      ...summaryRows,
-      summaryTotalRow,
-      emptyRow, emptyRow,
-      operasionalHeader,
-      ...operasionalRows
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(allRowsToRender);
-
-    const borderStyle = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-    const boldCenter = { font: { bold: true, color: { rgb: "000000" } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: borderStyle, fill: { fgColor: { rgb: "EFEFEF" } } };
-    const normalCenter = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle };
-    
-    const totalRowStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FFFF00" } } };
-    const totalRowStyle2 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "C9DAF8" } } };
-    const summaryHeaderStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
-    const summaryDataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
-    const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } };
-    const summaryGreenStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
-
-    const summaryStartRowIndex = 7 + dataRows.length + 4; // index 0-based
-
-    
-    const operasionalStartIndex = allRowsToRender.indexOf(operasionalHeader);
-
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-
-        if (R === 0) ws[cellRef].s = { font: { bold: true, sz: 14 } };
-        else if (R === 3) ws[cellRef].s = { font: { bold: true } };
-        else if (R >= 4 && R <= 6) ws[cellRef].s = boldCenter;
-        else if (R >= 7 && R < 7 + dataRows.length) {
-            ws[cellRef].s = normalCenter;
-            if (typeof ws[cellRef].v === 'number') {
-              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
-              else ws[cellRef].z = '#,##0';
-            }
-        } else if (R === 7 + dataRows.length) {
-            ws[cellRef].s = totalRowStyle1; 
-            if (typeof ws[cellRef].v === 'number') {
-              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
-              else ws[cellRef].z = '#,##0';
-            }
-        } else if (R === 7 + dataRows.length + 1) {
-            ws[cellRef].s = totalRowStyle2;
-            if (typeof ws[cellRef].v === 'number') {
-              if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
-              else ws[cellRef].z = '#,##0';
-            }
-        } else if (R === summaryStartRowIndex || R === summaryStartRowIndex + 1 || R === summaryStartRowIndex + 2) {
-            if (C <= 5) ws[cellRef].s = summaryHeaderStyle1;
-        } else if (R > summaryStartRowIndex + 2 && R < summaryStartRowIndex + 3 + summaryRows.length) {
-            if (C <= 5) {
-              ws[cellRef].s = summaryDataStyle;
-              if (typeof ws[cellRef].v === 'number') {
-                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
-                else ws[cellRef].z = '#,##0';
-              }
-            }
-        } else if (R === summaryStartRowIndex + 3 + summaryRows.length) {
-            if (C <= 5) {
-              ws[cellRef].s = summaryTotalStyle;
-              if (typeof ws[cellRef].v === 'number') {
-                if (ws[cellRef].v === 0) { ws[cellRef].v = '-'; ws[cellRef].t = 's'; }
-                else ws[cellRef].z = '#,##0';
-              }
-            }
-        } else if (R === operasionalStartIndex) {
-            if (C <= 9) ws[cellRef].s = { font: { bold: true, sz: 12 }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E69138" } } };
-        } else if (R > operasionalStartIndex && R <= operasionalStartIndex + operasionalRows.length) {
-            if (C <= 9) {
-               ws[cellRef].s = { alignment: { vertical: 'center' }, border: borderStyle };
-               if (C === 0) ws[cellRef].s.alignment.horizontal = 'center'; // No.
-               if (C === 6) ws[cellRef].s.alignment.horizontal = 'center'; // Value
-               if (C === 8) ws[cellRef].s.alignment.horizontal = 'center'; // Unit
-               if (C === 6 && typeof ws[cellRef].v === 'number') {
-                  ws[cellRef].z = '#,##0';
-               }
-            }
-        }
-      }
-    }
-
-    const totalBaseCols = 10 + PERBEKALAN_OPTIONS.length + 2;
-    const totalCols = totalBaseCols + (komoditasArray.length * 3);
-    const totalColStart = 10 + PERBEKALAN_OPTIONS.length;
-    const ikanColStart = totalColStart + 2;
-    
-    const merges = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
-      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } }
-    ];
-    
-    for (let i = 0; i < 10; i++) {
-      merges.push({ s: { r: 4, c: i }, e: { r: 6, c: i } });
-    }
-    
-    merges.push({ s: { r: 4, c: 10 }, e: { r: 4, c: 10 + PERBEKALAN_OPTIONS.length - 1 } });
-    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) {
-      merges.push({ s: { r: 5, c: 10 + i }, e: { r: 6, c: 10 + i } });
-    }
-    
-    merges.push({ s: { r: 4, c: totalColStart }, e: { r: 5, c: totalColStart + 1 } });
-    merges.push({ s: { r: 4, c: ikanColStart }, e: { r: 4, c: totalCols - 1 } });
-    
-    let currentCol = ikanColStart;
-    komoditasArray.forEach(() => {
-      merges.push({ s: { r: 5, c: currentCol }, e: { r: 5, c: currentCol + 2 } });
-      currentCol += 3;
-    });
-
-    // Merge TOTAL TANGKAPAN (dari NO ke ujung Logistik)
-    merges.push({ s: { r: 7 + dataRows.length, c: 0 }, e: { r: 7 + dataRows.length, c: totalColStart - 1 } });
-    // Merge Nilai (dari NO ke Total Produksi Volume)
-    merges.push({ s: { r: 7 + dataRows.length + 1, c: 0 }, e: { r: 7 + dataRows.length + 1, c: totalColStart } });
-
-    
-    // Merges for summary table
-    merges.push({ s: { r: summaryStartRowIndex, c: 0 }, e: { r: summaryStartRowIndex, c: 5 } });
-    merges.push({ s: { r: summaryStartRowIndex + 1, c: 0 }, e: { r: summaryStartRowIndex + 2, c: 0 } }); // No.
-    merges.push({ s: { r: summaryStartRowIndex + 1, c: 1 }, e: { r: summaryStartRowIndex + 2, c: 1 } }); // Alat Penangkapan Ikan
-    merges.push({ s: { r: summaryStartRowIndex + 1, c: 2 }, e: { r: summaryStartRowIndex + 1, c: 3 } }); // Pendaratan Langsung
-    merges.push({ s: { r: summaryStartRowIndex + 1, c: 4 }, e: { r: summaryStartRowIndex + 1, c: 5 } }); // Alih Muat
-    merges.push({ s: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 0 }, e: { r: summaryStartRowIndex + 3 + summaryRows.length, c: 1 } }); // Total Produksi
-
-    // Merges for Operasional table
-    merges.push({ s: { r: operasionalStartIndex, c: 0 }, e: { r: operasionalStartIndex, c: 9 } });
-    for (let rIdx = 0; rIdx < operasionalRows.length; rIdx++) {
-       const actRow = operasionalStartIndex + 1 + rIdx;
-       merges.push({ s: { r: actRow, c: 1 }, e: { r: actRow, c: 5 } }); // Nama item (cols 1-5)
-       merges.push({ s: { r: actRow, c: 6 }, e: { r: actRow, c: 7 } }); // Value (cols 6-7)
-       merges.push({ s: { r: actRow, c: 8 }, e: { r: actRow, c: 9 } }); // Unit (cols 8-9)
-    }
-
-    ws['!merges'] = merges;
-
-    const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
-    for (let i = 0; i < PERBEKALAN_OPTIONS.length; i++) colWidths.push({ wch: 15 });
-    colWidths.push({ wch: 15 }, { wch: 20 }); // Total Produksi Vol & Nilai
-    
-    komoditasArray.forEach(() => colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 12 }));
-    ws['!cols'] = colWidths;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Produksi_Pelabuhan");
-    XLSX.writeFile(wb, `Laporan_${pelabuhanName}_${dateStr.replace('/', '-')}.xlsx`);
-  };
-
-  const handleModalExport = () => {
-    if (activeTab === 'tahunan') {
-      let dataToExport = tahunanData;
-      if (exportModalTahun) dataToExport = dataToExport.filter(d => d.tahun === exportModalTahun);
-      if (exportModalPerairan) dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
-      if (exportModalWilayah) dataToExport = dataToExport.filter(d => (d.pelabuhan || d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase());
-      
-      exportTahunan(dataToExport, exportModalTahun, exportModalPerairan);
-      setIsExportModalOpen(false);
-      return;
-    }
-
-    // Filter by status if selected, otherwise all
-    let dataToExport = data;
-    if (filterStatus && filterStatus.length > 0) {
-      dataToExport = dataToExport.filter(d => filterStatus.includes(d.status));
-    }
-    
-    if (exportModalPerairan) {
-      dataToExport = dataToExport.filter(d => d.sumber_data === exportModalPerairan);
-    }
-    
-    if (exportModalTahun) {
-      dataToExport = dataToExport.filter(d => {
-        if (!d.tanggal) return false;
-        const dYear = new Date(d.tanggal).getFullYear().toString();
-        return dYear === exportModalTahun;
-      });
-    }
-    
-    if (exportModalBulan) {
-      dataToExport = dataToExport.filter(d => {
-        if (!d.tanggal) return false;
-        const dMonth = String(new Date(d.tanggal).getMonth() + 1);
-        return dMonth === exportModalBulan || dMonth.padStart(2, '0') === exportModalBulan;
-      });
-    }
-    
-    if (exportModalWilayah) {
-        dataToExport = dataToExport.filter(d => {
-           const matchesPelabuhan = (d.pelabuhan || '').toUpperCase() === exportModalWilayah.toUpperCase();
-           const matchesKabKota = (d.kabupaten_kota || '').toUpperCase() === exportModalWilayah.toUpperCase();
-           return matchesPelabuhan || matchesKabKota;
-        });
-      }
-
-      if (exportModalPerairan === 'PUD' && exportModalJenisPerairan) {
-        dataToExport = dataToExport.filter(d => d.jenis_perairan === exportModalJenisPerairan);
-      }
-    
-    if (exportModalPerairan === 'PELABUHAN' && exportModalJenis === 'LM') {
-      handleExportLMPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-      setIsExportModalOpen(false);
-      return;
-    }
-    
-      if (exportModalPerairan === 'PELABUHAN') {
-        handleExportLaporanPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-      } else if (exportModalPerairan === 'PUD') {
-        handleExportLaporanPUD(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah, exportModalJenisPerairan);
-      } else if (exportModalPerairan === 'KAB_KOTA') {
-        handleExportLaporanNonPelabuhan(dataToExport, exportModalTahun, exportModalBulan, exportModalWilayah);
-      } else {
-        alert('Pilih Sumber Perairan terlebih dahulu.');
-      }
-    setIsExportModalOpen(false);
-  };
-
-const columns = useMemo(() => [
-    {
-      header: 'Status',
-      accessorKey: 'status',
-      cell: info => {
-        const row = info.row.original;
-        const pelabuhanText = row.pelabuhan || row.kabupaten_kota || '-';
-
-        const contextFields = [
-          { label: 'Perairan / Wilayah', value: pelabuhanText },
-          { label: 'Nama Kapal / Populasi Alat', value: row.sumber_data === 'PELABUHAN' ? row.nama_kapal : (row.pud_populasi_alat + ' Unit') },
-          { label: 'Alat Tangkap', value: row.alat_tangkap },
-          { label: 'Tanggal Input', value: formatDate(row.tanggal) }
-        ];
-
-        return (
-          <StatusBadge 
-            row={row} 
-            onEdit={() => handleEdit(row)} 
-            contextFields={contextFields} 
-          />
-        );
-      }
-    },
-    {
-      header: 'Tanggal',
-      accessorKey: 'tanggal',
-      cell: info => formatDate(info.getValue())
-    },
-    {
-      header: 'Perairan',
-      accessorKey: 'sumber_data',
-      cell: info => {
-        const val = info.getValue() || 'PELABUHAN';
-        if (val === 'PUD') return 'PUD';
-        if (val === 'KAB_KOTA') return 'Non Pelabuhan';
-        return 'Pelabuhan';
-      }
-    },
-    {
-      header: 'Pelabuhan/Wilayah',
-      accessorKey: 'pelabuhan',
-      cell: info => {
-        const val = info.getValue();
-        const row = info.row.original;
-        if (row.sumber_data === 'PUD') {
-          return `${row.kabupaten_kota || '-'} (${row.jenis_perairan || 'PUD'})`;
-        }
-        if (row.sumber_data === 'KAB_KOTA') {
-          return `${row.kabupaten_kota || '-'} (${row.pelabuhan || '-'}, WPP ${row.jenis_perairan || '-'})`;
-        }
-        return val || row.kabupaten_kota || '-';
-      }
-    },
-    {
-      header: 'Nama Kapal / Populasi Alat (PUD/KAB)',
-      accessorKey: 'nama_kapal',
-      cell: info => {
-        const row = info.row.original;
-        if (row.sumber_data === 'PUD' || row.sumber_data === 'KAB_KOTA') {
-          return `${row.pud_populasi_alat || '-'} Unit`;
-        }
-        return row.nama_kapal || '-';
-      }
-    },
-    {
-      header: 'GT Kapal',
-      accessorKey: 'gt_kapal'
-    },
-    {
-      header: 'Alat Tangkap',
-      accessorKey: 'alat_tangkap'
-    }
-  ], []);
-
-  const renderSubComponent = ({ row }) => {
-    const tangkapan = row.original.tangkapan || [];
-    if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
-    
-    return (
-      <div className="p-4 bg-muted/10 border-l-4 border-primary">
-        <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
-          Detail Komoditas Tangkapan
-        </h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Komoditas</th>
-                <th className="px-4 py-2 font-medium">Volume (Kg)</th>
-                <th className="px-4 py-2 font-medium text-right">Harga (Rp/Kg)</th>
-                <th className="px-4 py-2 font-medium text-right">Nilai Produksi (Rp)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-card">
-              {tangkapan.map((item, index) => (
-                <tr key={index} className="hover:bg-muted/50">
-                  <td className="px-4 py-2 font-medium">{item.komoditas}</td>
-                  <td className="px-4 py-2">{item.volume.toLocaleString('id-ID')}</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(item.harga)}</td>
-                  <td className="px-4 py-2 text-right">{formatRupiah(item.nilai)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   const komoditasChartOption = useMemo(() => {
     const categories = computedStats.komoditas.map(item => item.komoditas);
     const values = computedStats.komoditas.map(item => (item._sum.volume || 0) / 1000);
@@ -1862,7 +900,113 @@ const columns = useMemo(() => [
     };
   }, [computedStats.tren, isDark]);
 
+  const columns = useMemo(() => [
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: info => {
+        const row = info.row.original;
+        const pelabuhanText = row.pelabuhan || row.kabupaten_kota || '-';
 
+        const contextFields = [
+          { label: 'Perairan / Wilayah', value: pelabuhanText },
+          { label: 'Nama Kapal / Populasi Alat', value: row.sumber_data === 'PELABUHAN' ? row.nama_kapal : (row.pud_populasi_alat + ' Unit') },
+          { label: 'Alat Tangkap', value: row.alat_tangkap },
+          { label: 'Tanggal Input', value: formatDate(row.tanggal) }
+        ];
+
+        return (
+          <StatusBadge 
+            row={row} 
+            onEdit={() => handleEdit(row)} 
+            contextFields={contextFields} 
+          />
+        );
+      }
+    },
+    {
+      header: 'Tanggal',
+      accessorKey: 'tanggal',
+      cell: info => formatDate(info.getValue())
+    },
+    {
+      header: 'Perairan',
+      accessorKey: 'sumber_data',
+      cell: info => {
+        const val = info.getValue() || 'PELABUHAN';
+        if (val === 'PUD') return 'PUD';
+        if (val === 'KAB_KOTA') return 'Non Pelabuhan';
+        return 'Pelabuhan';
+      }
+    },
+    {
+      header: 'Pelabuhan/Wilayah',
+      accessorKey: 'pelabuhan',
+      cell: info => {
+        const val = info.getValue();
+        const row = info.row.original;
+        if (row.sumber_data === 'PUD') {
+           return row.jenis_perairan || '-';
+        }
+        return val || row.kabupaten_kota || '-';
+      }
+    },
+    {
+      header: 'Kapal / Populasi Alat (PUD/KAB)',
+      accessorKey: 'nama_kapal',
+      cell: info => (
+        <div>
+          <p className="font-medium text-foreground">{info.row.original.sumber_data === 'PUD' ? (info.row.original.pud_populasi_alat ? `${info.row.original.pud_populasi_alat} Unit` : '-') : (info.getValue() || '-')}</p>
+          {info.row.original.sumber_data !== 'PUD' && <p className="text-xs text-muted-foreground mt-0.5">{info.row.original.pelabuhan || info.row.original.kabupaten_kota || '-'}</p>}
+        </div>
+      )
+    },
+    {
+      header: 'GT Kapal',
+      accessorKey: 'gt_kapal',
+      cell: info => info.row.original.sumber_data === 'PUD' ? '-' : (info.getValue() || '-')
+    },
+    {
+      header: 'Alat Tangkap',
+      accessorKey: 'alat_tangkap',
+      cell: info => info.getValue() || '-'
+    }
+  ], []);
+
+  const renderSubComponent = ({ row }) => {
+    const tangkapan = row.original.tangkapan || [];
+    if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
+    
+    return (
+      <div className="p-4 bg-muted/10 border-l-4 border-primary">
+        <h4 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
+          Detail Komoditas Tangkapan
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border border-border rounded-lg overflow-hidden">
+            <thead className="bg-muted text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">Komoditas</th>
+                <th className="px-4 py-2 font-medium">Volume (Kg)</th>
+                <th className="px-4 py-2 font-medium text-right">Harga (Rp/Kg)</th>
+                <th className="px-4 py-2 font-medium text-right">Nilai Produksi (Rp)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-card">
+              {tangkapan.map((item, index) => (
+                <tr key={index} className="hover:bg-muted/50">
+                  <td className="px-4 py-2 font-medium">{item.komoditas}</td>
+                  <td className="px-4 py-2">{item.volume.toLocaleString('id-ID')}</td>
+                  <td className="px-4 py-2 text-right">{formatRupiah(item.harga)}</td>
+                  <td className="px-4 py-2 text-right">{formatRupiah(item.nilai)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -2719,6 +1863,13 @@ const columns = useMemo(() => [
         </div>
       )}
 
-</div>
+      <ActionDialog 
+        dialog={actionDialog} 
+        value={dialogValue} 
+        setValue={setDialogValue} 
+        onClose={() => { setActionDialog(null); setDialogValue(''); }} 
+        onSubmit={submitActionDialog} 
+      />
+    </div>
   );
 }
