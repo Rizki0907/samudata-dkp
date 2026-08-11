@@ -233,27 +233,7 @@ model PengolahanPemasaranRekap {
   hasil_rp          Float @default(0)
   modal_rp          Float @default(0)
 
-  shm_count     Int @default(0)
-  non_shm_count Int @default(0)
-
-  sertifikat_haccp   Int @default(0)
-  sertifikat_sni     Int @default(0)
-  sertifikat_halal   Int @default(0)
-  sertifikat_skp     Int @default(0)
-  sertifikat_pirt    Int @default(0)
-  sertifikat_md      Int @default(0)
-  sertifikat_lainnya Int @default(0)
-
-  izin_nib              Int @default(0)
-  izin_npwp             Int @default(0)
-  izin_kusuka           Int @default(0)
-  izin_menkumham        Int @default(0)
-  izin_akta_pendirian   Int @default(0)
-  izin_imb              Int @default(0)
-  izin_lokasi_domisili  Int @default(0)
-  izin_siup_perikanan   Int @default(0)
-  izin_siup_perdagangan Int @default(0)
-  izin_lainnya          Int @default(0)
+  dokumen_detail    Json?
 
   status           DataStatus @default(PENDING)
   alasan_penolakan String?

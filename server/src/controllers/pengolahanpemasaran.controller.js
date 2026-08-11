@@ -9,6 +9,9 @@ const META_MODAL_SKALA = '__MODAL_SKALA__';
 const META_DOKUMEN = '__DOKUMEN__';
 const META_PLACEHOLDER = '__META__';
 
+// ============================================================================
+// Helpers dasar
+// ============================================================================
 const toNumber = value => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   let text = String(value ?? '').trim().replace(/\s/g, '');
@@ -30,61 +33,14 @@ const nonNegativeObject = value => Object.fromEntries(
     .filter(([key]) => key),
 );
 
-const FIXED_DOC_FIELDS = {
-  sertifikat_produk: {
-    HACCP: 'sertifikat_haccp', SNI: 'sertifikat_sni', HALAL: 'sertifikat_halal',
-    SKP: 'sertifikat_skp', PIRT: 'sertifikat_pirt', MD: 'sertifikat_md', 'Lain-lain': 'sertifikat_lainnya',
-  },
-  izin_usaha: {
-    NIB: 'izin_nib', NPWP: 'izin_npwp', KUSUKA: 'izin_kusuka',
-    'Pengesahan MENKUMHAM': 'izin_menkumham', 'Akta Pendirian Usaha': 'izin_akta_pendirian',
-    IMB: 'izin_imb', 'Lokasi/Domisili': 'izin_lokasi_domisili',
-    'SIUP Perikanan': 'izin_siup_perikanan', 'SIUP Perdagangan': 'izin_siup_perdagangan', 'Lain-lain': 'izin_lainnya',
-  },
-  sertifikat_lahan_bangunan: { SHM: 'shm_count', 'Non SHM': 'non_shm_count' },
-};
-
-const buildLegacyDocs = rows => {
-  const result = { sertifikat_produk: {}, izin_usaha: {}, sertifikat_lahan_bangunan: {} };
-  Object.entries(FIXED_DOC_FIELDS).forEach(([group, map]) => {
-    Object.entries(map).forEach(([label, field]) => {
-      const value = rows.reduce((sum, row) => sum + toNumber(row?.[field]), 0);
-      if (value) result[group][label] = value;
-    });
-  });
-  return result;
-};
-
-const docPayloadToColumns = dokumen => {
-  const result = {};
-  Object.values(FIXED_DOC_FIELDS).forEach(map => {
-    Object.values(map).forEach(field => { result[field] = 0; });
-  });
-  Object.entries(FIXED_DOC_FIELDS).forEach(([group, map]) => {
-    const source = jsonObject(dokumen?.[group]);
-    Object.entries(source).forEach(([label, amount]) => {
-      const field = map[label];
-      if (field) result[field] = Math.max(0, toInt(amount));
-    });
-  });
-  return result;
-};
-
-const unsupportedDocumentLabels = dokumen => {
-  const unsupported = [];
-  Object.entries(FIXED_DOC_FIELDS).forEach(([group, map]) => {
-    Object.keys(jsonObject(dokumen?.[group])).forEach(label => {
-      if (!map[label] && toNumber(dokumen[group][label]) > 0) unsupported.push(label);
-    });
-  });
-  return unsupported;
-};
-
 const isMetaRow = row => [META_MODAL_JENIS, META_MODAL_SKALA, META_DOKUMEN].includes(row?.kategori_kegiatan);
 
 const sumObject = object => Object.values(jsonObject(object)).reduce((sum, value) => sum + toNumber(value), 0);
 const packageKey = row => `${row.tahun}|${normalizeKab(row.kabupaten_kota)}`;
 
+// ============================================================================
+// Pembentukan "paket" (per tahun + kabupaten/kota) dari row long-format
+// ============================================================================
 const groupRowsToPackages = rows => {
   const groups = new Map();
   (rows || []).forEach(row => {
@@ -123,7 +79,11 @@ const groupRowsToPackages = rows => {
           return acc;
         }, {});
 
-    const docs = docRow ? buildLegacyDocs([docRow]) : buildLegacyDocs(productionRows);
+    const docs = {
+      sertifikat_produk: nonNegativeObject(docRow?.dokumen_detail?.sertifikat_produk),
+      izin_usaha: nonNegativeObject(docRow?.dokumen_detail?.izin_usaha),
+      sertifikat_lahan_bangunan: nonNegativeObject(docRow?.dokumen_detail?.sertifikat_lahan_bangunan),
+    };
     const totalModalJenis = sumObject(modalByJenis);
     const totalModalSkala = sumObject(modalBySkala);
     const totalModal = totalModalJenis || totalModalSkala;
@@ -185,6 +145,9 @@ const getRawRows = async ({ verifiedOnly = false } = {}) => db.findMany({
   orderBy: [{ tahun: 'desc' }, { kabupaten_kota: 'asc' }, { id: 'asc' }],
 });
 
+// ============================================================================
+// CRUD & Statistik (endpoint API biasa)
+// ============================================================================
 const getAllData = async (req, res) => {
   try {
     // Samakan sumber data Statistik Publik dengan Visualisasi Statistik Pusat:
@@ -261,6 +224,9 @@ const getDashboardStats = async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, message: 'Server Error', error: error.message }); }
 };
 
+// ============================================================================
+// Simpan / update / hapus paket
+// ============================================================================
 const parsePackageBody = body => {
   const tahun = toInt(body?.tahun); const kabupaten_kota = normalizeKab(body?.kabupaten_kota);
   const details = Array.isArray(body?.details) ? body.details.map(item => ({
@@ -295,6 +261,11 @@ const validatePackage = pkg => {
   return null;
 };
 
+// Dokumen (sertifikat produk, izin usaha, sertifikat lahan & bangunan) disimpan
+// sebagai JSON dinamis (dokumen_detail) pada satu baris meta '__DOKUMEN__'.
+// Karena bentuknya JSON bebas -- bukan kolom fixed satu-satu -- menambah jenis
+// dokumen baru di Master Data TIDAK memerlukan perubahan skema/kode di sini;
+// otomatis ikut tersimpan apa adanya.
 const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
   const details = pkg.details.map(item => ({
     tahun: pkg.tahun,
@@ -342,8 +313,9 @@ const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
       alasan_penolakan: alasan,
     }));
 
-  const docColumns = docPayloadToColumns(pkg.dokumen);
-  const hasDocs = Object.values(docColumns).some(value => toNumber(value) > 0);
+  const hasDocs = ['sertifikat_produk', 'izin_usaha', 'sertifikat_lahan_bangunan']
+    .some(group => Object.keys(nonNegativeObject(pkg.dokumen?.[group])).length > 0);
+
   const docRows = hasDocs ? [{
     tahun: pkg.tahun,
     kabupaten_kota: pkg.kabupaten_kota,
@@ -354,7 +326,11 @@ const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
     hasil_kg: 0,
     hasil_rp: 0,
     modal_rp: 0,
-    ...docColumns,
+    dokumen_detail: {
+      sertifikat_produk: nonNegativeObject(pkg.dokumen?.sertifikat_produk),
+      izin_usaha: nonNegativeObject(pkg.dokumen?.izin_usaha),
+      sertifikat_lahan_bangunan: nonNegativeObject(pkg.dokumen?.sertifikat_lahan_bangunan),
+    },
     status,
     alasan_penolakan: alasan,
   }] : [];
@@ -385,7 +361,6 @@ const createBatchData = async (req, res) => {
       });
     }
 
-    const unsupported = unsupportedDocumentLabels(pkg.dokumen);
     const rows = createPackageRows(pkg);
 
     if (!rows.length) {
@@ -405,9 +380,6 @@ const createBatchData = async (req, res) => {
       success: true,
       data: result,
       message: 'Data berhasil disimpan dengan status APPROVED.',
-      warning: unsupported.length
-        ? `Jenis dokumen ${unsupported.join(', ')} belum memiliki kolom penyimpanan di database sehingga nilainya belum ikut disimpan.`
-        : null,
     });
   } catch (error) {
     console.error('createBatchData:', error);
@@ -440,11 +412,23 @@ const updateData = async (req, res) => {
     const newStatus = oldStatus === 'REJECTED' ? 'APPROVED' : oldStatus;
     const newAlasan = oldStatus === 'REJECTED' ? null : (oldRows.find(row => row.alasan_penolakan)?.alasan_penolakan || null);
     const rows = createPackageRows(pkg, newStatus, newAlasan);
-    const resultRows = await prisma.$transaction(async tx => {
-      await tx.pengolahanPemasaranRekap.deleteMany({ where: found.where });
-      const created = [];
-      for (const data of rows) created.push(await tx.pengolahanPemasaranRekap.create({ data }));
-      return created;
+    await prisma.$transaction(async tx => {
+      await tx.pengolahanPemasaranRekap.deleteMany({
+        where: found.where,
+      });
+      await tx.pengolahanPemasaranRekap.createMany({
+        data: rows,
+      });
+    });
+    
+    const resultRows = await db.findMany({
+      where: {
+        tahun: pkg.tahun,
+        kabupaten_kota: pkg.kabupaten_kota,
+      },
+      orderBy: {
+        id: 'asc',
+      },
     });
     res.json({ success: true, data: groupRowsToPackages(resultRows)[0], message: oldStatus === 'REJECTED' ? 'Data diperbaiki dan kembali menjadi APPROVED.' : 'Data berhasil diperbarui.' });
   } catch (error) { console.error('updateData:', error); res.status(500).json({ success: false, message: error.message || 'Gagal memperbarui data.' }); }
@@ -499,7 +483,19 @@ const batchDelete = async (req, res) => {
   catch (error) { res.status(500).json({ success: false, message: error.message || 'Gagal menghapus data.' }); }
 };
 
-// -------------------- Master data helpers --------------------
+// ============================================================================
+// Master data helpers
+// ----------------------------------------------------------------------------
+// Semua daftar (kabupaten/kota, jenis pengolahan, jenis pemasaran, skala
+// usaha, sertifikat produk, izin usaha, sertifikat lahan & bangunan) dibaca
+// LANGSUNG dari tabel MasterData setiap kali export dijalankan. Ini kunci
+// dari sinkronisasi otomatis: tambah item baru di Master Data -> otomatis
+// muncul sebagai baris (kab/kota) atau kolom (jenis/skala/dokumen) baru di
+// file export, tanpa perlu ubah kode apa pun.
+//
+// FALLBACK hanya dipakai kalau tabel MasterData untuk kategori tsb masih
+// benar-benar kosong (mis. sebelum admin pernah mengisi Master Data-nya).
+// ============================================================================
 const FALLBACK = {
   KABUPATEN_KOTA: ['KAB. PACITAN','KAB. PONOROGO','KAB. TRENGGALEK','KAB. TULUNGAGUNG','KAB. BLITAR','KAB. KEDIRI','KAB. MALANG','KAB. LUMAJANG','KAB. JEMBER','KAB. BANYUWANGI','KAB. BONDOWOSO','KAB. SITUBONDO','KAB. PROBOLINGGO','KAB. PASURUAN','KAB. SIDOARJO','KAB. MOJOKERTO','KAB. JOMBANG','KAB. NGANJUK','KAB. MADIUN','KAB. MAGETAN','KAB. NGAWI','KAB. BOJONEGORO','KAB. TUBAN','KAB. LAMONGAN','KAB. GRESIK','KAB. BANGKALAN','KAB. SAMPANG','KAB. PAMEKASAN','KAB. SUMENEP','KOTA KEDIRI','KOTA BLITAR','KOTA MALANG','KOTA PROBOLINGGO','KOTA PASURUAN','KOTA MOJOKERTO','KOTA MADIUN','KOTA SURABAYA','KOTA BATU'],
   JENIS_PENGOLAHAN: ['Fermentasi','Pelumatan Daging Ikan','Pembekuan','Pemindangan','Penanganan Produk Segar','Pengalengan','Pengasapan/ Pemanggangan','Pereduksian/ Ekstraksi','Penggaraman/ Pengeringan','Pengolahan Lainnya'],
@@ -509,6 +505,7 @@ const FALLBACK = {
   IZIN_USAHA: ['NIB','NPWP','KUSUKA','Pengesahan MENKUMHAM','Akta Pendirian Usaha','SIUP Perikanan','SIUP Perdagangan','Lain-lain'],
   SERTIFIKAT_LAHAN_BANGUNAN: ['SHM','Non SHM'],
 };
+
 const masterItems = async category => {
   const rows = await prisma.masterData.findMany({ where: { category } });
   if (rows.length) return rows;
@@ -521,6 +518,9 @@ const regionInfo = async () => {
     .sort((a, b) => String(a.id).localeCompare(String(b.id), 'id', { numeric: true }) || a.name.localeCompare(b.name, 'id'));
 };
 
+// ============================================================================
+// Styling Excel
+// ============================================================================
 const EXCEL_BLUE = '1F4E79';
 const EXCEL_SUB_BLUE = '1F4E79';
 const EXCEL_WHITE = 'FFFFFF';
@@ -546,86 +546,35 @@ const excelMetricValue = value => {
 };
 
 const styleExcelTitle = cell => {
-  cell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: EXCEL_WHITE },
-  };
-  cell.font = {
-    bold: true,
-    size: 12,
-    color: { argb: EXCEL_BLACK },
-  };
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: 'left',
-    wrapText: true,
-  };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXCEL_WHITE } };
+  cell.font = { bold: true, size: 12, color: { argb: EXCEL_BLACK } };
+  cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
 };
 
 const styleExcelHeader = cell => {
-  cell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: EXCEL_BLUE },
-  };
-  cell.font = {
-    bold: true,
-    size: 10,
-    color: { argb: EXCEL_WHITE },
-  };
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: 'center',
-    wrapText: true,
-  };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXCEL_BLUE } };
+  cell.font = { bold: true, size: 10, color: { argb: EXCEL_WHITE } };
+  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
   cell.border = excelBorder;
 };
 
 const styleExcelSubHeader = cell => {
-  cell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: EXCEL_SUB_BLUE },
-  };
-  cell.font = {
-    bold: true,
-    size: 9,
-    color: { argb: EXCEL_WHITE },
-  };
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: 'center',
-    wrapText: true,
-  };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXCEL_SUB_BLUE } };
+  cell.font = { bold: true, size: 9, color: { argb: EXCEL_WHITE } };
+  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
   cell.border = excelBorder;
 };
 
 const styleExcelBody = cell => {
   cell.border = excelBorder;
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: typeof cell.value === 'number' ? 'right' : 'left',
-    wrapText: true,
-  };
+  cell.alignment = { vertical: 'middle', horizontal: typeof cell.value === 'number' ? 'right' : 'left', wrapText: true };
 };
 
 const styleExcelTotal = cell => {
-  cell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: EXCEL_BLUE },
-  };
-  cell.font = {
-    bold: true,
-    color: { argb: EXCEL_WHITE },
-  };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXCEL_BLUE } };
+  cell.font = { bold: true, color: { argb: EXCEL_WHITE } };
   cell.border = excelBorder;
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: typeof cell.value === 'number' ? 'right' : 'center',
-    wrapText: true,
-  };
+  cell.alignment = { vertical: 'middle', horizontal: typeof cell.value === 'number' ? 'right' : 'center', wrapText: true };
 };
 
 const setExcelMetricCell = (cell, value, unit = 'number') => {
@@ -633,26 +582,13 @@ const setExcelMetricCell = (cell, value, unit = 'number') => {
 
   if (number === 0) {
     cell.value = '-';
-    cell.alignment = {
-      vertical: 'middle',
-      horizontal: 'center',
-    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
     return;
   }
 
   cell.value = number;
-
-  if (unit === 'currency') {
-    cell.numFmt = '"Rp" #,##0';
-  } else {
-    // Angka bulat: tidak ada koma/desimal menggantung seperti "25,"
-    cell.numFmt = '#,##0';
-  }
-
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: 'right',
-  };
+  cell.numFmt = unit === 'currency' ? '"Rp" #,##0' : '#,##0';
+  cell.alignment = { vertical: 'middle', horizontal: 'right' };
 };
 
 const setExcelRegionId = (cell, value) => {
@@ -660,17 +596,13 @@ const setExcelRegionId = (cell, value) => {
   const numeric = Number(raw);
 
   if (raw && Number.isFinite(numeric)) {
-
     cell.value = numeric;
     cell.numFmt = '00';
   } else {
     cell.value = raw || '-';
   }
 
-  cell.alignment = {
-    vertical: 'middle',
-    horizontal: 'center',
-  };
+  cell.alignment = { vertical: 'middle', horizontal: 'center' };
 };
 
 const autoSizeExcel = sheet => {
@@ -679,29 +611,22 @@ const autoSizeExcel = sheet => {
 
     column.eachCell({ includeEmpty: false }, cell => {
       if (cell.row <= 2) return;
-
       const rawValue = cell.value?.text ?? cell.value;
       const textValue = String(rawValue ?? '');
-
-      // Untuk teks panjang, wrap tetap aktif sehingga kolom tidak melebar berlebihan.
       const measured = Math.min(textValue.length + 1.5, 22);
       width = Math.max(width, measured);
     });
 
-    // Kab/Kota / kolom teks panjang tetap cukup terbaca, tetapi tidak kelebaran.
     column.width = Math.min(Math.max(width, 6), 22);
   });
 };
 
-const formatExcelDate = () =>
-  new Date().toLocaleString('id-ID');
+const formatExcelDate = () => new Date().toLocaleString('id-ID');
 
-const selectPackagesForExport = async ({
-  ids,
-  tahun,
-  regions,
-  admin,
-}) => {
+// ============================================================================
+// Pemilihan paket untuk export
+// ============================================================================
+const selectPackagesForExport = async ({ ids, tahun, regions, admin }) => {
   // Ambil seluruh row dulu, bentuk package dulu, lalu filter.
   // Ini penting supaya meta row Modal/Dokumen tidak terpotong.
   let packages = groupRowsToPackages(await getRawRows());
@@ -709,26 +634,17 @@ const selectPackagesForExport = async ({
   if (Array.isArray(ids) && ids.length) {
     const selected = new Set(ids.map(String));
     packages = packages.filter(
-      pkg =>
-        selected.has(String(pkg.id)) ||
-        (pkg.row_ids || []).some(id => selected.has(String(id))),
+      pkg => selected.has(String(pkg.id)) || (pkg.row_ids || []).some(id => selected.has(String(id))),
     );
   }
 
   if (tahun) {
-    packages = packages.filter(
-      pkg => Number(pkg.tahun) === toInt(tahun),
-    );
+    packages = packages.filter(pkg => Number(pkg.tahun) === toInt(tahun));
   }
 
   if (Array.isArray(regions) && regions.length) {
-    const selected = new Set(
-      regions.map(region => normalizeKab(region)),
-    );
-
-    packages = packages.filter(
-      pkg => selected.has(normalizeKab(pkg.kabupaten_kota)),
-    );
+    const selected = new Set(regions.map(region => normalizeKab(region)));
+    packages = packages.filter(pkg => selected.has(normalizeKab(pkg.kabupaten_kota)));
   }
 
   if (!admin) {
@@ -738,11 +654,12 @@ const selectPackagesForExport = async ({
   return packages;
 };
 
-const prepareSimpleExportSheet = (
-  sheet,
-  title,
-  headers,
-) => {
+// ============================================================================
+// Sheet sederhana (long-format): Unit dan Produksi / Modal / Sertifikat dan Izin
+// Karena bentuknya baris-per-rincian, kolom tidak perlu didefinisikan ulang
+// saat ada jenis/kategori baru -- otomatis ikut lewat data yang diloop.
+// ============================================================================
+const prepareSimpleExportSheet = (sheet, title, headers) => {
   const lastCol = headers.length;
 
   sheet.mergeCells(1, 1, 1, lastCol);
@@ -750,8 +667,7 @@ const prepareSimpleExportSheet = (
   styleExcelTitle(sheet.getCell(1, 1));
 
   sheet.mergeCells(2, 1, 2, lastCol);
-  sheet.getCell(2, 1).value =
-    `Tanggal ekspor: ${formatExcelDate()}`;
+  sheet.getCell(2, 1).value = `Tanggal ekspor: ${formatExcelDate()}`;
   styleExcelTitle(sheet.getCell(2, 1));
 
   headers.forEach((header, index) => {
@@ -766,37 +682,19 @@ const prepareSimpleExportSheet = (
   sheet.views = [{ state: 'frozen', ySplit: 3 }];
 };
 
-const styleSimpleDataRow = (
-  row,
-  {
-    idColumn = 2,
-    numericColumns = [],
-    currencyColumns = [],
-  } = {},
-) => {
+const styleSimpleDataRow = (row, { idColumn = 2, numericColumns = [], currencyColumns = [] } = {}) => {
   row.eachCell({ includeEmpty: true }, styleExcelBody);
 
   if (idColumn) {
-    setExcelRegionId(
-      row.getCell(idColumn),
-      row.getCell(idColumn).value,
-    );
+    setExcelRegionId(row.getCell(idColumn), row.getCell(idColumn).value);
   }
 
   numericColumns.forEach(column => {
-    setExcelMetricCell(
-      row.getCell(column),
-      row.getCell(column).value,
-      'number',
-    );
+    setExcelMetricCell(row.getCell(column), row.getCell(column).value, 'number');
   });
 
   currencyColumns.forEach(column => {
-    setExcelMetricCell(
-      row.getCell(column),
-      row.getCell(column).value,
-      'currency',
-    );
+    setExcelMetricCell(row.getCell(column), row.getCell(column).value, 'currency');
   });
 };
 
@@ -805,12 +703,7 @@ const buildDataWorkbook = async packages => {
   workbook.creator = 'Dinas Kelautan dan Perikanan';
   workbook.created = new Date();
 
-  const regionMap = new Map(
-    (await regionInfo()).map(item => [
-      normalizeKab(item.name),
-      item.id,
-    ]),
-  );
+  const regionMap = new Map((await regionInfo()).map(item => [normalizeKab(item.name), item.id]));
 
   // ---------- 1. Unit dan Produksi ----------
   const produksi = workbook.addWorksheet('Unit dan Produksi');
@@ -818,19 +711,7 @@ const buildDataWorkbook = async packages => {
   prepareSimpleExportSheet(
     produksi,
     'DATA UNIT DAN PRODUKSI PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
-    [
-      'No',
-      'ID Wilayah',
-      'Status',
-      'Tahun',
-      'Kab/Kota',
-      'Kategori Kegiatan',
-      'Jenis Kegiatan',
-      'Skala Usaha',
-      'Jumlah Unit Usaha',
-      'Hasil Produksi (Kg)',
-      'Nilai Produksi (Rp)',
-    ],
+    ['No', 'ID Wilayah', 'Status', 'Tahun', 'Kab/Kota', 'Kategori Kegiatan', 'Jenis Kegiatan', 'Skala Usaha', 'Jumlah Unit Usaha', 'Hasil Produksi (Kg)', 'Nilai Produksi (Rp)'],
   );
 
   let noProduksi = 1;
@@ -851,12 +732,7 @@ const buildDataWorkbook = async packages => {
         toNumber(detail.hasil_rp),
       ]);
 
-      styleSimpleDataRow(row, {
-        idColumn: 2,
-        numericColumns: [9, 10],
-        currencyColumns: [11],
-      });
-
+      styleSimpleDataRow(row, { idColumn: 2, numericColumns: [9, 10], currencyColumns: [11] });
       noProduksi += 1;
     });
   });
@@ -867,64 +743,43 @@ const buildDataWorkbook = async packages => {
   prepareSimpleExportSheet(
     modal,
     'DATA MODAL PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
-    [
-      'No',
-      'ID Wilayah',
-      'Status',
-      'Tahun',
-      'Kab/Kota',
-      'Dasar Modal',
-      'Rincian',
-      'Investasi Modal (Rp)',
-    ],
+    ['No', 'ID Wilayah', 'Status', 'Tahun', 'Kab/Kota', 'Dasar Modal', 'Rincian', 'Investasi Modal (Rp)'],
   );
 
   let noModal = 1;
 
   packages.forEach(pkg => {
-    Object.entries(pkg.modal_by_jenis || {}).forEach(
-      ([jenis, value]) => {
-        const row = modal.addRow([
-          noModal,
-          regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
-          pkg.status || '-',
-          pkg.tahun || '-',
-          excelCleanText(pkg.kabupaten_kota),
-          'Jenis Kegiatan',
-          excelCleanText(jenis),
-          toNumber(value),
-        ]);
+    Object.entries(pkg.modal_by_jenis || {}).forEach(([jenis, value]) => {
+      const row = modal.addRow([
+        noModal,
+        regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+        pkg.status || '-',
+        pkg.tahun || '-',
+        excelCleanText(pkg.kabupaten_kota),
+        'Jenis Kegiatan',
+        excelCleanText(jenis),
+        toNumber(value),
+      ]);
 
-        styleSimpleDataRow(row, {
-          idColumn: 2,
-          currencyColumns: [8],
-        });
+      styleSimpleDataRow(row, { idColumn: 2, currencyColumns: [8] });
+      noModal += 1;
+    });
 
-        noModal += 1;
-      },
-    );
+    Object.entries(pkg.modal_by_skala || {}).forEach(([skala, value]) => {
+      const row = modal.addRow([
+        noModal,
+        regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+        pkg.status || '-',
+        pkg.tahun || '-',
+        excelCleanText(pkg.kabupaten_kota),
+        'Skala Usaha',
+        excelCleanText(skala),
+        toNumber(value),
+      ]);
 
-    Object.entries(pkg.modal_by_skala || {}).forEach(
-      ([skala, value]) => {
-        const row = modal.addRow([
-          noModal,
-          regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
-          pkg.status || '-',
-          pkg.tahun || '-',
-          excelCleanText(pkg.kabupaten_kota),
-          'Skala Usaha',
-          excelCleanText(skala),
-          toNumber(value),
-        ]);
-
-        styleSimpleDataRow(row, {
-          idColumn: 2,
-          currencyColumns: [8],
-        });
-
-        noModal += 1;
-      },
-    );
+      styleSimpleDataRow(row, { idColumn: 2, currencyColumns: [8] });
+      noModal += 1;
+    });
   });
 
   // ---------- 3. Sertifikat dan Izin ----------
@@ -933,53 +788,35 @@ const buildDataWorkbook = async packages => {
   prepareSimpleExportSheet(
     dokumen,
     'DATA SERTIFIKAT DAN IZIN PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
-    [
-      'No',
-      'ID Wilayah',
-      'Status',
-      'Tahun',
-      'Kab/Kota',
-      'Kelompok Dokumen',
-      'Jenis Dokumen',
-      'Jumlah',
-    ],
+    ['No', 'ID Wilayah', 'Status', 'Tahun', 'Kab/Kota', 'Kelompok Dokumen', 'Jenis Dokumen', 'Jumlah'],
   );
 
   const groupLabels = {
     sertifikat_produk: 'Sertifikat Produk',
     izin_usaha: 'Izin Usaha',
-    sertifikat_lahan_bangunan:
-      'Sertifikat Lahan dan Bangunan',
+    sertifikat_lahan_bangunan: 'Sertifikat Lahan dan Bangunan',
   };
 
   let noDokumen = 1;
 
   packages.forEach(pkg => {
-    Object.entries(pkg.dokumen || {}).forEach(
-      ([group, entries]) => {
-        Object.entries(jsonObject(entries)).forEach(
-          ([jenis, value]) => {
-            const row = dokumen.addRow([
-              noDokumen,
-              regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
-              pkg.status || '-',
-              pkg.tahun || '-',
-              excelCleanText(pkg.kabupaten_kota),
-              groupLabels[group] || excelCleanText(group),
-              excelCleanText(jenis),
-              toNumber(value),
-            ]);
+    Object.entries(pkg.dokumen || {}).forEach(([group, entries]) => {
+      Object.entries(jsonObject(entries)).forEach(([jenis, value]) => {
+        const row = dokumen.addRow([
+          noDokumen,
+          regionMap.get(normalizeKab(pkg.kabupaten_kota)) || '-',
+          pkg.status || '-',
+          pkg.tahun || '-',
+          excelCleanText(pkg.kabupaten_kota),
+          groupLabels[group] || excelCleanText(group),
+          excelCleanText(jenis),
+          toNumber(value),
+        ]);
 
-            styleSimpleDataRow(row, {
-              idColumn: 2,
-              numericColumns: [8],
-            });
-
-            noDokumen += 1;
-          },
-        );
-      },
-    );
+        styleSimpleDataRow(row, { idColumn: 2, numericColumns: [8] });
+        noDokumen += 1;
+      });
+    });
   });
 
   workbook.worksheets.forEach(autoSizeExcel);
@@ -993,53 +830,23 @@ const buildDataWorkbook = async packages => {
 // - tabel berjajar ke kanan
 // - subheader berwarna BIRU
 // - nilai 0 / kosong = "-"
+//
+// Kolom & baris tabel di sini SELALU dihasilkan dari `regions` dan `config`
+// yang datang dari masterValues()/regionInfo() -- bukan hardcode -- sehingga
+// otomatis mengikuti Master Data terbaru setiap kali export dijalankan.
 // ============================================================================
-
-const buildAnalysisRegionRows = ({
-  packages,
-  regions,
-  columns,
-  valueFor,
-}) => {
+const buildAnalysisRegionRows = ({ regions, columns, valueFor }) => {
   const rows = regions.map(region => {
-    const values = columns.map(column =>
-      toNumber(valueFor(region.name, column)),
-    );
-
-    return {
-      region,
-      values,
-      total: values.reduce((sum, value) => sum + value, 0),
-    };
+    const values = columns.map(column => toNumber(valueFor(region.name, column)));
+    return { region, values, total: values.reduce((sum, value) => sum + value, 0) };
   });
 
-  const totals = columns.map((_, index) =>
-    rows.reduce(
-      (sum, row) => sum + toNumber(row.values[index]),
-      0,
-    ),
-  );
+  const totals = columns.map((_, index) => rows.reduce((sum, row) => sum + toNumber(row.values[index]), 0));
 
-  return {
-    rows,
-    totals,
-    grandTotal: totals.reduce(
-      (sum, value) => sum + value,
-      0,
-    ),
-  };
+  return { rows, totals, grandTotal: totals.reduce((sum, value) => sum + value, 0) };
 };
 
-const writeAnalysisTable = ({
-  worksheet,
-  startCol,
-  title,
-  groupLabel,
-  columns,
-  regions,
-  valueFor,
-  unit = 'number',
-}) => {
+const writeAnalysisTable = ({ worksheet, startCol, title, groupLabel, columns, regions, valueFor, unit = 'number' }) => {
   const titleRow = 1;
   const groupRow = 2;
   const headerRow = 3;
@@ -1048,170 +855,75 @@ const writeAnalysisTable = ({
   const width = 3 + columns.length;
   const endCol = startCol + width - 1;
 
-  worksheet.mergeCells(
-    titleRow,
-    startCol,
-    titleRow,
-    endCol,
-  );
+  worksheet.mergeCells(titleRow, startCol, titleRow, endCol);
+  worksheet.getCell(titleRow, startCol).value = excelCleanText(title);
+  styleExcelTitle(worksheet.getCell(titleRow, startCol));
 
-  worksheet.getCell(titleRow, startCol).value =
-    excelCleanText(title);
-  styleExcelTitle(
-    worksheet.getCell(titleRow, startCol),
-  );
-
-  // Header dasar
-  worksheet.mergeCells(
-    groupRow,
-    startCol,
-    headerRow,
-    startCol,
-  );
+  worksheet.mergeCells(groupRow, startCol, headerRow, startCol);
   worksheet.getCell(groupRow, startCol).value = 'No';
-  styleExcelHeader(
-    worksheet.getCell(groupRow, startCol),
-  );
+  styleExcelHeader(worksheet.getCell(groupRow, startCol));
 
-  worksheet.mergeCells(
-    groupRow,
-    startCol + 1,
-    headerRow,
-    startCol + 1,
-  );
-  worksheet.getCell(groupRow, startCol + 1).value =
-    'Kab/Kota';
-  styleExcelHeader(
-    worksheet.getCell(groupRow, startCol + 1),
-  );
+  worksheet.mergeCells(groupRow, startCol + 1, headerRow, startCol + 1);
+  worksheet.getCell(groupRow, startCol + 1).value = 'Kab/Kota';
+  styleExcelHeader(worksheet.getCell(groupRow, startCol + 1));
 
   if (columns.length) {
-    worksheet.mergeCells(
-      groupRow,
-      startCol + 2,
-      groupRow,
-      startCol + 1 + columns.length,
-    );
-
-    worksheet.getCell(groupRow, startCol + 2).value =
-      excelCleanText(groupLabel);
-    styleExcelHeader(
-      worksheet.getCell(groupRow, startCol + 2),
-    );
+    worksheet.mergeCells(groupRow, startCol + 2, groupRow, startCol + 1 + columns.length);
+    worksheet.getCell(groupRow, startCol + 2).value = excelCleanText(groupLabel);
+    styleExcelHeader(worksheet.getCell(groupRow, startCol + 2));
   }
 
   columns.forEach((column, index) => {
-    const cell = worksheet.getCell(
-      headerRow,
-      startCol + 2 + index,
-    );
+    const cell = worksheet.getCell(headerRow, startCol + 2 + index);
     cell.value = excelCleanText(column);
     styleExcelSubHeader(cell);
   });
 
   const totalCol = endCol;
 
-  worksheet.mergeCells(
-    groupRow,
-    totalCol,
-    headerRow,
-    totalCol,
-  );
-  worksheet.getCell(groupRow, totalCol).value =
-    'Jumlah Total';
-  styleExcelHeader(
-    worksheet.getCell(groupRow, totalCol),
-  );
+  worksheet.mergeCells(groupRow, totalCol, headerRow, totalCol);
+  worksheet.getCell(groupRow, totalCol).value = 'Jumlah Total';
+  styleExcelHeader(worksheet.getCell(groupRow, totalCol));
 
-  const summary = buildAnalysisRegionRows({
-    packages: [],
-    regions,
-    columns,
-    valueFor,
-  });
+  const summary = buildAnalysisRegionRows({ regions, columns, valueFor });
 
   summary.rows.forEach((rowInfo, index) => {
     const rowNo = dataStartRow + index;
 
-    setExcelRegionId(
-      worksheet.getCell(rowNo, startCol),
-      rowInfo.region.id,
-    );
-
-    worksheet.getCell(rowNo, startCol + 1).value =
-      excelCleanText(rowInfo.region.name);
+    setExcelRegionId(worksheet.getCell(rowNo, startCol), rowInfo.region.id);
+    worksheet.getCell(rowNo, startCol + 1).value = excelCleanText(rowInfo.region.name);
 
     rowInfo.values.forEach((value, valueIndex) => {
-      setExcelMetricCell(
-        worksheet.getCell(
-          rowNo,
-          startCol + 2 + valueIndex,
-        ),
-        value,
-        unit,
-      );
+      setExcelMetricCell(worksheet.getCell(rowNo, startCol + 2 + valueIndex), value, unit);
     });
 
-    setExcelMetricCell(
-      worksheet.getCell(rowNo, totalCol),
-      rowInfo.total,
-      unit,
-    );
+    setExcelMetricCell(worksheet.getCell(rowNo, totalCol), rowInfo.total, unit);
 
-    for (
-      let col = startCol;
-      col <= endCol;
-      col += 1
-    ) {
-      styleExcelBody(
-        worksheet.getCell(rowNo, col),
-      );
+    for (let col = startCol; col <= endCol; col += 1) {
+      styleExcelBody(worksheet.getCell(rowNo, col));
     }
   });
 
-  const totalRow =
-    dataStartRow + summary.rows.length;
+  const totalRow = dataStartRow + summary.rows.length;
 
   worksheet.getCell(totalRow, startCol).value = '';
-  worksheet.getCell(
-    totalRow,
-    startCol + 1,
-  ).value = 'JUMLAH JAWA TIMUR';
+  worksheet.getCell(totalRow, startCol + 1).value = 'JUMLAH JAWA TIMUR';
 
   summary.totals.forEach((value, index) => {
-    const cell = worksheet.getCell(
-      totalRow,
-      startCol + 2 + index,
-    );
-
+    const cell = worksheet.getCell(totalRow, startCol + 2 + index);
     setExcelMetricCell(cell, value, unit);
   });
 
-  setExcelMetricCell(
-    worksheet.getCell(totalRow, totalCol),
-    summary.grandTotal,
-    unit,
-  );
+  setExcelMetricCell(worksheet.getCell(totalRow, totalCol), summary.grandTotal, unit);
 
-  for (
-    let col = startCol;
-    col <= endCol;
-    col += 1
-  ) {
-    styleExcelTotal(
-      worksheet.getCell(totalRow, col),
-    );
+  for (let col = startCol; col <= endCol; col += 1) {
+    styleExcelTotal(worksheet.getCell(totalRow, col));
   }
 
-  // Width seperti tabel Hasil Analisis
   worksheet.getColumn(startCol).width = 7;
   worksheet.getColumn(startCol + 1).width = 24;
 
-  for (
-    let col = startCol + 2;
-    col <= endCol;
-    col += 1
-  ) {
+  for (let col = startCol + 2; col <= endCol; col += 1) {
     worksheet.getColumn(col).width = 14;
   }
 
@@ -1219,100 +931,35 @@ const writeAnalysisTable = ({
   worksheet.getRow(groupRow).height = 28;
   worksheet.getRow(headerRow).height = 38;
 
-  return {
-    title,
-    cell: worksheet.getCell(
-      titleRow,
-      startCol,
-    ).address,
-    width,
-  };
+  return { title, cell: worksheet.getCell(titleRow, startCol).address, width };
 };
 
-const createMetricAnalysisSheet = ({
-  workbook,
-  packages,
-  regions,
-  config,
-  sheetName,
-  metricLabel,
-  field,
-  unit,
-  tableCounter,
-  daftarIsi,
-}) => {
-  const worksheet =
-    workbook.addWorksheet(sheetName);
-
+const createMetricAnalysisSheet = ({ workbook, packages, regions, config, sheetName, metricLabel, field, unit, tableCounter, daftarIsi }) => {
+  const worksheet = workbook.addWorksheet(sheetName);
   let startCol = 1;
 
-  const packageMap = new Map(
-    packages.map(pkg => [
-      normalizeKab(pkg.kabupaten_kota),
-      pkg,
-    ]),
-  );
+  const packageMap = new Map(packages.map(pkg => [normalizeKab(pkg.kabupaten_kota), pkg]));
 
-  const metric = (
-    region,
-    {
-      jenis = null,
-      kategori = null,
-      skala = null,
-    } = {},
-  ) => {
-    const pkg =
-      packageMap.get(normalizeKab(region));
-
+  const metric = (region, { jenis = null, kategori = null, skala = null } = {}) => {
+    const pkg = packageMap.get(normalizeKab(region));
     if (!pkg) return 0;
 
     return (pkg.details || [])
       .filter(detail =>
-        (!jenis ||
-          normalizeKab(detail.jenis_kegiatan) ===
-            normalizeKab(jenis)) &&
-        (!kategori ||
-          detail.kategori_kegiatan === kategori) &&
-        (!skala ||
-          normalizeKab(detail.skala_usaha) ===
-            normalizeKab(skala))
+        (!jenis || normalizeKab(detail.jenis_kegiatan) === normalizeKab(jenis)) &&
+        (!kategori || detail.kategori_kegiatan === kategori) &&
+        (!skala || normalizeKab(detail.skala_usaha) === normalizeKab(skala))
       )
-      .reduce(
-        (sum, detail) =>
-          sum + toNumber(detail[field]),
-        0,
-      );
+      .reduce((sum, detail) => sum + toNumber(detail[field]), 0);
   };
 
-  const addTable = ({
-    suffix,
-    groupLabel,
-    columns,
-    valueFor,
-  }) => {
+  const addTable = ({ suffix, groupLabel, columns, valueFor }) => {
     const tableNumber = tableCounter.value++;
+    const title = `Tabel ${tableNumber} ${metricLabel} ${suffix} Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
 
-    const title =
-      `Tabel ${tableNumber} ${metricLabel} ${suffix} ` +
-      `Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
+    const meta = writeAnalysisTable({ worksheet, startCol, title, groupLabel, columns, regions, valueFor, unit });
 
-    const meta = writeAnalysisTable({
-      worksheet,
-      startCol,
-      title,
-      groupLabel,
-      columns,
-      regions,
-      valueFor,
-      unit,
-    });
-
-    daftarIsi.push({
-      title,
-      sheetName,
-      cell: meta.cell,
-    });
-
+    daftarIsi.push({ title, sheetName, cell: meta.cell });
     startCol += meta.width + 2;
   };
 
@@ -1321,108 +968,60 @@ const createMetricAnalysisSheet = ({
     suffix: 'berdasarkan Jenis Kegiatan',
     groupLabel: 'Jenis Kegiatan',
     columns: config.kegiatan,
-    valueFor: (region, jenis) =>
-      metric(region, { jenis }),
+    valueFor: (region, jenis) => metric(region, { jenis }),
   });
 
   addTable({
-    suffix:
-      'berdasarkan Jenis Kegiatan Pengolahan',
+    suffix: 'berdasarkan Jenis Kegiatan Pengolahan',
     groupLabel: 'Jenis Kegiatan Pengolahan',
     columns: config.pengolahan,
-    valueFor: (region, jenis) =>
-      metric(region, {
-        jenis,
-        kategori: 'Pengolahan',
-      }),
+    valueFor: (region, jenis) => metric(region, { jenis, kategori: 'Pengolahan' }),
   });
 
   addTable({
-    suffix:
-      'berdasarkan Jenis Kegiatan Pemasaran',
+    suffix: 'berdasarkan Jenis Kegiatan Pemasaran',
     groupLabel: 'Jenis Kegiatan Pemasaran',
     columns: config.pemasaran,
-    valueFor: (region, jenis) =>
-      metric(region, {
-        jenis,
-        kategori: 'Pemasaran',
-      }),
+    valueFor: (region, jenis) => metric(region, { jenis, kategori: 'Pemasaran' }),
   });
 
   addTable({
     suffix: 'berdasarkan Skala Usaha',
     groupLabel: 'Skala Usaha',
     columns: config.scales,
-    valueFor: (region, skala) =>
-      metric(region, { skala }),
+    valueFor: (region, skala) => metric(region, { skala }),
   });
 
   addTable({
-    suffix:
-      'berdasarkan Skala Usaha pada Kegiatan Pengolahan',
+    suffix: 'berdasarkan Skala Usaha pada Kegiatan Pengolahan',
     groupLabel: 'Skala Usaha',
     columns: config.scales,
-    valueFor: (region, skala) =>
-      metric(region, {
-        kategori: 'Pengolahan',
-        skala,
-      }),
+    valueFor: (region, skala) => metric(region, { kategori: 'Pengolahan', skala }),
   });
 
   addTable({
-    suffix:
-      'berdasarkan Skala Usaha pada Kegiatan Pemasaran',
+    suffix: 'berdasarkan Skala Usaha pada Kegiatan Pemasaran',
     groupLabel: 'Skala Usaha',
     columns: config.scales,
-    valueFor: (region, skala) =>
-      metric(region, {
-        kategori: 'Pemasaran',
-        skala,
-      }),
+    valueFor: (region, skala) => metric(region, { kategori: 'Pemasaran', skala }),
   });
 
   config.kegiatan.forEach(jenis => {
     addTable({
-      suffix:
-        `berdasarkan Skala Usaha pada Jenis Kegiatan ${excelCleanText(jenis)}`,
+      suffix: `berdasarkan Skala Usaha pada Jenis Kegiatan ${excelCleanText(jenis)}`,
       groupLabel: 'Skala Usaha',
       columns: config.scales,
-      valueFor: (region, skala) =>
-        metric(region, {
-          jenis,
-          skala,
-        }),
+      valueFor: (region, skala) => metric(region, { jenis, skala }),
     });
   });
 
-  worksheet.views = [
-    {
-      state: 'frozen',
-      xSplit: 2,
-      ySplit: 3,
-    },
-  ];
-
+  worksheet.views = [{ state: 'frozen', xSplit: 2, ySplit: 3 }];
   return worksheet;
 };
 
-const createModalAnalysisSheet = ({
-  workbook,
-  packages,
-  regions,
-  config,
-  tableCounter,
-  daftarIsi,
-}) => {
-  const worksheet =
-    workbook.addWorksheet('Modal');
-
-  const packageMap = new Map(
-    packages.map(pkg => [
-      normalizeKab(pkg.kabupaten_kota),
-      pkg,
-    ]),
-  );
+const createModalAnalysisSheet = ({ workbook, packages, regions, config, tableCounter, daftarIsi }) => {
+  const worksheet = workbook.addWorksheet('Modal');
+  const packageMap = new Map(packages.map(pkg => [normalizeKab(pkg.kabupaten_kota), pkg]));
 
   let startCol = 1;
 
@@ -1431,31 +1030,19 @@ const createModalAnalysisSheet = ({
       suffix: 'berdasarkan Jenis Kegiatan',
       groupLabel: 'Jenis Kegiatan',
       columns: config.kegiatan,
-      valueFor: (region, jenis) =>
-        toNumber(
-          packageMap.get(normalizeKab(region))
-            ?.modal_by_jenis?.[jenis],
-        ),
+      valueFor: (region, jenis) => toNumber(packageMap.get(normalizeKab(region))?.modal_by_jenis?.[jenis]),
     },
     {
       suffix: 'berdasarkan Skala Usaha',
       groupLabel: 'Skala Usaha',
       columns: config.scales,
-      valueFor: (region, skala) =>
-        toNumber(
-          packageMap.get(normalizeKab(region))
-            ?.modal_by_skala?.[skala],
-        ),
+      valueFor: (region, skala) => toNumber(packageMap.get(normalizeKab(region))?.modal_by_skala?.[skala]),
     },
   ];
 
   definitions.forEach(definition => {
     const tableNumber = tableCounter.value++;
-
-    const title =
-      `Tabel ${tableNumber} Jumlah Investasi Modal (Rp) ` +
-      `${definition.suffix} Pengolahan dan Pemasaran ` +
-      `Produk Kelautan dan Perikanan`;
+    const title = `Tabel ${tableNumber} Jumlah Investasi Modal (Rp) ${definition.suffix} Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
 
     const meta = writeAnalysisTable({
       worksheet,
@@ -1468,70 +1055,32 @@ const createModalAnalysisSheet = ({
       unit: 'currency',
     });
 
-    daftarIsi.push({
-      title,
-      sheetName: 'Modal',
-      cell: meta.cell,
-    });
-
+    daftarIsi.push({ title, sheetName: 'Modal', cell: meta.cell });
     startCol += meta.width + 2;
   });
 
-  worksheet.views = [
-    {
-      state: 'frozen',
-      xSplit: 2,
-      ySplit: 3,
-    },
-  ];
-
+  worksheet.views = [{ state: 'frozen', xSplit: 2, ySplit: 3 }];
   return worksheet;
 };
 
-const createDocumentAnalysisSheet = ({
-  workbook,
-  packages,
-  regions,
-  config,
-  sheetName,
-  titleLabel,
-  key,
-  options,
-  tableCounter,
-  daftarIsi,
-}) => {
-  const worksheet =
-    workbook.addWorksheet(sheetName);
-
-  const packageMap = new Map(
-    packages.map(pkg => [
-      normalizeKab(pkg.kabupaten_kota),
-      pkg,
-    ]),
-  );
+const createDocumentAnalysisSheet = ({ workbook, packages, regions, sheetName, titleLabel, key, options, tableCounter, daftarIsi }) => {
+  const worksheet = workbook.addWorksheet(sheetName);
+  const packageMap = new Map(packages.map(pkg => [normalizeKab(pkg.kabupaten_kota), pkg]));
 
   let startCol = 1;
 
   const definitions = [
     {
       suffix: 'per Kab/Kota',
-      dimensionHeader: 'Jenis Dokumen',
-      columns: options,
       groupLabel: 'Jenis Dokumen',
-      valueFor: (region, option) =>
-        toNumber(
-          packageMap.get(normalizeKab(region))
-            ?.dokumen?.[key]?.[option],
-        ),
+      columns: options,
+      valueFor: (region, option) => toNumber(packageMap.get(normalizeKab(region))?.dokumen?.[key]?.[option]),
     },
   ];
 
   definitions.forEach(definition => {
     const tableNumber = tableCounter.value++;
-
-    const title =
-      `Tabel ${tableNumber} ${titleLabel} ${definition.suffix} ` +
-      `Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
+    const title = `Tabel ${tableNumber} ${titleLabel} ${definition.suffix} Pengolahan dan Pemasaran Produk Kelautan dan Perikanan`;
 
     const meta = writeAnalysisTable({
       worksheet,
@@ -1544,39 +1093,21 @@ const createDocumentAnalysisSheet = ({
       unit: 'number',
     });
 
-    daftarIsi.push({
-      title,
-      sheetName,
-      cell: meta.cell,
-    });
-
+    daftarIsi.push({ title, sheetName, cell: meta.cell });
     startCol += meta.width + 2;
   });
 
-  worksheet.views = [
-    {
-      state: 'frozen',
-      xSplit: 2,
-      ySplit: 3,
-    },
-  ];
-
+  worksheet.views = [{ state: 'frozen', xSplit: 2, ySplit: 3 }];
   return worksheet;
 };
 
-const createDynamicDaftarIsiSheet = (
-  worksheet,
-  year,
-  entries,
-) => {
+const createDynamicDaftarIsiSheet = (worksheet, year, entries) => {
   worksheet.mergeCells('A1:B1');
-  worksheet.getCell('A1').value =
-    'DAFTAR ISI REKAP STATISTIK PENGOLAHAN DAN PEMASARAN';
+  worksheet.getCell('A1').value = 'DAFTAR ISI REKAP STATISTIK PENGOLAHAN DAN PEMASARAN';
   styleExcelTitle(worksheet.getCell('A1'));
 
   worksheet.mergeCells('A2:B2');
-  worksheet.getCell('A2').value =
-    `PRODUK KELAUTAN DAN PERIKANAN PROVINSI JAWA TIMUR TAHUN ${year}`;
+  worksheet.getCell('A2').value = `PRODUK KELAUTAN DAN PERIKANAN PROVINSI JAWA TIMUR TAHUN ${year}`;
   styleExcelTitle(worksheet.getCell('A2'));
 
   worksheet.getCell('A4').value = 'Daftar Tabel';
@@ -1590,24 +1121,15 @@ const createDynamicDaftarIsiSheet = (
     const linkCell = worksheet.getCell(row, 1);
     linkCell.value = {
       text: excelCleanText(entry.title),
-      hyperlink:
-        `#'${entry.sheetName.replace(/'/g, "''")}'!${entry.cell}`,
+      hyperlink: `#'${entry.sheetName.replace(/'/g, "''")}'!${entry.cell}`,
       tooltip: `Buka ${entry.sheetName}`,
     };
 
-    linkCell.font = {
-      color: { argb: '0563C1' },
-      underline: true,
-    };
+    linkCell.font = { color: { argb: '0563C1' }, underline: true };
     linkCell.border = excelBorder;
-    linkCell.alignment = {
-      vertical: 'middle',
-      horizontal: 'left',
-      wrapText: false,
-    };
+    linkCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
 
-    const sheetCell =
-      worksheet.getCell(row, 2);
+    const sheetCell = worksheet.getCell(row, 2);
     sheetCell.value = entry.sheetName;
     styleExcelBody(sheetCell);
   });
@@ -1615,45 +1137,25 @@ const createDynamicDaftarIsiSheet = (
   worksheet.getColumn(1).width = 250;
   worksheet.getColumn(2).width = 18;
 
-  worksheet.views = [
-    {
-      state: 'frozen',
-      ySplit: 4,
-    },
-  ];
+  worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 };
 
-const buildRekapWorkbook = async (
-  packages,
-  year,
-) => {
+const buildRekapWorkbook = async (packages, year) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Dinas Kelautan dan Perikanan';
   workbook.created = new Date();
 
-  // Seluruh Master Data Kab/Kota ditampilkan,
-  // sehingga format rekap konsisten dengan Hasil Analisis.
+  // Seluruh Master Data Kab/Kota ditampilkan, sehingga format rekap konsisten
+  // dengan Hasil Analisis, dan otomatis bertambah saat admin menambah
+  // kab/kota baru di Master Data.
   const regions = await regionInfo();
 
-  const pengolahan =
-    await masterValues('JENIS_PENGOLAHAN');
-
-  const pemasaran =
-    await masterValues('JENIS_PEMASARAN');
-
-  const scales =
-    await masterValues('KATEGORI_SKALA_USAHA');
-
-  const sertifikatProduk =
-    await masterValues('SERTIFIKAT_PRODUK');
-
-  const izinUsaha =
-    await masterValues('IZIN_USAHA');
-
-  const sertifikatLb =
-    await masterValues(
-      'SERTIFIKAT_LAHAN_BANGUNAN',
-    );
+  const pengolahan = await masterValues('JENIS_PENGOLAHAN');
+  const pemasaran = await masterValues('JENIS_PEMASARAN');
+  const scales = await masterValues('KATEGORI_SKALA_USAHA');
+  const sertifikatProduk = await masterValues('SERTIFIKAT_PRODUK');
+  const izinUsaha = await masterValues('IZIN_USAHA');
+  const sertifikatLb = await masterValues('SERTIFIKAT_LAHAN_BANGUNAN');
 
   const config = {
     pengolahan,
@@ -1662,223 +1164,104 @@ const buildRekapWorkbook = async (
     scales,
   };
 
-  const daftarIsiSheet =
-    workbook.addWorksheet('Daftar Isi');
-
+  const daftarIsiSheet = workbook.addWorksheet('Daftar Isi');
   const daftarIsi = [];
   const tableCounter = { value: 1 };
 
   createMetricAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Unit Usaha',
-    metricLabel: 'Jumlah Unit Usaha Aktif',
-    field: 'jumlah_unit_usaha',
-    unit: 'number',
-    tableCounter,
-    daftarIsi,
+    workbook, packages, regions, config,
+    sheetName: 'Unit Usaha', metricLabel: 'Jumlah Unit Usaha Aktif', field: 'jumlah_unit_usaha', unit: 'number',
+    tableCounter, daftarIsi,
   });
 
   createMetricAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Hasil (Kg)',
-    metricLabel: 'Jumlah Hasil Produksi (Kg)',
-    field: 'hasil_kg',
-    unit: 'number',
-    tableCounter,
-    daftarIsi,
+    workbook, packages, regions, config,
+    sheetName: 'Hasil (Kg)', metricLabel: 'Jumlah Hasil Produksi (Kg)', field: 'hasil_kg', unit: 'number',
+    tableCounter, daftarIsi,
   });
 
   createMetricAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Hasil (Rp)',
-    metricLabel: 'Jumlah Hasil Produksi (Rp)',
-    field: 'hasil_rp',
-    unit: 'currency',
-    tableCounter,
-    daftarIsi,
+    workbook, packages, regions, config,
+    sheetName: 'Hasil (Rp)', metricLabel: 'Jumlah Hasil Produksi (Rp)', field: 'hasil_rp', unit: 'currency',
+    tableCounter, daftarIsi,
   });
 
-  createModalAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    tableCounter,
-    daftarIsi,
+  createModalAnalysisSheet({ workbook, packages, regions, config, tableCounter, daftarIsi });
+
+  createDocumentAnalysisSheet({
+    workbook, packages, regions,
+    sheetName: 'Sertifikat Produk', titleLabel: 'Jumlah Kepemilikan Sertifikat Produk',
+    key: 'sertifikat_produk', options: sertifikatProduk,
+    tableCounter, daftarIsi,
   });
 
   createDocumentAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Sertifikat Produk',
-    titleLabel:
-      'Jumlah Kepemilikan Sertifikat Produk',
-    key: 'sertifikat_produk',
-    options: sertifikatProduk,
-    tableCounter,
-    daftarIsi,
+    workbook, packages, regions,
+    sheetName: 'Izin Usaha', titleLabel: 'Jumlah Kepemilikan Izin Usaha',
+    key: 'izin_usaha', options: izinUsaha,
+    tableCounter, daftarIsi,
   });
 
   createDocumentAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Izin Usaha',
-    titleLabel:
-      'Jumlah Kepemilikan Izin Usaha',
-    key: 'izin_usaha',
-    options: izinUsaha,
-    tableCounter,
-    daftarIsi,
+    workbook, packages, regions,
+    sheetName: 'Sertifikat LB', titleLabel: 'Jumlah Kepemilikan Sertifikat Lahan dan Bangunan',
+    key: 'sertifikat_lahan_bangunan', options: sertifikatLb,
+    tableCounter, daftarIsi,
   });
 
-  createDocumentAnalysisSheet({
-    workbook,
-    packages,
-    regions,
-    config,
-    sheetName: 'Sertifikat LB',
-    titleLabel:
-      'Jumlah Kepemilikan Sertifikat Lahan dan Bangunan',
-    key: 'sertifikat_lahan_bangunan',
-    options: sertifikatLb,
-    tableCounter,
-    daftarIsi,
-  });
-
-  createDynamicDaftarIsiSheet(
-    daftarIsiSheet,
-    year,
-    daftarIsi,
-  );
+  createDynamicDaftarIsiSheet(daftarIsiSheet, year, daftarIsi);
 
   // Auto-size semua sheet selain Daftar Isi.
-  // Daftar Isi punya lebar kolom khusus supaya judul tabel memanjang.
-  workbook.worksheets
-    .filter(sheet => sheet.name !== 'Daftar Isi')
-    .forEach(autoSizeExcel);
+  workbook.worksheets.filter(sheet => sheet.name !== 'Daftar Isi').forEach(autoSizeExcel);
 
   // Paksa ukuran kolom Daftar Isi setelah proses auto-size,
   // supaya tidak ditimpa lagi oleh batas maksimum autoSizeExcel.
   daftarIsiSheet.getColumn(1).width = 150;
   daftarIsiSheet.getColumn(2).width = 18;
-
   daftarIsiSheet.orderNo = 0;
 
   return workbook;
 };
 
-const sendWorkbook = async (
-  res,
-  workbook,
-  filename,
-) => {
-  res.setHeader(
-    'Content-Type',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  );
-
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="${filename}"`,
-  );
-
+const sendWorkbook = async (res, workbook, filename) => {
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   await workbook.xlsx.write(res);
   res.end();
 };
 
 const exportDataAdmin = async (req, res) => {
   try {
-    const packages =
-      await selectPackagesForExport({
-        ids: req.body?.ids,
-        admin: true,
-      });
+    const packages = await selectPackagesForExport({ ids: req.body?.ids, admin: true });
 
     if (!packages.length) {
-      return res.status(404).json({
-        success: false,
-        message:
-          'Tidak ada data yang dapat diekspor.',
-      });
+      return res.status(404).json({ success: false, message: 'Tidak ada data yang dapat diekspor.' });
     }
 
-    return sendWorkbook(
-      res,
-      await buildDataWorkbook(packages),
-      `Pengolahan_Pemasaran_${new Date()
-        .toISOString()
-        .split('T')[0]}.xlsx`,
-    );
+    return sendWorkbook(res, await buildDataWorkbook(packages), `Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}.xlsx`);
   } catch (error) {
-    console.error(
-      'Error export data admin:',
-      error,
-    );
-
+    console.error('Error export data admin:', error);
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message ||
-          'Gagal mengekspor data.',
-      });
+      return res.status(500).json({ success: false, message: error.message || 'Gagal mengekspor data.' });
     }
-
     return undefined;
   }
 };
 
 const exportDataPublic = async (req, res) => {
   try {
-    const packages =
-      await selectPackagesForExport({
-        ids: req.body?.ids,
-        admin: false,
-      });
+    const packages = await selectPackagesForExport({ ids: req.body?.ids, admin: false });
 
     if (!packages.length) {
-      return res.status(404).json({
-        success: false,
-        message:
-          'Tidak ada data VERIFIED yang dapat diekspor.',
-      });
+      return res.status(404).json({ success: false, message: 'Tidak ada data VERIFIED yang dapat diekspor.' });
     }
 
-    return sendWorkbook(
-      res,
-      await buildDataWorkbook(packages),
-      `Pengolahan_Pemasaran_${new Date()
-        .toISOString()
-        .split('T')[0]}.xlsx`,
-    );
+    return sendWorkbook(res, await buildDataWorkbook(packages), `Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}.xlsx`);
   } catch (error) {
-    console.error(
-      'Error export data public:',
-      error,
-    );
-
+    console.error('Error export data public:', error);
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message ||
-          'Gagal mengekspor data.',
-      });
+      return res.status(500).json({ success: false, message: error.message || 'Gagal mengekspor data.' });
     }
-
     return undefined;
   }
 };
@@ -1888,55 +1271,22 @@ const exportRekapAdmin = async (req, res) => {
     const year = toInt(req.body?.tahun);
 
     if (!year) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Pilih tepat satu tahun sebelum mengekspor rekap statistik.',
-      });
+      return res.status(400).json({ success: false, message: 'Pilih tepat satu tahun sebelum mengekspor rekap statistik.' });
     }
 
-    const packages =
-      await selectPackagesForExport({
-        tahun: year,
-        regions: req.body?.regions,
-        admin: true,
-      });
-
-    const verified = packages.filter(
-      pkg => pkg.status === 'VERIFIED',
-    );
+    const packages = await selectPackagesForExport({ tahun: year, regions: req.body?.regions, admin: true });
+    const verified = packages.filter(pkg => pkg.status === 'VERIFIED');
 
     if (!verified.length) {
-      return res.status(404).json({
-        success: false,
-        message:
-          'Tidak ada data VERIFIED pada tahun yang dipilih.',
-      });
+      return res.status(404).json({ success: false, message: 'Tidak ada data VERIFIED pada tahun yang dipilih.' });
     }
 
-    return sendWorkbook(
-      res,
-      await buildRekapWorkbook(
-        verified,
-        year,
-      ),
-      `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
-    );
+    return sendWorkbook(res, await buildRekapWorkbook(verified, year), `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`);
   } catch (error) {
-    console.error(
-      'Error export rekap admin:',
-      error,
-    );
-
+    console.error('Error export rekap admin:', error);
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message ||
-          'Gagal mengekspor rekap statistik.',
-      });
+      return res.status(500).json({ success: false, message: error.message || 'Gagal mengekspor rekap statistik.' });
     }
-
     return undefined;
   }
 };
@@ -1946,53 +1296,39 @@ const exportRekapPublic = async (req, res) => {
     const year = toInt(req.body?.tahun);
 
     if (!year) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Pilih tepat satu tahun sebelum mengekspor rekap statistik.',
-      });
+      return res.status(400).json({ success: false, message: 'Pilih tepat satu tahun sebelum mengekspor rekap statistik.' });
     }
 
-    const packages =
-      await selectPackagesForExport({
-        tahun: year,
-        regions: req.body?.regions,
-        admin: false,
-      });
+    const packages = await selectPackagesForExport({ tahun: year, regions: req.body?.regions, admin: false });
 
     if (!packages.length) {
-      return res.status(404).json({
-        success: false,
-        message:
-          'Tidak ada data VERIFIED pada tahun yang dipilih.',
-      });
+      return res.status(404).json({ success: false, message: 'Tidak ada data VERIFIED pada tahun yang dipilih.' });
     }
 
-    return sendWorkbook(
-      res,
-      await buildRekapWorkbook(
-        packages,
-        year,
-      ),
-      `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`,
-    );
+    return sendWorkbook(res, await buildRekapWorkbook(packages, year), `Rekap_Statistik_Pengolahan_Pemasaran_${year}.xlsx`);
   } catch (error) {
-    console.error(
-      'Error export rekap public:',
-      error,
-    );
-
+    console.error('Error export rekap public:', error);
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message:
-          error.message ||
-          'Gagal mengekspor rekap statistik.',
-      });
+      return res.status(500).json({ success: false, message: error.message || 'Gagal mengekspor rekap statistik.' });
     }
-
     return undefined;
   }
 };
 
-module.exports = { getAllData, getAdminData, getStats, getDashboardStats, createData, createBatchData, updateData, deleteData, updateStatus, batchStatus, batchDelete, exportDataAdmin, exportDataPublic, exportRekapAdmin, exportRekapPublic };
+module.exports = {
+  getAllData,
+  getAdminData,
+  getStats,
+  getDashboardStats,
+  createData,
+  createBatchData,
+  updateData,
+  deleteData,
+  updateStatus,
+  batchStatus,
+  batchDelete,
+  exportDataAdmin,
+  exportDataPublic,
+  exportRekapAdmin,
+  exportRekapPublic,
+};
