@@ -12,6 +12,7 @@ import * as echarts from 'echarts';
 import geoJsonData from '@/assets/jawa_timur.json';
 import { useThemeStore } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 import PromptModal from '@/components/shared/PromptModal';
 import { usePromptModal } from '@/hooks/usePromptModal';
 
@@ -34,6 +35,14 @@ export default function AdminBudidaya() {
   const { prompt, modalProps } = usePromptModal();
   const { theme } = useThemeStore();
   const user = useAuthStore(state => state.user);
+  
+  const masterData = useMasterDataStore(state => state.data);
+  const getOptions = useMasterDataStore(state => state.getOptions);
+  
+  const masterKabKota = useMemo(() => getOptions('KABUPATEN_KOTA') || [], [masterData, getOptions]);
+  const masterKomoditas = useMemo(() => getOptions('KOMODITAS_BUDIDAYA') || [], [masterData, getOptions]);
+  const masterWadah = useMemo(() => getOptions('JENIS_WADAH') || [], [masterData, getOptions]);
+  
   const isDark = theme === 'dark';
   const chartText = isDark ? '#e2e8f0' : '#0f172a';
   const chartSubText = isDark ? '#cbd5e1' : '#1e293b';
@@ -62,9 +71,9 @@ export default function AdminBudidaya() {
   const [exportType, setExportType] = useState('wadah');
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
 
-  const komoditasOptions = useMemo(() => [...new Set(data.map(d => d.komoditas))].filter(Boolean).sort(), [data]);
-  const kabupatenOptions = useMemo(() => [...new Set([...data.map(d => d.kabupaten_kota), ...dataTahunan.map(d => d.kabupaten_kota)])].filter(Boolean).sort(), [data, dataTahunan]);
-  const wadahOptions = useMemo(() => [...new Set(data.map(d => d.jenis_wadah))].filter(Boolean).sort(), [data]);
+  const komoditasOptions = useMemo(() => [...new Set([...data.map(d => d.komoditas), ...masterKomoditas])].filter(Boolean).sort(), [data, masterKomoditas]);
+  const kabupatenOptions = useMemo(() => [...new Set([...data.map(d => d.kabupaten_kota), ...dataTahunan.map(d => d.kabupaten_kota), ...masterKabKota])].filter(Boolean).sort(), [data, dataTahunan, masterKabKota]);
+  const wadahOptions = useMemo(() => [...new Set([...data.map(d => d.jenis_wadah), ...masterWadah])].filter(Boolean).sort(), [data, masterWadah]);
   const bulanOptions = useMemo(() => [...new Set(data.map(d => d.bulan))].filter(Boolean).sort(), [data]);
   const tahunOptions = useMemo(() => [...new Set([...data.map(d => d.tahun), ...dataTahunan.map(d => d.tahun)])].filter(Boolean).sort(), [data, dataTahunan]);
   const modulOptions = useMemo(() => [...new Set(dataTahunan.map(d => d.modul_id))].filter(Boolean).sort(), [dataTahunan]);

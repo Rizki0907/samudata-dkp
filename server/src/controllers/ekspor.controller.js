@@ -59,7 +59,7 @@ const createData = async (req, res) => {
     res.status(201).json({ success: true, data, message: 'Data berhasil ditambahkan' });
   } catch (error) {
     console.error('Error creating ekspor data:', error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 

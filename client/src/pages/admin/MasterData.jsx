@@ -44,6 +44,7 @@ const CATEGORY_MAP = {
     { value: 'JENIS_PERAHU_PUD', label: 'GT / Jenis Perahu', icon: Ship }
   ],
   'Perikanan Budidaya': [
+    { value: 'KABUPATEN_KOTA', label: 'Kab/Kota', icon: MapPin, hasMetadata: 'id_wilayah' },
     { value: 'KOMODITAS_BUDIDAYA', label: 'Komoditas Budidaya', icon: Package },
     { value: 'JENIS_WADAH', label: 'Jenis Wadah', icon: Database }
   ],
