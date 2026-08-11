@@ -922,7 +922,8 @@ export default function AdminKelautanPesisir() {
       }
     } catch (err) {
       console.error('Gagal menyimpan data:', err);
-      alert('Gagal menyimpan data. Silakan coba lagi.');
+      const errorMessage = err.response?.data?.message || 'Gagal menyimpan data. Silakan coba lagi.';
+      alert(errorMessage);
     } finally {
       setSubmitLoading(false);
       setIsFormOpen(false);

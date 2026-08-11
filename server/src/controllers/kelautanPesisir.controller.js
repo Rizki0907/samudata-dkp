@@ -65,6 +65,18 @@ const getGaramPublicData = async (req, res) => {
 const createGaramData = async (req, res) => {
   try {
     const payload = req.body;
+    
+    const existing = await prisma.garam.findFirst({
+      where: {
+        tahun: Number(payload.tahun),
+        bulan: payload.bulan,
+        kabupaten_kota: payload.kabupaten_kota
+      }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Data Garam untuk wilayah, bulan, dan tahun ini sudah ada. Silakan gunakan fitur edit.' });
+    }
+
     payload.triwulan = getTriwulan(payload.bulan);
     payload.total_produksi_ton = (payload.produksi_k1_ton || 0) + (payload.produksi_k2_ton || 0) + (payload.produksi_k3_ton || 0);
     payload.total_stok_ton = (payload.stok_k1_ton || 0) + (payload.stok_k2_ton || 0) + (payload.stok_k3_ton || 0);
@@ -184,6 +196,9 @@ const createPotensiPerairanData = async (req, res) => {
     const newData = await prisma.potensiPerairan.create({ data: payload });
     res.json({ success: true, data: newData });
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ success: false, message: 'Data Potensi Perairan untuk wilayah dan tahun ini sudah ada. Silakan gunakan fitur edit.' });
+    }
     console.error('Error creating potensi perairan data:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
@@ -283,6 +298,15 @@ const getMangrovePublicData = async (req, res) => {
 const createMangroveData = async (req, res) => {
   try {
     const payload = req.body;
+    const existing = await prisma.mangrove.findFirst({
+      where: {
+        tahun: Number(payload.tahun),
+        kabupaten_kota: payload.kabupaten_kota
+      }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Data Mangrove untuk wilayah dan tahun ini sudah ada. Silakan gunakan fitur edit.' });
+    }
     payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
     payload.luas_sangat_padat = Number(payload.luas_sangat_padat) || 0;
     payload.luas_sedang = Number(payload.luas_sedang) || 0;
@@ -431,6 +455,15 @@ const getLamunPublicData = async (req, res) => {
 const createLamunData = async (req, res) => {
   try {
     const payload = req.body;
+    const existing = await prisma.lamun.findFirst({
+      where: {
+        tahun: Number(payload.tahun),
+        kabupaten_kota: payload.kabupaten_kota
+      }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Data Lamun untuk wilayah dan tahun ini sudah ada. Silakan gunakan fitur edit.' });
+    }
     payload.persentase_tutupan = Number(payload.persentase_tutupan) || 0;
     payload.persentase_kondisi = Number(payload.persentase_kondisi) || 0;
     payload.luas_kaya = Number(payload.luas_kaya) || 0;
@@ -845,6 +878,16 @@ const createTerumbuKarangData = async (req, res) => {
       tahun, kabupaten_kota, luas_eksisting_ha, persentase_tutupan, persentase_kondisi, kondisi,
       luas_rehabilitasi_ha, luas_sangat_baik, luas_baik, luas_sedang, luas_rusak
     } = req.body;
+
+    const existing = await prisma.terumbu_karang.findFirst({
+      where: {
+        tahun: Number(tahun),
+        kabupaten_kota: kabupaten_kota
+      }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Data Terumbu Karang untuk wilayah dan tahun ini sudah ada. Silakan gunakan fitur edit.' });
+    }
 
     await prisma.$executeRawUnsafe(`
       INSERT INTO "terumbu_karang" (
