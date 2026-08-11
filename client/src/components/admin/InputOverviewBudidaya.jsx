@@ -14,6 +14,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
     tahun: new Date().getFullYear(),
+    produksi_budidaya: '',
     komoditas_unggulan: '',
     jumlah_pembudidaya: '',
     luas_lahan: ''
@@ -45,6 +46,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
     setEditId(null);
     setFormData({
       tahun: new Date().getFullYear(),
+      produksi_budidaya: '',
       komoditas_unggulan: '',
       jumlah_pembudidaya: '',
       luas_lahan: ''
@@ -57,6 +59,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
     setEditId(item.id);
     setFormData({
       tahun: item.value || '',
+      produksi_budidaya: item.metadata?.produksi_budidaya ?? '',
       komoditas_unggulan: item.metadata?.komoditas_unggulan || '',
       jumlah_pembudidaya: item.metadata?.jumlah_pembudidaya ?? '',
       luas_lahan: item.metadata?.luas_lahan ?? ''
@@ -90,6 +93,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
       value: String(formData.tahun),
       metadata: {
         tahun: Number(formData.tahun),
+        produksi_budidaya: formData.produksi_budidaya !== '' ? Number(formData.produksi_budidaya) : '',
         komoditas_unggulan: formData.komoditas_unggulan,
         jumlah_pembudidaya: Number(formData.jumlah_pembudidaya || 0),
         luas_lahan: Number(formData.luas_lahan || 0)
@@ -160,6 +164,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-4 px-6 text-center">Tahun</th>
+                  <th className="py-4 px-6 text-center">Produksi (Ton)</th>
                   <th className="py-4 px-6">Komoditas Unggulan</th>
                   <th className="py-4 px-6 text-center">Jumlah Pembudidaya</th>
                   <th className="py-4 px-6 text-center">Luas Lahan Budidaya (Ha)</th>
@@ -172,6 +177,11 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
                   return (
                     <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="py-4 px-6 font-semibold text-foreground text-center">{item.value}</td>
+                      <td className="py-4 px-6 text-center">
+                        {meta.produksi_budidaya !== undefined && meta.produksi_budidaya !== ''
+                          ? `${Number(meta.produksi_budidaya).toLocaleString('id-ID')} Ton`
+                          : '-'}
+                      </td>
                       <td className="py-4 px-6 font-medium text-emerald-600">{meta.komoditas_unggulan || '-'}</td>
                       <td className="py-4 px-6 text-center">
                         {meta.jumlah_pembudidaya !== undefined && meta.jumlah_pembudidaya !== ''
@@ -248,6 +258,22 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
                   />
                 </div>
 
+                {/* 1.5. Produksi Budidaya */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Produksi Budidaya (Ton) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.produksi_budidaya}
+                    onChange={(e) => setFormData({ ...formData, produksi_budidaya: e.target.value })}
+                    placeholder="Contoh: 1500.5"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                  />
+                </div>
+
                 {/* 2. Komoditas Unggulan */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
@@ -305,7 +331,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || !formData.tahun || !formData.komoditas_unggulan}
+                    disabled={isSubmitting || !formData.tahun || !formData.komoditas_unggulan || formData.produksi_budidaya === ''}
                     className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
                   >
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

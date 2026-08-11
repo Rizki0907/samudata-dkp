@@ -172,8 +172,8 @@ export default function Overview() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl border border-border">
               <p className="text-sm text-muted-foreground mb-1">Produksi Budidaya</p>
-              <p className="text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}>
-                {fmt(stats.budidaya.produksi ? stats.budidaya.produksi / 1000 : stats.budidaya.produksi, { maximumFractionDigits: 2 })}
+              <p className="text-2xl font-bold text-emerald-600 truncate" title={fmt(stats.budidaya.produksi, { maximumFractionDigits: 2 })}>
+                {fmt(stats.budidaya.produksi, { maximumFractionDigits: 2 })}
                 <span className="text-sm font-normal text-muted-foreground"> Ton</span>
               </p>
             </div>
