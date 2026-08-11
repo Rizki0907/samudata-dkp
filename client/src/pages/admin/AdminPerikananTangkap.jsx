@@ -8,7 +8,7 @@ import { TangkapTahunanForm } from '@/components/admin/TangkapTahunanForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import { 
-  Loader2, Plus, MapPin, TrendingUp, Ship, Navigation, LineChart, Anchor, Filter, ChevronDown, Search, X, CheckCircle, XCircle, FileText, Download, Upload, Info, AlertTriangle, Settings, Scale, Coins, Clock, ArrowRight, Database, BarChart3, AlertCircle, Calendar, Map, Layers, Droplet, Trash2, Edit, Save, Eye, FileSpreadsheet
+  Loader2, Plus, MapPin, TrendingUp, Ship, Navigation, LineChart, Anchor, Filter, ChevronDown, Search, X, CheckCircle, XCircle, FileText, Download, Upload, Info, AlertTriangle, Settings, Scale, Coins, Clock, ArrowRight, Database, BarChart3, AlertCircle, Calendar, Map, Layers, Droplet, Trash2, Edit, Save, Eye, FileSpreadsheet, Fish
 } from 'lucide-react';
 
 import ActionDialog from '@/components/shared/ActionDialog';
