@@ -23,31 +23,31 @@ import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 
 // ── KONSTANTA ───────────────────────────────────────────────────────────────────
-const NAMA_BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const NAMA_BULAN_LIST = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const formatBulan = (val) => {
   if (!val && val !== 0) return '-';
-  
+
   // Jika val sudah berupa huruf (contoh: "Januari"), langsung kembalikan
   if (typeof val === 'string' && isNaN(val)) {
     return val.trim();
   }
-  
+
   // Paksa ubah format apapun (1, "1", atau "01") menjadi angka murni
   const num = parseInt(val, 10);
   if (num >= 1 && num <= 12) {
     return NAMA_BULAN_LIST[num - 1];
   }
-  
+
   return String(val);
 };
 
 const getTriwulan = (bulan) => {
   const b = bulan?.toLowerCase() ?? '';
-  if (['januari','februari','maret'].includes(b)) return 'TW 1';
-  if (['april','mei','juni'].includes(b)) return 'TW 2';
-  if (['juli','agustus','september'].includes(b)) return 'TW 3';
-  if (['oktober','november','desember'].includes(b)) return 'TW 4';
+  if (['januari', 'februari', 'maret'].includes(b)) return 'TW 1';
+  if (['april', 'mei', 'juni'].includes(b)) return 'TW 2';
+  if (['juli', 'agustus', 'september'].includes(b)) return 'TW 3';
+  if (['oktober', 'november', 'desember'].includes(b)) return 'TW 4';
   return '-';
 };
 
@@ -151,14 +151,14 @@ const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, fil
         const ws = buildGaramSheet(dataBulan, title, `BULAN: ${bln.toUpperCase()}`, 'kabupaten');
         XLSX.utils.book_append_sheet(wb, ws, (bln.substring(0, 3) + yrSuffix));
       });
-      
+
       const wsRekap = buildGaramSheet(yrData, title, `REKAPITULASI ${filterTw}`, 'kabupaten');
       XLSX.utils.book_append_sheet(wb, wsRekap, (`Rekap ` + filterTw + yrSuffix).substring(0, 31));
       return;
     }
 
     // KASUS 4: Tidak ada filter (Full set for this year)
-    const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     NAMA_BULAN.forEach(bln => {
       const dataBulan = yrData.filter(d => formatBulan(d.bulan).toLowerCase() === bln.toLowerCase());
       const ws = buildGaramSheet(dataBulan, title, `BULAN: ${bln.toUpperCase()}`, 'kabupaten');
@@ -174,7 +174,7 @@ const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, fil
     if (filterKab) subtitle += ` - KAB: ${filterKab.toUpperCase()}`;
     if (filterBulan) subtitle += ` - BULAN: ${filterBulan.toUpperCase()}`;
     if (filterTw) subtitle += ` - ${filterTw}`;
-    
+
     const wsMaster = buildGaramSheet(data, `${titleBase} (MULTI TAHUN)`, subtitle, 'tahun');
     XLSX.utils.book_append_sheet(wb, wsMaster, 'Rekap Semua Tahun');
 
@@ -190,7 +190,7 @@ const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, fil
   if (filterKab) filename += `_${filterKab}`;
   if (filterBulan) filename += `_${filterBulan}`;
   if (filterTw) filename += `_${filterTw}`;
-  
+
   XLSX.writeFile(wb, `${filename.replace(/\s+/g, '_')}.xlsx`);
 };
 
@@ -228,12 +228,12 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
     const rows = item.rows;
     // Urutkan berdasarkan bulan
     rows.sort((a, b) => NAMA_BULAN_LIST.indexOf(formatBulan(a.bulan)) - NAMA_BULAN_LIST.indexOf(formatBulan(b.bulan)));
-    
+
     let rowLuas = 0, rowLProd = 0, rowPok = 0, rowPetambak = 0;
     let rStokK1 = 0, rStokK2 = 0, rStokK3 = 0, rTotalStok = 0;
-    
+
     if (rowMode === 'kabupaten') {
-      const lastRow = rows[rows.length - 1]; 
+      const lastRow = rows[rows.length - 1];
       rowLuas = lastRow.luas_total_ha || 0;
       rowLProd = lastRow.luas_produksi_ha || 0;
       rowPok = lastRow.jumlah_kelompok || 0;
@@ -293,16 +293,16 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
     totalLuas += rowLuas; totalLProd += rowLProd; totalPok += rowPok; totalPetambak += rowPetambak;
     totalProdK1 += rProdK1; totalProdK2 += rProdK2; totalProdK3 += rProdK3; totalProduksi += rTotalProd;
     totalStokK1 += rStokK1; totalStokK2 += rStokK2; totalStokK3 += rStokK3; totalStok += rTotalStok;
-    
+
     if (rHargaK1 > 0) { sumHargaK1 += rHargaK1; countHargaK1++; }
     if (rHargaK2 > 0) { sumHargaK2 += rHargaK2; countHargaK2++; }
     if (rHargaK3 > 0) { sumHargaK3 += rHargaK3; countHargaK3++; }
     if (rProdtv > 0) { sumProd += rProdtv; countProd++; }
 
-    return [ i + 1, 'VERIFIED', key, fmt(rowLuas), fmt(rowLProd), fmt(rowPok), fmt(rowPetambak),
-      fmt(rProdK1), fmt(rProdK2), fmt(rProdK3), fmt(rTotalProd), fmt(rProdtv),
-      fmt(rStokK1), fmt(rStokK2), fmt(rStokK3), fmt(rTotalStok),
-      fmt(rHargaK1), fmt(rHargaK2), fmt(rHargaK3), fmt(rNilaiK1), fmt(rNilaiK2), fmt(rNilaiK3)
+    return [i + 1, 'VERIFIED', key, fmt(rowLuas), fmt(rowLProd), fmt(rowPok), fmt(rowPetambak),
+    fmt(rProdK1), fmt(rProdK2), fmt(rProdK3), fmt(rTotalProd), fmt(rProdtv),
+    fmt(rStokK1), fmt(rStokK2), fmt(rStokK3), fmt(rTotalStok),
+    fmt(rHargaK1), fmt(rHargaK2), fmt(rHargaK3), fmt(rNilaiK1), fmt(rNilaiK2), fmt(rNilaiK3)
     ];
   });
 
@@ -312,13 +312,13 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   const avgProdtv = countProd > 0 ? sumProd / countProd : 0;
 
   const totalRow = [
-    'TOTAL', '', 'TOTAL', 
+    'TOTAL', '', 'TOTAL',
     fmt(totalLuas), fmt(totalLProd), fmt(totalPok), fmt(totalPetambak),
     fmt(totalProdK1), fmt(totalProdK2), fmt(totalProdK3), fmt(totalProduksi), fmt(avgProdtv),
     fmt(totalStokK1), fmt(totalStokK2), fmt(totalStokK3), fmt(totalStok),
     fmt(avgK1), fmt(avgK2), fmt(avgK3), '-', '-', '-'
   ];
-  
+
   const ws = XLSX.utils.aoa_to_sheet([[title], [subtitle], [], h1, h2, ...dataRows, totalRow]);
   // (Bagian styling layout di bawah ini tetap sama persis seperti kode aslimu)
   const refTitle = XLSX.utils.encode_cell({ c: 0, r: 0 }); ws[refTitle].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
@@ -334,8 +334,8 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
   const totalRowIdx = 5 + dataRows.length;
   for (let R = 5; R < totalRowIdx; R++) { for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: R }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = C === 2 ? dataLeftStyle : dataStyle; } }
   for (let C = range.s.c; C <= range.e.c; C++) { const ref = XLSX.utils.encode_cell({ c: C, r: totalRowIdx }); if (!ws[ref]) ws[ref] = { t: 's', v: '' }; ws[ref].s = (C === 10 || C === 15) ? totalSumStyle : totalStyle; }
-  ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 21 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 4, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 4, c: 11 } }, { s: { r: 3, c: 12 }, e: { r: 3, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 4, c: 15 } }, { s: { r: 3, c: 16 }, e: { r: 3, c: 18 } }, { s: { r: 3, c: 19 }, e: { r: 3, c: 21 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } } ];
-  ws['!cols'] = [ { wch: 5 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 } ];
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 21 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }, { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }, { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } }, { s: { r: 3, c: 5 }, e: { r: 4, c: 5 } }, { s: { r: 3, c: 6 }, e: { r: 4, c: 6 } }, { s: { r: 3, c: 7 }, e: { r: 3, c: 9 } }, { s: { r: 3, c: 10 }, e: { r: 4, c: 10 } }, { s: { r: 3, c: 11 }, e: { r: 4, c: 11 } }, { s: { r: 3, c: 12 }, e: { r: 3, c: 14 } }, { s: { r: 3, c: 15 }, e: { r: 4, c: 15 } }, { s: { r: 3, c: 16 }, e: { r: 3, c: 18 } }, { s: { r: 3, c: 19 }, e: { r: 3, c: 21 } }, { s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } }];
+  ws['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
   ws['!rows'] = [{ hpt: 20 }, { hpt: 16 }, { hpt: 8 }, { hpt: 40 }, { hpt: 30 }];
   return ws;
 };
@@ -348,22 +348,22 @@ const exportMangroveExcel = (data) => {
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Padat (Ha)', 'Sedang (Ha)', 'Jarang (Ha)', ''];
   const merges = [
-    { s: {r:2, c:0}, e: {r:3, c:0} },
-    { s: {r:2, c:1}, e: {r:3, c:1} },
-    { s: {r:2, c:2}, e: {r:3, c:2} },
-    { s: {r:2, c:3}, e: {r:3, c:3} },
-    { s: {r:2, c:4}, e: {r:3, c:4} },
-    { s: {r:2, c:5}, e: {r:3, c:5} },
-    { s: {r:2, c:6}, e: {r:3, c:6} },
-    { s: {r:2, c:7}, e: {r:3, c:7} },
-    { s: {r:2, c:8}, e: {r:2, c:10} },
-    { s: {r:2, c:11}, e: {r:3, c:11} }
+    { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } },
+    { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } },
+    { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } },
+    { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } },
+    { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } },
+    { s: { r: 2, c: 5 }, e: { r: 3, c: 5 } },
+    { s: { r: 2, c: 6 }, e: { r: 3, c: 6 } },
+    { s: { r: 2, c: 7 }, e: { r: 3, c: 7 } },
+    { s: { r: 2, c: 8 }, e: { r: 2, c: 10 } },
+    { s: { r: 2, c: 11 }, e: { r: 3, c: 11 } }
   ];
   const dataRows = data.map((row, i) => [
-    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-',
     fmtExcel(row.luas_eksisting_ha),
     row.spesies || '-', fmtExcel(row.persentase_kondisi),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-',
     fmtExcel(row.luas_sangat_padat), fmtExcel(row.luas_sedang), fmtExcel(row.luas_jarang),
     fmtExcel(row.luas_rehabilitasi_ha)
   ]);
@@ -376,23 +376,23 @@ const exportLamunExcel = (data) => {
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Kaya (Ha)', 'Kurang Kaya (Ha)', 'Miskin (Ha)', ''];
   const merges = [
-    { s: {r:2, c:0}, e: {r:3, c:0} },
-    { s: {r:2, c:1}, e: {r:3, c:1} },
-    { s: {r:2, c:2}, e: {r:3, c:2} },
-    { s: {r:2, c:3}, e: {r:3, c:3} },
-    { s: {r:2, c:4}, e: {r:3, c:4} },
-    { s: {r:2, c:5}, e: {r:3, c:5} },
-    { s: {r:2, c:6}, e: {r:3, c:6} },
-    { s: {r:2, c:7}, e: {r:3, c:7} },
-    { s: {r:2, c:8}, e: {r:2, c:10} },
-    { s: {r:2, c:11}, e: {r:3, c:11} }
+    { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } },
+    { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } },
+    { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } },
+    { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } },
+    { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } },
+    { s: { r: 2, c: 5 }, e: { r: 3, c: 5 } },
+    { s: { r: 2, c: 6 }, e: { r: 3, c: 6 } },
+    { s: { r: 2, c: 7 }, e: { r: 3, c: 7 } },
+    { s: { r: 2, c: 8 }, e: { r: 2, c: 10 } },
+    { s: { r: 2, c: 11 }, e: { r: 3, c: 11 } }
   ];
   const dataRows = data.map((row, i) => [
-    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-',
     fmtExcel(row.luas_eksisting_ha),
     fmtExcel(row.persentase_tutupan),
     fmtExcel(row.persentase_kondisi),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-',
     fmtExcel(row.luas_kaya), fmtExcel(row.luas_kurang_kaya), fmtExcel(row.luas_miskin),
     fmtExcel(row.luas_rehabilitasi_ha)
   ]);
@@ -405,23 +405,23 @@ const exportTerumbuKarangExcel = (data) => {
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Baik (Ha)', 'Baik (Ha)', 'Sedang (Ha)', 'Rusak (Ha)', ''];
   const merges = [
-    { s: {r:2, c:0}, e: {r:3, c:0} },
-    { s: {r:2, c:1}, e: {r:3, c:1} },
-    { s: {r:2, c:2}, e: {r:3, c:2} },
-    { s: {r:2, c:3}, e: {r:3, c:3} },
-    { s: {r:2, c:4}, e: {r:3, c:4} },
-    { s: {r:2, c:5}, e: {r:3, c:5} },
-    { s: {r:2, c:6}, e: {r:3, c:6} },
-    { s: {r:2, c:7}, e: {r:3, c:7} },
-    { s: {r:2, c:8}, e: {r:2, c:11} },
-    { s: {r:2, c:12}, e: {r:3, c:12} }
+    { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } },
+    { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } },
+    { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } },
+    { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } },
+    { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } },
+    { s: { r: 2, c: 5 }, e: { r: 3, c: 5 } },
+    { s: { r: 2, c: 6 }, e: { r: 3, c: 6 } },
+    { s: { r: 2, c: 7 }, e: { r: 3, c: 7 } },
+    { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
+    { s: { r: 2, c: 12 }, e: { r: 3, c: 12 } }
   ];
   const dataRows = data.map((row, i) => [
-    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-', 
+    i + 1, row.status || '-', row.kabupaten_kota || '-', row.tahun || '-',
     fmtExcel(row.luas_eksisting_ha),
     fmtExcel(row.persentase_tutupan),
     fmtExcel(row.persentase_kondisi),
-    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-', 
+    row.kondisi ? row.kondisi.replace(/\s*\([^)]*\)\s*$/, '').trim() : '-',
     fmtExcel(row.luas_sangat_baik), fmtExcel(row.luas_baik), fmtExcel(row.luas_sedang), fmtExcel(row.luas_rusak),
     fmtExcel(row.luas_rehabilitasi_ha)
   ]);
@@ -460,7 +460,7 @@ const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix
   const hStyle = cellStyle({ bold: true, fill: '1F4E79', fontColor: 'FFFFFF' });
   const range = XLSX.utils.decode_range(ws['!ref']);
   ws[XLSX.utils.encode_cell({ c: 0, r: 0 })].s = { font: { bold: true, sz: 13 }, alignment: { horizontal: 'center' } };
-  
+
   for (let R = 2; R <= 3; R++) {
     for (let C = range.s.c; C <= range.e.c; C++) {
       const ref = XLSX.utils.encode_cell({ c: C, r: R });
@@ -468,7 +468,7 @@ const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix
       ws[ref].s = { ...hStyle, alignment: { horizontal: 'center', vertical: 'center' } };
     }
   }
-  
+
   for (let R = 4; R <= range.e.r; R++) {
     for (let C = range.s.c; C <= range.e.c; C++) {
       const ref = XLSX.utils.encode_cell({ c: C, r: R });
@@ -476,11 +476,11 @@ const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix
       ws[ref].s = cellStyle({ align: C <= 2 ? 'left' : 'center' });
     }
   }
-  
+
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: h1Top.length - 1 } }, ...merges];
   const cols = h1Top.map((_, i) => ({ wch: i === 0 ? 5 : i === 2 ? 18 : 15 }));
   ws['!cols'] = cols;
-  
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Data');
   XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -497,11 +497,11 @@ const exportPotensiExcel = (dataRaw) => {
   const h1 = ['No', 'Status', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
   const dataRows = data.map((row, i) => {
     return [i + 1, row.status || '-', row.tahun_data,
-      fmtExcel(row.luas_wilayah_laut_km2),
-      fmtExcel(row.total_panjang_garis_pantai_km),
-      fmtExcel(row.jumlah_pulau_kecil),
-      fmtExcel(row.desa_pesisir),
-      row.keterangan || '-'];
+    fmtExcel(row.luas_wilayah_laut_km2),
+    fmtExcel(row.total_panjang_garis_pantai_km),
+    fmtExcel(row.jumlah_pulau_kecil),
+    fmtExcel(row.desa_pesisir),
+    row.keterangan || '-'];
   });
   buildStandardSheet(title, h1, dataRows, 'Potensi_Perairan_Jatim');
 };
@@ -528,10 +528,10 @@ const makeHBarOption = (categories, values, color = '#0891b2', unit = '', isDark
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;',
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')}${unit ? ' ' + unit : ''}`,
@@ -568,10 +568,11 @@ const makeComboHBarOption = (categories, series, isDark = false) => {
   const gridColor = isDark ? '#334155' : '#cbd5e1';
   return {
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' } },
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }
+    },
     legend: { bottom: 0, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 12 } },
     grid: { left: 95, right: 50, top: 15, bottom: 40 },
     xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
@@ -585,10 +586,11 @@ const makePieOption = (title, data, nameField, valueField, isDark = false) => {
   return {
     color: CHART_PALETTE,
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)'
+    },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -610,10 +612,11 @@ const makeKondisiPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+    },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -635,10 +638,11 @@ const makeKondisiLamunPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+    },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -661,10 +665,11 @@ const makeKondisiTerumbuPieOption = (data, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   return {
     tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)' },
+      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+      borderColor: isDark ? '#334155' : '#e2e8f0',
+      textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+    },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -723,10 +728,10 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
 
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────────
 const DATA_TABS = [
-  { key: 'garam',            label: 'Garam' },
-  { key: 'mangrove',         label: 'Mangrove' },
-  { key: 'terumbu_karang',   label: 'Terumbu Karang' },
-  { key: 'lamun',            label: 'Lamun' },
+  { key: 'garam', label: 'Garam' },
+  { key: 'mangrove', label: 'Mangrove' },
+  { key: 'terumbu_karang', label: 'Terumbu Karang' },
+  { key: 'lamun', label: 'Lamun' },
   { key: 'potensi_perairan', label: 'Potensi Perairan' },
 ];
 
@@ -1220,37 +1225,41 @@ export default function AdminKelautanPesisir() {
 
   // ── COLUMNS ─────────────────────────────────────────────────────────────────
   const columnsGaram = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => {
-      const row = info.row.original;
-      return <StatusBadge 
-        row={row} 
-        onEdit={() => setEditingData(row)} 
-        contextFields={[
-          { label: 'Kab/Kota', value: row.kabupaten_kota },
-          { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
-        ]} 
-      />;
-    } },
+    {
+      header: 'Status', accessorKey: 'status', cell: info => {
+        const row = info.row.original;
+        return <StatusBadge
+          row={row}
+          onEdit={() => setEditingData(row)}
+          contextFields={[
+            { label: 'Kab/Kota', value: row.kabupaten_kota },
+            { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
+          ]}
+        />;
+      }
+    },
     { header: 'Bulan', accessorKey: 'bulan', cell: info => <span className="text-foreground">{formatBulan(info.getValue())}</span> },
     { header: 'Triwulan', accessorKey: 'triwulan', cell: info => <TwBadge tw={info.getValue()} /> },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
-    { header: 'Prod.', accessorKey: 'total_produksi_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
+    { header: 'Produksi', accessorKey: 'total_produksi_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
     { header: 'Stok', accessorKey: 'total_stok_ton', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton</span> },
-    { header: 'Prodv.', accessorKey: 'produktivitas', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
+    { header: 'Produktivitas', accessorKey: 'produktivitas', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 })} Ton/Ha</span> },
   ], []);
 
   const columnsPotensi = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => {
-      const row = info.row.original;
-      return <StatusBadge 
-        row={row} 
-        onEdit={() => setEditingData(row)} 
-        contextFields={[
-          { label: 'Tahun', value: row.tahun_data }
-        ]} 
-      />;
-    } },
+    {
+      header: 'Status', accessorKey: 'status', cell: info => {
+        const row = info.row.original;
+        return <StatusBadge
+          row={row}
+          onEdit={() => setEditingData(row)}
+          contextFields={[
+            { label: 'Tahun', value: row.tahun_data }
+          ]}
+        />;
+      }
+    },
     { header: 'Tahun', accessorKey: 'tahun_data', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })}</span> },
     {
@@ -1262,16 +1271,18 @@ export default function AdminKelautanPesisir() {
   ], []);
 
   const columnsMangrove = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => {
-      const row = info.row.original;
-      return <StatusBadge
-        row={row}
-        contextFields={[
-          { label: 'Kab/Kota', value: row.kabupaten_kota },
-          { label: 'Tahun', value: row.tahun }
-        ]}
-      />;
-    } },
+    {
+      header: 'Status', accessorKey: 'status', cell: info => {
+        const row = info.row.original;
+        return <StatusBadge
+          row={row}
+          contextFields={[
+            { label: 'Kab/Kota', value: row.kabupaten_kota },
+            { label: 'Tahun', value: row.tahun }
+          ]}
+        />;
+      }
+    },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
@@ -1282,16 +1293,18 @@ export default function AdminKelautanPesisir() {
   ], []);
 
   const columnsLamun = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => {
-      const row = info.row.original;
-      return <StatusBadge
-        row={row}
-        contextFields={[
-          { label: 'Kab/Kota', value: row.kabupaten_kota },
-          { label: 'Tahun', value: row.tahun }
-        ]}
-      />;
-    } },
+    {
+      header: 'Status', accessorKey: 'status', cell: info => {
+        const row = info.row.original;
+        return <StatusBadge
+          row={row}
+          contextFields={[
+            { label: 'Kab/Kota', value: row.kabupaten_kota },
+            { label: 'Tahun', value: row.tahun }
+          ]}
+        />;
+      }
+    },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
@@ -1301,16 +1314,18 @@ export default function AdminKelautanPesisir() {
   ], []);
 
   const columnsTerumbuKarang = useMemo(() => [
-    { header: 'Status', accessorKey: 'status', cell: info => {
-      const row = info.row.original;
-      return <StatusBadge
-        row={row}
-        contextFields={[
-          { label: 'Kab/Kota', value: row.kabupaten_kota },
-          { label: 'Tahun', value: row.tahun }
-        ]}
-      />;
-    } },
+    {
+      header: 'Status', accessorKey: 'status', cell: info => {
+        const row = info.row.original;
+        return <StatusBadge
+          row={row}
+          contextFields={[
+            { label: 'Kab/Kota', value: row.kabupaten_kota },
+            { label: 'Tahun', value: row.tahun }
+          ]}
+        />;
+      }
+    },
     { header: 'Tahun', accessorKey: 'tahun', cell: info => <span className="text-foreground">{info.getValue()}</span> },
     { header: 'Kab/Kota', accessorKey: 'kabupaten_kota', cell: info => <p className="text-foreground">{info.getValue()}</p> },
     { header: 'Luas Eksisting', accessorKey: 'luas_eksisting_ha', cell: info => <span className="text-foreground">{(info.getValue() || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ha</span> },
@@ -1381,7 +1396,7 @@ export default function AdminKelautanPesisir() {
 
   // ── VISUALISASI ──────────────────────────────────────────────────────────────
   const renderVisualisasi = () => {
-    const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const bulanOptions = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const tahunOptions = [...new Set([
       ...dataGaram.map(d => d.tahun),
       ...dataMangrove.map(d => d.tahun),
@@ -1417,7 +1432,7 @@ export default function AdminKelautanPesisir() {
 
     // ── VISUALISASI GARAM (only VERIFIED data) ──
     const verifiedGaram = dataGaram.filter(d => d.status === 'VERIFIED');
-    const filteredVisGaram = verifiedGaram.filter(d => 
+    const filteredVisGaram = verifiedGaram.filter(d =>
       (visBulan.length === 0 || visBulan.includes(formatBulan(d.bulan))) &&
       (visTahun.length === 0 || visTahun.includes(String(d.tahun))) &&
       (visKab.length === 0 || visKab.includes(d.kabupaten_kota))
@@ -1465,10 +1480,11 @@ export default function AdminKelautanPesisir() {
 
     const garamTrenOption = {
       tooltip: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          borderColor: isDark ? '#334155' : '#e2e8f0',
-          textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+        borderColor: isDark ? '#334155' : '#e2e8f0',
+        textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
+        extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton`
+      },
       grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: isDark ? '#ffffff' : '#0f172a', fontWeight: 'bold' } },
       yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: isDark ? '#ffffff' : '#0f172a' }, axisLabel: { color: isDark ? '#ffffff' : '#0f172a' }, splitLine: { lineStyle: { type: 'dashed', color: isDark ? '#334155' : '#cbd5e1' } } },
@@ -1667,413 +1683,428 @@ export default function AdminKelautanPesisir() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 mb-6">
           <h2 className="text-xl font-bold text-foreground">Kategori Data:</h2>
           <div className="flex items-center gap-3 overflow-x-auto">
-          {[
-            { key: 'garam', label: 'Garam' },
-            { key: 'mangrove', label: 'Mangrove' },
-            { key: 'terumbu_karang', label: 'Terumbu Karang' },
-            { key: 'lamun', label: 'Lamun' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveVisTab(tab.key)}
-              className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all whitespace-nowrap ${
-                activeVisTab === tab.key
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+            {[
+              { key: 'garam', label: 'Garam' },
+              { key: 'mangrove', label: 'Mangrove' },
+              { key: 'terumbu_karang', label: 'Terumbu Karang' },
+              { key: 'lamun', label: 'Lamun' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveVisTab(tab.key)}
+                className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all whitespace-nowrap ${activeVisTab === tab.key
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* ── Visualisasi Garam ── */}
         {activeVisTab === 'garam' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
 
-          {/* Garam KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-              <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
-                <FlaskConical className="h-6 w-6" />
+            {/* Garam KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+                <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                  <FlaskConical className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {numFmt(kpiGaram.produksi)}
+                    <span className="text-sm font-normal text-muted-foreground"> Ton </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Produksi Garam</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {numFmt(kpiGaram.produksi)}
-                  <span className="text-sm font-normal text-muted-foreground"> Ton </span>
-                </p>
+              <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+                <div className="rounded-xl bg-amber-500/10 p-4 text-amber-500">
+                  <Fish className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {numFmt(kpiGaram.petambak)}
+                    <span className="text-sm font-normal text-muted-foreground"> Orang </span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+                <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
+                  <Landmark className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {numFmt(kpiGaram.lahan)}
+                    <span className="text-sm font-normal text-muted-foreground"> Ha </span>
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-              <div className="rounded-xl bg-amber-500/10 p-4 text-amber-500">
-                <Fish className="h-6 w-6" />
+
+            {/* Garam Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Volume Produksi per Kab/Kota (Ton)</h3>
+                  </div>
+                </div>
+                {garamKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(garamKota, garamProduksi); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Petambak Garam</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {numFmt(kpiGaram.petambak)}
-                  <span className="text-sm font-normal text-muted-foreground"> Orang </span>
-                </p>
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Jumlah Kelompok per Kab/Kota</h3>
+                  </div>
+                </div>
+                {garamKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(garamKota, garamKelompok); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-            </div>
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-              <div className="rounded-xl bg-blue-500/10 p-4 text-blue-500">
-                <Landmark className="h-6 w-6" />
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                      <PieChart className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Lahan per Kab/Kota</h3>
+                  </div>
+                </div>
+                {garamKota.length > 0
+                  ? <ReactECharts option={makePieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan', isDark)} style={{ height: '320px' }} />
+                  : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Luas Lahan Tambak</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {numFmt(kpiGaram.lahan)}
-                  <span className="text-sm font-normal text-muted-foreground"> Ha </span>
-                </p>
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-500">
+                      <PieChart className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Jumlah Petambak per Kab/Kota</h3>
+                  </div>
+                </div>
+                {garamKota.length > 0
+                  ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
+                  : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+              </div>
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-indigo-500/10 p-2.5 text-indigo-500">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Tren Bulanan Produksi Garam (Ton)</h3>
+                  </div>
+                </div>
+                {garamTrenLabels.length > 0
+                  ? <ReactECharts option={garamTrenOption} style={{ height: '320px' }} />
+                  : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
             </div>
           </div>
-
-          {/* Garam Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Volume Produksi per Kab/Kota (Ton)</h3>
-                </div>
-              </div>
-              {garamKota.length > 0
-                ? (() => { const s = sortBarData(garamKota, garamProduksi); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ton', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Jumlah Kelompok per Kab/Kota</h3>
-                </div>
-              </div>
-              {garamKota.length > 0
-                ? (() => { const s = sortBarData(garamKota, garamKelompok); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '320px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Kelompok', isDark)} style={{ height: Math.max(320, garamKota.length * 38) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
-                    <PieChart className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Lahan per Kab/Kota</h3>
-                </div>
-              </div>
-              {garamKota.length > 0
-                ? <ReactECharts option={makePieOption('Luas Lahan', visGaramPerKota, 'name', 'luas_lahan', isDark)} style={{ height: '320px' }} />
-                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-500">
-                    <PieChart className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Jumlah Petambak per Kab/Kota</h3>
-                </div>
-              </div>
-              {garamKota.length > 0
-                ? <ReactECharts option={makePieOption('Jumlah Petambak', visGaramPerKota, 'name', 'petambak', isDark)} style={{ height: '320px' }} />
-                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm lg:col-span-2">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-indigo-500/10 p-2.5 text-indigo-500">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Tren Bulanan Produksi Garam (Ton)</h3>
-                </div>
-              </div>
-              {garamTrenLabels.length > 0
-                ? <ReactECharts option={garamTrenOption} style={{ height: '320px' }} />
-                : <div className="h-[320px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-          </div>
-        </div>
         )}
 
         {/* ── Visualisasi Mangrove ── */}
         {activeVisTab === 'mangrove' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
 
-          {/* Mangrove Charts & KPIs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
-                    <PieChart className="h-5 w-5" />
+            {/* Mangrove Charts & KPIs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+              <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                      <PieChart className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Mangrove</h3>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Mangrove</h3>
+                </div>
+                {kpiMangrove.jumlah_lokasi > 0
+                  ? <ReactECharts option={makeKondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+              </div>
+
+              <div className="flex flex-col gap-3 justify-center h-full">
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                    <TreePine className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiMangrove.luas_eksisting)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-cyan-500/10 p-4 text-cyan-500">
+                    <Leaf className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiMangrove.luas_rehabilitasi)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
                 </div>
               </div>
-              {kpiMangrove.jumlah_lokasi > 0
-                ? <ReactECharts option={makeKondisiPieOption(kondisiChartData, isDark)} style={{ height: '240px', width: '100%' }} />
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
-            <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
-                  <TreePine className="h-8 w-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiMangrove.luas_eksisting)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {mangroveKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(mangroveKota, mangroveEksisting); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-cyan-500/10 p-4 text-cyan-500">
-                  <Leaf className="h-8 w-8" />
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiMangrove.luas_rehabilitasi)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {mangroveKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(mangroveKota, mangroveRehab); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {mangroveKota.length > 0
-                ? (() => { const s = sortBarData(mangroveKota, mangroveEksisting); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {mangroveKota.length > 0
-                ? (() => { const s = sortBarData(mangroveKota, mangroveRehab); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, mangroveKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-          </div>
-        </div>
         )}
 
         {/* ── Visualisasi Terumbu Karang ── */}
         {activeVisTab === 'terumbu_karang' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
 
-          {/* Terumbu Karang Charts & KPIs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500">
-                    <PieChart className="h-5 w-5" />
+            {/* Terumbu Karang Charts & KPIs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+              <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-500">
+                      <PieChart className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Terumbu Karang</h3>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Terumbu Karang</h3>
+                </div>
+                {kpiTerumbu.jumlah_lokasi > 0
+                  ? <ReactECharts option={makeKondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+              </div>
+
+              <div className="flex flex-col gap-3 justify-center h-full">
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-sky-500/10 p-4 text-sky-500">
+                    <Waves className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiTerumbu.luas_eksisting)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-pink-500/10 p-4 text-pink-500">
+                    <Leaf className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiTerumbu.luas_rehabilitasi)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
                 </div>
               </div>
-              {kpiTerumbu.jumlah_lokasi > 0
-                ? <ReactECharts option={makeKondisiTerumbuPieOption(kondisiTerumbuChartData, isDark)} style={{ height: '240px', width: '100%' }} />
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
-            <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-sky-500/10 p-4 text-sky-500">
-                  <Waves className="h-8 w-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiTerumbu.luas_eksisting)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {terumbuKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(terumbuKota, terumbuEksisting); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-pink-500/10 p-4 text-pink-500">
-                  <Leaf className="h-8 w-8" />
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiTerumbu.luas_rehabilitasi)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {terumbuKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(terumbuKota, terumbuRehab); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {terumbuKota.length > 0
-                ? (() => { const s = sortBarData(terumbuKota, terumbuEksisting); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {terumbuKota.length > 0
-                ? (() => { const s = sortBarData(terumbuKota, terumbuRehab); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, terumbuKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-          </div>
-        </div>
         )}
 
         {/* ── Visualisasi Lamun ── */}
         {activeVisTab === 'lamun' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
 
-          {/* Lamun Charts & KPIs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
-                    <PieChart className="h-5 w-5" />
+            {/* Lamun Charts & KPIs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+              <div className="bg-card border border-border p-6 rounded-2xl shadow-sm h-full flex flex-col">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-500">
+                      <PieChart className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Lamun</h3>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Distribusi Kategori Kondisi Lamun</h3>
+                </div>
+                {kpiLamun.jumlah_lokasi > 0
+                  ? <ReactECharts option={makeKondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
+              </div>
+
+              <div className="flex flex-col gap-3 justify-center h-full">
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
+                    <Leaf className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiLamun.luas_eksisting)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
+                  <div className="rounded-xl bg-purple-500/10 p-4 text-purple-500">
+                    <TreePine className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {numFmt(kpiLamun.luas_rehabilitasi)}
+                      <span className="text-base font-normal text-muted-foreground"> Ha </span>
+                    </p>
+                  </div>
                 </div>
               </div>
-              {kpiLamun.jumlah_lokasi > 0
-                ? <ReactECharts option={makeKondisiLamunPieOption(kondisiLamunChartData, isDark)} style={{ height: '240px', width: '100%' }} />
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
             </div>
 
-            <div className="flex flex-col gap-3 justify-center h-full">
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-emerald-500/10 p-4 text-emerald-500">
-                  <Leaf className="h-8 w-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Eksisting</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiLamun.luas_eksisting)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {lamunKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(lamunKota, lamunEksisting); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
-              <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md flex-1 sm:justify-start">
-                <div className="rounded-xl bg-purple-500/10 p-4 text-purple-500">
-                  <TreePine className="h-8 w-8" />
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
+                <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-medium text-muted-foreground">Total Luas Rehabilitasi</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {numFmt(kpiLamun.luas_rehabilitasi)}
-                    <span className="text-base font-normal text-muted-foreground"> Ha </span>
-                  </p>
-                </div>
+                {lamunKota.length > 0
+                  ? (() => {
+                    const s = sortBarData(lamunKota, lamunRehab); return (
+                      <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
+                        <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
+                      </div>
+                    );
+                  })()
+                  : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Eksisting per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {lamunKota.length > 0
-                ? (() => { const s = sortBarData(lamunKota, lamunEksisting); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, isDark ? '#3b82f6' : '#0077b6', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm h-full">
-              <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-sky-500/10 p-2.5 text-sky-500">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Luas Rehabilitasi per Kab/Kota (Ha)</h3>
-                </div>
-              </div>
-              {lamunKota.length > 0
-                ? (() => { const s = sortBarData(lamunKota, lamunRehab); return (
-                    <div className="overflow-y-auto pr-1" style={{ maxHeight: '240px' }}>
-                      <ReactECharts option={makeHBarOption(s.categories, s.values, '#0ea5e9', 'Ha', isDark)} style={{ height: Math.max(240, lamunKota.length * 32) + 'px' }} />
-                    </div>
-                  ); })()
-                : <div className="h-[240px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">Belum ada data</div>}
-            </div>
-          </div>
-        </div>
         )}
 
       </div>
@@ -2118,62 +2149,62 @@ export default function AdminKelautanPesisir() {
   const activeSubRow = activeTab === 'garam' ? renderSubGaram : undefined;
 
   const filteredData = useMemo(() => {
-      let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : activeTab === 'mangrove' ? dataMangrove : activeTab === 'lamun' ? dataLamun : activeTab === 'terumbu_karang' ? dataTerumbuKarang : [];
-      
-      if (filterTahun && filterTahun.length > 0) {
-        result = result.filter(d => filterTahun.includes(String(d.tahun || d.tahun_data)));
-      }
-      
-      if (filterTw && filterTw.length > 0 && activeTab === 'garam') {
-        result = result.filter(d => {
-          const bNum = parseInt(d.bulan, 10);
-          const bStr = (formatBulan(d.bulan) || '').toLowerCase();
-          
-          let matchTw = [];
-          if (filterTw.includes('TW 1')) matchTw.push((bNum >= 1 && bNum <= 3) || ['januari','februari','maret'].includes(bStr));
-          if (filterTw.includes('TW 2')) matchTw.push((bNum >= 4 && bNum <= 6) || ['april','mei','juni'].includes(bStr));
-          if (filterTw.includes('TW 3')) matchTw.push((bNum >= 7 && bNum <= 9) || ['juli','agustus','september'].includes(bStr));
-          if (filterTw.includes('TW 4')) matchTw.push((bNum >= 10 && bNum <= 12) || ['oktober','november','desember'].includes(bStr));
-          
-          return matchTw.some(Boolean) || filterTw.includes(d.triwulan);
-        });
-      }
-      
-      if (filterBulan && filterBulan.length > 0 && activeTab === 'garam') {
-        result = result.filter(d => {
-          const dMonth = (formatBulan(d.bulan) || '').toLowerCase();
-          return filterBulan.some(b => b.toLowerCase() === dMonth);
-        });
-      }
-      
-      if (filterKab && filterKab.length > 0) {
-        result = result.filter(d => filterKab.some(kab => kab.toLowerCase() === (d.kabupaten_kota || '').toLowerCase()));
-      }
+    let result = activeTab === 'garam' ? dataGaram : activeTab === 'potensi_perairan' ? dataPotensiPerairan : activeTab === 'mangrove' ? dataMangrove : activeTab === 'lamun' ? dataLamun : activeTab === 'terumbu_karang' ? dataTerumbuKarang : [];
 
-      if (filterStatus && filterStatus.length > 0) {
-        result = result.filter(d => filterStatus.includes(d.status));
-      }
-      
-      return result;
-    }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, dataLamun, dataTerumbuKarang, filterTahun, filterTw, filterBulan, filterKab, filterStatus]);
+    if (filterTahun && filterTahun.length > 0) {
+      result = result.filter(d => filterTahun.includes(String(d.tahun || d.tahun_data)));
+    }
+
+    if (filterTw && filterTw.length > 0 && activeTab === 'garam') {
+      result = result.filter(d => {
+        const bNum = parseInt(d.bulan, 10);
+        const bStr = (formatBulan(d.bulan) || '').toLowerCase();
+
+        let matchTw = [];
+        if (filterTw.includes('TW 1')) matchTw.push((bNum >= 1 && bNum <= 3) || ['januari', 'februari', 'maret'].includes(bStr));
+        if (filterTw.includes('TW 2')) matchTw.push((bNum >= 4 && bNum <= 6) || ['april', 'mei', 'juni'].includes(bStr));
+        if (filterTw.includes('TW 3')) matchTw.push((bNum >= 7 && bNum <= 9) || ['juli', 'agustus', 'september'].includes(bStr));
+        if (filterTw.includes('TW 4')) matchTw.push((bNum >= 10 && bNum <= 12) || ['oktober', 'november', 'desember'].includes(bStr));
+
+        return matchTw.some(Boolean) || filterTw.includes(d.triwulan);
+      });
+    }
+
+    if (filterBulan && filterBulan.length > 0 && activeTab === 'garam') {
+      result = result.filter(d => {
+        const dMonth = (formatBulan(d.bulan) || '').toLowerCase();
+        return filterBulan.some(b => b.toLowerCase() === dMonth);
+      });
+    }
+
+    if (filterKab && filterKab.length > 0) {
+      result = result.filter(d => filterKab.some(kab => kab.toLowerCase() === (d.kabupaten_kota || '').toLowerCase()));
+    }
+
+    if (filterStatus && filterStatus.length > 0) {
+      result = result.filter(d => filterStatus.includes(d.status));
+    }
+
+    return result;
+  }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, dataLamun, dataTerumbuKarang, filterTahun, filterTw, filterBulan, filterKab, filterStatus]);
 
   const handleCustomExport = (data) => {
-      if (activeTab === 'garam') {
-        const strTahun = filterTahun?.length > 0 ? filterTahun.join(', ') : '';
-        const strTw = filterTw?.length > 0 ? filterTw.join(', ') : '';
-        const strBulan = filterBulan?.length > 0 ? filterBulan.join(', ') : '';
-        const strKab = filterKab?.length > 0 ? filterKab.join(', ') : '';
-        exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab);
-      } else if (activeTab === 'potensi_perairan') {
-        exportPotensiExcel(data);
-      } else if (activeTab === 'mangrove') {
-        exportMangroveExcel(data);
-      } else if (activeTab === 'lamun') {
-        exportLamunExcel(data);
-      } else if (activeTab === 'terumbu_karang') {
-        exportTerumbuKarangExcel(data);
-      }
-    };
+    if (activeTab === 'garam') {
+      const strTahun = filterTahun?.length > 0 ? filterTahun.join(', ') : '';
+      const strTw = filterTw?.length > 0 ? filterTw.join(', ') : '';
+      const strBulan = filterBulan?.length > 0 ? filterBulan.join(', ') : '';
+      const strKab = filterKab?.length > 0 ? filterKab.join(', ') : '';
+      exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab);
+    } else if (activeTab === 'potensi_perairan') {
+      exportPotensiExcel(data);
+    } else if (activeTab === 'mangrove') {
+      exportMangroveExcel(data);
+    } else if (activeTab === 'lamun') {
+      exportLamunExcel(data);
+    } else if (activeTab === 'terumbu_karang') {
+      exportTerumbuKarangExcel(data);
+    }
+  };
 
   const allData = [...dataGaram, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang, ...dataPotensiPerairan];
 
@@ -2287,11 +2318,10 @@ export default function AdminKelautanPesisir() {
               <button
                 key={tab.key}
                 onClick={() => { setMainTab(tab.key); setIsFormOpen(false); }}
-                className={`px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  mainTab === tab.key
+                className={`px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${mainTab === tab.key
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -2307,7 +2337,7 @@ export default function AdminKelautanPesisir() {
                 </div>
               </div>
 
-              
+
               <div className="mb-4">
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Data</label>
                 <div className="flex flex-wrap gap-2">
@@ -2315,11 +2345,10 @@ export default function AdminKelautanPesisir() {
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center gap-2 ${
-                        activeTab === tab.key
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center gap-2 ${activeTab === tab.key
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                      }`}
+                        }`}
                     >
                       {tab.label}
                     </button>
@@ -2388,7 +2417,7 @@ export default function AdminKelautanPesisir() {
                   <Filter className="w-5 h-5 text-muted-foreground" />
                   <h3 className="text-lg font-semibold text-foreground">Filter Multidimensi</h3>
                 </div>
-                <div 
+                <div
                   className="
                     inline-flex item-center gap-2
                     whitespace-nowrap
@@ -2402,8 +2431,8 @@ export default function AdminKelautanPesisir() {
                     dark:border-cyan-500/20
                     shadow-sm"
                 >
-                  <Clock className="w-4 h-4 flex-shrink-0 animate-pulse"/>
-                  
+                  <Clock className="w-4 h-4 flex-shrink-0 animate-pulse" />
+
                   <span className="opacity-80">
                     Terakhir Diperbarui:
                   </span>
@@ -2416,22 +2445,22 @@ export default function AdminKelautanPesisir() {
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
                   <SearchableMultiSelect value={visTahun} onChange={setVisTahun} placeholder="Semua Tahun" options={[...new Set([
-                      ...dataGaram.map(d => d.tahun),
-                      ...dataMangrove.map(d => d.tahun),
-                      ...dataPotensiPerairan.map(d => d.tahun_data)
-                    ].filter(Boolean).map(String))].sort((a, b) => b - a)} />
+                    ...dataGaram.map(d => d.tahun),
+                    ...dataMangrove.map(d => d.tahun),
+                    ...dataPotensiPerairan.map(d => d.tahun_data)
+                  ].filter(Boolean).map(String))].sort((a, b) => b - a)} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bulan</label>
-                  <SearchableMultiSelect value={visBulan} onChange={setVisBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+                  <SearchableMultiSelect value={visBulan} onChange={setVisBulan} placeholder="Semua Bulan" options={['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
                   <SearchableMultiSelect value={visKab} onChange={setVisKab} placeholder="Semua Kab/Kota" options={[...new Set([
-                      ...dataGaram.map(d => d.kabupaten_kota),
-                      ...dataMangrove.map(d => d.kabupaten_kota),
-                      ...dataPotensiPerairan.map(d => d.kabupaten_kota)
-                    ].filter(Boolean))].sort()} />
+                    ...dataGaram.map(d => d.kabupaten_kota),
+                    ...dataMangrove.map(d => d.kabupaten_kota),
+                    ...dataPotensiPerairan.map(d => d.kabupaten_kota)
+                  ].filter(Boolean))].sort()} />
                 </div>
                 {(visTahun.length > 0 || visBulan.length > 0 || visKab.length > 0) && (
                   <div className="md:col-span-3 flex justify-end mt-1">

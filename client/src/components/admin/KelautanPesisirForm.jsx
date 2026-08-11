@@ -26,7 +26,7 @@ const KAB_KOTA_JATIM = [
 // ==========================================
 // ARROW NAVIGATION HELPERS
 // ==========================================
-const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not([type="range"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
 
 const isElementVisible = (element) => {
   if (!(element instanceof HTMLElement)) return false;
@@ -100,6 +100,13 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
+    if (event.key === 'Enter') {
+      const tag = event.target.tagName;
+      if (tag !== 'TEXTAREA' && tag !== 'BUTTON') {
+        event.preventDefault();
+      }
+      return;
+    }
     const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     const direction = directionByKey[event.key];
     if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -222,7 +229,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
             </div>
             <div>
               <label className={labelClass}>Tahun</label>
-              <input type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} placeholder="YYYY" required />
+              <input onWheel={(e) => e.target.blur()} type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} placeholder="YYYY" required />
             </div>
             <div>
               <label className={labelClass}>Kab/Kota</label>
@@ -260,19 +267,19 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
             <div>
               <label className={labelClass}>Luas Lahan Total (Ha)</label>
-              <input type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" step="0.01" min="0" name="luas_total_ha" value={formData.luas_total_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Luas Produksi (Ha)</label>
-              <input type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" step="0.01" min="0" name="luas_produksi_ha" value={formData.luas_produksi_ha} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Kelompok</label>
-              <input type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" min="0" name="jumlah_kelompok" value={formData.jumlah_kelompok} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Petambak (Orang)</label>
-              <input type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" min="0" name="jumlah_petambak" value={formData.jumlah_petambak} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
           </div>
         </section>
@@ -298,15 +305,15 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
                   <div className="space-y-3">
                     <div>
                       <label className={metaLabelClass}>Produksi (Ton)</label>
-                      <input type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+                      <input onWheel={(e) => e.target.blur()} type="number" step="0.01" min="0" name={`produksi_${k.key}_ton`} value={formData[`produksi_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div>
                       <label className={metaLabelClass}>Stok (Ton)</label>
-                      <input type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+                      <input onWheel={(e) => e.target.blur()} type="number" step="0.01" min="0" name={`stok_${k.key}_ton`} value={formData[`stok_${k.key}_ton`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div>
                       <label className={metaLabelClass}>Harga (Rp)</label>
-                      <input type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+                      <input onWheel={(e) => e.target.blur()} type="number" min="0" name={`harga_${k.key}_rp`} value={formData[`harga_${k.key}_rp`]} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
                     </div>
                     <div className="pt-3 border-t border-border flex justify-between items-center">
                       <span className={metaLabelClass.replace(' mb-1', '')}>Nilai Produksi</span>

@@ -16,7 +16,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 // ==========================================
 // ARROW NAVIGATION HELPERS
 // ==========================================
-const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not([type="range"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
 
 const isElementVisible = (element) => {
   if (!(element instanceof HTMLElement)) return false;
@@ -90,6 +90,13 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
+    if (event.key === 'Enter') {
+      const tag = event.target.tagName;
+      if (tag !== 'TEXTAREA' && tag !== 'BUTTON') {
+        event.preventDefault();
+      }
+      return;
+    }
     const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     const direction = directionByKey[event.key];
     if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -159,10 +166,10 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
             <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
             Waktu
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>Tahun Data</label>
-              <input type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} placeholder="YYYY" required />
+              <input onWheel={(e) => e.target.blur()} type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} placeholder="YYYY" required />
             </div>
           </div>
         </section>
@@ -178,19 +185,19 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>Desa Pesisir</label>
-              <input type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" min="0" name="desa_pesisir" value={formData.desa_pesisir} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Luas Wilayah Laut (Km2)</label>
-              <input type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" step="0.01" min="0" name="luas_wilayah_laut_km2" value={formData.luas_wilayah_laut_km2} onChange={handleChange} className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Jumlah Pulau-pulau Kecil</label>
-              <input type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Total Panjang Garis Pantai (Km)</label>
-              <input type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
+              <input onWheel={(e) => e.target.blur()} type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>Keterangan Tambahan</label>

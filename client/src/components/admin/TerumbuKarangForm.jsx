@@ -35,7 +35,7 @@ const currentYear = new Date().getFullYear();
 // ==========================================
 // ARROW NAVIGATION HELPERS
 // ==========================================
-const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
+const FORM_NAV_SELECTOR = 'input:not([type="hidden"]):not([type="range"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-form-nav="true"]';
 
 const isElementVisible = (element) => {
   if (!(element instanceof HTMLElement)) return false;
@@ -109,6 +109,13 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
+    if (event.key === 'Enter') {
+      const tag = event.target.tagName;
+      if (tag !== 'TEXTAREA' && tag !== 'BUTTON') {
+        event.preventDefault();
+      }
+      return;
+    }
     const directionByKey = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
     const direction = directionByKey[event.key];
     if (!direction || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -249,6 +256,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
           <input
+            onWheel={(e) => e.target.blur()}
             type="number"
             value={form.tahun}
             onChange={(e) => handleChange('tahun', e.target.value)}
@@ -286,6 +294,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Luas Eksisting (Ha)</label>
           <input
+            onWheel={(e) => e.target.blur()}
             type="number"
             step="0.01"
             min="0"
@@ -300,6 +309,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Luas Rehabilitasi (Ha)</label>
           <input
+            onWheel={(e) => e.target.blur()}
             type="number"
             step="0.01"
             min="0"
@@ -343,6 +353,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
               />
             </div>
             <input
+              onWheel={(e) => e.target.blur()}
               type="number"
               min="0"
               max="100"
@@ -368,6 +379,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sangat Baik</label>
             <input
+              onWheel={(e) => e.target.blur()}
               type="number" step="0.01" min="0"
               value={form.luas_sangat_baik}
               onChange={(e) => handleChange('luas_sangat_baik', e.target.value)}
@@ -378,6 +390,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Baik</label>
             <input
+              onWheel={(e) => e.target.blur()}
               type="number" step="0.01" min="0"
               value={form.luas_baik}
               onChange={(e) => handleChange('luas_baik', e.target.value)}
@@ -388,6 +401,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Sedang</label>
             <input
+              onWheel={(e) => e.target.blur()}
               type="number" step="0.01" min="0"
               value={form.luas_sedang}
               onChange={(e) => handleChange('luas_sedang', e.target.value)}
@@ -398,6 +412,7 @@ export function TerumbuKarangForm({ initialData, isLoading, onSubmit, onCancel }
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">Rusak</label>
             <input
+              onWheel={(e) => e.target.blur()}
               type="number" step="0.01" min="0"
               value={form.luas_rusak}
               onChange={(e) => handleChange('luas_rusak', e.target.value)}
