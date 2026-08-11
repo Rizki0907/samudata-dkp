@@ -1,3 +1,9 @@
+// File ini digunakan sebagai controller backend untuk modul Pengolahan dan Pemasaran.
+// Controller ini menangani proses membaca, menyimpan, memperbarui, menghapus,
+// dan mengubah status data, menghubungkan data dengan Master Data,
+// membentuk paket data per Tahun dan Kab/Kota, menghitung statistik,
+// serta membuat file Ekspor Data dan Rekap Statistik dalam format Excel.
+
 const prisma = require('../utils/prisma');
 const ExcelJS = require('exceljs');
 
@@ -9,9 +15,9 @@ const META_MODAL_SKALA = '__MODAL_SKALA__';
 const META_DOKUMEN = '__DOKUMEN__';
 const META_PLACEHOLDER = '__META__';
 
-// ============================================================================
-// Helpers dasar
-// ============================================================================
+ 
+// Fungsi bantuan untuk membersihkan, menormalkan, dan menghitung nilai data.
+ 
 const toNumber = value => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   let text = String(value ?? '').trim().replace(/\s/g, '');
@@ -38,9 +44,9 @@ const isMetaRow = row => [META_MODAL_JENIS, META_MODAL_SKALA, META_DOKUMEN].incl
 const sumObject = object => Object.values(jsonObject(object)).reduce((sum, value) => sum + toNumber(value), 0);
 const packageKey = row => `${row.tahun}|${normalizeKab(row.kabupaten_kota)}`;
 
-// ============================================================================
-// Pembentukan "paket" (per tahun + kabupaten/kota) dari row long-format
-// ============================================================================
+ 
+// Menggabungkan baris database menjadi satu paket data berdasarkan Tahun dan Kab/Kota.
+// Data internal Modal dan Dokumen tetap digabung ke paket yang sama agar satu Tahun dan Kab/Kota tampil sebagai satu data.
 const groupRowsToPackages = rows => {
   const groups = new Map();
   (rows || []).forEach(row => {
@@ -122,7 +128,15 @@ const groupRowsToPackages = rows => {
       updated_at: updatedAt.getTime() ? updatedAt.toISOString() : null,
       created_at: group[0]?.created_at || null,
     };
-  }).sort((a, b) => Number(b.tahun) - Number(a.tahun) || String(a.kabupaten_kota).localeCompare(String(b.kabupaten_kota), 'id'));
+  }).sort((a, b) => {
+    const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+    const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+
+    if (timeB !== timeA) return timeB - timeA;
+
+    return Number(b.tahun) - Number(a.tahun)
+      || String(a.kabupaten_kota).localeCompare(String(b.kabupaten_kota), 'id');
+  });
 };
 
 const packageMatchesQuery = (pkg, query = {}) => {
@@ -145,12 +159,12 @@ const getRawRows = async ({ verifiedOnly = false } = {}) => db.findMany({
   orderBy: [{ tahun: 'desc' }, { kabupaten_kota: 'asc' }, { id: 'asc' }],
 });
 
-// ============================================================================
-// CRUD & Statistik (endpoint API biasa)
-// ============================================================================
+ 
+// Endpoint untuk membaca data dan menghitung statistik Pengolahan dan Pemasaran.
+ 
+// Mengirim data publik. Hanya paket yang sudah berstatus VERIFIED yang dapat ditampilkan.
 const getAllData = async (req, res) => {
   try {
-    // Samakan sumber data Statistik Publik dengan Visualisasi Statistik Pusat:
     // paket dibentuk dari seluruh row terlebih dahulu, lalu hanya paket VERIFIED
     // yang dikirim ke publik. Dengan begitu rincian dalam satu paket tidak
     // terpotong hanya karena status row internal/meta tidak identik.
@@ -165,6 +179,7 @@ const getAllData = async (req, res) => {
   }
 };
 
+// Mengirim seluruh paket data untuk halaman Admin tanpa membatasi status.
 const getAdminData = async (req, res) => {
   try {
     res.json({ success: true, data: groupRowsToPackages(await getRawRows()) });
@@ -224,9 +239,9 @@ const getDashboardStats = async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, message: 'Server Error', error: error.message }); }
 };
 
-// ============================================================================
-// Simpan / update / hapus paket
-// ============================================================================
+ 
+// Proses penyimpanan, perubahan, perubahan status, dan penghapusan paket data.
+ 
 const parsePackageBody = body => {
   const tahun = toInt(body?.tahun); const kabupaten_kota = normalizeKab(body?.kabupaten_kota);
   const details = Array.isArray(body?.details) ? body.details.map(item => ({
@@ -266,6 +281,7 @@ const validatePackage = pkg => {
 // Karena bentuknya JSON bebas -- bukan kolom fixed satu-satu -- menambah jenis
 // dokumen baru di Master Data TIDAK memerlukan perubahan skema/kode di sini;
 // otomatis ikut tersimpan apa adanya.
+// Mengubah satu paket dari formulir menjadi beberapa baris database untuk Unit dan Produksi, Modal, serta Dokumen.
 const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
   const details = pkg.details.map(item => ({
     tahun: pkg.tahun,
@@ -338,6 +354,7 @@ const createPackageRows = (pkg, status = 'APPROVED', alasan = null) => {
   return [...details, ...modalJenisRows, ...modalSkalaRows, ...docRows];
 };
 
+// Menyimpan paket data baru dengan status awal APPROVED.
 const createBatchData = async (req, res) => {
   try {
     const pkg = parsePackageBody(req.body);
@@ -397,6 +414,7 @@ const findPackageIdentity = async id => {
   return row ? { row, where: { tahun: row.tahun, kabupaten_kota: row.kabupaten_kota } } : null;
 };
 
+// Memperbarui isi paket. Data REJECTED yang diperbaiki dikembalikan ke status APPROVED sesuai alur yang berlaku.
 const updateData = async (req, res) => {
   try {
     const found = await findPackageIdentity(req.params.id);
@@ -434,6 +452,7 @@ const updateData = async (req, res) => {
   } catch (error) { console.error('updateData:', error); res.status(500).json({ success: false, message: error.message || 'Gagal memperbarui data.' }); }
 };
 
+// Mengubah status satu paket oleh Admin Pusat dan memperbarui waktu aktivitas terakhir.
 const updateStatus = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'admin_pusat') return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat mengubah status.' });
@@ -444,7 +463,14 @@ const updateStatus = async (req, res) => {
     if (current === 'REJECTED') return res.status(400).json({ success: false, message: 'Data REJECTED harus diperbaiki melalui Edit Data.' });
     if (status === 'VERIFIED' && current !== 'APPROVED') return res.status(400).json({ success: false, message: 'VERIFIED hanya dapat dilakukan dari status APPROVED.' });
     if (status === 'REJECTED' && !alasan) return res.status(400).json({ success: false, message: 'Alasan penolakan wajib diisi.' });
-    await db.updateMany({ where: found.where, data: { status, alasan_penolakan: status === 'REJECTED' ? alasan : null } });
+    await db.updateMany({
+      where: found.where,
+      data: {
+        status,
+        alasan_penolakan: status === 'REJECTED' ? alasan : null,
+        updated_at: new Date(),
+      },
+    });
     res.json({ success: true, message: `Status paket berhasil diubah menjadi ${status}.` });
   } catch (error) { res.status(500).json({ success: false, message: error.message || 'Gagal mengubah status.' }); }
 };
@@ -455,6 +481,7 @@ const resolvePackageWheresFromIds = async ids => {
   return [...unique.values()];
 };
 
+// Mengubah status beberapa paket sekaligus sesuai pilihan Admin Pusat.
 const batchStatus = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'admin_pusat') return res.status(403).json({ success: false, message: 'Hanya Admin Pusat yang dapat mengubah status.' });
@@ -467,7 +494,15 @@ const batchStatus = async (req, res) => {
       const rows = await db.findMany({ where }); const current = rows[0]?.status;
       if (status === 'VERIFIED' && current !== 'APPROVED') continue;
       if (status === 'REJECTED' && current === 'REJECTED') continue;
-      await db.updateMany({ where, data: { status, alasan_penolakan: status === 'REJECTED' ? alasan : null } }); count += 1;
+      await db.updateMany({
+        where,
+        data: {
+          status,
+          alasan_penolakan: status === 'REJECTED' ? alasan : null,
+          updated_at: new Date(),
+        },
+      });
+      count += 1;
     }
     res.json({ success: true, count, message: `${count} paket data berhasil diproses.` });
   } catch (error) { res.status(500).json({ success: false, message: error.message || 'Gagal memproses data.' }); }
@@ -483,8 +518,8 @@ const batchDelete = async (req, res) => {
   catch (error) { res.status(500).json({ success: false, message: error.message || 'Gagal menghapus data.' }); }
 };
 
-// ============================================================================
-// Master data helpers
+ 
+// Mengambil dan mengatur urutan Master Data yang digunakan pada ekspor dan Rekap Statistik.
 // ----------------------------------------------------------------------------
 // Semua daftar (kabupaten/kota, jenis pengolahan, jenis pemasaran, skala
 // usaha, sertifikat produk, izin usaha, sertifikat lahan & bangunan) dibaca
@@ -495,7 +530,7 @@ const batchDelete = async (req, res) => {
 //
 // FALLBACK hanya dipakai kalau tabel MasterData untuk kategori tsb masih
 // benar-benar kosong (mis. sebelum admin pernah mengisi Master Data-nya).
-// ============================================================================
+ 
 const FALLBACK = {
   KABUPATEN_KOTA: ['KAB. PACITAN','KAB. PONOROGO','KAB. TRENGGALEK','KAB. TULUNGAGUNG','KAB. BLITAR','KAB. KEDIRI','KAB. MALANG','KAB. LUMAJANG','KAB. JEMBER','KAB. BANYUWANGI','KAB. BONDOWOSO','KAB. SITUBONDO','KAB. PROBOLINGGO','KAB. PASURUAN','KAB. SIDOARJO','KAB. MOJOKERTO','KAB. JOMBANG','KAB. NGANJUK','KAB. MADIUN','KAB. MAGETAN','KAB. NGAWI','KAB. BOJONEGORO','KAB. TUBAN','KAB. LAMONGAN','KAB. GRESIK','KAB. BANGKALAN','KAB. SAMPANG','KAB. PAMEKASAN','KAB. SUMENEP','KOTA KEDIRI','KOTA BLITAR','KOTA MALANG','KOTA PROBOLINGGO','KOTA PASURUAN','KOTA MOJOKERTO','KOTA MADIUN','KOTA SURABAYA','KOTA BATU'],
   JENIS_PENGOLAHAN: ['Fermentasi','Pelumatan Daging Ikan','Pembekuan','Pemindangan','Penanganan Produk Segar','Pengalengan','Pengasapan/ Pemanggangan','Pereduksian/ Ekstraksi','Penggaraman/ Pengeringan','Pengolahan Lainnya'],
@@ -506,21 +541,96 @@ const FALLBACK = {
   SERTIFIKAT_LAHAN_BANGUNAN: ['SHM','Non SHM'],
 };
 
-const masterItems = async category => {
-  const rows = await prisma.masterData.findMany({ where: { category } });
-  if (rows.length) return rows;
-  return (FALLBACK[category] || []).map((value, index) => ({ value, metadata: category === 'KABUPATEN_KOTA' ? { id_wilayah: String(index + 1).padStart(2, '0') } : null }));
+const normalizeMasterOrderKey = value => clean(value)
+  .toLowerCase()
+  .replace(/\s*\/\s*/g, '/')
+  .replace(/\s+/g, ' ');
+
+const MASTER_PREFERRED_ORDER = {
+  JENIS_PENGOLAHAN: [
+    'Fermentasi',
+    'Pelumatan Daging Ikan',
+    'Pembekuan',
+    'Pemindangan',
+    'Penanganan Produk Segar',
+    'Pengalengan',
+    'Pengasapan/Pemanggangan',
+    'Penggaraman/Pengeringan',
+    'Pereduksian/Ekstraksi',
+  ],
+  JENIS_PEMASARAN: [
+    'Pengumpul/Pedagang Besar/Distributor',
+    'Pengecer',
+  ],
 };
-const masterValues = async category => (await masterItems(category)).map(item => item.value);
+
+// Mengatur urutan Jenis Kegiatan dan menempatkan item baru sebelum pilihan Lain-lain.
+const orderMasterItems = (category, items) => {
+  const list = [...(items || [])];
+
+  if (category === 'KABUPATEN_KOTA') return list;
+
+  const preferred = MASTER_PREFERRED_ORDER[category] || [];
+  const preferredKeys = preferred.map(normalizeMasterOrderKey);
+  const preferredKeySet = new Set(preferredKeys);
+
+  const lastKeys = new Set(
+    category === 'JENIS_PENGOLAHAN'
+      ? ['pengolahan lainnya']
+      : ['lain-lain'],
+  );
+
+  const byKey = new Map(
+    list.map(item => [normalizeMasterOrderKey(item?.value), item]),
+  );
+
+  const known = preferredKeys
+    .map(key => byKey.get(key))
+    .filter(Boolean);
+
+  const dynamic = list.filter(item => {
+    const key = normalizeMasterOrderKey(item?.value);
+    return !preferredKeySet.has(key) && !lastKeys.has(key);
+  });
+
+  const last = list.filter(item =>
+    lastKeys.has(normalizeMasterOrderKey(item?.value)),
+  );
+
+  return [...known, ...dynamic, ...last];
+};
+
+// Mengambil pilihan langsung dari tabel MasterData agar tambahan data baru otomatis digunakan oleh Rekap Statistik.
+const masterItems = async category => {
+  const rows = await prisma.masterData.findMany({
+    where: { category },
+    orderBy: { id: 'asc' },
+  });
+
+  const source = rows.length
+    ? rows
+    : (FALLBACK[category] || []).map((value, index) => ({
+        id: index + 1,
+        value,
+        metadata: category === 'KABUPATEN_KOTA'
+          ? { id_wilayah: String(index + 1).padStart(2, '0') }
+          : null,
+      }));
+
+  return orderMasterItems(category, source);
+};
+
+const masterValues = async category =>
+  (await masterItems(category)).map(item => item.value);
 const regionInfo = async () => {
   const rows = await masterItems('KABUPATEN_KOTA');
   return rows.map((item, index) => ({ name: item.value, id: clean(item.metadata?.id_wilayah) || String(index + 1).padStart(2, '0') }))
     .sort((a, b) => String(a.id).localeCompare(String(b.id), 'id', { numeric: true }) || a.name.localeCompare(b.name, 'id'));
 };
 
-// ============================================================================
-// Styling Excel
-// ============================================================================
+ 
+// Pengaturan tampilan, format angka, dan format sel pada file Excel.
+ 
 const EXCEL_BLUE = '1F4E79';
 const EXCEL_SUB_BLUE = '1F4E79';
 const EXCEL_WHITE = 'FFFFFF';
@@ -623,9 +733,9 @@ const autoSizeExcel = sheet => {
 
 const formatExcelDate = () => new Date().toLocaleString('id-ID');
 
-// ============================================================================
-// Pemilihan paket untuk export
-// ============================================================================
+ 
+// Memilih paket data yang akan dimasukkan ke file ekspor berdasarkan filter dan hak akses.
+ 
 const selectPackagesForExport = async ({ ids, tahun, regions, admin }) => {
   // Ambil seluruh row dulu, bentuk package dulu, lalu filter.
   // Ini penting supaya meta row Modal/Dokumen tidak terpotong.
@@ -654,11 +764,11 @@ const selectPackagesForExport = async ({ ids, tahun, regions, admin }) => {
   return packages;
 };
 
-// ============================================================================
+ 
 // Sheet sederhana (long-format): Unit dan Produksi / Modal / Sertifikat dan Izin
 // Karena bentuknya baris-per-rincian, kolom tidak perlu didefinisikan ulang
 // saat ada jenis/kategori baru -- otomatis ikut lewat data yang diloop.
-// ============================================================================
+ 
 const prepareSimpleExportSheet = (sheet, title, headers) => {
   const lastCol = headers.length;
 
@@ -698,6 +808,7 @@ const styleSimpleDataRow = (row, { idColumn = 2, numericColumns = [], currencyCo
   });
 };
 
+// Membuat file ekspor data dengan tiga sheet: Unit dan Produksi, Modal, serta Sertifikat dan Izin.
 const buildDataWorkbook = async packages => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Dinas Kelautan dan Perikanan';
@@ -743,7 +854,7 @@ const buildDataWorkbook = async packages => {
   prepareSimpleExportSheet(
     modal,
     'DATA MODAL PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN',
-    ['No', 'ID Wilayah', 'Status', 'Tahun', 'Kab/Kota', 'Dasar Modal', 'Rincian', 'Investasi Modal (Rp)'],
+    ['No', 'ID Wilayah', 'Status', 'Tahun', 'Kab/Kota', 'Skala Usaha / Jenis Kegiatan', 'Rincian', 'Investasi Modal (Rp)'],
   );
 
   let noModal = 1;
@@ -823,8 +934,8 @@ const buildDataWorkbook = async packages => {
   return workbook;
 };
 
-// ============================================================================
-// REKAP STATISTIK
+ 
+// Pembuatan Rekap Statistik Pengolahan dan Pemasaran dalam format Excel.
 // Bentuk mengikuti HASIL ANALISIS:
 // - banyak tabel putih dalam satu sheet
 // - tabel berjajar ke kanan
@@ -834,7 +945,7 @@ const buildDataWorkbook = async packages => {
 // Kolom & baris tabel di sini SELALU dihasilkan dari `regions` dan `config`
 // yang datang dari masterValues()/regionInfo() -- bukan hardcode -- sehingga
 // otomatis mengikuti Master Data terbaru setiap kali export dijalankan.
-// ============================================================================
+ 
 const buildAnalysisRegionRows = ({ regions, columns, valueFor }) => {
   const rows = regions.map(region => {
     const values = columns.map(column => toNumber(valueFor(region.name, column)));
@@ -846,6 +957,7 @@ const buildAnalysisRegionRows = ({ regions, columns, valueFor }) => {
   return { rows, totals, grandTotal: totals.reduce((sum, value) => sum + value, 0) };
 };
 
+// Membuat satu tabel analisis per Kab/Kota di dalam sheet Rekap Statistik.
 const writeAnalysisTable = ({ worksheet, startCol, title, groupLabel, columns, regions, valueFor, unit = 'number' }) => {
   const titleRow = 1;
   const groupRow = 2;
@@ -963,7 +1075,6 @@ const createMetricAnalysisSheet = ({ workbook, packages, regions, config, sheetN
     startCol += meta.width + 2;
   };
 
-  // Urutan mengikuti pola Hasil Analisis.
   addTable({
     suffix: 'berdasarkan Jenis Kegiatan',
     groupLabel: 'Jenis Kegiatan',
@@ -1101,13 +1212,14 @@ const createDocumentAnalysisSheet = ({ workbook, packages, regions, sheetName, t
   return worksheet;
 };
 
+// Membuat Daftar Isi yang berisi tautan menuju setiap tabel pada Rekap Statistik.
 const createDynamicDaftarIsiSheet = (worksheet, year, entries) => {
   worksheet.mergeCells('A1:B1');
-  worksheet.getCell('A1').value = 'DAFTAR ISI REKAP STATISTIK PENGOLAHAN DAN PEMASARAN';
+  worksheet.getCell('A1').value = 'DAFTAR ISI REKAP STATISTIK PENGOLAHAN DAN PEMASARAN PRODUK KELAUTAN DAN PERIKANAN';
   styleExcelTitle(worksheet.getCell('A1'));
 
   worksheet.mergeCells('A2:B2');
-  worksheet.getCell('A2').value = `PRODUK KELAUTAN DAN PERIKANAN PROVINSI JAWA TIMUR TAHUN ${year}`;
+  worksheet.getCell('A2').value = `PROVINSI JAWA TIMUR TAHUN ${year}`;
   styleExcelTitle(worksheet.getCell('A2'));
 
   worksheet.getCell('A4').value = 'Daftar Tabel';
@@ -1140,6 +1252,7 @@ const createDynamicDaftarIsiSheet = (worksheet, year, entries) => {
   worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 };
 
+// Menyusun seluruh sheet Rekap Statistik berdasarkan Master Data dan data VERIFIED yang dipilih.
 const buildRekapWorkbook = async (packages, year) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Dinas Kelautan dan Perikanan';
@@ -1230,6 +1343,7 @@ const sendWorkbook = async (res, workbook, filename) => {
   res.end();
 };
 
+// Endpoint ekspor data untuk Admin.
 const exportDataAdmin = async (req, res) => {
   try {
     const packages = await selectPackagesForExport({ ids: req.body?.ids, admin: true });
@@ -1248,6 +1362,7 @@ const exportDataAdmin = async (req, res) => {
   }
 };
 
+// Endpoint ekspor data publik yang hanya menggunakan data VERIFIED.
 const exportDataPublic = async (req, res) => {
   try {
     const packages = await selectPackagesForExport({ ids: req.body?.ids, admin: false });
@@ -1266,6 +1381,7 @@ const exportDataPublic = async (req, res) => {
   }
 };
 
+// Endpoint Rekap Statistik untuk Admin sesuai tahun dan wilayah yang dipilih.
 const exportRekapAdmin = async (req, res) => {
   try {
     const year = toInt(req.body?.tahun);
@@ -1291,6 +1407,7 @@ const exportRekapAdmin = async (req, res) => {
   }
 };
 
+// Endpoint Rekap Statistik publik yang hanya menggunakan data VERIFIED.
 const exportRekapPublic = async (req, res) => {
   try {
     const year = toInt(req.body?.tahun);
