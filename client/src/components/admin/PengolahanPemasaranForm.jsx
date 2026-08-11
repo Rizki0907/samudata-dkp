@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
 const TAB_ITEMS = [
@@ -145,7 +145,6 @@ function NumericInput({ value, onChange, placeholder = '0' }) {
     />
   );
 }
-
 
 function SearchableSingleSelect({
   value,
@@ -366,12 +365,160 @@ function AmountMatrix({ title, options, values, onChange, prefix = 'Rp' }) {
   );
 }
 
+const createEmptyProductionMatrix = (jenisOptions, scaleOptions) => Object.fromEntries(
+  (jenisOptions || []).map(jenis => [
+    jenis,
+    Object.fromEntries(
+      (scaleOptions || []).map(skala => [
+        skala,
+        {
+          jumlah_unit_usaha: '',
+          hasil_kg: '',
+          hasil_rp: '',
+        },
+      ]),
+    ),
+  ]),
+);
+
+const hydrateProductionMatrix = ({
+  jenisOptions,
+  scaleOptions,
+  details,
+  kategori,
+}) => {
+  const matrix = createEmptyProductionMatrix(jenisOptions, scaleOptions);
+
+  (details || [])
+    .filter(item => item?.kategori_kegiatan === kategori)
+    .forEach(item => {
+      const jenis = item?.jenis_kegiatan;
+      const skala = item?.skala_usaha;
+
+      if (!jenis || !skala) return;
+
+      if (!matrix[jenis]) matrix[jenis] = {};
+      if (!matrix[jenis][skala]) {
+        matrix[jenis][skala] = {
+          jumlah_unit_usaha: '',
+          hasil_kg: '',
+          hasil_rp: '',
+        };
+      }
+
+      matrix[jenis][skala] = {
+        jumlah_unit_usaha: formatInputNumber(item.jumlah_unit_usaha),
+        hasil_kg: formatInputNumber(item.hasil_kg),
+        hasil_rp: formatInputNumber(item.hasil_rp),
+      };
+    });
+
+  return matrix;
+};
+
+const syncProductionMatrix = (current, jenisOptions, scaleOptions) => {
+  const next = createEmptyProductionMatrix(jenisOptions, scaleOptions);
+
+  Object.entries(current || {}).forEach(([jenis, scaleMap]) => {
+    if (!next[jenis]) next[jenis] = {};
+
+    Object.entries(scaleMap || {}).forEach(([skala, values]) => {
+      if (!next[jenis][skala]) {
+        next[jenis][skala] = {
+          jumlah_unit_usaha: '',
+          hasil_kg: '',
+          hasil_rp: '',
+        };
+      }
+
+      next[jenis][skala] = {
+        jumlah_unit_usaha: values?.jumlah_unit_usaha ?? '',
+        hasil_kg: values?.hasil_kg ?? '',
+        hasil_rp: values?.hasil_rp ?? '',
+      };
+    });
+  });
+
+  return next;
+};
+
+function ProductionMatrix({
+  title,
+  jenisOptions,
+  scaleOptions,
+  matrix,
+  field,
+  onChange,
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/40 px-4 py-3">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/20">
+              <th className="sticky left-0 z-10 min-w-[220px] border-r border-border bg-card px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                Jenis Kegiatan
+              </th>
+              {scaleOptions.map(skala => (
+                <th
+                  key={skala}
+                  className="min-w-[150px] border-r border-border px-3 py-3 text-center text-xs font-semibold text-muted-foreground last:border-r-0"
+                >
+                  {skala}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {jenisOptions.length ? (
+              jenisOptions.map(jenis => (
+                <tr key={jenis} className="border-b border-border last:border-b-0">
+                  <td className="sticky left-0 z-10 border-r border-border bg-card px-4 py-3 text-sm font-medium text-foreground">
+                    {jenis}
+                  </td>
+
+                  {scaleOptions.map(skala => (
+                    <td
+                      key={`${jenis}-${skala}`}
+                      className="border-r border-border px-3 py-2.5 last:border-r-0"
+                    >
+                      <NumericInput
+                        value={matrix?.[jenis]?.[skala]?.[field] ?? ''}
+                        onChange={value => onChange(jenis, skala, field, value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={Math.max(scaleOptions.length + 1, 1)}
+                  className="px-4 py-8 text-center text-sm text-muted-foreground"
+                >
+                  Data jenis kegiatan belum tersedia di Master Data.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function PengolahanPemasaranForm({ initialData, isLoading = false, onSubmit, onCancel }) {
   const formRef = useRef(null);
   const errorRef = useRef(null);
   const { data: masterData, fetchMasterData, getOptions } = useMasterDataStore();
   const [activeTab, setActiveTab] = useState('produksi');
   const [error, setError] = useState('');
+  const [productionCategory, setProductionCategory] = useState('Pengolahan');
 
   useEffect(() => {
     if (!masterData.length) fetchMasterData();
@@ -391,18 +538,38 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
 
   const [tahun, setTahun] = useState(initialData?.tahun ? String(initialData.tahun) : String(new Date().getFullYear()));
   const [kabupaten, setKabupaten] = useState(initialData?.kabupaten_kota || '');
-  const [details, setDetails] = useState(() => (initialData?.details?.length ? initialData.details.map(item => ({
-    ...item,
-    jumlah_unit_usaha: formatInputNumber(item.jumlah_unit_usaha),
-    hasil_kg: formatInputNumber(item.hasil_kg),
-    hasil_rp: formatInputNumber(item.hasil_rp),
-  })) : [emptyDetail()]));
+
+  const [pengolahanMatrix, setPengolahanMatrix] = useState(() =>
+    hydrateProductionMatrix({
+      jenisOptions: options.pengolahan,
+      scaleOptions: options.skala,
+      details: initialData?.details || [],
+      kategori: 'Pengolahan',
+    })
+  );
+
+  const [pemasaranMatrix, setPemasaranMatrix] = useState(() =>
+    hydrateProductionMatrix({
+      jenisOptions: options.pemasaran,
+      scaleOptions: options.skala,
+      details: initialData?.details || [],
+      kategori: 'Pemasaran',
+    })
+  );
+
   const [modalJenis, setModalJenis] = useState(() => normalizeNumericMap(allJenis, initialData?.modal_by_jenis));
   const [modalSkala, setModalSkala] = useState(() => normalizeNumericMap(options.skala, initialData?.modal_by_skala));
   const [dokumen, setDokumen] = useState(() => normalizeDocs(options, initialData?.dokumen));
 
-  // Saat master data selesai dimuat, tambahkan key baru tanpa menghapus nilai yang sedang diisi.
   useEffect(() => {
+    setPengolahanMatrix(previous =>
+      syncProductionMatrix(previous, options.pengolahan, options.skala)
+    );
+
+    setPemasaranMatrix(previous =>
+      syncProductionMatrix(previous, options.pemasaran, options.skala)
+    );
+
     setModalJenis(previous => ({ ...normalizeNumericMap(allJenis), ...previous }));
     setModalSkala(previous => ({ ...normalizeNumericMap(options.skala), ...previous }));
     setDokumen(previous => ({
@@ -410,18 +577,59 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
       izin_usaha: { ...normalizeNumericMap(options.izinUsaha), ...(previous?.izin_usaha || {}) },
       sertifikat_lahan_bangunan: { ...normalizeNumericMap(options.sertifikatLB), ...(previous?.sertifikat_lahan_bangunan || {}) },
     }));
-  }, [allJenis, options.skala, options.sertifikatProduk, options.izinUsaha, options.sertifikatLB]);
+  }, [allJenis, options.pengolahan, options.pemasaran, options.skala, options.sertifikatProduk, options.izinUsaha, options.sertifikatLB]);
 
-  const setDetail = (index, field, value) => {
-    setDetails(previous => previous.map((item, idx) => {
-      if (idx !== index) return item;
-      if (field === 'kategori_kegiatan') return { ...item, kategori_kegiatan: value, jenis_kegiatan: '' };
-      return { ...item, [field]: value };
+  const updateProductionMatrix = (kategori, jenis, skala, field, value) => {
+    const setter = kategori === 'Pemasaran'
+      ? setPemasaranMatrix
+      : setPengolahanMatrix;
+
+    setter(previous => ({
+      ...previous,
+      [jenis]: {
+        ...(previous?.[jenis] || {}),
+        [skala]: {
+          ...(previous?.[jenis]?.[skala] || {
+            jumlah_unit_usaha: '',
+            hasil_kg: '',
+            hasil_rp: '',
+          }),
+          [field]: value,
+        },
+      },
     }));
   };
 
-  const addDetail = () => setDetails(previous => [emptyDetail(), ...previous]);
-  const removeDetail = index => setDetails(previous => previous.length === 1 ? previous : previous.filter((_, idx) => idx !== index));
+  const matrixToDetails = (kategori, matrix, jenisOptions, scaleOptions) => {
+    const result = [];
+
+    (jenisOptions || []).forEach(jenis => {
+      (scaleOptions || []).forEach(skala => {
+        const values = matrix?.[jenis]?.[skala] || {};
+        const unit = toNumber(values.jumlah_unit_usaha);
+        const kg = toNumber(values.hasil_kg);
+        const rp = toNumber(values.hasil_rp);
+
+        if (unit === 0 && kg === 0 && rp === 0) return;
+
+        result.push({
+          kategori_kegiatan: kategori,
+          jenis_kegiatan: jenis,
+          skala_usaha: skala,
+          jumlah_unit_usaha: unit,
+          hasil_kg: kg,
+          hasil_rp: rp,
+        });
+      });
+    });
+
+    return result;
+  };
+
+  const details = useMemo(() => ([
+    ...matrixToDetails('Pengolahan', pengolahanMatrix, options.pengolahan, options.skala),
+    ...matrixToDetails('Pemasaran', pemasaranMatrix, options.pemasaran, options.skala),
+  ]), [pengolahanMatrix, pemasaranMatrix, options.pengolahan, options.pemasaran, options.skala]);
 
   const totals = useMemo(() => ({
     unit: details.reduce((sum, item) => sum + toNumber(item.jumlah_unit_usaha), 0),
@@ -434,34 +642,16 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
   const validate = () => {
     if (!tahun || Number(tahun) < 1900) return 'Tahun wajib diisi dengan benar.';
     if (!kabupaten) return 'Kab/Kota wajib dipilih.';
-    if (!details.length) return 'Tambahkan minimal satu rincian Unit dan Produksi.';
-    const seen = new Set();
-    for (let index = 0; index < details.length; index += 1) {
-      const item = details[index];
-      if (!item.kategori_kegiatan) return `Rincian ke-${details.length - index}: Kategori kegiatan belum dipilih.`;
-      if (!item.jenis_kegiatan) return `Rincian ke-${details.length - index}: Jenis kegiatan belum dipilih.`;
-      if (!item.skala_usaha) return `Rincian ke-${details.length - index}: Skala usaha belum dipilih.`;
-      const key = `${item.kategori_kegiatan}|${item.jenis_kegiatan}|${item.skala_usaha}`.toLowerCase();
-      if (seen.has(key)) return `${item.jenis_kegiatan} - ${item.skala_usaha} sudah ada. Edit baris yang sama agar tidak terhitung ganda.`;
-      seen.add(key);
-    }
+    if (!details.length) return 'Isi minimal satu nilai pada matriks Unit dan Produksi.';
     return '';
   };
 
   const submit = () => {
-
     const validation = validate();
     if (validation) {
       setError(validation);
 
-      const shouldOpenProduksi =
-        validation.includes('Rincian') ||
-        validation.includes('sudah ada') ||
-        validation.includes('Kategori kegiatan') ||
-        validation.includes('Jenis kegiatan') ||
-        validation.includes('Skala usaha');
-
-      if (shouldOpenProduksi) {
+      if (validation.includes('matriks Unit dan Produksi')) {
         setActiveTab('produksi');
       }
 
@@ -491,14 +681,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     onSubmit({
       tahun: Number(tahun),
       kabupaten_kota: kabupaten,
-      details: details.map(item => ({
-        kategori_kegiatan: item.kategori_kegiatan,
-        jenis_kegiatan: item.jenis_kegiatan,
-        skala_usaha: item.skala_usaha,
-        jumlah_unit_usaha: toNumber(item.jumlah_unit_usaha),
-        hasil_kg: toNumber(item.hasil_kg),
-        hasil_rp: toNumber(item.hasil_rp),
-      })),
+      details,
       modal_by_jenis: Object.fromEntries(Object.entries(modalJenis).map(([key, value]) => [key, toNumber(value)])),
       modal_by_skala: Object.fromEntries(Object.entries(modalSkala).map(([key, value]) => [key, toNumber(value)])),
       dokumen: Object.fromEntries(Object.entries(dokumen).map(([group, values]) => [group, Object.fromEntries(Object.entries(values).map(([key, value]) => [key, toNumber(value)]))])),
@@ -510,8 +693,6 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
   const goPrev = () => setActiveTab(TAB_ITEMS[Math.max(currentIndex - 1, 0)].id);
 
   const handleArrowNavigation = event => {
-    // Enter pada input biasa tidak boleh menyimpan form.
-    // Penyimpanan hanya terjadi saat tombol Simpan Data/Simpan Perubahan diklik.
     if (
       event.key === 'Enter' &&
       (event.target instanceof HTMLInputElement ||
@@ -593,6 +774,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
               className={INPUT_CLASS}
             />
           </div>
+
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Kab/Kota <span className="text-rose-500">*</span>
@@ -609,7 +791,16 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
 
       <div className="flex gap-2 overflow-x-auto rounded-2xl border border-border bg-card p-2">
         {TAB_ITEMS.map(item => (
-          <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${activeTab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setActiveTab(item.id)}
+            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activeTab === item.id
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
             {item.label}
           </button>
         ))}
@@ -625,76 +816,102 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
       ) : null}
 
       {activeTab === 'produksi' ? (
-        <div className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">Unit Usaha dan Produksi</h2>
-            </div>
-            <button type="button" onClick={addDetail} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"><Plus className="h-4 w-4" />Tambah Rincian</button>
+        <div className="space-y-5 rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Unit Usaha dan Produksi</h2>
           </div>
 
-          <div className="space-y-3">
-            {details.map((item, index) => {
-              const jenisOptions =
-                item.kategori_kegiatan === 'Pemasaran'
-                  ? options.pemasaran
-                  : item.kategori_kegiatan === 'Pengolahan'
-                    ? options.pengolahan
-                    : [];
-              return (
-                <div key={index} className="rounded-2xl border border-border bg-muted/20 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-bold text-foreground">Rincian {details.length - index}</span>
-                    <button type="button" onClick={() => removeDetail(index)} disabled={details.length === 1} className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-30" title="Hapus rincian"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                        Kategori Kegiatan <span className="text-rose-500">*</span>
-                      </label>
-                      <SearchableSingleSelect
-                        value={item.kategori_kegiatan}
-                        onChange={value => setDetail(index, 'kategori_kegiatan', value)}
-                        options={['Pengolahan', 'Pemasaran']}
-                        placeholder="Kategori Kegiatan"
-                        searchable={false}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                        Jenis Kegiatan <span className="text-rose-500">*</span>
-                      </label>
-                      <SearchableSingleSelect
-                        value={item.jenis_kegiatan}
-                        onChange={value => setDetail(index, 'jenis_kegiatan', value)}
-                        options={jenisOptions}
-                        placeholder="Jenis Kegiatan"
-                        emptyMessage={
-                          item.kategori_kegiatan
-                            ? 'Data tidak ditemukan.'
-                            : 'Pilih Kategori Kegiatan terlebih dahulu.'
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                        Skala Usaha <span className="text-rose-500">*</span>
-                      </label>
-                      <SearchableSingleSelect
-                        value={item.skala_usaha}
-                        onChange={value => setDetail(index, 'skala_usaha', value)}
-                        options={options.skala}
-                        placeholder="Skala Usaha"
-                      />
-                    </div>
-                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Jumlah Unit Usaha</label><NumericInput value={item.jumlah_unit_usaha} onChange={value => setDetail(index, 'jumlah_unit_usaha', value)} /></div>
-                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Hasil Produksi (Kg)</label><NumericInput value={item.hasil_kg} onChange={value => setDetail(index, 'hasil_kg', value)} /></div>
-                    <div><label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nilai Produksi (Rp)</label><NumericInput value={item.hasil_rp} onChange={value => setDetail(index, 'hasil_rp', value)} /></div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="inline-flex rounded-xl border border-border bg-muted/30 p-1">
+            {['Pengolahan', 'Pemasaran'].map(kategori => (
+              <button
+                key={kategori}
+                type="button"
+                onClick={() => setProductionCategory(kategori)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  productionCategory === kategori
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {kategori}
+              </button>
+            ))}
           </div>
+
+          <ProductionMatrix
+            title="Jumlah Unit Usaha"
+            jenisOptions={
+              productionCategory === 'Pemasaran'
+                ? options.pemasaran
+                : options.pengolahan
+            }
+            scaleOptions={options.skala}
+            matrix={
+              productionCategory === 'Pemasaran'
+                ? pemasaranMatrix
+                : pengolahanMatrix
+            }
+            field="jumlah_unit_usaha"
+            onChange={(jenis, skala, field, value) =>
+              updateProductionMatrix(
+                productionCategory,
+                jenis,
+                skala,
+                field,
+                value,
+              )
+            }
+          />
+
+          <ProductionMatrix
+            title="Hasil Produksi (Kg)"
+            jenisOptions={
+              productionCategory === 'Pemasaran'
+                ? options.pemasaran
+                : options.pengolahan
+            }
+            scaleOptions={options.skala}
+            matrix={
+              productionCategory === 'Pemasaran'
+                ? pemasaranMatrix
+                : pengolahanMatrix
+            }
+            field="hasil_kg"
+            onChange={(jenis, skala, field, value) =>
+              updateProductionMatrix(
+                productionCategory,
+                jenis,
+                skala,
+                field,
+                value,
+              )
+            }
+          />
+
+          <ProductionMatrix
+            title="Nilai Produksi (Rp)"
+            jenisOptions={
+              productionCategory === 'Pemasaran'
+                ? options.pemasaran
+                : options.pengolahan
+            }
+            scaleOptions={options.skala}
+            matrix={
+              productionCategory === 'Pemasaran'
+                ? pemasaranMatrix
+                : pengolahanMatrix
+            }
+            field="hasil_rp"
+            onChange={(jenis, skala, field, value) =>
+              updateProductionMatrix(
+                productionCategory,
+                jenis,
+                skala,
+                field,
+                value,
+              )
+            }
+          />
         </div>
       ) : null}
 
@@ -704,8 +921,11 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
             <AmountMatrix title="Investasi Modal berdasarkan Jenis Kegiatan" options={allJenis} values={modalJenis} onChange={(key, value) => setModalJenis(previous => ({ ...previous, [key]: value }))} />
             <AmountMatrix title="Investasi Modal berdasarkan Skala Usaha" options={options.skala} values={modalSkala} onChange={(key, value) => setModalSkala(previous => ({ ...previous, [key]: value }))} />
           </div>
+
           {totals.modalJenis > 0 && totals.modalSkala > 0 && totals.modalJenis !== totals.modalSkala ? (
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">Catatan: total modal menurut Jenis Kegiatan ({totals.modalJenis.toLocaleString('id-ID')}) berbeda dengan total menurut Skala ({totals.modalSkala.toLocaleString('id-ID')}). Data tetap bisa disimpan, tetapi sebaiknya dicek kembali bila keduanya merupakan dua distribusi dari total modal yang sama.</div>
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              Catatan: total modal menurut Jenis Kegiatan ({totals.modalJenis.toLocaleString('id-ID')}) berbeda dengan total menurut Skala ({totals.modalSkala.toLocaleString('id-ID')}). Data tetap bisa disimpan, tetapi sebaiknya dicek kembali bila keduanya merupakan dua distribusi dari total modal yang sama.
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -727,10 +947,29 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        <button type="button" onClick={onCancel} disabled={isLoading} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50">Batal</button>
+        <button type="button" onClick={onCancel} disabled={isLoading} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50">
+          Batal
+        </button>
+
         <div className="flex flex-col gap-2 sm:flex-row">
-          {currentIndex > 0 ? <button type="button" onClick={goPrev} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" />Sebelumnya</button> : null}
-          {currentIndex < TAB_ITEMS.length - 1 ? <button type="button" onClick={goNext} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">Selanjutnya<ArrowRight className="h-4 w-4" /></button> : <button type="button" onClick={() => submit()} disabled={isLoading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{initialData ? 'Simpan Perubahan' : 'Simpan Data'}</button>}
+          {currentIndex > 0 ? (
+            <button type="button" onClick={goPrev} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-muted">
+              <ArrowLeft className="h-4 w-4" />
+              Sebelumnya
+            </button>
+          ) : null}
+
+          {currentIndex < TAB_ITEMS.length - 1 ? (
+            <button type="button" onClick={goNext} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+              Selanjutnya
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button type="button" onClick={() => submit()} disabled={isLoading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {initialData ? 'Simpan Perubahan' : 'Simpan Data'}
+            </button>
+          )}
         </div>
       </div>
     </div>

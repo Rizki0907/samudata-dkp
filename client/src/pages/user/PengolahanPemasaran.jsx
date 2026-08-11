@@ -622,12 +622,12 @@ export default function PengolahanPemasaran() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 text-left">Kategori</th>
+                  <th className="px-4 py-3 text-left">Kategori Kegiatan</th>
                   <th className="px-4 py-3 text-left">Jenis Kegiatan</th>
-                  <th className="px-4 py-3 text-left">Skala</th>
-                  <th className="px-4 py-3 text-right">Unit</th>
-                  <th className="px-4 py-3 text-right">Hasil (Kg)</th>
-                  <th className="px-4 py-3 text-right">Hasil (Rp)</th>
+                  <th className="px-4 py-3 text-left">Skala Usaha</th>
+                  <th className="px-4 py-3 text-right">Unit Usaha</th>
+                  <th className="px-4 py-3 text-right">Hasil Produksi (Kg)</th>
+                  <th className="px-4 py-3 text-right">Nilai Produksi (Rp)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
