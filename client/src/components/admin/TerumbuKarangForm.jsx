@@ -99,7 +99,7 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
       const secondaryDistance = horizontalDirection
         ? Math.abs(candidate.y - current.y)
         : Math.abs(candidate.x - current.x);
-      return { ...candidate, score: primaryDistance + secondaryDistance * 3 };
+      return { ...candidate, score: primaryDistance * 5 + secondaryDistance };
     })
     .sort((a, b) => a.score - b.score)[0]?.element ?? null;
 };
