@@ -64,8 +64,7 @@ const CATEGORY_MAP = {
     { value: 'SATUAN_VOLUME', label: 'Satuan Volume', icon: Database }
   ],
   'Kelautan dan Pesisir': [
-    { value: 'JENIS_GARAM', label: 'Jenis Garam', icon: Package },
-    { value: 'KATEGORI_PETAMBAK', label: 'Kategori Petambak', icon: Database }
+    { value: 'KAB_KOTA_KELAUTAN', label: 'Kab/Kota', icon: MapPin }
   ]
 };
 
@@ -308,11 +307,11 @@ export default function MasterData() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/90 to-primary p-8 md:p-10 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/90 to-primary p-8 md:p-10 text-primary-foreground shadow-xl">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="max-w-2xl">
-            <h1 className="text-4xl font-heading font-extrabold tracking-tight mb-3">Master Data Induk</h1>
+            <h1 className="text-4xl font-heading font-extrabold tracking-tight mb-3 text-primary-foreground">Master Data Induk</h1>
             <p className="text-primary-foreground/80 text-lg leading-relaxed">
               Pusat kendali seluruh referensi data yang digunakan dalam formulir laporan. Penambahan atau perubahan disini akan otomatis beresonansi ke seluruh sistem dashboard.
             </p>

@@ -376,6 +376,18 @@ const DATA_MAP = {
   KATEGORI_PETAMBAK: [
     "Petambak Mandiri / Perorangan", "Kelompok Petambak Garam (KUGAR)", 
     "Koperasi Petambak Garam", "Perusahaan Swasta / Badan Usaha", "PT Garam (Persero)"
+  ],
+  // Kab/Kota khusus form Kelautan dan Pesisir (garam, mangrove, lamun, terumbu karang,
+  // potensi perairan). Sengaja dipisah dari KABUPATEN_KOTA / KAB_KOTA karena ada
+  // entri tambahan "PT.Garam" yang bukan wilayah administratif biasa.
+  KAB_KOTA_KELAUTAN: [
+    'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
+    'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan',
+    'Malang', 'Mojokerto', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan',
+    'Ponorogo', 'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep',
+    'Trenggalek', 'Tuban', 'Tulungagung',
+    'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang',
+    'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya', 'PT.Garam'
   ]
 };
 

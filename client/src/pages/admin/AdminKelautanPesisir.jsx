@@ -12,6 +12,7 @@ import ReactECharts from 'echarts-for-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useMasterDataStore } from '@/store/masterDataStore';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
@@ -108,10 +109,10 @@ const cellStyle = (opts = {}) => ({
   fill: opts.fill ? { fgColor: { rgb: opts.fill } } : undefined,
 });
 
-const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, filterKab, notifyEmpty = (msg) => alert(msg)) => {
+const exportGaramExcelPintar = (dataRaw, filterTahun, filterTw, filterBulan, filterKab, onEmpty) => {
   const data = dataRaw.filter(d => d.status === 'VERIFIED');
   if (data.length === 0) {
-    notifyEmpty("Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.");
+    if (typeof onEmpty === 'function') onEmpty();
     return;
   }
 
@@ -343,8 +344,8 @@ const buildGaramSheet = (dataRowsRaw, title, subtitle, rowMode = 'kabupaten') =>
 
 const fmtExcel = (v, d) => (v === 0 || v === '0' || !v) ? '-' : (d !== undefined ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : v.toLocaleString('id-ID'));
 
-const exportMangroveExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
-  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
+const exportMangroveExcel = (data, onEmpty) => {
+  if (data.length === 0) { if (typeof onEmpty === 'function') onEmpty(); return; }
   const title = 'DATA MANGROVE JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Spesies', 'Kondisi (%)', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Padat (Ha)', 'Sedang (Ha)', 'Jarang (Ha)', ''];
@@ -371,8 +372,8 @@ const exportMangroveExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
   buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Mangrove');
 };
 
-const exportLamunExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
-  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
+const exportLamunExcel = (data, onEmpty) => {
+  if (data.length === 0) { if (typeof onEmpty === 'function') onEmpty(); return; }
   const title = 'DATA LAMUN JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Kaya (Ha)', 'Kurang Kaya (Ha)', 'Miskin (Ha)', ''];
@@ -400,8 +401,8 @@ const exportLamunExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
   buildGroupedSheet(title, h1Top, h1Sub, merges, dataRows, 'Data_Lamun');
 };
 
-const exportTerumbuKarangExcel = (data, notifyEmpty = (msg) => alert(msg)) => {
-  if (data.length === 0) { notifyEmpty("Tidak ada data untuk diekspor!"); return; }
+const exportTerumbuKarangExcel = (data, onEmpty) => {
+  if (data.length === 0) { if (typeof onEmpty === 'function') onEmpty(); return; }
   const title = 'DATA TERUMBU KARANG JAWA TIMUR';
   const h1Top = ['No', 'Status', 'Kab/Kota', 'Tahun', 'Luas Eksisting (Ha)', 'Persentase Tutupan (%)', '% Kondisi', 'Kondisi', 'Luas Lahan per Kategori', '', '', '', 'Luas Rehabilitasi (Ha)'];
   const h1Sub = ['', '', '', '', '', '', '', '', 'Sangat Baik (Ha)', 'Baik (Ha)', 'Sedang (Ha)', 'Rusak (Ha)', ''];
@@ -487,10 +488,10 @@ const buildGroupedSheet = (title, h1Top, h1Sub, merges, dataRows, filenamePrefix
   XLSX.writeFile(wb, `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
-const exportPotensiExcel = (dataRaw, notifyEmpty = (msg) => alert(msg)) => {
+const exportPotensiExcel = (dataRaw, onEmpty) => {
   const data = dataRaw.filter(d => d.status === 'VERIFIED');
   if (data.length === 0) {
-    notifyEmpty("Tidak ada data berstatus VERIFIED untuk diekspor!");
+    if (typeof onEmpty === 'function') onEmpty();
     return;
   }
 
@@ -746,6 +747,8 @@ const MAIN_TABS = [
 export default function AdminKelautanPesisir() {
   const { user } = useAuthStore();
   const { theme } = useThemeStore();
+  const { getOptions } = useMasterDataStore();
+  const kabKotaOptions = useMemo(() => getOptions('KAB_KOTA_KELAUTAN') || [], [getOptions]);
   const isDark = theme === 'dark';
   const [mainTab, setMainTab] = useState('tabel');
   const [activeTab, setActiveTab] = useState('garam');
@@ -759,7 +762,6 @@ export default function AdminKelautanPesisir() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -777,10 +779,6 @@ export default function AdminKelautanPesisir() {
     setDialogValue('');
     setActionDialog({ open: true, kind: 'notice', title, message, theme, showCancel: false, confirmLabel: 'OK' });
   };
-
-  // Notifikasi khusus untuk ekspor data kosong, memakai dialog custom yang sama
-  // (pengganti alert() bawaan browser) agar konsisten dengan Admin Pengolahan Pemasaran.
-  const notifyExportEmpty = (message) => showNotice(message, 'INFO', 'Ekspor Data');
 
   // Filters
   const [filterTahun, setFilterTahun] = useState([]);
@@ -889,6 +887,7 @@ export default function AdminKelautanPesisir() {
     else if (activeTab === 'mangrove') baseData = dataMangrove;
     else if (activeTab === 'lamun') baseData = dataLamun;
     else if (activeTab === 'terumbu_karang') baseData = dataTerumbuKarang;
+    const wasEditing = Boolean(editingData);
     setSubmitLoading(true);
     try {
       if (activeTab === 'garam') {
@@ -927,6 +926,11 @@ export default function AdminKelautanPesisir() {
         }
         await fetchTerumbuKarang();
       }
+      showNotice(
+        wasEditing ? 'Perubahan data berhasil disimpan.' : 'Data berhasil disimpan.',
+        wasEditing ? 'INFO' : 'APPROVED',
+        wasEditing ? 'Perubahan Berhasil' : 'Penyimpanan Berhasil',
+      );
     } catch (err) {
       console.error('Gagal menyimpan data:', err);
       const errorMessage = err.response?.data?.message || 'Gagal menyimpan data. Silakan coba lagi.';
@@ -938,32 +942,19 @@ export default function AdminKelautanPesisir() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!itemToDelete) return;
-    try {
-      const id = itemToDelete.id;
-      if (activeTab === 'garam') {
-        await api.delete(`/kelautan-pesisir/garam/${id}`);
-        await fetchGaram();
-      } else if (activeTab === 'potensi_perairan') {
-        await api.delete(`/kelautan-pesisir/potensi-perairan/${id}`);
-        await fetchPotensi();
-      } else if (activeTab === 'mangrove') {
-        await api.delete(`/kelautan-pesisir/mangrove/${id}`);
-        await fetchMangrove();
-      } else if (activeTab === 'lamun') {
-        await api.delete(`/kelautan-pesisir/lamun/${id}`);
-        await fetchLamun();
-      } else if (activeTab === 'terumbu_karang') {
-        await api.delete(`/kelautan-pesisir/terumbu-karang/${id}`);
-        await fetchTerumbuKarang();
-      }
-    } catch (err) {
-      console.error('Gagal menghapus data:', err);
-      showNotice(err.response?.data?.message || 'Gagal menghapus data.', 'REJECTED', 'Penghapusan Gagal');
-    } finally {
-      setItemToDelete(null);
-    }
+  const handleDelete = (row) => {
+    if (!row) return;
+    const label = activeTab === 'potensi_perairan' ? `Tahun ${row.tahun_data}` : row.kabupaten_kota;
+    setActionDialog({
+      open: true,
+      kind: 'delete',
+      title: 'Hapus Data',
+      message: `Yakin ingin menghapus data ${label}?`,
+      theme: 'DELETE',
+      rows: [row],
+      isBatch: false,
+      confirmLabel: 'Hapus',
+    });
   };
 
   const handleApprove = (row) => {
@@ -1220,14 +1211,15 @@ export default function AdminKelautanPesisir() {
   };
 
   const handleExport = (data, type) => {
+    const notifyEmpty = () => showNotice('Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.', 'INFO', 'Ekspor Data');
     if (activeTab === 'garam') {
       if (type === 'tahunan') {
-        exportGaramExcelPintar(data, filterTahun?.length ? filterTahun.join(', ') : '', '', '', '', notifyExportEmpty);
+        exportGaramExcelPintar(data, filterTahun?.length ? filterTahun.join(', ') : '', '', '', '', notifyEmpty);
       } else {
-        exportGaramExcelPintar(data, '', '', '', '', notifyExportEmpty);
+        exportGaramExcelPintar(data, '', '', '', '', notifyEmpty);
       }
     } else {
-      exportPotensiExcel(data, notifyExportEmpty);
+      exportPotensiExcel(data, notifyEmpty);
     }
   };
 
@@ -2146,7 +2138,7 @@ export default function AdminKelautanPesisir() {
           return (
             <div className="flex justify-end gap-2 pr-2">
               <button onClick={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} title="Edit Data" className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"><Edit className="w-6 h-6" /></button>
-              <button onClick={() => setItemToDelete(row)} title="Hapus Data" className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"><Trash2 className="w-6 h-6" /></button>
+              <button onClick={() => handleDelete(row)} title="Hapus Data" className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"><Trash2 className="w-6 h-6" /></button>
             </div>
           );
         }
@@ -2196,20 +2188,22 @@ export default function AdminKelautanPesisir() {
   }, [activeTab, dataGaram, dataPotensiPerairan, dataMangrove, dataLamun, dataTerumbuKarang, filterTahun, filterTw, filterBulan, filterKab, filterStatus]);
 
   const handleCustomExport = (data) => {
+    const notifyEmpty = () => showNotice('Tidak ada data untuk diekspor.', 'INFO', 'Ekspor Data');
+    const notifyEmptyVerified = () => showNotice('Tidak ada data berstatus VERIFIED yang sesuai dengan filter saat ini.', 'INFO', 'Ekspor Data');
     if (activeTab === 'garam') {
       const strTahun = filterTahun?.length > 0 ? filterTahun.join(', ') : '';
       const strTw = filterTw?.length > 0 ? filterTw.join(', ') : '';
       const strBulan = filterBulan?.length > 0 ? filterBulan.join(', ') : '';
       const strKab = filterKab?.length > 0 ? filterKab.join(', ') : '';
-      exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab, notifyExportEmpty);
+      exportGaramExcelPintar(data, strTahun, strTw, strBulan, strKab, notifyEmptyVerified);
     } else if (activeTab === 'potensi_perairan') {
-      exportPotensiExcel(data, notifyExportEmpty);
+      exportPotensiExcel(data, notifyEmptyVerified);
     } else if (activeTab === 'mangrove') {
-      exportMangroveExcel(data, notifyExportEmpty);
+      exportMangroveExcel(data, notifyEmpty);
     } else if (activeTab === 'lamun') {
-      exportLamunExcel(data, notifyExportEmpty);
+      exportLamunExcel(data, notifyEmpty);
     } else if (activeTab === 'terumbu_karang') {
-      exportTerumbuKarangExcel(data, notifyExportEmpty);
+      exportTerumbuKarangExcel(data, notifyEmpty);
     }
   };
 
@@ -2234,6 +2228,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+          kabKotaOptions={kabKotaOptions}
         />
       );
     }
@@ -2244,6 +2239,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+          kabKotaOptions={kabKotaOptions}
         />
       );
     }
@@ -2254,6 +2250,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+          kabKotaOptions={kabKotaOptions}
         />
       );
     }
@@ -2264,6 +2261,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+          kabKotaOptions={kabKotaOptions}
         />
       );
     }
@@ -2274,6 +2272,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
+          kabKotaOptions={kabKotaOptions}
         />
       );
     }
@@ -2302,20 +2301,6 @@ export default function AdminKelautanPesisir() {
           </button>
         )}
       </div>
-
-      {/* Delete Modal */}
-      {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 text-destructive"><Trash2 className="w-5 h-5" /><h3 className="text-lg font-bold">Konfirmasi Hapus</h3></div>
-            <p className="text-muted-foreground text-sm mb-6">Yakin ingin menghapus data <strong className="text-foreground">{activeTab === 'potensi_perairan' ? `Tahun ${itemToDelete.tahun_data}` : itemToDelete.kabupaten_kota}</strong>?</p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setItemToDelete(null)} className="px-4 py-2 rounded-lg font-medium bg-muted text-muted-foreground hover:bg-muted/80 text-sm transition-colors">Batal</button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm transition-colors">Ya, Hapus</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Tabs Filter & Statistik */}
       {!isFormOpen && (
@@ -2384,7 +2369,7 @@ export default function AdminKelautanPesisir() {
                   {activeTab !== 'potensi_perairan' && (
                     <div className="w-full md:flex-1 md:min-w-[180px]">
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
-                      <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+                      <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set([...kabKotaOptions, ...(activeTab === 'garam' ? dataGaram : activeTab === 'mangrove' ? dataMangrove : activeTab === 'terumbu_karang' ? dataTerumbuKarang : activeTab === 'lamun' ? dataLamun : dataPotensiPerairan).map(d => d.kabupaten_kota)])].filter(Boolean).sort()} />
                     </div>
                   )}
                   {activeTab === 'garam' && (
@@ -2462,6 +2447,7 @@ export default function AdminKelautanPesisir() {
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kab/Kota</label>
                   <SearchableMultiSelect value={visKab} onChange={setVisKab} placeholder="Semua Kab/Kota" options={[...new Set([
+                    ...kabKotaOptions,
                     ...dataGaram.map(d => d.kabupaten_kota),
                     ...dataMangrove.map(d => d.kabupaten_kota),
                     ...dataPotensiPerairan.map(d => d.kabupaten_kota)
@@ -2502,7 +2488,7 @@ export default function AdminKelautanPesisir() {
               columns={activeColumns}
               data={filteredData}
               onEdit={user?.role === 'admin_pusat' ? (row) => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); } : undefined}
-              onDelete={user?.role === 'admin_pusat' ? (row) => setItemToDelete(row) : undefined}
+              onDelete={user?.role === 'admin_pusat' ? (row) => handleDelete(row) : undefined}
               onApprove={user?.role === 'admin_pusat' ? handleApprove : undefined}
               onReject={user?.role === 'admin_pusat' ? handleReject : undefined}
               onBatchApprove={user?.role === 'admin_pusat' ? handleBatchApprove : undefined}
