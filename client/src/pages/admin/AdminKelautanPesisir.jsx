@@ -15,7 +15,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { GaramForm } from '@/components/admin/GaramForm';
+import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 import { MangroveForm } from '@/components/admin/MangroveForm';
 import { LamunForm } from '@/components/admin/LamunForm';
@@ -748,7 +748,15 @@ export default function AdminKelautanPesisir() {
   const { user } = useAuthStore();
   const { theme } = useThemeStore();
   const { getOptions } = useMasterDataStore();
-  const kabKotaOptions = useMemo(() => getOptions('KAB_KOTA_KELAUTAN') || [], [getOptions]);
+  const masterDataRaw = useMasterDataStore(state => state.data);
+  // Dependency-nya sengaja pakai `masterDataRaw` (bukan `getOptions`, yang referensinya
+  // selalu stabil dan gak pernah berubah) supaya dropdown ini otomatis kehitung ulang
+  // begitu ada perubahan di Master Data (mis. nambah kab/kota baru), tanpa perlu reload halaman.
+  const kabKotaOptions = useMemo(() => getOptions('KAB_KOTA_KELAUTAN') || [], [getOptions, masterDataRaw]);
+  // PT.Garam cuma relevan buat form Garam (bukan wilayah administratif),
+  // jadi form lain (Mangrove, Lamun, Terumbu Karang, Potensi Perairan) pakai
+  // versi yang udah difilter ini, tanpa perlu tau soal PT.Garam sama sekali.
+  const kabKotaOptionsUmum = useMemo(() => kabKotaOptions.filter(k => k !== 'PT.Garam'), [kabKotaOptions]);
   const isDark = theme === 'dark';
   const [mainTab, setMainTab] = useState('tabel');
   const [activeTab, setActiveTab] = useState('garam');
@@ -2215,20 +2223,15 @@ export default function AdminKelautanPesisir() {
     .map(d => d.getTime());
 
   const latestDate = validDates.length > 0 ? new Date(Math.max(...validDates)) : null;
-  const formatBulan3Huruf = (date) => {
-    const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return bulan[date.getMonth()];
-  };
-
   const lastUpdated = latestDate
-    ? `${String(latestDate.getDate()).padStart(2, '0')} ${formatBulan3Huruf(latestDate)} ${latestDate.getFullYear()} ${latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+    ? latestDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + latestDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : '-';
 
   // ── FORM RENDERER ─────────────────────────────────────────────────────────────
   const renderForm = () => {
     if (activeTab === 'garam') {
       return (
-        <GaramForm
+        <KelautanPesisirForm
           initialData={editingData}
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
@@ -2244,7 +2247,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
-          kabKotaOptions={kabKotaOptions}
+          kabKotaOptions={kabKotaOptionsUmum}
         />
       );
     }
@@ -2255,7 +2258,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
-          kabKotaOptions={kabKotaOptions}
+          kabKotaOptions={kabKotaOptionsUmum}
         />
       );
     }
@@ -2266,7 +2269,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
-          kabKotaOptions={kabKotaOptions}
+          kabKotaOptions={kabKotaOptionsUmum}
         />
       );
     }
@@ -2277,7 +2280,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
-          kabKotaOptions={kabKotaOptions}
+          kabKotaOptions={kabKotaOptionsUmum}
         />
       );
     }
