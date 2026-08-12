@@ -68,3 +68,8 @@ RewriteRule ^(.*)$ http://127.0.0.1:5000/api/$1 [P,L]
   RewriteRule . /samudera/index.html [L]
 </IfModule>
 ```
+
+## 5. Catatan Penting Deployment & Server
+- **Backend (Server)**: Backend berjalan di VPS/cPanel menggunakan proses **PM2** melalui akses terminal (`cd samudera_app/server`). JANGAN merekomendasikan penggunaan menu "Setup Node.js App" di cPanel.
+- **Restart Backend**: Untuk merestart backend, selalu masuk ke direktori server (`cd samudera_app/server`) dan jalankan perintah `pm2 restart all` (atau `pm2 restart samudera-api`).
+- **Frontend (Client)**: URL API *production* untuk frontend wajib mengarah ke `https://ppid.dkp.jatimprov.go.id/api`. Pastikan `VITE_API_URL` di file `.env.production` menggunakan URL tersebut sebelum melakukan *build*.
