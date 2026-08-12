@@ -15,7 +15,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { KelautanPesisirForm } from '@/components/admin/KelautanPesisirForm';
+import { GaramForm } from '@/components/admin/GaramForm';
 import { PotensiPerairanForm } from '@/components/admin/PotensiPerairanForm';
 import { MangroveForm } from '@/components/admin/MangroveForm';
 import { LamunForm } from '@/components/admin/LamunForm';
@@ -2237,7 +2237,7 @@ export default function AdminKelautanPesisir() {
   const renderForm = () => {
     if (activeTab === 'garam') {
       return (
-        <KelautanPesisirForm
+        <GaramForm
           initialData={editingData}
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}

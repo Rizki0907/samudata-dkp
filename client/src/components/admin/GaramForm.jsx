@@ -96,7 +96,18 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
-export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+export const GaramForm = ({
+  initialData,
+  onSubmit,
+  onCancel,
+  isLoading,
+  // Dulu ini yang jadi pembeda utama dgn KelautanPesisirForm:
+  // kalau caller kirim list sendiri (mis. utk data Kelautan & Pesisir), pakai itu.
+  // Kalau tidak dikirim / kosong, fallback ke KAB_KOTA_JATIM (perilaku GaramForm asli).
+  kabKotaOptions,
+  // Judul header form, biar bisa dipakai utk konteks lain tanpa hardcode "Data Garam"
+  formTitle = 'Data Garam',
+}) => {
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
@@ -157,6 +168,8 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const produktivitas = lp > 0 ? (totalProduksi / lp) : 0;
   const triwulan = getTriwulan(formData.bulan);
 
+  const kabKotaList = (kabKotaOptions && kabKotaOptions.length > 0) ? kabKotaOptions : KAB_KOTA_JATIM;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalData = {
@@ -194,7 +207,7 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
             <FlaskConical className="w-5 h-5" />
           </div>
           <h2 className="font-semibold text-lg text-foreground">
-            {initialData ? 'Edit Data Garam' : 'Tambah Data Garam'}
+            {initialData ? `Edit ${formTitle}` : `Tambah ${formTitle}`}
           </h2>
         </div>
         <button type="button" onClick={onCancel} className="p-2 text-muted-foreground hover:bg-muted rounded-xl transition-colors">
@@ -249,7 +262,7 @@ export const GaramForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
                   value={formData.kabupaten_kota}
                   onChange={handleChange}
                   className={inputClass}
-                  options={KAB_KOTA_JATIM}
+                  options={kabKotaList}
                   placeholder="-- Pilih Kab/Kota --"
                 />
               </div>
