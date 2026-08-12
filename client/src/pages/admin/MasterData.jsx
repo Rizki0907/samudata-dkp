@@ -63,9 +63,18 @@ const CATEGORY_MAP = {
     { value: 'NEGARA_TUJUAN', label: 'Negara Tujuan', icon: MapPin },
     { value: 'SATUAN_VOLUME', label: 'Satuan Volume', icon: Database }
   ],
-  'Kelautan dan Pesisir': [
+  'Garam': [
     { value: 'KAB_KOTA_KELAUTAN', label: 'Kab/Kota', icon: MapPin }
-  ]
+  ],
+  'Mangrove': [
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin }
+  ],
+  'Terumbu Karang': [
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin }
+  ],
+  'Lamun': [
+    { value: 'KAB_KOTA', label: 'Kab/Kota', icon: MapPin }
+  ]    
 };
 
 const SATUAN_OPTIONS = ['Kilogram', 'Liter', 'Tabung', 'Ton', 'Kuintal', 'Gram', 'Pcs', 'Unit', 'Paket'];

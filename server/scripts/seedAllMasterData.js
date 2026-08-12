@@ -369,17 +369,6 @@ const DATA_MAP = {
   SATUAN_VOLUME: [
     "Kilogram", "Ton", "Kuintal", "Pcs", "Box / Karton", "Kontainer / TEUs"
   ],
-  JENIS_GARAM: [
-    "Garam Krosok / Konsumsi (K1)", "Garam Krosok / Konsumsi (K2)", "Garam Krosok (K3)", 
-    "Garam Industri", "Garam Halus / Meja", "Garam Spa / Kesehatan"
-  ],
-  KATEGORI_PETAMBAK: [
-    "Petambak Mandiri / Perorangan", "Kelompok Petambak Garam (KUGAR)", 
-    "Koperasi Petambak Garam", "Perusahaan Swasta / Badan Usaha", "PT Garam (Persero)"
-  ],
-  // Kab/Kota khusus form Kelautan dan Pesisir (garam, mangrove, lamun, terumbu karang,
-  // potensi perairan). Sengaja dipisah dari KABUPATEN_KOTA / KAB_KOTA karena ada
-  // entri tambahan "PT.Garam" yang bukan wilayah administratif biasa.
   KAB_KOTA_KELAUTAN: [
     'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
     'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan',
@@ -388,7 +377,7 @@ const DATA_MAP = {
     'Trenggalek', 'Tuban', 'Tulungagung',
     'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang',
     'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya', 'PT.Garam'
-  ]
+  ],  
 };
 
 async function seedAll() {
