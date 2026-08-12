@@ -539,7 +539,7 @@ export default function KelautanPesisir() {
 
   const columnsPotensi = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun_data' },
-    { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
+    { header: 'Luas Wilayah Laut (Km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
     {
       header: 'Total Panjang Garis Pantai (Km)',
       accessorKey: 'total_panjang_garis_pantai_km',
