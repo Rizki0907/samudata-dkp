@@ -105,7 +105,7 @@ export const GaramForm = ({
   // Dulu ini yang jadi pembeda utama dgn KelautanPesisirForm:
   // kalau caller kirim list sendiri (mis. utk data Kelautan & Pesisir), pakai itu.
   // Kalau tidak dikirim / kosong, fallback ke KAB_KOTA_JATIM (perilaku GaramForm asli).
-  kabKotaOptions,
+  kabKotaKelautanOptions,
   // Judul header form, biar bisa dipakai utk konteks lain tanpa hardcode "Data Garam"
   formTitle = 'Data Garam',
 }) => {
@@ -169,7 +169,7 @@ export const GaramForm = ({
   const produktivitas = lp > 0 ? (totalProduksi / lp) : 0;
   const triwulan = getTriwulan(formData.bulan);
 
-  const kabKotaList = (kabKotaOptions && kabKotaOptions.length > 0) ? kabKotaOptions : KAB_KOTA_JATIM;
+  const kabKotaList = (kabKotaKelautanOptions && kabKotaKelautanOptions.length > 0) ? kabKotaKelautanOptions : KAB_KOTA_KELAUTAN;
 
   const handleSubmit = (e) => {
     e.preventDefault();

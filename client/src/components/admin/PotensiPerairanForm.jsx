@@ -198,7 +198,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
               <input onWheel={(e) => e.target.blur()} type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
-              <label className={labelClass}>Total Panjang Garis Pantai (Km)</label>
+              <label className={labelClass}>Total Panjang Garis Pantai (Km²)</label>
               <input onWheel={(e) => e.target.blur()} type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div className="md:col-span-2">

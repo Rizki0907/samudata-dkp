@@ -1666,10 +1666,10 @@ export default function AdminKelautanPesisir() {
                 <Waves className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Panjang Total Garis Pantai</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Panjang Garis Pantai</p>
                 <p className="text-2xl font-bold text-foreground">
                   {numFmt(kpiPotensi.garis_pantai)}
-                  <span className="text-sm font-normal text-muted-foreground"> Km </span>
+                  <span className="text-sm font-normal text-muted-foreground"> Km² </span>
                 </p>
               </div>
             </div>
