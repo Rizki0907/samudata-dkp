@@ -752,10 +752,16 @@ export default function AdminKelautanPesisir() {
   // Dependency-nya sengaja pakai `masterDataRaw` (bukan `getOptions`, yang referensinya
   // selalu stabil dan gak pernah berubah) supaya dropdown ini otomatis kehitung ulang
   // begitu ada perubahan di Master Data (mis. nambah kab/kota baru), tanpa perlu reload halaman.
-  const kabKotaOptions = useMemo(() => getOptions('KAB_KOTA') || [], [getOptions, masterDataRaw]);
-  // Semua form wilayah administratif Kelautan & Pesisir memakai satu master
-  // Kab/Kota yang sama. Jadi penambahan Kab/Kota di Master Data otomatis
-  // muncul di dropdown tanpa perlu mengubah daftar hard-coded di form.
+  const kabKotaOptions = useMemo(
+    () => getOptions('KAB_KOTA') || [],
+    [getOptions, masterDataRaw]
+  );
+  const kabKotaKelautanOptions = useMemo(
+    () => getOptions('KAB_KOTA_KELAUTAN') || [],
+    [getOptions, masterDataRaw]
+  );
+  // KAB_KOTA dipakai untuk wilayah administratif umum:
+  // Mangrove, Lamun, Terumbu Karang, dan Potensi Perairan.
   const kabKotaOptionsUmum = kabKotaOptions;
   const isDark = theme === 'dark';
   const [mainTab, setMainTab] = useState('tabel');
@@ -2236,7 +2242,7 @@ export default function AdminKelautanPesisir() {
           isLoading={submitLoading}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => { setIsFormOpen(false); setEditingData(null); }}
-          kabKotaOptions={kabKotaOptions}
+          kabKotaKelautanOptions={kabKotaKelautanOptions}
         />
       );
     }

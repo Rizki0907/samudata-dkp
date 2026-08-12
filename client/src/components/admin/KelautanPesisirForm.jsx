@@ -86,7 +86,7 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
-export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading, kabKotaOptions = [] }) => {
+export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading, kabKotaKelautanOptions = [] }) => {
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
@@ -239,7 +239,7 @@ export const KelautanPesisirForm = ({ initialData, onSubmit, onCancel, isLoading
                   value={formData.kabupaten_kota}
                   onChange={handleChange}
                   className={inputClass}
-                  options={kabKotaOptions}
+                  options={kabKotaKelautanOptions}
                   placeholder="-- Pilih Kab/Kota --"
                 />
               </div>
