@@ -902,6 +902,10 @@ export default function AdminKelautanPesisir() {
     else if (activeTab === 'lamun') baseData = dataLamun;
     else if (activeTab === 'terumbu_karang') baseData = dataTerumbuKarang;
     const wasEditing = Boolean(editingData);
+    if (wasEditing && editingData.status === 'REJECTED') {
+      formData.status = 'APPROVED';
+      formData.alasan_penolakan = null;
+    }
     setSubmitLoading(true);
     try {
       if (activeTab === 'garam') {
@@ -1244,7 +1248,7 @@ export default function AdminKelautanPesisir() {
         const row = info.row.original;
         return <StatusBadge
           row={row}
-          onEdit={() => setEditingData(row)}
+          onEdit={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           contextFields={[
             { label: 'Kab/Kota', value: row.kabupaten_kota },
             { label: 'Periode', value: `Tahun ${row.tahun} (Triwulan ${row.triwulan}, Bulan ${row.bulan})` }
@@ -1267,7 +1271,7 @@ export default function AdminKelautanPesisir() {
         const row = info.row.original;
         return <StatusBadge
           row={row}
-          onEdit={() => setEditingData(row)}
+          onEdit={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           contextFields={[
             { label: 'Tahun', value: row.tahun_data }
           ]}
@@ -1290,6 +1294,7 @@ export default function AdminKelautanPesisir() {
         const row = info.row.original;
         return <StatusBadge
           row={row}
+          onEdit={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           contextFields={[
             { label: 'Kab/Kota', value: row.kabupaten_kota },
             { label: 'Tahun', value: row.tahun }
@@ -1312,6 +1317,7 @@ export default function AdminKelautanPesisir() {
         const row = info.row.original;
         return <StatusBadge
           row={row}
+          onEdit={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           contextFields={[
             { label: 'Kab/Kota', value: row.kabupaten_kota },
             { label: 'Tahun', value: row.tahun }
@@ -1333,6 +1339,7 @@ export default function AdminKelautanPesisir() {
         const row = info.row.original;
         return <StatusBadge
           row={row}
+          onEdit={() => { setEditingData(row); setIsFormOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           contextFields={[
             { label: 'Kab/Kota', value: row.kabupaten_kota },
             { label: 'Tahun', value: row.tahun }
