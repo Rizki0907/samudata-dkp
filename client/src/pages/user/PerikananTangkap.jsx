@@ -28,6 +28,7 @@ const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', '
 
 import { PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
+// Fungsi komponen/logika PerikananTangkap
 export default function PerikananTangkap() {
   // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan, getOptions } = useMasterDataStore();
@@ -40,21 +41,31 @@ export default function PerikananTangkap() {
 
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
+  // State untuk menyimpan list data utama yang diambil dari server
   const [data, setData] = useState([]);
+  // State untuk menyimpan data/nilai logistikData
   const [logistikData, setLogistikData] = useState({});
   
   // Super Filters State
   const [filterTahun, setFilterTahun] = useState([]);
+  // State untuk filter data berdasarkan jenis cabang perairan
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  // State untuk menyimpan data/nilai filterJenisPerairan
   const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
+  // State untuk menyimpan data/nilai filterKomoditas
   const [filterKomoditas, setFilterKomoditas] = useState([]);
+  // State untuk menyimpan data/nilai filterWilayah
   const [filterWilayah, setFilterWilayah] = useState([]);
 
   // Local Chart Filters
   const [chartGlobalTahun, setChartGlobalTahun] = useState([]);
+  // State untuk menyimpan data/nilai chartCabang
   const [chartCabang, setChartCabang] = useState([]); // Filter Cabang/Sumber untuk Chart
+  // State untuk menyimpan data/nilai chartKomoditasWilayah
   const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState([]);
+  // State untuk menyimpan data/nilai filterKabKotaChart
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
   
   // Local Filter for Harga
@@ -79,6 +90,7 @@ export default function PerikananTangkap() {
   }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
   useEffect(() => {
+    // Fungsi untuk mengambil data utama dari backend (API)
     const fetchData = async () => {
       try {
         setLoading(true);

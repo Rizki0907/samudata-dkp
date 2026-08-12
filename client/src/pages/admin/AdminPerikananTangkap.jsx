@@ -63,6 +63,7 @@ const formatLogistikText = (val) => {
 // Static imports for master data have been replaced with dynamic store.
 import { PERBEKALAN_OPTIONS as FALLBACK_PERBEKALAN } from '@/utils/constants';
 
+// Fungsi komponen/logika AdminPerikananTangkap
 export default function AdminPerikananTangkap() {
   // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan, getOptions, getItemsByCategory } = useMasterDataStore();
@@ -86,31 +87,51 @@ export default function AdminPerikananTangkap() {
   const user = useAuthStore(state => state.user);
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  // State untuk menyimpan list data utama yang diambil dari server
   const [data, setData] = useState([]);
+  // State untuk menyimpan data/nilai publikData
   const [publikData, setPublikData] = useState([]);
+  // State untuk menyimpan data/nilai tahunanData
   const [tahunanData, setTahunanData] = useState([]);
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
+  // State untuk menyimpan data/nilai isFormOpen
   const [isFormOpen, setIsFormOpen] = useState(false);
+  // State untuk menyimpan data/nilai editingData
   const [editingData, setEditingData] = useState(null);
+  // State untuk menyimpan data/nilai submitLoading
   const [submitLoading, setSubmitLoading] = useState(false);
   
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState('data'); // 'data' or 'visual'
+  // State untuk filter data berdasarkan tahun
   const [filterTahun, setFilterTahun] = useState([]);
+  // State untuk filter data berdasarkan bulan
   const [filterBulan, setFilterBulan] = useState([]);
+  // State untuk filter data berdasarkan jenis cabang perairan
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  // State untuk menyimpan data/nilai filterJenisPerairan
   const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
+  // State untuk menyimpan data/nilai filterKomoditas
   const [filterKomoditas, setFilterKomoditas] = useState([]);
+  // State untuk menyimpan data/nilai filterWilayah
   const [filterWilayah, setFilterWilayah] = useState([]);
+  // State untuk filter data berdasarkan status validasi
   const [filterStatus, setFilterStatus] = useState([]);
 
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  // State untuk menyimpan data/nilai exportModalPerairan
   const [exportModalPerairan, setExportModalPerairan] = useState('');
+  // State untuk menyimpan data/nilai exportModalJenis
   const [exportModalJenis, setExportModalJenis] = useState('');
+  // State untuk menyimpan data/nilai exportModalTahun
   const [exportModalTahun, setExportModalTahun] = useState('');
+  // State untuk menyimpan data/nilai exportModalBulan
   const [exportModalBulan, setExportModalBulan] = useState('');
+  // State untuk menyimpan data/nilai exportModalWilayah
   const [exportModalWilayah, setExportModalWilayah] = useState('');
+  // State untuk menyimpan data/nilai exportModalJenisPerairan
   const [exportModalJenisPerairan, setExportModalJenisPerairan] = useState('');
 
 
@@ -118,10 +139,12 @@ export default function AdminPerikananTangkap() {
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
   // eslint-disable-next-line no-unused-vars
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
+  // State untuk menyimpan data/nilai filterKabKotaChart
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
 
   // Action Dialog State
   const [actionDialog, setActionDialog] = useState(null);
+  // State untuk menyimpan data/nilai dialogValue
   const [dialogValue, setDialogValue] = useState('');
 
    
@@ -139,6 +162,7 @@ export default function AdminPerikananTangkap() {
     }
   }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
+  // Fungsi untuk mengambil data utama dari backend (API)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -162,6 +186,7 @@ export default function AdminPerikananTangkap() {
     fetchData();
   }, []);
 
+  // Fungsi untuk memproses handleCreateOrUpdate
   const handleCreateOrUpdate = async (formData) => {
     try {
       setSubmitLoading(true);
@@ -181,6 +206,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleCreateOrUpdateTahunan
   const handleCreateOrUpdateTahunan = async (formData) => {
     try {
       setSubmitLoading(true);
@@ -200,6 +226,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses submitActionDialog
   const submitActionDialog = async () => {
     if (!actionDialog) return;
 
@@ -292,6 +319,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memunculkan dialog konfirmasi sebelum menghapus data
   const handleDelete = (row) => {
     setActionDialog({
       open: true,
@@ -304,6 +332,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleDeleteTahunan
   const handleDeleteTahunan = (row) => {
     setActionDialog({
       open: true,
@@ -316,12 +345,14 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleEdit
   const handleEdit = (row) => {
     setEditingData(row);
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Fungsi untuk memproses handleApprove
   const handleApprove = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
       setActionDialog({
@@ -356,6 +387,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleReject
   const handleReject = (row) => {
     setActionDialog({
       open: true,
@@ -370,6 +402,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleApproveTahunan
   const handleApproveTahunan = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
       setActionDialog({
@@ -404,6 +437,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleRejectTahunan
   const handleRejectTahunan = (row) => {
     setActionDialog({
       open: true,
@@ -418,6 +452,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchApprove
   const handleBatchApprove = (ids) => {
     setActionDialog({
       open: true,
@@ -431,6 +466,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchReject
   const handleBatchReject = (ids) => {
     setActionDialog({
       open: true,
@@ -445,6 +481,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchDelete
   const handleBatchDelete = (ids) => {
     setActionDialog({
       open: true,
@@ -457,6 +494,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchApproveTahunan
   const handleBatchApproveTahunan = (ids) => {
     setActionDialog({
       open: true,
@@ -470,6 +508,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchRejectTahunan
   const handleBatchRejectTahunan = (ids) => {
     setActionDialog({
       open: true,
@@ -484,6 +523,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchDeleteTahunan
   const handleBatchDeleteTahunan = (ids) => {
     setActionDialog({
       open: true,
