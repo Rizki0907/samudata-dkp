@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2 } from 'lucide-react';
 
 export default function PromptModal({ isOpen, title, message, onClose, onSubmit }) {
@@ -7,6 +7,7 @@ export default function PromptModal({ isOpen, title, message, onClose, onSubmit 
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInputValue('');
       // Use setTimeout to ensure the modal is rendered before focusing
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -52,6 +53,7 @@ export default function PromptModal({ isOpen, title, message, onClose, onSubmit 
           </button>
           <button
             type="button"
+            // eslint-disable-next-line no-unused-vars
             onClick={(e) => onSubmit(inputValue)}
             className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors"
           >

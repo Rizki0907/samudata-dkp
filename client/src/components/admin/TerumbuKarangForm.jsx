@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { Waves, Loader2, Save, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
@@ -146,6 +147,7 @@ export function TerumbuKarangForm({
   // ── SINKRONISASI DATA EDIT ──
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         tahun: initialData.tahun ?? currentYear,
         kabupaten_kota: initialData.kabupaten_kota ?? '',

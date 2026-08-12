@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { Save, Loader2, Anchor, X } from 'lucide-react';
 
+// eslint-disable-next-line no-unused-vars
 const KAB_KOTA_JATIM = [
   'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
   'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan',

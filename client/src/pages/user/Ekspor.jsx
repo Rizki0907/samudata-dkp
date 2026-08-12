@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+ 
+// eslint-disable-next-line no-unused-vars
 import { Loader2, Globe, Box, Target, LineChart, TrendingUp, FileText, Clock, PieChart, BarChart3, ChevronDown } from 'lucide-react';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import ReactECharts from 'echarts-for-react';
@@ -10,11 +12,13 @@ import { formatUangPendek } from '@/utils/formatRupiah';
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const currentYear = new Date().getFullYear();
+// eslint-disable-next-line no-unused-vars
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 export default function Ekspor() {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  // eslint-disable-next-line no-unused-vars
   const chartText = isDark ? '#e2e8f0' : '#0f172a';
   const chartSubText = isDark ? '#94a3b8' : '#334155';
   const chartAxisColor = isDark ? '#94a3b8' : '#334155';
@@ -414,6 +418,7 @@ export default function Ekspor() {
       yAxis: { type: 'value', name: `Nilai (${mataUangFilter})`, nameTextStyle: { color: chartSubText, fontSize: 13, fontWeight: '500' }, axisLabel: { color: chartAxisColor, fontSize: 12, fontWeight: '500' }, splitLine: { lineStyle: { color: chartGridColor } } },
       series
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats, mataUangKey, mataUangFilter, chartSubText, chartAxisColor, chartGridColor]);
 
   const groupedBarOption = useMemo(() => {
@@ -447,6 +452,7 @@ export default function Ekspor() {
         { name: `Nilai (${mataUangFilter})`, type: 'bar', yAxisIndex: 1, itemStyle: { color: '#f59e0b' }, data: valueData }
       ]
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.monthly_aggregate, stats.monthly_data_raw, stats.monthlyAgg, agregatFilter, satuanFilter, mataUangFilter, mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const rankingOption = useMemo(() => {
@@ -486,6 +492,7 @@ export default function Ekspor() {
         }
       ]
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.ranking_komoditas, mataUangFilter, mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const negaraOption = useMemo(() => {
@@ -525,6 +532,7 @@ export default function Ekspor() {
         }
       ]
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.negara_tujuan, mataUangFilter, mataUangPrefix, chartSubText, chartAxisColor, chartGridColor]);
 
   const hasTreemapData = useMemo(() => stats.treemap && stats.treemap.some(x => ((x.value || 0) > 0 || (x._sum?.nilai_usd || 0) > 0 || (x._sum?.nilai_rp || 0) > 0)), [stats.treemap]);

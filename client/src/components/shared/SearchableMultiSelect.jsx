@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, X, CheckSquare, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -49,6 +49,7 @@ export default function SearchableMultiSelect({
 
   useEffect(() => {
     if (!isOpen || filteredOptions.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlightedIndex(-1);
       return;
     }

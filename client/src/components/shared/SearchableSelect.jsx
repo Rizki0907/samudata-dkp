@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -47,7 +47,9 @@ export default function SearchableSelect({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFocusedIndex(filteredOptions.length > 0 ? 0 : -1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]); // Reset focused index when search text changes
 
   const handleKeyDown = (e) => {

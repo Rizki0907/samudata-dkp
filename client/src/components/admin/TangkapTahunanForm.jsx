@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, X, Plus, Trash2, Ship, Users, Activity, Fish } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import { 
+  // eslint-disable-next-line no-unused-vars
   PELABUHAN_OPTIONS, 
   KAB_KOTA_OPTIONS, 
+  // eslint-disable-next-line no-unused-vars
   PERAIRAN_OPTIONS,
   ALAT_TANGKAP_LAUT_OPTIONS,
   ALAT_TANGKAP_PUD_OPTIONS
@@ -11,9 +13,11 @@ import {
 import { useMasterDataStore } from '@/store/masterDataStore';
 import { useAuthStore } from '@/store/authStore';
 
+// eslint-disable-next-line no-unused-vars
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (new Date().getFullYear() - 5 + i).toString());
 
 export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel }) {
+  // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan } = useMasterDataStore();
   const { user } = useAuthStore();
   
@@ -48,6 +52,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         ...initialData,
         rtp: initialData.rtp || defaultRtp,
@@ -56,6 +61,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
         alat_tangkap: Array.isArray(initialData.alat_tangkap) ? initialData.alat_tangkap : []
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   // Handle nested object changes

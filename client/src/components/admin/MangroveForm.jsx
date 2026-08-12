@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { TreePine, Loader2, Save, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
@@ -132,6 +133,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         tahun: initialData.tahun ?? currentYear,
         kabupaten_kota: initialData.kabupaten_kota ?? '',

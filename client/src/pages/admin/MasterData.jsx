@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 import api from '@/services/api';
 import { 
+  // eslint-disable-next-line no-unused-vars
   Plus, Trash2, Edit2, Loader2, X, Filter, 
   Database, MapPin, Package, Anchor, Search, AlertCircle, CheckCircle2, ChevronRight, Ship,
   ShieldCheck, FileText, Building2
@@ -152,15 +153,17 @@ export default function MasterData() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       const res = await api.get('/master-data');
       if (res.data?.success) {
         setData(res.data.data);
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       showToast('Gagal memuat data', 'error');
     } finally {

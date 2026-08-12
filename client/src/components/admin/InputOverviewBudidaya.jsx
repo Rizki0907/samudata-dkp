@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
-import { Plus, Trash2, Edit2, Loader2, Save, X, AlertCircle, CheckCircle2, Database, Fish } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, X, Database, Fish } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 export default function InputOverviewBudidaya({ showToast, onDataChange }) {
   const [items, setItems] = useState([]);
@@ -21,11 +20,7 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchOverviewBudidaya();
-  }, []);
-
-  const fetchOverviewBudidaya = async () => {
+  const fetchOverviewBudidaya = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/master-data/OVERVIEW_BUDIDAYA');
@@ -39,7 +34,12 @@ export default function InputOverviewBudidaya({ showToast, onDataChange }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOverviewBudidaya();
+  }, [fetchOverviewBudidaya]);
 
   const handleOpenAdd = () => {
     setIsEditing(false);

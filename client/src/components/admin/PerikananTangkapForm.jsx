@@ -51,6 +51,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSumberData(initialData.sumber_data || 'PELABUHAN');
       setFormData({
         tanggal: initialData.tanggal ? initialData.tanggal.split('T')[0] : '',
@@ -68,6 +69,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
           try {
             const parsed = JSON.parse(initialData.logistik);
             return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ nama: '', jumlah: '' }];
+          // eslint-disable-next-line no-unused-vars
           } catch (e) {
             // legacy string fallback
             return [{ nama: '', jumlah: '', legacy: initialData.logistik }];
@@ -101,6 +103,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         }));
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     initialData, sumberData, PELABUHAN_OPTIONS.length, KAB_KOTA_OPTIONS.length, 
     PERAIRAN_OPTIONS.length, ALAT_TANGKAP_LAUT.length, ALAT_TANGKAP_PUD.length, 

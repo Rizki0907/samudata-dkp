@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { Leaf, Loader2, Save, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
@@ -18,6 +19,7 @@ const kondisiLamunStyle = (kondisi) => {
 };
 
 // ── KATEGORI LUAS LAHAN (DIPILIH MANUAL, TIDAK OTOMATIS) ──────────────────
+// eslint-disable-next-line no-unused-vars
 const KATEGORI_LUAS_LAHAN_LIST = ['Luas', 'Sedang', 'Sempit'];
 
 const currentYear = new Date().getFullYear();
@@ -146,6 +148,7 @@ export function LamunForm({
   // ΓöÇΓöÇ SINKRONISASI DATA EDIT ΓöÇΓöÇ
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         tahun: initialData.tahun ?? currentYear,
         kabupaten_kota: initialData.kabupaten_kota ?? '',

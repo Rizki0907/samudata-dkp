@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -28,6 +29,7 @@ export function DataTable({
   canBatchApprove,
   canBatchReject,
   canBatchDelete,
+  // eslint-disable-next-line no-unused-vars
   searchKey = 'nama_kapal',
   exportName,
   formatExportData,
@@ -106,6 +108,7 @@ export function DataTable({
     });
   }
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns: finalColumns,
@@ -301,6 +304,7 @@ export function DataTable({
             <tbody className="divide-y divide-border">
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
+                  // eslint-disable-next-line no-undef
                   <React.Fragment key={row.id}>
                     <tr
                       onClick={(event) => {

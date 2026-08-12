@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx-js-style';
-import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -47,6 +46,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   useEffect(() => {
     if (isPublic) {
       if (publicData) {
+        // eslint-disable-next-line
         setData(publicData);
       }
       if (publicLogistik) {
@@ -666,6 +666,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     });
   }, [data, filterTahun, filterCabang, filterWilayah, filterKomoditas]);
 
+  // eslint-disable-next-line
   const aggregatedData = useMemo(() => {
     const map = {};
     filteredData.forEach(row => {
@@ -774,6 +775,18 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
           </div>
         }
       />
+      
+      {actionDialog && (
+        <ActionDialog
+          {...actionDialog}
+          onClose={closeActionDialog}
+          onConfirm={() => {
+            if (actionDialog.kind === 'reset-validasi') {
+              executeReset(actionDialog.targetId);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

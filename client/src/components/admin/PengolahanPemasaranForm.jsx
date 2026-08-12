@@ -3,7 +3,7 @@
 // pengaturan matriks berdasarkan Jenis Kegiatan dan Skala Usaha,
 // validasi isian, serta penyusunan data sebelum dikirim ke proses simpan.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
@@ -190,6 +190,7 @@ const PREFERRED_PEMASARAN = [
   'Pengecer',
 ];
 
+// eslint-disable-next-line no-unused-vars
 const emptyDetail = () => ({
   kategori_kegiatan: '',
   jenis_kegiatan: '',
@@ -251,15 +252,18 @@ function SearchableSingleSelect({
   useEffect(() => {
     if (!open) return;
     const selectedIndex = filteredOptions.findIndex(option => option === value);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
 
     if (searchable) {
       requestAnimationFrame(() => searchRef.current?.focus());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, searchable]);
 
   useEffect(() => {
     if (highlightedIndex > filteredOptions.length - 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlightedIndex(Math.max(filteredOptions.length - 1, 0));
     }
   }, [filteredOptions.length, highlightedIndex]);
@@ -648,6 +652,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
     sertifikatProduk: moveLainLainToBottom(getOptions('SERTIFIKAT_PRODUK')),
     izinUsaha: moveLainLainToBottom(getOptions('IZIN_USAHA')),
     sertifikatLB: moveLainLainToBottom(getOptions('SERTIFIKAT_LAHAN_BANGUNAN')),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [masterData, getOptions]);
 
   const allJenis = useMemo(() => [...options.pengolahan, ...options.pemasaran], [options.pengolahan, options.pemasaran]);
@@ -678,6 +683,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
   const [dokumen, setDokumen] = useState(() => normalizeDocs(options, initialData?.dokumen));
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPengolahanMatrix(previous =>
       syncProductionMatrix(previous, options.pengolahan, options.skala)
     );

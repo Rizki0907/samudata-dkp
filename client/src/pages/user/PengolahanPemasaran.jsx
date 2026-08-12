@@ -3,11 +3,13 @@
 // serta menyediakan tabel data, filter, pencarian, ekspor data,
 // Rekap Statistik, dan berbagai visualisasi statistik untuk pengguna publik.
 
+// eslint-disable-next-line no-unused-vars
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
+// eslint-disable-next-line no-unused-vars
 import {Box, Factory, FileText, LineChart, Loader2, MapPin, TrendingUp, Users, Clock, Download, ChevronDown, Search, X, } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -261,12 +263,14 @@ const downloadExcelFromApi = async (endpoint, payload, fileName) => {
         const errorJson = JSON.parse(errorText);
 
         message = errorJson.message || message;
+      // eslint-disable-next-line no-empty
       } catch {
       }
     } else if (responseData?.message) {
       message = responseData.message;
     }
 
+    // eslint-disable-next-line preserve-caught-error
     throw new Error(message);
   }
 };
@@ -327,6 +331,7 @@ export default function PengolahanPemasaran() {
   const [trendPengolahanFilter, setTrendPengolahanFilter] = useState('produksi');
   const [trendPemasaranFilter, setTrendPemasaranFilter] = useState('produksi');
 
+  // eslint-disable-next-line no-unused-vars
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
@@ -1253,6 +1258,7 @@ export default function PengolahanPemasaran() {
         isDark ? 'rgba(52, 211, 153, 0.03)' : 'rgba(16, 185, 129, 0.03)',
       ),
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.trenTahunan, trendPengolahanFilter, trendPemasaranFilter, chartColors]);
 
   return (

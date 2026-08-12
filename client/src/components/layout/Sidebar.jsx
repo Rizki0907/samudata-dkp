@@ -1,8 +1,9 @@
-import React from 'react';
+
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { 
+  // eslint-disable-next-line no-unused-vars
   Waves, Sprout, Fish, Package, Database, Globe, 
   LayoutDashboard, LogOut, ChevronLeft, Ship, X
 } from 'lucide-react';

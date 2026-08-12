@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Trash2, Info, X } from 'lucide-react';
 
