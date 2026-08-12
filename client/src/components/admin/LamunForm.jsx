@@ -2,17 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Leaf, Loader2, Save, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 
-// ΓöÇΓöÇ DAFTAR KAB/KOTA JAWA TIMUR ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-const KABUPATEN_KOTA_LIST = [
-  'Bangkalan', 'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik',
-  'Jember', 'Jombang', 'Kediri', 'Lamongan', 'Lumajang', 'Madiun', 'Magetan',
-  'Malang', 'Mojokerto', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan',
-  'Ponorogo', 'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep',
-  'Trenggalek', 'Tuban', 'Tulungagung',
-  'Kota Batu', 'Kota Blitar', 'Kota Kediri', 'Kota Madiun', 'Kota Malang',
-  'Kota Mojokerto', 'Kota Pasuruan', 'Kota Probolinggo', 'Kota Surabaya'
-];
-
 // ΓöÇΓöÇ HELPER KATEGORI KONDISI LAMUN (0-100%) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const getKondisiLamun = (persentase) => {
   const p = Number(persentase) || 0;
@@ -106,7 +95,13 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
-export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
+export function LamunForm({
+  initialData,
+  isLoading,
+  onSubmit,
+  onCancel,
+  kabKotaOptions,
+}) {
   const formRef = useRef(null);
 
   const handleArrowNavigation = (event) => {
@@ -282,7 +277,7 @@ export function LamunForm({ initialData, isLoading, onSubmit, onCancel }) {
                 value={form.kabupaten_kota}
                 onChange={(e) => handleChange('kabupaten_kota', e.target.value)}
                 className={inputCls('kabupaten_kota')}
-                options={KABUPATEN_KOTA_LIST}
+                options={kabKotaOptions || []}
                 placeholder="-- Pilih Kab/Kota --"
               />
             </div>
