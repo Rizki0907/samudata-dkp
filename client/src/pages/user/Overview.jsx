@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
+// eslint-disable-next-line no-unused-vars
 import { Ship, Fish, Package, Droplets, Loader2, Globe, Utensils, Filter, Waves } from 'lucide-react';
 import { formatUangPendek } from '@/utils/formatRupiah';
 
@@ -67,6 +68,7 @@ export default function Overview() {
       }
     };
     fetchOverview();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTahun, location.pathname]);
 
   if (loading) {

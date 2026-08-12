@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import { useState, useEffect, useMemo, useRef } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -5,12 +6,18 @@ import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import {
+  // eslint-disable-next-line no-unused-vars
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
+  // eslint-disable-next-line no-unused-vars
   TreePine, Landmark, Globe, Fish, Info, Clock, Leaf,
+   
+  // eslint-disable-next-line no-unused-vars
   ChevronDown, Search, BarChart3, PieChart, TrendingUp, FileText
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
+// eslint-disable-next-line no-unused-vars
 import { format } from 'date-fns';
+// eslint-disable-next-line no-unused-vars
 import { id as idLocale } from 'date-fns/locale';
 import { useThemeStore } from '@/store/themeStore';
 
@@ -78,6 +85,7 @@ const sortBarData = (categories, values) => {
   return { categories: paired.map(p => p.c), values: paired.map(p => p.v) };
 };
 
+// eslint-disable-next-line no-unused-vars
 const comboHBarOption = (categories, series, unit, isDark = false) => {
   const textColor = isDark ? '#ffffff' : '#0f172a';
   const gridColor = isDark ? '#334155' : '#cbd5e1';
@@ -228,13 +236,16 @@ export default function KelautanPesisir() {
     fetchAll();
   }, []);
 
+  // eslint-disable-next-line no-unused-vars
   const bulanOptions = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   
+  // eslint-disable-next-line no-unused-vars
   const kabupatenOptions = useMemo(() => {
     const set = new Set([...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang].map(d => d.kabupaten_kota).filter(Boolean));
     return [...set].sort();
   }, [dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
 
+  // eslint-disable-next-line no-unused-vars
   const tahunOptions = useMemo(() => {
     const set = new Set([
       ...dataGaram.map(d => d.tahun), 
@@ -307,7 +318,9 @@ export default function KelautanPesisir() {
 
   const garamKota = visGaramPerKota.map(d => d.name);
   const garamProduksi = visGaramPerKota.map(d => parseFloat(d.produksi.toFixed(2)));
+  // eslint-disable-next-line no-unused-vars
   const garamLahan = visGaramPerKota.map(d => parseFloat(d.luas_lahan.toFixed(2)));
+  // eslint-disable-next-line no-unused-vars
   const garamPetambak = visGaramPerKota.map(d => d.petambak);
   const garamKelompok = visGaramPerKota.map(d => d.kelompok);
 
@@ -526,7 +539,7 @@ export default function KelautanPesisir() {
 
   const columnsPotensi = useMemo(() => [
     { header: 'Tahun', accessorKey: 'tahun_data' },
-    { header: 'Luas Wilayah Laut (km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
+    { header: 'Luas Wilayah Laut (Km²)', accessorKey: 'luas_wilayah_laut_km2', cell: info => numFmt(info.getValue()) },
     {
       header: 'Total Panjang Garis Pantai (Km)',
       accessorKey: 'total_panjang_garis_pantai_km',

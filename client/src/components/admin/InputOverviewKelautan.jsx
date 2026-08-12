@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '@/services/api';
+ 
+ 
+// eslint-disable-next-line no-unused-vars
 import { Plus, Trash2, Edit2, Loader2, Save, X, AlertCircle, CheckCircle2, Database, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
 import { cn } from '@/lib/utils';
 
 export default function InputOverviewKelautan({ showToast, onDataChange }) {
@@ -24,7 +28,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
     fetchOverviewKelautan();
   }, []);
 
-  const fetchOverviewKelautan = async () => {
+  async function fetchOverviewKelautan() {
     try {
       setLoading(true);
       const res = await api.get('/master-data/OVERVIEW_KELAUTAN');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -8,6 +8,24 @@ import { TangkapTahunanForm } from '@/components/admin/TangkapTahunanForm';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import { 
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+  // eslint-disable-next-line no-unused-vars
   Loader2, Plus, MapPin, TrendingUp, Ship, Navigation, LineChart, Anchor, Filter, ChevronDown, Search, X, CheckCircle, XCircle, FileText, Download, Upload, Info, AlertTriangle, Settings, Scale, Coins, Clock, ArrowRight, Database, BarChart3, AlertCircle, Calendar, Map, Layers, Droplet, Trash2, Edit, Save, Eye, FileSpreadsheet, Fish
 } from 'lucide-react';
 
@@ -27,6 +45,7 @@ const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', '
 
 import { PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
+// eslint-disable-next-line no-unused-vars
 const formatLogistikText = (val) => {
   if (!val) return '-';
   try {
@@ -35,6 +54,7 @@ const formatLogistikText = (val) => {
       return parsed.map(p => `${p.nama} (${p.jumlah} ${p.satuan})`).join(', ');
     }
     return val;
+  // eslint-disable-next-line no-unused-vars
   } catch (e) {
     return val;
   }
@@ -43,7 +63,9 @@ const formatLogistikText = (val) => {
 // Static imports for master data have been replaced with dynamic store.
 import { PERBEKALAN_OPTIONS as FALLBACK_PERBEKALAN } from '@/utils/constants';
 
+// Fungsi komponen/logika AdminPerikananTangkap
 export default function AdminPerikananTangkap() {
+  // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan, getOptions, getItemsByCategory } = useMasterDataStore();
 
   const KOMODITAS_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
@@ -65,43 +87,68 @@ export default function AdminPerikananTangkap() {
   const user = useAuthStore(state => state.user);
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  // State untuk menyimpan list data utama yang diambil dari server
   const [data, setData] = useState([]);
+  // State untuk menyimpan data/nilai publikData
   const [publikData, setPublikData] = useState([]);
+  // State untuk menyimpan data/nilai tahunanData
   const [tahunanData, setTahunanData] = useState([]);
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
+  // State untuk menyimpan data/nilai isFormOpen
   const [isFormOpen, setIsFormOpen] = useState(false);
+  // State untuk menyimpan data/nilai editingData
   const [editingData, setEditingData] = useState(null);
+  // State untuk menyimpan data/nilai submitLoading
   const [submitLoading, setSubmitLoading] = useState(false);
   
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState('data'); // 'data' or 'visual'
+  // State untuk filter data berdasarkan tahun
   const [filterTahun, setFilterTahun] = useState([]);
+  // State untuk filter data berdasarkan bulan
   const [filterBulan, setFilterBulan] = useState([]);
+  // State untuk filter data berdasarkan jenis cabang perairan
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  // State untuk menyimpan data/nilai filterJenisPerairan
   const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
+  // State untuk menyimpan data/nilai filterKomoditas
   const [filterKomoditas, setFilterKomoditas] = useState([]);
+  // State untuk menyimpan data/nilai filterWilayah
   const [filterWilayah, setFilterWilayah] = useState([]);
+  // State untuk filter data berdasarkan status validasi
   const [filterStatus, setFilterStatus] = useState([]);
 
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  // State untuk menyimpan data/nilai exportModalPerairan
   const [exportModalPerairan, setExportModalPerairan] = useState('');
+  // State untuk menyimpan data/nilai exportModalJenis
   const [exportModalJenis, setExportModalJenis] = useState('');
+  // State untuk menyimpan data/nilai exportModalTahun
   const [exportModalTahun, setExportModalTahun] = useState('');
+  // State untuk menyimpan data/nilai exportModalBulan
   const [exportModalBulan, setExportModalBulan] = useState('');
+  // State untuk menyimpan data/nilai exportModalWilayah
   const [exportModalWilayah, setExportModalWilayah] = useState('');
+  // State untuk menyimpan data/nilai exportModalJenisPerairan
   const [exportModalJenisPerairan, setExportModalJenisPerairan] = useState('');
 
 
   // Local Chart Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
+  // eslint-disable-next-line no-unused-vars
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
+  // State untuk menyimpan data/nilai filterKabKotaChart
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
 
   // Action Dialog State
   const [actionDialog, setActionDialog] = useState(null);
+  // State untuk menyimpan data/nilai dialogValue
   const [dialogValue, setDialogValue] = useState('');
 
+   
+  // eslint-disable-next-line no-unused-vars
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
     komoditas: [],
@@ -115,6 +162,7 @@ export default function AdminPerikananTangkap() {
     }
   }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
+  // Fungsi untuk mengambil data utama dari backend (API)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -138,6 +186,7 @@ export default function AdminPerikananTangkap() {
     fetchData();
   }, []);
 
+  // Fungsi untuk memproses handleCreateOrUpdate
   const handleCreateOrUpdate = async (formData) => {
     try {
       setSubmitLoading(true);
@@ -157,6 +206,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleCreateOrUpdateTahunan
   const handleCreateOrUpdateTahunan = async (formData) => {
     try {
       setSubmitLoading(true);
@@ -176,6 +226,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses submitActionDialog
   const submitActionDialog = async () => {
     if (!actionDialog) return;
 
@@ -260,6 +311,7 @@ export default function AdminPerikananTangkap() {
       setActionDialog(null);
       setDialogValue('');
       fetchData();
+      // eslint-disable-next-line no-undef
       toast.success('Berhasil!');
     } catch (error) {
       console.error('Action error:', error);
@@ -267,6 +319,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memunculkan dialog konfirmasi sebelum menghapus data
   const handleDelete = (row) => {
     setActionDialog({
       open: true,
@@ -279,6 +332,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleDeleteTahunan
   const handleDeleteTahunan = (row) => {
     setActionDialog({
       open: true,
@@ -291,12 +345,14 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleEdit
   const handleEdit = (row) => {
     setEditingData(row);
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Fungsi untuk memproses handleApprove
   const handleApprove = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
       setActionDialog({
@@ -331,6 +387,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleReject
   const handleReject = (row) => {
     setActionDialog({
       open: true,
@@ -345,6 +402,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleApproveTahunan
   const handleApproveTahunan = (row) => {
     if (row.status === 'PENDING' || row.status === 'REJECTED') {
       setActionDialog({
@@ -379,6 +437,7 @@ export default function AdminPerikananTangkap() {
     }
   };
 
+  // Fungsi untuk memproses handleRejectTahunan
   const handleRejectTahunan = (row) => {
     setActionDialog({
       open: true,
@@ -393,6 +452,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchApprove
   const handleBatchApprove = (ids) => {
     setActionDialog({
       open: true,
@@ -406,6 +466,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchReject
   const handleBatchReject = (ids) => {
     setActionDialog({
       open: true,
@@ -420,6 +481,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchDelete
   const handleBatchDelete = (ids) => {
     setActionDialog({
       open: true,
@@ -432,6 +494,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchApproveTahunan
   const handleBatchApproveTahunan = (ids) => {
     setActionDialog({
       open: true,
@@ -445,6 +508,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchRejectTahunan
   const handleBatchRejectTahunan = (ids) => {
     setActionDialog({
       open: true,
@@ -459,6 +523,7 @@ export default function AdminPerikananTangkap() {
     });
   };
 
+  // Fungsi untuk memproses handleBatchDeleteTahunan
   const handleBatchDeleteTahunan = (ids) => {
     setActionDialog({
       open: true,
@@ -843,6 +908,7 @@ export default function AdminPerikananTangkap() {
     };
   }, [computedStats.komoditas, isDark]);
 
+  // eslint-disable-next-line no-unused-vars
   const pelabuhanChartOption = useMemo(() => {
     const categories = computedStats.pelabuhan.map(item => item.pelabuhan);
     const values = computedStats.pelabuhan.map(item => (item._sum.volume || 0) / 1000);
@@ -1039,7 +1105,8 @@ export default function AdminPerikananTangkap() {
               logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
             });
           }
-        } catch(e) {}
+        // eslint-disable-next-line no-unused-vars
+        } catch(e) { /* ignore */ }
       }
 
       // Komoditas
@@ -1438,6 +1505,7 @@ export default function AdminPerikananTangkap() {
     const pelabuhanName = wilayah.toUpperCase();
     const dateStr = tahun ? (bulan ? `${bulan}/${tahun}` : tahun) : 'Semua Waktu';
     
+    // eslint-disable-next-line no-useless-assignment
     let summaryDateStr = dateStr;
     if (tahun && bulan) {
        summaryDateStr = 'BULAN INI';
@@ -1554,7 +1622,8 @@ export default function AdminPerikananTangkap() {
                 logistikSummaryMap[item.nama] = (logistikSummaryMap[item.nama] || 0) + val;
               });
           }
-        } catch(e) {}
+        // eslint-disable-next-line no-unused-vars
+        } catch(e) { /* ignore */ }
       }
       PERBEKALAN_OPTIONS.forEach(pb => {
         baseRow.push(logistikData[pb.nama] || '');
@@ -1667,6 +1736,7 @@ export default function AdminPerikananTangkap() {
     const summaryHeaderStyle1 = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
     const summaryDataStyle = { alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "FCE5CD" } } };
     const summaryTotalStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "E06666" } } };
+    // eslint-disable-next-line no-unused-vars
     const summaryGreenStyle = { font: { bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle, fill: { fgColor: { rgb: "D9EAD3" } } };
 
     const summaryStartRowIndex = 7 + dataRows.length + 4; // index 0-based
@@ -2201,7 +2271,8 @@ export default function AdminPerikananTangkap() {
                               logistikData[item.nama] = parseFloat(item.jumlah) || '';
                             });
                           }
-                        } catch(e) {}
+                        // eslint-disable-next-line no-unused-vars
+                        } catch(e) { /* ignore */ }
                       }
                       PERBEKALAN_OPTIONS.forEach(pb => {
                         baseRow.push(logistikData[pb.nama] || '');

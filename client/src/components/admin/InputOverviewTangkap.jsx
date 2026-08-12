@@ -1,18 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '@/services/api';
+ 
+ 
+// eslint-disable-next-line no-unused-vars
 import { Plus, Trash2, Edit2, Loader2, Save, X, AlertCircle, CheckCircle2, Database, Fish } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
 import { cn } from '@/lib/utils';
 import ActionDialog from '@/components/shared/ActionDialog';
 
+// Fungsi komponen/logika InputOverviewTangkap
 export default function InputOverviewTangkap({ showToast, onDataChange }) {
+  // State untuk menyimpan daftar item/data
   const [items, setItems] = useState([]);
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // State penanda apakah form dalam mode edit atau tambah baru
   const [isEditing, setIsEditing] = useState(false);
+  // State untuk menyimpan ID dari data yang sedang diedit
   const [editId, setEditId] = useState(null);
+  // State untuk menyimpan seluruh nilai input dari form
   const [formData, setFormData] = useState({
     tahun: new Date().getFullYear(),
     produksi_tangkap: '',
@@ -20,14 +30,18 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     pelabuhan: '',
     nelayan: ''
   });
+  // State untuk menyimpan data/nilai isSubmitting
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // State untuk menampilkan dialog konfirmasi aksi (hapus/setuju)
   const [actionDialog, setActionDialog] = useState(null);
+  // Fungsi untuk memproses closeActionDialog
   const closeActionDialog = () => setActionDialog(null);
 
   useEffect(() => {
     fetchOverviewTangkap();
   }, []);
 
+  // Fungsi untuk mengambil data rekap overview dari backend
   const fetchOverviewTangkap = async () => {
     try {
       setLoading(true);
@@ -44,6 +58,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     }
   };
 
+  // Fungsi untuk membuka modal form dalam mode Tambah Data Baru
   const handleOpenAdd = () => {
     setIsEditing(false);
     setEditId(null);
@@ -57,6 +72,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     setIsModalOpen(true);
   };
 
+  // Fungsi untuk membuka modal form dalam mode Edit Data, beserta pengisian nilai awal form
   const handleOpenEdit = (item) => {
     setIsEditing(true);
     setEditId(item.id);
@@ -70,6 +86,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     setIsModalOpen(true);
   };
 
+  // Fungsi untuk memunculkan dialog konfirmasi sebelum menghapus data
   const handleDelete = (id) => {
     setActionDialog({
       open: true,
@@ -81,6 +98,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     });
   };
 
+  // Fungsi untuk mengeksekusi penghapusan data ke backend API
   const executeDelete = async (id) => {
     try {
       setActionDialog(prev => ({ ...prev, loading: true }));
@@ -97,6 +115,7 @@ export default function InputOverviewTangkap({ showToast, onDataChange }) {
     }
   };
 
+  // Fungsi utama untuk menyimpan data form (membedakan mode Edit atau Create)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.tahun) {

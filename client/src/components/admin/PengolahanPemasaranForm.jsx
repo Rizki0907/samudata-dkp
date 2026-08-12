@@ -3,7 +3,7 @@
 // pengaturan matriks berdasarkan Jenis Kegiatan dan Skala Usaha,
 // validasi isian, serta penyusunan data sebelum dikirim ke proses simpan.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
@@ -190,6 +190,7 @@ const PREFERRED_PEMASARAN = [
   'Pengecer',
 ];
 
+ 
 const emptyDetail = () => ({
   kategori_kegiatan: '',
   jenis_kegiatan: '',
@@ -251,6 +252,7 @@ function SearchableSingleSelect({
   useEffect(() => {
     if (!open) return;
     const selectedIndex = filteredOptions.findIndex(option => option === value);
+     
     setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
 
     if (searchable) {
@@ -260,6 +262,7 @@ function SearchableSingleSelect({
 
   useEffect(() => {
     if (highlightedIndex > filteredOptions.length - 1) {
+       
       setHighlightedIndex(Math.max(filteredOptions.length - 1, 0));
     }
   }, [filteredOptions.length, highlightedIndex]);
@@ -678,6 +681,7 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
   const [dokumen, setDokumen] = useState(() => normalizeDocs(options, initialData?.dokumen));
 
   useEffect(() => {
+     
     setPengolahanMatrix(previous =>
       syncProductionMatrix(previous, options.pengolahan, options.skala)
     );

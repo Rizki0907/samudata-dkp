@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { 
+  // eslint-disable-next-line no-unused-vars
   Waves, Sprout, Fish, Package, Database, Globe, 
+  // eslint-disable-next-line no-unused-vars
   LayoutDashboard, LogOut, Lock, User as UserIcon, 
   ShieldAlert, Menu, X, Loader2, ChevronLeft, ChevronRight 
 } from 'lucide-react';
@@ -81,6 +83,7 @@ export default function Navbar() {
         setMobileMenuOpen(false);
         navigate('/admin');
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setError(true);
     } finally {

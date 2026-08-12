@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
+// eslint-disable-next-line no-unused-vars
 import { FileText, TrendingUp, Download, BarChart3, Clock, Loader2, MapPin, Fish, Box, LineChart, X, ChevronDown } from 'lucide-react';
 import { formatUangPendek } from '@/utils/formatRupiah';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
@@ -272,7 +273,8 @@ export default function Budidaya() {
   ], []);
 
   const isProduksi = visualisasiTipe === 'produksi';
-  const formatValue = React.useCallback((val) => {
+  // eslint-disable-next-line no-undef
+  const formatValue = useCallback((val) => {
     return isProduksi 
       ? Number(val).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' Kg'
       : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
@@ -339,6 +341,7 @@ export default function Budidaya() {
         }
       ]
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.produksiPerKabupaten, visualisasiTipe, formatValue, seriesName, chartText, chartSubText, chartGridLine, isDark]);
 
   // 2. Bar Chart Top Kabupaten

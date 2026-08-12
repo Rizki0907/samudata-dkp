@@ -3,11 +3,13 @@
 // serta menyediakan tabel data, filter, pencarian, ekspor data,
 // Rekap Statistik, dan berbagai visualisasi statistik untuk pengguna publik.
 
+ 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
+ 
 import {Box, Factory, FileText, LineChart, Loader2, MapPin, TrendingUp, Users, Clock, Download, ChevronDown, Search, X, } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
@@ -327,6 +329,7 @@ export default function PengolahanPemasaran() {
   const [trendPengolahanFilter, setTrendPengolahanFilter] = useState('produksi');
   const [trendPemasaranFilter, setTrendPemasaranFilter] = useState('produksi');
 
+   
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);

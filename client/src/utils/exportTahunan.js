@@ -43,7 +43,9 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   rtpData.push([`TAHUN: ${filterTahun || 'Semua'}`, null, 'Satuan : Unit/Orang']);
   rtpData.push([]);
   
+  // eslint-disable-next-line no-useless-assignment
   let rtpMerges = [];
+  // eslint-disable-next-line no-useless-assignment
   let rtpCols = [];
   
   if (isPUD) {
@@ -79,7 +81,9 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   nelayanData.push([`TAHUN: ${filterTahun || 'Semua'}`, null, 'Satuan : Orang']);
   nelayanData.push([]);
   
+  // eslint-disable-next-line no-useless-assignment
   let nelayanMerges = [];
+  // eslint-disable-next-line no-useless-assignment
   let nelayanCols = [];
   
   if (isPUD) {
@@ -111,7 +115,9 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   kapalData.push([`TAHUN: ${filterTahun || 'Semua'}`, null, 'Satuan : Unit']);
   kapalData.push([]);
   
+  // eslint-disable-next-line no-useless-assignment
   let kapalMerges = [];
+  // eslint-disable-next-line no-useless-assignment
   let kapalCols = [];
 
   if (isPUD) {
@@ -142,6 +148,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   }
 
   // --- 4. A.P.I SHEET ---
+  // eslint-disable-next-line no-unused-vars
   const alatTangkapList = isPUD ? ALAT_TANGKAP_PUD_OPTIONS : ALAT_TANGKAP_LAUT_OPTIONS;
 
   // Group alat tangkap statically to match template exactly
@@ -370,6 +377,7 @@ export const exportTahunan = (data, filterTahun, filterPerairan) => {
   XLSX.utils.book_append_sheet(wb, wsKapal, 'KAPAL');
   XLSX.utils.book_append_sheet(wb, wsApi, 'A.P.I');
 
+  // eslint-disable-next-line no-useless-assignment
   let perairanLabel = '';
   if (filterPerairan === 'PUD') perairanLabel = 'PUD';
   else if (filterPerairan === 'PELABUHAN') perairanLabel = 'PELABUHAN';

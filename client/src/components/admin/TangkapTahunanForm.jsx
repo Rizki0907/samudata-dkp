@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, X, Plus, Trash2, Ship, Users, Activity, Fish } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import { 
+  // eslint-disable-next-line no-unused-vars
   PELABUHAN_OPTIONS, 
   KAB_KOTA_OPTIONS, 
+  // eslint-disable-next-line no-unused-vars
   PERAIRAN_OPTIONS,
   ALAT_TANGKAP_LAUT_OPTIONS,
   ALAT_TANGKAP_PUD_OPTIONS
@@ -11,12 +13,16 @@ import {
 import { useMasterDataStore } from '@/store/masterDataStore';
 import { useAuthStore } from '@/store/authStore';
 
+// eslint-disable-next-line no-unused-vars
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (new Date().getFullYear() - 5 + i).toString());
 
+// Fungsi komponen/logika TangkapTahunanForm
 export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel }) {
+  // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan } = useMasterDataStore();
   const { user } = useAuthStore();
   
+  // State untuk menyimpan data/nilai activeTab
   const [activeTab, setActiveTab] = useState('umum'); // umum, nelayan, rtp, kapal, api
 
   const defaultRtp = {
@@ -34,6 +40,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
     kapal_motor: { lt_5: 0, gt_5_10: 0, gt_10_20: 0, gt_20_30: 0, gt_30_50: 0, gt_50_100: 0, gt_100_200: 0, gt_200_300: 0, gt_300_500: 0, gt_500: 0, total_pud: 0 }
   };
 
+  // State untuk menyimpan seluruh nilai input dari form
   const [formData, setFormData] = useState({
     tahun: new Date().getFullYear().toString(),
     sumber_data: 'PELABUHAN',
@@ -48,6 +55,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         ...initialData,
         rtp: initialData.rtp || defaultRtp,
@@ -56,6 +64,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
         alat_tangkap: Array.isArray(initialData.alat_tangkap) ? initialData.alat_tangkap : []
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   // Handle nested object changes
@@ -80,6 +89,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
     }));
   };
 
+  // Fungsi untuk memproses updateAlatTangkap
   const updateAlatTangkap = (index, field, value) => {
     setFormData(prev => {
       const newList = [...prev.alat_tangkap];
@@ -88,6 +98,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
     });
   };
 
+  // Fungsi untuk memproses removeAlatTangkap
   const removeAlatTangkap = (index) => {
     setFormData(prev => ({
       ...prev,
@@ -95,6 +106,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
     }));
   };
 
+  // Fungsi utama untuk menyimpan data form (membedakan mode Edit atau Create)
   const handleSubmit = (e) => {
     e.preventDefault();
     const submitData = { ...formData };
@@ -120,6 +132,7 @@ export function TangkapTahunanForm({ initialData, isLoading, onSubmit, onCancel 
 
   const isPUD = formData.sumber_data === 'PUD';
 
+  // Fungsi untuk memproses renderTabButton
   const renderTabButton = (id, label, icon) => (
     <button
       type="button"

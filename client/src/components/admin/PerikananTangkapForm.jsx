@@ -4,9 +4,11 @@ import { cn } from '@/lib/utils';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
+// Fungsi komponen/logika PerikananTangkapForm
 export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, isLoading }) {
   const getOptions = useMasterDataStore((state) => state.getOptions);
   
+  // State untuk menyimpan jenis sumber perairan (Pelabuhan/PUD/Non Pelabuhan)
   const [sumberData, setSumberData] = useState(null); // null, 'PELABUHAN', 'PUD', 'KAB_KOTA'
   
   const isPelabuhan = sumberData === 'PELABUHAN';
@@ -27,6 +29,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
   const ALAT_TANGKAP_PUD = getOptions('ALAT_TANGKAP_PUD');
   const JENIS_PERAHU_PUD = getOptions('JENIS_PERAHU_PUD');
   
+  // State untuk menyimpan seluruh nilai input dari form
   const [formData, setFormData] = useState({
     tanggal: '',
     jam_labuh: '',
@@ -47,10 +50,12 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     ]
   });
 
+  // State untuk menyimpan data/nilai errors
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSumberData(initialData.sumber_data || 'PELABUHAN');
       setFormData({
         tanggal: initialData.tanggal ? initialData.tanggal.split('T')[0] : '',
@@ -68,6 +73,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
           try {
             const parsed = JSON.parse(initialData.logistik);
             return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ nama: '', jumlah: '' }];
+          // eslint-disable-next-line no-unused-vars
           } catch (e) {
             // legacy string fallback
             return [{ nama: '', jumlah: '', legacy: initialData.logistik }];
@@ -101,6 +107,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
         }));
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     initialData, sumberData, PELABUHAN_OPTIONS.length, KAB_KOTA_OPTIONS.length, 
     PERAIRAN_OPTIONS.length, ALAT_TANGKAP_LAUT.length, ALAT_TANGKAP_PUD.length, 
@@ -108,6 +115,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     KOMODITAS_LAUT_OPTIONS.length, KOMODITAS_PUD_OPTIONS.length, PERBEKALAN_OPTIONS.length
   ]);
 
+  // Fungsi untuk menangani perubahan input standar pada form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -116,18 +124,21 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }
   };
 
+  // Fungsi untuk menangani perubahan nilai spesifik di dalam tabel input komoditas
   const handleTangkapanChange = (index, field, value) => {
     const newTangkapan = [...formData.tangkapan];
     newTangkapan[index][field] = value;
     setFormData(prev => ({ ...prev, tangkapan: newTangkapan }));
   };
 
+  // Fungsi untuk memproses handleLogistikChange
   const handleLogistikChange = (index, field, value) => {
     const newLogistik = [...formData.logistik];
     newLogistik[index][field] = value;
     setFormData(prev => ({ ...prev, logistik: newLogistik }));
   };
 
+  // Fungsi untuk memproses addLogistik
   const addLogistik = () => {
     setFormData(prev => ({
       ...prev,
@@ -135,6 +146,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }));
   };
 
+  // Fungsi untuk memproses removeLogistik
   const removeLogistik = (index) => {
     if (formData.logistik.length > 1) {
       const newLogistik = formData.logistik.filter((_, i) => i !== index);
@@ -142,6 +154,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }
   };
 
+  // Fungsi untuk menambah baris input jenis ikan/komoditas baru pada form
   const addTangkapan = () => {
     const isPUD = formData.sumber_data === 'PUD';
     const defaultKom = isPUD ? KOMODITAS_PUD_OPTIONS[0] : KOMODITAS_LAUT_OPTIONS[0];
@@ -151,6 +164,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }));
   };
 
+  // Fungsi untuk menghapus baris input jenis ikan/komoditas pada form
   const removeTangkapan = (index) => {
     if (formData.tangkapan.length > 1) {
       const newTangkapan = formData.tangkapan.filter((_, i) => i !== index);
@@ -158,6 +172,55 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }
   };
 
+  // Fungsi untuk memproses handleKeyDown
+  const handleKeyDown = (e, index, currentField) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const isRight = e.key === 'ArrowRight';
+      
+      let fields = [];
+      if (sumberData === 'PUD') {
+        fields = ['pud_tangkapan_sampel', 'harga'];
+      } else {
+        fields = ['volume', 'harga'];
+      }
+
+      const currentIdx = fields.indexOf(currentField);
+      let nextField = null;
+      let nextRowIndex = index;
+
+      if (isRight) {
+        if (currentIdx < fields.length - 1) {
+          nextField = fields[currentIdx + 1];
+        } else if (index < formData.tangkapan.length - 1) {
+          nextField = fields[0];
+          nextRowIndex = index + 1;
+        }
+      } else {
+        if (currentIdx > 0) {
+          nextField = fields[currentIdx - 1];
+        } else if (index > 0) {
+          nextField = fields[fields.length - 1];
+          nextRowIndex = index - 1;
+        }
+      }
+
+      if (nextField) {
+        e.preventDefault();
+        const el = document.querySelector(`input[data-row="${nextRowIndex}"][data-col="${nextField}"]`);
+        if (el) el.focus();
+      }
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+       const isDown = e.key === 'ArrowDown';
+       let nextRowIndex = index + (isDown ? 1 : -1);
+       if (nextRowIndex >= 0 && nextRowIndex < formData.tangkapan.length) {
+         e.preventDefault();
+         const el = document.querySelector(`input[data-row="${nextRowIndex}"][data-col="${currentField}"]`);
+         if (el) el.focus();
+       }
+    }
+  };
+
+  // Fungsi untuk memvalidasi kelengkapan form sebelum dikirim ke server
   const validate = () => {
     const newErrors = {};
     if (!formData.tanggal) newErrors.tanggal = 'Tanggal wajib diisi';
@@ -172,6 +235,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     return Object.keys(newErrors).length === 0;
   };
 
+  // Fungsi utama untuk menyimpan data form (membedakan mode Edit atau Create)
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
@@ -189,6 +253,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }
   };
 
+  // Fungsi untuk mereset dan menyesuaikan opsi form ketika jenis perairan berubah
   const handleCabangSelect = (cabang) => {
     setSumberData(cabang);
     setFormData(prev => ({
@@ -211,6 +276,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
     }));
   };
 
+  // Fungsi khusus untuk menghitung estimasi volume total berdasarkan sampel (khusus PUD)
   const calculatePudVolume = (sampelVol) => {
     const pop = parseFloat(formData.pud_populasi_alat) || 0;
     const jml = parseFloat(formData.pud_jumlah_sampel) || 1;
@@ -504,6 +570,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                                 step="0.01" min="0"
                                 placeholder="Jumlah"
                                 value={item.jumlah}
+                                onWheel={(e) => e.target.blur()}
                                 onChange={(e) => handleLogistikChange(index, 'jumlah', e.target.value)}
                                 className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input text-sm"
                               />
@@ -563,6 +630,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                         name="pud_populasi_alat"
                         placeholder="Total populasi alat di wilayah"
                         value={formData.pud_populasi_alat}
+                        onWheel={(e) => e.target.blur()}
                         onChange={handleChange}
                         className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                       />
@@ -574,6 +642,7 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                         name="pud_jumlah_sampel"
                         placeholder="Berapa sampel yang didata?"
                         value={formData.pud_jumlah_sampel}
+                        onWheel={(e) => e.target.blur()}
                         onChange={handleChange}
                         className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                       />
@@ -651,6 +720,10 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                       step="0.01" min="0"
                       placeholder="Total sampel yg ditimbang"
                       value={item.pud_tangkapan_sampel}
+                      data-row={index}
+                      data-col="pud_tangkapan_sampel"
+                      onKeyDown={(e) => handleKeyDown(e, index, 'pud_tangkapan_sampel')}
+                      onWheel={(e) => e.target.blur()}
                       onChange={(e) => handleTangkapanChange(index, 'pud_tangkapan_sampel', e.target.value)}
                       className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/50 text-foreground placeholder:text-muted-foreground"
                     />
@@ -666,6 +739,10 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                       step="0.01" min="0"
                       placeholder="Volume"
                       value={item.volume}
+                      data-row={index}
+                      data-col="volume"
+                      onKeyDown={(e) => handleKeyDown(e, index, 'volume')}
+                      onWheel={(e) => e.target.blur()}
                       onChange={(e) => handleTangkapanChange(index, 'volume', e.target.value)}
                       className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                     />
@@ -679,6 +756,10 @@ export function PerikananTangkapForm({ initialData = null, onSubmit, onCancel, i
                     step="0.01" min="0"
                     placeholder="Harga Ikan"
                     value={item.harga}
+                    data-row={index}
+                    data-col="harga"
+                    onKeyDown={(e) => handleKeyDown(e, index, 'harga')}
+                    onWheel={(e) => e.target.blur()}
                     onChange={(e) => handleTangkapanChange(index, 'harga', e.target.value)}
                     className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                   />

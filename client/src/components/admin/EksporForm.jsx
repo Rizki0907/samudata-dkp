@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, X } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
 
@@ -8,8 +8,7 @@ const BULAN_OPTIONS = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+
 
 const KOMODITAS_SEGAR_OLAHAN = [
   'Udang', 'Rumput Laut', 'Ikan Tuna', 'Ikan Sardine', 'Value Added', 
@@ -105,7 +104,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     if (initialData) {
       // Check if negara_tujuan is in the predefined list
       const isNegaraPredefined = NEGARA_OPTIONS.includes(initialData.negara_tujuan);
-      
+      // eslint-disable-next-line
       setFormData({
         bulan: initialData.bulan || '',
         tahun: initialData.tahun || '',
@@ -126,6 +125,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
     // Determine possible units based on category
     if (formData.kategori_komoditas === 'Segar dan Olahan') {
       if (!['Kg', 'Liter'].includes(formData.satuan_volume)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData(prev => ({ ...prev, satuan_volume: 'Kg', nama_komoditas: '' }));
       }
     } else {
@@ -133,6 +133,7 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
         setFormData(prev => ({ ...prev, satuan_volume: 'Ekor', nama_komoditas: '' }));
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.kategori_komoditas]);
 
   const handleChange = (e) => {

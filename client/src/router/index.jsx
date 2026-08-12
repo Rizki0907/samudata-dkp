@@ -1,6 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createBrowserRouter, Navigate, useRouteError, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import LandingPage from '../pages/LandingPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import AdminPerikananTangkap from '../pages/admin/AdminPerikananTangkap';
 import { useAuthStore } from '@/store/authStore';

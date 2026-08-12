@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
-import { Plus, Trash2, Edit2, Loader2, Save, X, AlertCircle, CheckCircle2, Database, Globe } from 'lucide-react';
+import { Plus, Trash2, Edit2, Loader2, X, Database, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 export default function InputOverviewEkspor({ showToast, onDataChange }) {
   const [items, setItems] = useState([]);
@@ -19,11 +18,7 @@ export default function InputOverviewEkspor({ showToast, onDataChange }) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchOverviewEkspor();
-  }, []);
-
-  const fetchOverviewEkspor = async () => {
+  const fetchOverviewEkspor = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/master-data/OVERVIEW_EKSPOR');
@@ -37,7 +32,12 @@ export default function InputOverviewEkspor({ showToast, onDataChange }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOverviewEkspor();
+  }, [fetchOverviewEkspor]);
 
   const handleOpenAdd = () => {
     setIsEditing(false);

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { KAB_KOTA_OPTIONS } from '@/utils/constants';
 import { BUDIDAYA_TAHUNAN_CONFIG } from '@/utils/BudidayaTahunanConfig';
-import { AlertCircle, Loader2, CheckCircle2, Plus } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import api from '@/services/api';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
 
 const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 const formatTitle = (title) => {
   if (!title) return '';
@@ -30,13 +30,14 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const masterData = useMasterDataStore(state => state.data);
+
   const getOptions = useMasterDataStore(state => state.getOptions);
 
+  // eslint-disable-next-line no-undef
   const kabKotaOptions = React.useMemo(() => {
     const opts = getOptions('KABUPATEN_KOTA');
     return opts?.length > 0 ? opts : KAB_KOTA_OPTIONS;
-  }, [masterData, getOptions]);
+  }, [getOptions]);
 
   // Auto-save logic
   useEffect(() => {
@@ -50,6 +51,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
   useEffect(() => {
     if (isEditing) return;
     if (!tahun || !kabupaten) {
+      // eslint-disable-next-line
       setFormData({});
       return;
     }
@@ -73,7 +75,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
     loadData();
     setErrorMsg('');
     setSuccessMsg('');
-  }, [activeModule, tahun, kabupaten]);
+  }, [activeModule, tahun, kabupaten, isEditing]);
 
   const currentConfig = BUDIDAYA_TAHUNAN_CONFIG.find(c => c.id === activeModule);
 
@@ -133,9 +135,9 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
         currentConfig.seksi.forEach(s => {
           if (s.title.includes('Produksi Benih') || s.title.includes('Nilai Benih')) {
             if (!item[s.title]) item[s.title] = {};
-            const sum = Object.entries(item[s.title] || {})
+              const sum = Object.entries(item[s.title] || {})
               .filter(([k]) => k !== 'JUMLAH' && k !== 'Lain-Lainnya')
-              .reduce((acc, [_, v]) => acc + (parseFloat(v) || 0), 0);
+              .reduce((acc, [, v]) => acc + (parseFloat(v) || 0), 0);
             item[s.title]['JUMLAH'] = sum > 0 ? parseFloat(sum.toFixed(3)) : '';
           }
         });
@@ -172,7 +174,7 @@ export function BudidayaTahunanForm({ onClose, onSuccess, initialData, user }) {
     }
 
     // Check if at least 1 field has data
-    let hasData = false;
+    let hasData;
     if (currentConfig.isRepeatable) {
       hasData = formData.items && formData.items.some(item => 
         Object.keys(item).some(k => k !== 'id' && Object.keys(item[k]).length > 0)

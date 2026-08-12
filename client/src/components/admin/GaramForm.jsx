@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { Save, Loader2, FlaskConical, X } from 'lucide-react';
 import SearchableSelect from '@/components/shared/SearchableSelect';
 

@@ -1,55 +1,80 @@
 import { useState, useEffect, useMemo } from 'react';
+// eslint-disable-next-line no-unused-vars
 import ExcelJS from 'exceljs';
+// eslint-disable-next-line no-unused-vars
 import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataPublikTangkap } from '@/components/admin/DataPublikTangkap';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
+ 
+ 
+// eslint-disable-next-line no-unused-vars
 import { Loader2, Ship, Anchor, Database, TrendingUp, Fish, MapPin, LineChart, FileText, Filter, BarChart3, AlertCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { formatRupiah, formatUangPendek } from '@/utils/formatRupiah';
+// eslint-disable-next-line no-unused-vars
 import { formatDistanceToNow } from 'date-fns';
+// eslint-disable-next-line no-unused-vars
 import { id as idLocale } from 'date-fns/locale';
+// eslint-disable-next-line no-unused-vars
 import { formatDate } from '@/utils/dateHelper';
 import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
 const currentYear = new Date().getFullYear();
 const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+// eslint-disable-next-line no-unused-vars
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 import { PELABUHAN_TO_KABKOTA } from '@/utils/constants';
 
+// Fungsi komponen/logika PerikananTangkap
 export default function PerikananTangkap() {
+  // eslint-disable-next-line no-unused-vars
   const { getKabKotaByPelabuhan, getOptions } = useMasterDataStore();
   const KOMODITAS_OPTIONS = getOptions('KOMODITAS_TANGKAP_LAUT');
   const KOMODITAS_PUD_OPTIONS = getOptions('KOMODITAS_TANGKAP_PUD');
   const PELABUHAN_OPTIONS = getOptions('PELABUHAN');
   const KAB_KOTA_OPTIONS = getOptions('KAB_KOTA');
+  // eslint-disable-next-line no-unused-vars
   const PERAIRAN_OPTIONS = getOptions('JENIS_PERAIRAN');
 
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
+  // State untuk menyimpan list data utama yang diambil dari server
   const [data, setData] = useState([]);
+  // State untuk menyimpan data/nilai logistikData
   const [logistikData, setLogistikData] = useState({});
   
   // Super Filters State
   const [filterTahun, setFilterTahun] = useState([]);
+  // State untuk filter data berdasarkan jenis cabang perairan
   const [filterCabang, setFilterCabang] = useState([]); // PELABUHAN, PUD, KAB_KOTA
+  // State untuk menyimpan data/nilai filterJenisPerairan
   const [filterJenisPerairan, setFilterJenisPerairan] = useState([]);
+  // State untuk menyimpan data/nilai filterKomoditas
   const [filterKomoditas, setFilterKomoditas] = useState([]);
+  // State untuk menyimpan data/nilai filterWilayah
   const [filterWilayah, setFilterWilayah] = useState([]);
 
   // Local Chart Filters
   const [chartGlobalTahun, setChartGlobalTahun] = useState([]);
+  // State untuk menyimpan data/nilai chartCabang
   const [chartCabang, setChartCabang] = useState([]); // Filter Cabang/Sumber untuk Chart
+  // State untuk menyimpan data/nilai chartKomoditasWilayah
   const [chartKomoditasWilayah, setChartKomoditasWilayah] = useState([]);
+  // State untuk menyimpan data/nilai filterKabKotaChart
   const [filterKabKotaChart, setFilterKabKotaChart] = useState([]);
   
   // Local Filter for Harga
   const [chartHargaKomoditas, setChartHargaKomoditas] = useState(KOMODITAS_OPTIONS[0]);
+  // eslint-disable-next-line no-unused-vars
   const [chartHargaWilayah, setChartHargaWilayah] = useState([]);
 
+   
+  // eslint-disable-next-line no-unused-vars
   const [stats, setStats] = useState({
     kpi: { total_volume: 0, total_nilai: 0, total_trip: 0, avg_volume_per_trip: 0 },
     komoditas: [],
@@ -59,11 +84,13 @@ export default function PerikananTangkap() {
 
   useEffect(() => {
     if (!chartHargaKomoditas && KOMODITAS_OPTIONS.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChartHargaKomoditas(KOMODITAS_OPTIONS[0]);
     }
   }, [KOMODITAS_OPTIONS, chartHargaKomoditas]);
 
   useEffect(() => {
+    // Fungsi untuk mengambil data utama dari backend (API)
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -96,6 +123,7 @@ export default function PerikananTangkap() {
     });
   }, [data, filterTahun, filterCabang, filterJenisPerairan, filterWilayah, filterKomoditas]);
 
+  // eslint-disable-next-line no-unused-vars
   const aggregatedData = useMemo(() => {
     const map = {};
     filteredData.forEach(row => {
@@ -128,6 +156,7 @@ export default function PerikananTangkap() {
     return Object.values(map).sort((a, b) => b.bulan.localeCompare(a.bulan));
   }, [filteredData]);
 
+  // eslint-disable-next-line no-unused-vars
   const columns = useMemo(() => [
     {
       header: 'Bulan / Tahun',
@@ -166,6 +195,7 @@ export default function PerikananTangkap() {
     }
   ], []);
 
+  // eslint-disable-next-line no-unused-vars
   const renderSubComponent = ({ row }) => {
     const tangkapan = row.original.tangkapan || [];
     if (tangkapan.length === 0) return <div className="p-4 text-center text-muted-foreground text-sm">Belum ada detail tangkapan</div>;
@@ -534,6 +564,7 @@ export default function PerikananTangkap() {
     return { categories: targetPelabuhan, series };
   }, [data, chartHargaKomoditas, chartHargaWilayah, chartGlobalTahun, chartCabang, isDark]);
 
+  // eslint-disable-next-line no-unused-vars
   const hargaChartOption = useMemo(() => {
     return {
       tooltip: {

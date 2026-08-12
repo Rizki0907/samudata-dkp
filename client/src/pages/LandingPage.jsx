@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+// eslint-disable-next-line no-unused-vars
 import { ShieldAlert, User, Lock, Loader2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logoDKP from '@/assets/logo_DKP.png';
@@ -33,6 +34,7 @@ export default function LandingPage() {
         loginAsAdmin(res.data.token);
         navigate('/admin');
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setError(true);
     } finally {

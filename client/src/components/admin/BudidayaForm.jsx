@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2, Box, Calendar, MapPin, Database, X } from 'lucide-react';
+import React from 'react';
+import { useState, useEffect } from 'react';
+import { Loader2, X } from 'lucide-react';
 import SearchableSelect from '../shared/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useMasterDataStore } from '@/store/masterDataStore';
@@ -18,9 +19,6 @@ const BULAN_OPTIONS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
-
-const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 const JENIS_WADAH_OPTIONS = [
   'Laut/KJA Laut',
@@ -56,21 +54,24 @@ export default function BudidayaForm({ initialData, onSubmit, onCancel, isLoadin
 
   const [errors, setErrors] = useState({});
 
-  const masterData = useMasterDataStore(state => state.data);
+
   const getOptions = useMasterDataStore(state => state.getOptions);
 
+  // eslint-disable-next-line no-undef
   const kabKotaOptions = React.useMemo(() => {
     const opts = getOptions('KABUPATEN_KOTA');
     return opts?.length > 0 ? opts : KABUPATEN_KOTA_OPTIONS;
-  }, [masterData, getOptions]);
+  }, [getOptions]);
 
+  // eslint-disable-next-line no-undef
   const wadahOptions = React.useMemo(() => {
     const opts = getOptions('JENIS_WADAH');
     return opts?.length > 0 ? opts : JENIS_WADAH_OPTIONS;
-  }, [masterData, getOptions]);
+  }, [getOptions]);
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line
       setFormData({
         kabupaten_kota: initialData.kabupaten_kota || '',
         tahun: initialData.tahun || '',

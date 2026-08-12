@@ -3,8 +3,10 @@
 // verifikasi dan penolakan oleh Admin Pusat, filter, pencarian, ekspor data,
 // Rekap Statistik, serta Visualisasi Statistik dari data yang telah diverifikasi.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+ 
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+ 
 import { Loader2, Plus, MapPin, TrendingUp, Factory, Box, LineChart, Users, Filter, ChevronDown, Search, X, AlertTriangle, Info, Pencil, Clock, Download, CheckCircle, XCircle, Trash2, } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -71,6 +73,7 @@ const getGeoRegionName = databaseName => {
 // Registrasi peta Jawa Timur (aman dipanggil berkali-kali)
 echarts.registerMap('jawa_timur', geoJsonData);
 
+ 
 const PERIZINAN_OPTIONS = [
   'NIB',
   'KUSUKA',
@@ -82,10 +85,15 @@ const PERIZINAN_OPTIONS = [
   'Tidak Berizin',
 ];
 
+ 
 const SERTIFIKAT_BANGUNAN_OPTIONS = ['IMB/PBG', 'Lokasi/Domisili', 'Tidak Ada'];
+ 
 const SERTIFIKAT_PRODUK_OPTIONS = ['SKP', 'HALAL', 'SNI', 'HACCP', 'MD'];
+ 
 const STATUS_COLD_STORAGE_OPTIONS = ['Milik Pribadi', 'Sewa', 'Tidak Ada'];
+ 
 const PEMBERI_PINJAMAN_OPTIONS = ['Bank', 'Koperasi', 'Lainnya'];
+ 
 const BULAN_OPTIONS = [
   'Januari',
   'Februari',
@@ -101,9 +109,11 @@ const BULAN_OPTIONS = [
   'Desember',
 ];
 
+ 
 const INPUT_CLASS =
   'w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted/60 disabled:text-muted-foreground';
 
+ 
 const FILTER_SELECT_CLASS =
   'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
 
@@ -226,6 +236,7 @@ const toNumber = value => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+ 
 const numberOrNull = value => {
   if (value === '' || value === null || value === undefined) return null;
   return toNumber(value);
@@ -257,6 +268,7 @@ const getRowUpdatedAt = row =>
   row?.createdAt ??
   null;
 
+ 
 const formatRelativeTime = dateValue => {
   if (!dateValue) return '-';
 
@@ -286,6 +298,7 @@ const formatRelativeTime = dateValue => {
 };
 
 // ==== Util agregasi (untuk visualisasi berbasis data status VERIFIED) ====
+ 
 const groupSum = (rows, keyFn, valueFn) => {
   const map = new Map();
   rows.forEach(row => {
@@ -404,6 +417,7 @@ function ActionDialog({ dialog, value, setValue, onClose, onSubmit }) {
   );
 }
 
+ 
 const getUpiKey = row => {
   if (row?.id_upi) return String(row.id_upi);
   if (row?.upi_id) return String(row.upi_id);
@@ -415,6 +429,7 @@ const getUpiKey = row => {
   return `${nama}|${kabupaten}`;
 };
 
+ 
 const createInitialForm = initialData => {
   const form = {
   tahun: initialData?.tahun ?? '',
@@ -677,6 +692,7 @@ function StatusBadge({ row, onEdit }) {
   );
 }
 
+ 
 const getRowTotalTenagaKerja = row => {
   if (
     row?.total_seluruh_tenaga_kerja !== null &&
@@ -694,7 +710,9 @@ const getRowTotalTenagaKerja = row => {
 
 // Skema baru: row.jenis_kegiatan sudah berisi sub-jenis kegiatan langsung
 // (mis. "Fermentasi", "Pengecer"), sedangkan kategorinya ada di row.kategori_kegiatan.
+ 
 const getJenisDetail = row => row?.jenis_kegiatan || '';
+ 
 const STATUS_OPTIONS = ['APPROVED', 'VERIFIED', 'REJECTED'];
 
 const getSearchNumberVariants = (value) => {
@@ -893,6 +911,7 @@ export default function AdminPengolahanPemasaran() {
   const [trendPengolahanFilter, setTrendPengolahanFilter] = useState('produksi');
   const [trendPemasaranFilter, setTrendPemasaranFilter] = useState('produksi');
 
+   
   const [selectedMapRegion, setSelectedMapRegion] = useState(null);
   const [isMobileMap, setIsMobileMap] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
@@ -992,6 +1011,7 @@ export default function AdminPengolahanPemasaran() {
   };
 
   useEffect(() => {
+     
     fetchData();
   }, []);
 

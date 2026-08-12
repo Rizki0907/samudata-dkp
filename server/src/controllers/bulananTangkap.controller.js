@@ -116,6 +116,7 @@ const syncDataBulananInternal = async () => {
   }
 };
 
+// Fungsi untuk memproses triggerSync
 const triggerSync = async (req, res) => {
   const success = await syncDataBulananInternal();
   if (success) {
@@ -125,6 +126,7 @@ const triggerSync = async (req, res) => {
   }
 };
 
+// Fungsi untuk memproses getLogistikMap
 const getLogistikMap = async () => {
   const dataRiil = await prisma.perikananTangkap.findMany({
     where: { status: 'VERIFIED', sumber_data: 'PELABUHAN' }
@@ -150,6 +152,7 @@ const getLogistikMap = async () => {
   return map;
 };
 
+// Fungsi untuk memproses getPublikData
 const getPublikData = async (req, res) => {
   try {
     const data = await prisma.dataBulananTangkap.findMany({
@@ -163,6 +166,7 @@ const getPublikData = async (req, res) => {
   }
 };
 
+// Fungsi untuk memproses getAdminData
 const getAdminData = async (req, res) => {
   try {
     const data = await prisma.dataBulananTangkap.findMany({
@@ -175,6 +179,7 @@ const getAdminData = async (req, res) => {
   }
 };
 
+// Fungsi untuk memproses updateTarget
 const updateTarget = async (req, res) => {
   try {
     const { id } = req.params;
@@ -193,6 +198,7 @@ const updateTarget = async (req, res) => {
   }
 };
 
+// Fungsi untuk memproses resetTarget
 const resetTarget = async (req, res) => {
   try {
     const { id } = req.params;
@@ -207,6 +213,7 @@ const resetTarget = async (req, res) => {
   }
 };
 
+// Fungsi untuk memproses batchUpdateTarget
 const batchUpdateTarget = async (req, res) => {
   try {
     const { ids, volumePercentage, nilaiPercentage } = req.body;

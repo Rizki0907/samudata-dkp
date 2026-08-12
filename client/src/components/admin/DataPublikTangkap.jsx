@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx-js-style';
-import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { DataTable } from '@/components/shared/DataTable';
@@ -16,21 +15,33 @@ import {
   PERBEKALAN_OPTIONS
 } from '@/utils/constants';
 
+// Fungsi komponen/logika DataPublikTangkap
 export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, filterKomoditas, isPublic = false, publicData = null, publicLogistik = null, filterNode }) {
 
+  // State untuk menyimpan list data utama yang diambil dari server
   const [data, setData] = useState([]);
+  // State untuk menyimpan data/nilai logistikBulanan
   const [logistikBulanan, setLogistikBulanan] = useState({});
+  // State indikator proses memuat data (loading)
   const [loading, setLoading] = useState(true);
+  // State untuk menyimpan data/nilai editingRow
   const [editingRow, setEditingRow] = useState(null);
+  // State untuk menyimpan data/nilai editForm
   const [editForm, setEditForm] = useState({ volume: 0, nilai: 0, hargaRataRata: 0 });
+  // State untuk menyimpan data/nilai submitLoading
   const [submitLoading, setSubmitLoading] = useState(false);
+  // State untuk menyimpan data/nilai batchMode
   const [batchMode, setBatchMode] = useState(false);
+  // State untuk menyimpan data/nilai batchVolumePct
   const [batchVolumePct, setBatchVolumePct] = useState('');
+  // State untuk menampilkan dialog konfirmasi aksi (hapus/setuju)
   const [actionDialog, setActionDialog] = useState(null);
+  // Fungsi untuk memproses closeActionDialog
   const closeActionDialog = () => setActionDialog(null);
   const { user } = useAuthStore();
   const isPusat = !isPublic && (user?.role === 'admin_pusat' || user?.role === 'admin_bidang');
 
+  // Fungsi untuk mengambil data utama dari backend (API)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -47,6 +58,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
   useEffect(() => {
     if (isPublic) {
       if (publicData) {
+        // eslint-disable-next-line
         setData(publicData);
       }
       if (publicLogistik) {
@@ -58,16 +70,19 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
   }, [isPublic, publicData, publicLogistik]);
 
+  // Fungsi untuk memproses handleEditClick
   const handleEditClick = (item) => {
     setEditingRow(item.id);
     const hargaRata = Number(item.volume) > 0 ? Number(item.nilai) / Number(item.volume) : 0;
     setEditForm({ volume: item.volume, nilai: item.nilai, hargaRataRata: hargaRata });
   };
 
+  // Fungsi untuk memproses handleCancelEdit
   const handleCancelEdit = () => {
     setEditingRow(null);
   };
 
+  // Fungsi untuk memproses handleSaveEdit
   const handleSaveEdit = async (id) => {
     try {
       setSubmitLoading(true);
@@ -82,6 +97,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
   };
 
+  // Fungsi untuk memproses handleReset
   const handleReset = (id) => {
     setActionDialog({
       open: true,
@@ -93,6 +109,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     });
   };
 
+  // Fungsi untuk memproses executeReset
   const executeReset = async (id) => {
     try {
       setActionDialog(prev => ({ ...prev, loading: true }));
@@ -106,6 +123,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
   };
 
+  // Fungsi untuk memproses handleBatchAdjust
   const handleBatchAdjust = async (selectedIds, clearSelection) => {
     if (!batchVolumePct) return setActionDialog({ open: true, theme: 'INFO', title: 'Perhatian', message: 'Masukkan persentase koreksi Volume!', showCancel: false });
     try {
@@ -140,6 +158,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     }
   };
 
+  // Fungsi untuk mengekspor data ke format file yang diminta
   const handleExport = (isRiil) => {
     // Generate headers
     const headerRow1 = ['Bulan / Tahun', 'Perairan Sumber', 'Wilayah / Lokasi'];
@@ -316,6 +335,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     XLSX.writeFile(wb, `Data_Publik_Tangkap_${sheetName}_${tahunStr}.xlsx`);
   };
 
+  // Fungsi untuk memproses renderCustomBatchActions
   const renderCustomBatchActions = (selectedIds, clearSelection) => {
     if (batchMode) {
       return (
@@ -666,6 +686,7 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
     });
   }, [data, filterTahun, filterCabang, filterWilayah, filterKomoditas]);
 
+  // eslint-disable-next-line
   const aggregatedData = useMemo(() => {
     const map = {};
     filteredData.forEach(row => {
@@ -774,6 +795,18 @@ export function DataPublikTangkap({ filterTahun, filterCabang, filterWilayah, fi
           </div>
         }
       />
+      
+      {actionDialog && (
+        <ActionDialog
+          {...actionDialog}
+          onClose={closeActionDialog}
+          onConfirm={() => {
+            if (actionDialog.kind === 'reset-validasi') {
+              executeReset(actionDialog.targetId);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
