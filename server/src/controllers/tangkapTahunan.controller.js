@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Fungsi Controller: getAllTahunan
 exports.getAllTahunan = async (req, res) => {
   try {
     const data = await prisma.tangkapTahunan.findMany({
@@ -13,6 +14,7 @@ exports.getAllTahunan = async (req, res) => {
   }
 };
 
+// Fungsi Controller: getTahunanById
 exports.getTahunanById = async (req, res) => {
   try {
     const data = await prisma.tangkapTahunan.findUnique({
@@ -26,6 +28,7 @@ exports.getTahunanById = async (req, res) => {
   }
 };
 
+// Fungsi Controller: createTahunan
 exports.createTahunan = async (req, res) => {
   try {
     const { 
@@ -55,6 +58,7 @@ exports.createTahunan = async (req, res) => {
   }
 };
 
+// Fungsi Controller: updateTahunan
 exports.updateTahunan = async (req, res) => {
   try {
     const { 
@@ -85,6 +89,7 @@ exports.updateTahunan = async (req, res) => {
   }
 };
 
+// Fungsi Controller: deleteTahunan
 exports.deleteTahunan = async (req, res) => {
   try {
     await prisma.tangkapTahunan.delete({
@@ -97,6 +102,7 @@ exports.deleteTahunan = async (req, res) => {
   }
 };
 
+// Fungsi Controller: updateStatus
 exports.updateStatus = async (req, res) => {
   try {
     const { status, alasan_penolakan } = req.body;
@@ -114,6 +120,7 @@ exports.updateStatus = async (req, res) => {
   }
 };
 
+// Fungsi Controller: batchUpdateStatus
 exports.batchUpdateStatus = async (req, res) => {
   try {
     const { ids, status, alasan_penolakan } = req.body;
@@ -131,6 +138,7 @@ exports.batchUpdateStatus = async (req, res) => {
   }
 };
 
+// Fungsi Controller: batchDelete
 exports.batchDelete = async (req, res) => {
   try {
     const { ids } = req.body;
