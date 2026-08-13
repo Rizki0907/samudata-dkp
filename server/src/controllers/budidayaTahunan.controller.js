@@ -141,7 +141,6 @@ const batchDelete = async (req, res) => {
 
 const exportExcel = async (req, res) => {
   try {
-    console.log('Incoming export request. Query:', req.query);
     const { tahun } = req.query;
     if (!tahun) {
       return res.status(400).json({ success: false, message: 'Parameter tahun diperlukan' });
@@ -166,7 +165,10 @@ const exportExcel = async (req, res) => {
     for (const record of records) {
       if (!recordsMap[record.modul_id]) recordsMap[record.modul_id] = {};
       
-      const kab = record.kabupaten_kota.toUpperCase();
+      let kab = record.kabupaten_kota.toUpperCase().trim();
+      if (kab.startsWith('KAB. ')) kab = kab.replace('KAB. ', '');
+      if (kab.startsWith('KABUPATEN ')) kab = kab.replace('KABUPATEN ', '');
+
       if (!recordsMap[record.modul_id][kab]) {
          recordsMap[record.modul_id][kab] = [];
       }
@@ -244,7 +246,7 @@ const exportExcel = async (req, res) => {
         let targetFieldsTop = orderedFields;
         let targetFieldsBottom = orderedFields;
         
-        if (isProduksi && config.isRepeatable) {
+        if (isProduksi) {
            targetFieldsTop = orderedFields.filter(f => !f.seksi.includes('Nilai Benih'));
            targetFieldsBottom = orderedFields.filter(f => !f.seksi.includes('Produksi Benih'));
         }
