@@ -97,6 +97,12 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
+/**
+ * Komponen LamunForm
+ * Bertugas untuk menampilkan form input/edit data padang lamun.
+ * Terdapat perhitungan otomatis kondisi (Kaya, Kurang Kaya, Miskin)
+ * berdasarkan persentase yang diinput.
+ */
 export function LamunForm({
   initialData,
   isLoading,
@@ -166,6 +172,7 @@ export function LamunForm({
   // ── KATEGORI OTOMATIS REAL-TIME ──
   const kondisiPreview = useMemo(() => getKondisiLamun(form.persentase_kondisi), [form.persentase_kondisi]);
 
+  // Handle perubahan input
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -189,6 +196,7 @@ export function LamunForm({
   };
 
   // ── SUBMIT FORM ──
+  // Validasi dan kirim data
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;

@@ -496,7 +496,7 @@ const exportPotensiExcel = (dataRaw, onEmpty) => {
   }
 
   const title = 'REKAPITULASI POTENSI PERAIRAN JAWA TIMUR';
-  const h1 = ['No', 'Status', 'Tahun', 'Luas Wilayah Laut (km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
+  const h1 = ['No', 'Status', 'Tahun', 'Luas Wilayah Laut (Km²)', 'Total Panjang Garis Pantai (Km)', 'Jumlah Pulau-Pulau Kecil', 'Desa Pesisir', 'Keterangan'];
   const dataRows = data.map((row, i) => {
     return [i + 1, row.status || '-', row.tahun_data,
     fmtExcel(row.luas_wilayah_laut_km2),
@@ -591,7 +591,7 @@ const makePieOption = (title, data, nameField, valueField, isDark = false) => {
       backgroundColor: isDark ? '#1e293b' : '#ffffff',
       borderColor: isDark ? '#334155' : '#e2e8f0',
       textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)'
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (p) => `${p.name}: ${Number(p.value).toLocaleString('id-ID', { maximumFractionDigits: 2 })} (${p.percent}%)`
     },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
@@ -617,7 +617,7 @@ const makeKondisiPieOption = (data, isDark = false) => {
       backgroundColor: isDark ? '#1e293b' : '#ffffff',
       borderColor: isDark ? '#334155' : '#e2e8f0',
       textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (p) => `${p.name}: ${Number(p.value).toLocaleString('id-ID', { maximumFractionDigits: 2 })} lokasi (${p.percent}%)`
     },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
@@ -643,7 +643,7 @@ const makeKondisiLamunPieOption = (data, isDark = false) => {
       backgroundColor: isDark ? '#1e293b' : '#ffffff',
       borderColor: isDark ? '#334155' : '#e2e8f0',
       textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (p) => `${p.name}: ${Number(p.value).toLocaleString('id-ID', { maximumFractionDigits: 2 })} lokasi (${p.percent}%)`
     },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
@@ -670,7 +670,7 @@ const makeKondisiTerumbuPieOption = (data, isDark = false) => {
       backgroundColor: isDark ? '#1e293b' : '#ffffff',
       borderColor: isDark ? '#334155' : '#e2e8f0',
       textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} lokasi ({d}%)'
+      extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (p) => `${p.name}: ${Number(p.value).toLocaleString('id-ID', { maximumFractionDigits: 2 })} lokasi (${p.percent}%)`
     },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
@@ -744,14 +744,18 @@ const MAIN_TABS = [
   { key: 'visualisasi', label: 'Visualisasi Statistik' },
 ];
 
+/**
+ * Komponen AdminKelautanPesisir
+ * Bertindak sebagai halaman utama untuk panel admin kelautan dan pesisir.
+ * Menangani logika tab navigasi, sistem filter (tahun/kabupaten),
+ * export data ke Excel, serta menampilkan tabel data dan visualisasi statistik.
+ */
 export default function AdminKelautanPesisir() {
   const { user } = useAuthStore();
   const { theme } = useThemeStore();
   const { getOptions } = useMasterDataStore();
   const masterDataRaw = useMasterDataStore(state => state.data);
-  // Dependency-nya sengaja pakai `masterDataRaw` (bukan `getOptions`, yang referensinya
-  // selalu stabil dan gak pernah berubah) supaya dropdown ini otomatis kehitung ulang
-  // begitu ada perubahan di Master Data (mis. nambah kab/kota baru), tanpa perlu reload halaman.
+  // Dependency pakai masterDataRaw agar dropdown refresh otomatis saat ada perubahan kab/kota
   const kabKotaOptions = useMemo(
     () => getOptions('KAB_KOTA') || [],
     [getOptions, masterDataRaw]
@@ -760,8 +764,7 @@ export default function AdminKelautanPesisir() {
     () => getOptions('KAB_KOTA_KELAUTAN') || [],
     [getOptions, masterDataRaw]
   );
-  // KAB_KOTA dipakai untuk wilayah administratif umum:
-  // Mangrove, Lamun, Terumbu Karang, dan Potensi Perairan.
+  // KAB_KOTA untuk Mangrove, Lamun, Terumbu Karang, dan Potensi Perairan
   const kabKotaOptionsUmum = kabKotaOptions;
   const isDark = theme === 'dark';
   const [mainTab, setMainTab] = useState('tabel');
@@ -794,7 +797,6 @@ export default function AdminKelautanPesisir() {
     setActionDialog({ open: true, kind: 'notice', title, message, theme, showCancel: false, confirmLabel: 'OK' });
   };
 
-  // Filters
   const [filterTahun, setFilterTahun] = useState([]);
   const [filterTw, setFilterTw] = useState([]);
   const [filterBulan, setFilterBulan] = useState([]);
@@ -804,7 +806,7 @@ export default function AdminKelautanPesisir() {
   const [visTahun, setVisTahun] = useState([]);
   const [visKab, setVisKab] = useState([]);
 
-  // Fetch garam data
+  // ── FUNGSI FETCH ──────────────────────────────────────────────────────────────
   const fetchGaram = useCallback(async () => {
     setLoading(true);
     try {
@@ -817,7 +819,6 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
-  // Fetch potensi perairan data
   const fetchPotensi = useCallback(async () => {
     setLoading(true);
     try {
@@ -830,7 +831,6 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
-  // Fetch mangrove data
   const fetchMangrove = useCallback(async () => {
     setLoading(true);
     try {
@@ -843,7 +843,6 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
-  // Fetch lamun data
   const fetchLamun = useCallback(async () => {
     setLoading(true);
     try {
@@ -856,7 +855,6 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
-  // Fetch terumbu karang data
   const fetchTerumbuKarang = useCallback(async () => {
     setLoading(true);
     try {
@@ -869,7 +867,6 @@ export default function AdminKelautanPesisir() {
     }
   }, []);
 
-  // Fetch stats for visualization
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
@@ -894,6 +891,9 @@ export default function AdminKelautanPesisir() {
     if (mainTab === 'visualisasi') fetchStats();
   }, [mainTab, fetchStats]);
 
+  // ── FUNGSI AKSI (CRUD & APPROVAL) ─────────────────────────────────────────
+  
+  // Create atau Update data
   const handleCreateOrUpdate = async (formData) => {
     let baseData;
     if (activeTab === 'garam') baseData = dataGaram;
@@ -960,6 +960,7 @@ export default function AdminKelautanPesisir() {
     }
   };
 
+  // Hapus data
   const handleDelete = (row) => {
     if (!row) return;
     const label = activeTab === 'potensi_perairan' ? `Tahun ${row.tahun_data}` : row.kabupaten_kota;
@@ -975,6 +976,7 @@ export default function AdminKelautanPesisir() {
     });
   };
 
+  // Setujui (Approve) data
   const handleApprove = (row) => {
     if (row.status === 'VERIFIED') {
       showNotice('Data ini sudah VERIFIED.', 'INFO');

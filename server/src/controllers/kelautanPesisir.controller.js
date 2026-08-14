@@ -33,6 +33,7 @@ const getKondisiLamun = (persentase) => {
 // GARAM
 // ==============================
 
+// ── FUNGSI CRUD GARAM ──
 const getGaramData = async (req, res) => {
   try {
     const data = await prisma.garam.findMany({
@@ -48,8 +49,14 @@ const getGaramData = async (req, res) => {
 const getGaramPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = parseInt(tahun);
+    const currentYear = new Date().getFullYear();
+    const where = { 
+      status: 'VERIFIED',
+      tahun: { lte: currentYear - 1 }
+    };
+    if (tahun && parseInt(tahun) <= currentYear - 1) {
+      where.tahun = parseInt(tahun);
+    }
 
     const data = await prisma.garam.findMany({
       where,
@@ -157,6 +164,7 @@ const updateGaramStatus = async (req, res) => {
 // POTENSI PERAIRAN
 // ==============================
 
+// ── FUNGSI CRUD POTENSI PERAIRAN ──
 const getPotensiPerairanData = async (req, res) => {
   try {
     const data = await prisma.potensiPerairan.findMany({
@@ -172,8 +180,14 @@ const getPotensiPerairanData = async (req, res) => {
 const getPotensiPerairanPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun_data = parseInt(tahun);
+    const currentYear = new Date().getFullYear();
+    const where = { 
+      status: 'VERIFIED',
+      tahun_data: { lte: currentYear - 1 }
+    };
+    if (tahun && parseInt(tahun) <= currentYear - 1) {
+      where.tahun_data = parseInt(tahun);
+    }
 
     const data = await prisma.potensiPerairan.findMany({
       where,
@@ -266,6 +280,7 @@ const updatePotensiPerairanStatus = async (req, res) => {
 // MANGROVE
 // ==============================
 
+// ── FUNGSI CRUD MANGROVE ──
 const getMangroveData = async (req, res) => {
   try {
     const data = await prisma.mangrove.findMany({
@@ -281,8 +296,14 @@ const getMangroveData = async (req, res) => {
 const getMangrovePublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = parseInt(tahun);
+    const currentYear = new Date().getFullYear();
+    const where = { 
+      status: 'VERIFIED',
+      tahun: { lte: currentYear - 1 }
+    };
+    if (tahun && parseInt(tahun) <= currentYear - 1) {
+      where.tahun = parseInt(tahun);
+    }
 
     const data = await prisma.mangrove.findMany({
       where,
@@ -423,6 +444,7 @@ const batchDeleteMangrove = async (req, res) => {
 // LAMUN
 // ==============================
 
+// ── FUNGSI CRUD LAMUN ──
 const getLamunData = async (req, res) => {
   try {
     const data = await prisma.lamun.findMany({
@@ -438,8 +460,14 @@ const getLamunData = async (req, res) => {
 const getLamunPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = parseInt(tahun);
+    const currentYear = new Date().getFullYear();
+    const where = { 
+      status: 'VERIFIED',
+      tahun: { lte: currentYear - 1 }
+    };
+    if (tahun && parseInt(tahun) <= currentYear - 1) {
+      where.tahun = parseInt(tahun);
+    }
 
     const data = await prisma.lamun.findMany({
       where,
@@ -583,6 +611,7 @@ const batchDeleteLamun = async (req, res) => {
 // STATS / AGGREGATION
 // ==============================
 
+// ── FUNGSI STATISTIK (STATS) ──
 const getKelautanPesisirStats = async (req, res) => {
   try {
     const { tahun, bulan } = req.query;
@@ -848,6 +877,7 @@ const batchDeletePotensiPerairan = async (req, res) => {
 // TERUMBU KARANG (RAW SQL BYPASS)
 // ==============================
 
+// ── FUNGSI CRUD TERUMBU KARANG ──
 const getTerumbuKarangData = async (req, res) => {
   try {
     const data = await prisma.$queryRawUnsafe(`SELECT * FROM "terumbu_karang" ORDER BY "created_at" DESC`);
@@ -861,8 +891,9 @@ const getTerumbuKarangData = async (req, res) => {
 const getTerumbuKarangPublicData = async (req, res) => {
   try {
     const { tahun } = req.query;
-    let query = `SELECT * FROM "terumbu_karang" WHERE "status" = 'VERIFIED'`;
-    if (tahun) query += ` AND "tahun" = ${parseInt(tahun)}`;
+    const currentYear = new Date().getFullYear();
+    let query = `SELECT * FROM "terumbu_karang" WHERE "status" = 'VERIFIED' AND "tahun" <= ${currentYear - 1}`;
+    if (tahun && parseInt(tahun) <= currentYear - 1) query += ` AND "tahun" = ${parseInt(tahun)}`;
     query += ` ORDER BY "created_at" DESC`;
     const data = await prisma.$queryRawUnsafe(query);
     res.json({ success: true, data });

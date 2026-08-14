@@ -8,6 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 // eslint-disable-next-line no-unused-vars
 import { cn } from '@/lib/utils';
 
+/**
+ * Komponen InputOverviewKelautan
+ * Bertugas mengelola (CRUD) input data Master Data (Kategori: OVERVIEW_KELAUTAN).
+ * Data ini kemudian akan digunakan oleh halaman Overview utama sebagai sumber data ringkasan (Garam, dsb).
+ */
 export default function InputOverviewKelautan({ showToast, onDataChange }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +33,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
     fetchOverviewKelautan();
   }, []);
 
+  // Ambil data overview kelautan dari master-data
   async function fetchOverviewKelautan() {
     try {
       setLoading(true);
@@ -82,6 +88,7 @@ export default function InputOverviewKelautan({ showToast, onDataChange }) {
     }
   };
 
+  // Kirim data (Create/Update) ke backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.tahun) {
