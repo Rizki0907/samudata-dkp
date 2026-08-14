@@ -2,9 +2,18 @@ const prisma = require('../utils/prisma');
 
 const getAllData = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const { tahun } = req.query;
     const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = tahun;
+    
+    // N-1 logic
+    if (tahun && parseInt(tahun) < currentYear) {
+      where.tahun = tahun;
+    } else if (tahun && parseInt(tahun) >= currentYear) {
+      return res.json({ success: true, data: [] });
+    } else {
+      where.tahun = { lt: currentYear.toString() };
+    }
 
     const data = await prisma.ekspor.findMany({
       where,
@@ -134,9 +143,18 @@ const deleteData = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const { tahun } = req.query; 
     const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = tahun;
+    
+    // N-1 logic
+    if (tahun && parseInt(tahun) < currentYear) {
+      where.tahun = tahun;
+    } else if (tahun && parseInt(tahun) >= currentYear) {
+      return res.json({ success: true, data: [] }); // return empty early
+    } else {
+      where.tahun = { lt: currentYear.toString() };
+    }
 
     // 1. Treemap (komoditas by kategori)
     const komoditasGroup = await prisma.ekspor.groupBy({

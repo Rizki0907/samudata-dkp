@@ -100,6 +100,9 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
 
   const [errors, setErrors] = useState({});
 
+  const currentYear = new Date().getFullYear();
+  const tahunOptions = Array.from({ length: 11 }, (_, i) => String(currentYear - 5 + i)).sort((a,b) => b - a);
+
   useEffect(() => {
     if (initialData) {
       // Check if negara_tujuan is in the predefined list
@@ -239,16 +242,17 @@ export function EksporForm({ initialData, onSubmit, onCancel, isLoading }) {
 
             <div>
               <label className="block text-sm font-medium mb-2">Tahun</label>
-              <input
-                type="number"
+              <select
                 name="tahun"
                 value={formData.tahun}
                 onChange={handleChange}
-                placeholder="Ketik tahun"
-                min="2000"
-                max={new Date().getFullYear()}
                 className={`w-full px-4 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${errors.tahun ? "border-destructive" : "border-input"}`}
-              />
+              >
+                <option value="">Pilih Tahun</option>
+                {tahunOptions.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
               {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
             </div>
           </div>

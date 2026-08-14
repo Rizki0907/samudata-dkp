@@ -656,6 +656,8 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
   const allJenis = useMemo(() => [...options.pengolahan, ...options.pemasaran], [options.pengolahan, options.pemasaran]);
 
   const [tahun, setTahun] = useState(initialData?.tahun ? String(initialData.tahun) : String(new Date().getFullYear()));
+  const currentYear = new Date().getFullYear();
+  const tahunOptions = Array.from({ length: 11 }, (_, i) => String(currentYear - 5 + i)).sort((a,b) => b - a);
   const [kabupaten, setKabupaten] = useState(initialData?.kabupaten_kota || '');
 
   const [pengolahanMatrix, setPengolahanMatrix] = useState(() =>
@@ -887,16 +889,18 @@ export default function PengolahanPemasaranForm({ initialData, isLoading = false
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Tahun <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="number"
+            <select
               data-form-nav="true"
-              min="1900"
-              max="2100"
               required
               value={tahun}
               onChange={event => setTahun(event.target.value)}
               className={INPUT_CLASS}
-            />
+            >
+              <option value="">Pilih Tahun</option>
+              {tahunOptions.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
           </div>
 
           <div>

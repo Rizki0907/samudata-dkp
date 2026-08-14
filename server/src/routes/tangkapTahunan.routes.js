@@ -4,6 +4,8 @@ const controller = require('../controllers/tangkapTahunan.controller');
 
 // Endpoint API (GET) untuk mengambil data
 router.get('/', controller.getAllTahunan);
+// Endpoint API (GET) untuk publik
+router.get('/publik', controller.getPublikData);
 // Endpoint API (GET) untuk mengambil data
 router.get('/:id', controller.getTahunanById);
 // Endpoint API (POST) untuk menambah data baru

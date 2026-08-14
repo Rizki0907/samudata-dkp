@@ -3,6 +3,9 @@ const router = express.Router();
 const budidayaTahunanController = require('../controllers/budidayaTahunan.controller');
 const { verifyToken } = require('../middleware/authMiddleware');
 
+// Public route
+router.get('/publik', budidayaTahunanController.getPublikData);
+
 // Protect all routes
 router.use(verifyToken);
 

@@ -127,9 +127,16 @@ const triggerSync = async (req, res) => {
 };
 
 // Fungsi untuk memproses getLogistikMap
-const getLogistikMap = async () => {
+const getLogistikMap = async (isPublik = false) => {
+  const currentYear = new Date().getFullYear();
+  const whereClause = { status: 'VERIFIED', sumber_data: 'PELABUHAN' };
+  
+  if (isPublik) {
+    whereClause.tanggal = { lt: new Date(`${currentYear}-01-01T00:00:00.000Z`) };
+  }
+
   const dataRiil = await prisma.perikananTangkap.findMany({
-    where: { status: 'VERIFIED', sumber_data: 'PELABUHAN' }
+    where: whereClause
   });
   const map = {};
   dataRiil.forEach(row => {
@@ -155,11 +162,15 @@ const getLogistikMap = async () => {
 // Fungsi untuk memproses getPublikData
 const getPublikData = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const data = await prisma.dataBulananTangkap.findMany({
-      where: { volume: { gt: 0 } },
+      where: { 
+        volume: { gt: 0 },
+        bulan: { lt: `${currentYear}-01` }
+      },
       orderBy: [{ bulan: 'desc' }, { pelabuhan: 'asc' }]
     });
-    const logistikBulanan = await getLogistikMap();
+    const logistikBulanan = await getLogistikMap(true);
     res.status(200).json({ success: true, data, logistikBulanan });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data' });
@@ -172,7 +183,7 @@ const getAdminData = async (req, res) => {
     const data = await prisma.dataBulananTangkap.findMany({
       orderBy: [{ bulan: 'desc' }, { pelabuhan: 'asc' }]
     });
-    const logistikBulanan = await getLogistikMap();
+    const logistikBulanan = await getLogistikMap(false);
     res.status(200).json({ success: true, data, logistikBulanan });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data admin' });

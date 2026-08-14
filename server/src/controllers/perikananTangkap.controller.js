@@ -10,11 +10,28 @@ const getAllData = async (req, res) => {
     
     // Build filter query
     const where = { status: 'VERIFIED' };
+    
+    // N-1 logic for public endpoints
+    const currentYear = new Date().getFullYear();
+    const maxDate = new Date(`${currentYear}-01-01`);
+
     if (startDate && endDate) {
+      const pStartDate = new Date(startDate);
+      let pEndDate = new Date(endDate);
+      
+      if (pStartDate >= maxDate) {
+        return res.json({ success: true, data: [] });
+      }
+      if (pEndDate >= maxDate) {
+        pEndDate = new Date(maxDate.getTime() - 1);
+      }
+
       where.tanggal = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: pStartDate,
+        lte: pEndDate
       };
+    } else {
+      where.tanggal = { lt: maxDate };
     }
     if (alat_tangkap) where.alat_tangkap = alat_tangkap;
     if (gt_kapal) where.gt_kapal = gt_kapal;
@@ -238,11 +255,28 @@ const getStats = async (req, res) => {
     const { startDate, endDate } = req.query;
     
     const where = { status: 'VERIFIED' };
+    
+    // N-1 logic for public endpoints
+    const currentYear = new Date().getFullYear();
+    const maxDate = new Date(`${currentYear}-01-01`);
+
     if (startDate && endDate) {
+      const pStartDate = new Date(startDate);
+      let pEndDate = new Date(endDate);
+      
+      if (pStartDate >= maxDate) {
+        return res.json({ success: true, data: [] }); // return early if stats are fully out of range
+      }
+      if (pEndDate >= maxDate) {
+        pEndDate = new Date(maxDate.getTime() - 1);
+      }
+
       where.tanggal = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: pStartDate,
+        lte: pEndDate
       };
+    } else {
+      where.tanggal = { lt: maxDate };
     }
 
     // Fetch details to compute stats in memory (since relation groupBy is tricky)

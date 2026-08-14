@@ -26,12 +26,38 @@ const getOverviewStats = async (req, res) => {
     }
 
     const statusFilter = isAdmin ? {} : { status: 'VERIFIED' };
+    const currentYear = new Date().getFullYear();
+
+    // Enforce N-1 logic for public users
+    if (!isAdmin && tahun && tahun !== 'Semua' && parseInt(tahun) >= currentYear) {
+      // If a public user tries to query the current year or later, return empty early
+      return res.status(200).json({
+        success: true,
+        data: {
+          tangkap: { produksi: null, kapal: null, pelabuhan: null, nelayan: null },
+          budidaya: { produksi: null, pembudidaya: null, top_komoditas: '-', luas_lahan: null, tahun_overview: null },
+          pemasaran: { unit_pengolahan: null, unit_pemasaran: null, produk_pengolahan_ton: null, produk_pemasaran_ton: null, tahun_overview: null, total_unit_usaha: 0, total_produksi_kg: 0, total_nilai_produksi_rp: 0, total_pemasaran_kg: 0 },
+          garam: { produksi: null, petambak: null, luas_lahan: null },
+          ekspor: { volume_ton: null, nilai_usd: null },
+          kim: { total_konsumsi: null },
+          availableYears: []
+        }
+      });
+    }
+
+    // Helper for non-admin requests when 'Semua' is selected to enforce < currentYear
+    const getOverviewWhere = (category) => {
+      const where = { category };
+      if (tahun && tahun !== 'Semua') {
+        where.value = String(tahun);
+      } else if (!isAdmin) {
+        where.value = { lt: String(currentYear) };
+      }
+      return where;
+    };
 
     // === 1. PERIKANAN TANGKAP ===
-    const tangkapOverviewWhere = { category: 'OVERVIEW_TANGKAP' };
-    if (tahun && tahun !== 'Semua') {
-      tangkapOverviewWhere.value = String(tahun);
-    }
+    const tangkapOverviewWhere = getOverviewWhere('OVERVIEW_TANGKAP');
     const tangkapOverview = await prisma.masterData.findFirst({
       where: tangkapOverviewWhere,
       orderBy: { value: 'desc' }
@@ -47,10 +73,7 @@ const getOverviewStats = async (req, res) => {
     // === 2. PERIKANAN BUDIDAYA ===
     // (Tidak ada agregasi otomatis)
 
-    const budidayaOverviewWhere = { category: 'OVERVIEW_BUDIDAYA' };
-    if (tahun && tahun !== 'Semua') {
-      budidayaOverviewWhere.value = String(tahun);
-    }
+    const budidayaOverviewWhere = getOverviewWhere('OVERVIEW_BUDIDAYA');
 
     const budidayaOverview = await prisma.masterData.findFirst({
       where: budidayaOverviewWhere,
@@ -66,10 +89,7 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 3. PENGOLAHAN & PEMASARAN ===
-    const pemasaranOverviewWhere = { category: 'OVERVIEW_PEMASARAN' };
-    if (tahun && tahun !== 'Semua') {
-      pemasaranOverviewWhere.value = String(tahun);
-    }
+    const pemasaranOverviewWhere = getOverviewWhere('OVERVIEW_PEMASARAN');
     const pemasaranOverview = await prisma.masterData.findFirst({
       where: pemasaranOverviewWhere,
       orderBy: { value: 'desc' }
@@ -91,10 +111,7 @@ const getOverviewStats = async (req, res) => {
     // === 4. GARAM (Kelautan & Pesisir) ===
     // (Tidak ada agregasi otomatis)
 
-    const kelautanOverviewWhere = { category: 'OVERVIEW_KELAUTAN' };
-    if (tahun && tahun !== 'Semua') {
-      kelautanOverviewWhere.value = String(tahun);
-    }
+    const kelautanOverviewWhere = getOverviewWhere('OVERVIEW_KELAUTAN');
     const kelautanOverview = await prisma.masterData.findFirst({
       where: kelautanOverviewWhere,
       orderBy: { value: 'desc' }
@@ -117,10 +134,7 @@ const getOverviewStats = async (req, res) => {
     // === 5. EKSPOR PERIKANAN ===
     // (Tidak ada agregasi otomatis)
 
-    const eksporOverviewWhere = { category: 'OVERVIEW_EKSPOR' };
-    if (tahun && tahun !== 'Semua') {
-      eksporOverviewWhere.value = String(tahun);
-    }
+    const eksporOverviewWhere = getOverviewWhere('OVERVIEW_EKSPOR');
     const eksporOverview = await prisma.masterData.findFirst({
       where: eksporOverviewWhere,
       orderBy: { value: 'desc' }
@@ -136,10 +150,7 @@ const getOverviewStats = async (req, res) => {
     };
 
     // === 6. KONSUMSI IKAN MASYARAKAT (KIM) ===
-    const kimOverviewWhere = { category: 'OVERVIEW_KIM' };
-    if (tahun && tahun !== 'Semua') {
-      kimOverviewWhere.value = String(tahun);
-    }
+    const kimOverviewWhere = getOverviewWhere('OVERVIEW_KIM');
     const kimOverview = await prisma.masterData.findFirst({
       where: kimOverviewWhere,
       orderBy: { value: 'desc' }
@@ -154,7 +165,10 @@ const getOverviewStats = async (req, res) => {
       where: { category: { startsWith: 'OVERVIEW_' } },
       select: { value: true }
     });
-    const uniqueYearsSet = new Set(allOverview.map(item => Number(item.value)));
+    let uniqueYearsSet = new Set(allOverview.map(item => Number(item.value)));
+    if (!isAdmin) {
+      uniqueYearsSet = new Set([...uniqueYearsSet].filter(y => y < currentYear));
+    }
     const availableYears = Array.from(uniqueYearsSet).sort((a, b) => b - a).map(String);
 
     res.status(200).json({

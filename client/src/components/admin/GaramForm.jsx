@@ -143,17 +143,23 @@ export const GaramForm = ({
       requestAnimationFrame(() => targetElement.select());
     }
   };
-  const [formData, setFormData] = useState(initialData || {
-    bulan: 'Januari',
-    tahun: '',
-    kabupaten_kota: '',
-    luas_total_ha: '',
-    luas_produksi_ha: '',
-    jumlah_kelompok: '',
-    jumlah_petambak: '',
-    produksi_k1_ton: '', stok_k1_ton: '', harga_k1_rp: '',
-    produksi_k2_ton: '', stok_k2_ton: '', harga_k2_rp: '',
-    produksi_k3_ton: '', stok_k3_ton: '', harga_k3_rp: ''
+  const currentYear = new Date().getFullYear();
+  const tahunOptions = Array.from({ length: 11 }, (_, i) => String(currentYear - 5 + i)).sort((a,b) => b - a);
+
+  const [formData, setFormData] = useState(() => {
+    if (initialData) return initialData;
+    return {
+      bulan: 'Januari',
+      tahun: currentYear,
+      kabupaten_kota: '',
+      luas_total_ha: '',
+      luas_produksi_ha: '',
+      jumlah_kelompok: '',
+      jumlah_petambak: '',
+      produksi_k1_ton: '', stok_k1_ton: '', harga_k1_rp: '',
+      produksi_k2_ton: '', stok_k2_ton: '', harga_k2_rp: '',
+      produksi_k3_ton: '', stok_k3_ton: '', harga_k3_rp: ''
+    };
   });
 
   // Handle perubahan input
@@ -251,7 +257,18 @@ export const GaramForm = ({
             </div>
             <div>
               <label className={labelClass}>Tahun</label>
-              <input onWheel={(e) => e.target.blur()} type="number" name="tahun" value={formData.tahun} onChange={handleChange} min="2000" max={new Date().getFullYear()} className={inputClass} placeholder="YYYY" required />
+              <select
+                name="tahun"
+                value={formData.tahun}
+                onChange={handleChange}
+                className={inputClass}
+                required
+              >
+                <option value="">Pilih Tahun</option>
+                {tahunOptions.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelClass}>Kab/Kota</label>

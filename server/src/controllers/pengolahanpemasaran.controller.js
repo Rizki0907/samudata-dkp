@@ -165,11 +165,18 @@ const getRawRows = async ({ verifiedOnly = false } = {}) => db.findMany({
 // Mengirim data publik. Hanya paket yang sudah berstatus VERIFIED yang dapat ditampilkan.
 const getAllData = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
+    const { tahun } = req.query;
+    if (tahun && Number(tahun) >= currentYear) {
+      return res.json({ success: true, data: [] });
+    }
+
     // paket dibentuk dari seluruh row terlebih dahulu, lalu hanya paket VERIFIED
     // yang dikirim ke publik. Dengan begitu rincian dalam satu paket tidak
     // terpotong hanya karena status row internal/meta tidak identik.
     const packages = groupRowsToPackages(await getRawRows())
       .filter(pkg => pkg.status === 'VERIFIED')
+      .filter(pkg => Number(pkg.tahun) < currentYear)
       .filter(pkg => packageMatchesQuery(pkg, req.query));
 
     res.json({ success: true, data: packages });
@@ -215,14 +222,28 @@ const buildStats = packages => {
 
 const getStats = async (req, res) => {
   try {
-    const packages = groupRowsToPackages(await getRawRows({ verifiedOnly: true })).filter(pkg => packageMatchesQuery(pkg, req.query));
+    const currentYear = new Date().getFullYear();
+    const { tahun } = req.query;
+    if (tahun && Number(tahun) >= currentYear) {
+      return res.json({ success: true, stats: buildStats([]) });
+    }
+    const packages = groupRowsToPackages(await getRawRows({ verifiedOnly: true }))
+      .filter(pkg => Number(pkg.tahun) < currentYear)
+      .filter(pkg => packageMatchesQuery(pkg, req.query));
     res.json({ success: true, stats: buildStats(packages) });
   } catch (error) { res.status(500).json({ success: false, message: 'Server Error', error: error.message }); }
 };
 
 const getDashboardStats = async (req, res) => {
   try {
-    const packages = groupRowsToPackages(await getRawRows({ verifiedOnly: true })).filter(pkg => packageMatchesQuery(pkg, req.query));
+    const currentYear = new Date().getFullYear();
+    const { tahun } = req.query;
+    if (tahun && Number(tahun) >= currentYear) {
+      return res.json({ success: true, stats: { kpi: { total_produksi: 0, top_jenis_produk: '-', total_nilai: 0, total_upi: 0 }, produksiPerKabupaten: [], trenBulanan: [], top5Jenis: [], komposisiKegiatan: [], heatmapData: [] }});
+    }
+    const packages = groupRowsToPackages(await getRawRows({ verifiedOnly: true }))
+      .filter(pkg => Number(pkg.tahun) < currentYear)
+      .filter(pkg => packageMatchesQuery(pkg, req.query));
     const rows = flattenPackageDetails(packages);
     const kabMap = new Map(); const jenisMap = new Map();
     rows.forEach(row => {
@@ -1365,13 +1386,15 @@ const exportDataAdmin = async (req, res) => {
 // Endpoint ekspor data publik yang hanya menggunakan data VERIFIED.
 const exportDataPublic = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const packages = await selectPackagesForExport({ ids: req.body?.ids, admin: false });
+    const filteredPackages = packages.filter(pkg => Number(pkg.tahun) < currentYear);
 
-    if (!packages.length) {
+    if (!filteredPackages.length) {
       return res.status(404).json({ success: false, message: 'Tidak ada data VERIFIED yang dapat diekspor.' });
     }
 
-    return sendWorkbook(res, await buildDataWorkbook(packages), `Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}.xlsx`);
+    return sendWorkbook(res, await buildDataWorkbook(filteredPackages), `Pengolahan_Pemasaran_${new Date().toISOString().split('T')[0]}.xlsx`);
   } catch (error) {
     console.error('Error export data public:', error);
     if (!res.headersSent) {
@@ -1411,9 +1434,14 @@ const exportRekapAdmin = async (req, res) => {
 const exportRekapPublic = async (req, res) => {
   try {
     const year = toInt(req.body?.tahun);
+    const currentYear = new Date().getFullYear();
 
     if (!year) {
       return res.status(400).json({ success: false, message: 'Pilih tepat satu tahun sebelum mengekspor rekap statistik.' });
+    }
+    
+    if (year >= currentYear) {
+      return res.status(403).json({ success: false, message: 'Data tahun berjalan tidak tersedia untuk publik.' });
     }
 
     const packages = await selectPackagesForExport({ tahun: year, regions: req.body?.regions, admin: false });

@@ -136,17 +136,21 @@ export function TerumbuKarangForm({
       requestAnimationFrame(() => targetElement.select());
     }
   };
-  const [form, setForm] = useState({
-    tahun: '',
-    kabupaten_kota: '',
-    luas_eksisting_ha: '',
-    persentase_tutupan: '',
-    persentase_kondisi: '',
-    luas_sangat_baik: '',
-    luas_baik: '',
-    luas_sedang: '',
-    luas_rusak: '',
-    luas_rehabilitasi_ha: '',
+  const tahunOptions = Array.from({ length: 11 }, (_, i) => String(currentYear - 5 + i)).sort((a,b) => b - a);
+
+  const [form, setForm] = useState(() => {
+    return {
+      tahun: initialData?.tahun ?? currentYear,
+      kabupaten_kota: initialData?.kabupaten_kota ?? '',
+      luas_eksisting_ha: initialData?.luas_eksisting_ha ?? '',
+      persentase_tutupan: initialData?.persentase_tutupan ?? '',
+      persentase_kondisi: initialData?.persentase_kondisi ?? '',
+      luas_sangat_baik: initialData?.luas_sangat_baik ?? '',
+      luas_baik: initialData?.luas_baik ?? '',
+      luas_sedang: initialData?.luas_sedang ?? '',
+      luas_rusak: initialData?.luas_rusak ?? '',
+      luas_rehabilitasi_ha: initialData?.luas_rehabilitasi_ha ?? '',
+    };
   });
   const [errors, setErrors] = useState({});
 
@@ -260,14 +264,16 @@ export function TerumbuKarangForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tahun</label>
-          <input
-            onWheel={(e) => e.target.blur()}
-            type="number"
+          <select
             value={form.tahun}
             onChange={(e) => handleChange('tahun', e.target.value)}
             className={inputCls('tahun')}
-            placeholder="YYYY"
-          />
+          >
+            <option value="">Tahun</option>
+            {tahunOptions.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
           {errors.tahun && <p className="text-xs text-destructive mt-1">{errors.tahun}</p>}
         </div>
 

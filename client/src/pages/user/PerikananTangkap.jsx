@@ -22,7 +22,6 @@ import { useThemeStore } from '@/store/themeStore';
 import { useMasterDataStore } from '@/store/masterDataStore';
 
 const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 // eslint-disable-next-line no-unused-vars
 const BULAN_OPTIONS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -109,6 +108,11 @@ export default function PerikananTangkap() {
     
     fetchData();
   }, []); // Run once on mount
+
+  const tahunOptions = useMemo(() => {
+    const years = data.map(item => item.bulan ? item.bulan.substring(0, 4) : '').filter(Boolean);
+    return [...new Set(years)].sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }));
+  }, [data]);
 
   const filteredData = useMemo(() => {
     return data.filter(row => {
@@ -648,7 +652,7 @@ export default function PerikananTangkap() {
           <SearchableMultiSelect 
             value={chartGlobalTahun} 
             onChange={setChartGlobalTahun} 
-            options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
+            options={tahunOptions}
             placeholder="Semua Tahun"
           />
           <SearchableMultiSelect 
@@ -889,7 +893,7 @@ export default function PerikananTangkap() {
                     <SearchableMultiSelect 
                       value={filterTahun} 
                       onChange={setFilterTahun} 
-                      options={TAHUN_OPTIONS.map(opt => ({ label: opt, value: opt }))}
+                      options={tahunOptions}
                       placeholder="Semua Tahun"
                     />
                   </div>

@@ -12,8 +12,7 @@ import { formatUangPendek } from '@/utils/formatRupiah';
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const currentYear = new Date().getFullYear();
-// eslint-disable-next-line no-unused-vars
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
+// TAHUN_OPTIONS removed
 
 export default function Ekspor() {
   const { theme } = useThemeStore();

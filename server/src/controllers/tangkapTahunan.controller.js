@@ -14,6 +14,24 @@ exports.getAllTahunan = async (req, res) => {
   }
 };
 
+// Fungsi Controller: getPublikData
+exports.getPublikData = async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const data = await prisma.tangkapTahunan.findMany({
+      where: {
+        status: 'VERIFIED',
+        tahun: { lt: currentYear }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('Error in getPublikData:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Fungsi Controller: getTahunanById
 exports.getTahunanById = async (req, res) => {
   try {

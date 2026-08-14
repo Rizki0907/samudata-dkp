@@ -178,7 +178,12 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>Tahun Data</label>
-              <input onWheel={(e) => e.target.blur()} type="number" name="tahun_data" value={formData.tahun_data} onChange={handleChange} min="2000" max={CURRENT_YEAR} className={inputClass} placeholder="YYYY" required />
+              <select name="tahun_data" value={formData.tahun_data} onChange={handleChange} className={inputClass} required>
+                <option value="">Tahun</option>
+                {Array.from({ length: 11 }, (_, i) => String(CURRENT_YEAR - 5 + i)).sort((a,b) => b - a).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
         </section>

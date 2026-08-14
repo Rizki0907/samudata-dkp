@@ -17,6 +17,23 @@ const getAll = async (req, res) => {
   }
 };
 
+const getPublikData = async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const data = await prisma.budidayaTahunan.findMany({
+      where: {
+        status: 'VERIFIED',
+        tahun: { lt: currentYear }
+      },
+      orderBy: { updated_at: 'desc' },
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching publik budidaya tahunan:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 const createOrUpdate = async (req, res) => {
   try {
     const { tahun, kabupaten_kota, modul_id, data, status } = req.body;
@@ -336,6 +353,7 @@ const exportExcel = async (req, res) => {
 
 module.exports = {
   getAll,
+  getPublikData,
   createOrUpdate,
   updateStatus,
   deleteRecord,

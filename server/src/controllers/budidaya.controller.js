@@ -13,9 +13,19 @@ const getTriwulan = (bulan) => {
 
 const getAllData = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const { tahun, triwulan } = req.query;
     const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = tahun;
+    
+    // N-1 logic
+    if (tahun && parseInt(tahun) < currentYear) {
+      where.tahun = tahun;
+    } else if (tahun && parseInt(tahun) >= currentYear) {
+      return res.json({ success: true, data: [] });
+    } else {
+      where.tahun = { lt: currentYear.toString() };
+    }
+    
     if (triwulan) where.triwulan = triwulan;
     
     const data = await prisma.budidaya.findMany({
@@ -45,9 +55,19 @@ const getAdminData = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
+    const currentYear = new Date().getFullYear();
     const { tahun, bulan } = req.query;
     const where = { status: 'VERIFIED' };
-    if (tahun) where.tahun = tahun;
+    
+    // N-1 logic
+    if (tahun && parseInt(tahun) < currentYear) {
+      where.tahun = tahun;
+    } else if (tahun && parseInt(tahun) >= currentYear) {
+      return res.json({ success: true, data: [] });
+    } else {
+      where.tahun = { lt: currentYear.toString() };
+    }
+    
     if (bulan) where.bulan = bulan;
 
     const data = await prisma.budidaya.findMany({ where });
@@ -342,6 +362,11 @@ const exportRingkasanWadah = async (req, res) => {
     if (!tahun) {
       return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
     }
+    
+    const currentYear = new Date().getFullYear();
+    if (parseInt(tahun) >= currentYear) {
+      return res.status(403).json({ success: false, message: 'Data untuk tahun berjalan tidak dapat diakses secara publik' });
+    }
 
     const data = await prisma.budidaya.findMany({
       where: { tahun: tahun, status: 'VERIFIED' }
@@ -515,7 +540,14 @@ const exportRingkasanWadah = async (req, res) => {
 const exportRingkasanKomoditas = async (req, res) => {
   try {
     const { tahun } = req.query;
-    if (!tahun) return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
+    if (!tahun) {
+      return res.status(400).json({ success: false, message: 'Parameter tahun diwajibkan' });
+    }
+
+    const currentYear = new Date().getFullYear();
+    if (parseInt(tahun) >= currentYear) {
+      return res.status(403).json({ success: false, message: 'Data untuk tahun berjalan tidak dapat diakses secara publik' });
+    }
 
     const data = await prisma.budidaya.findMany({
       where: { tahun: tahun, status: 'VERIFIED' }

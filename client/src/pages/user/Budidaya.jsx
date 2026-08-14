@@ -16,7 +16,6 @@ echarts.registerMap('jawa_timur', geoJsonData);
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const currentYear = new Date().getFullYear();
-const TAHUN_OPTIONS = Array.from({ length: 10 }, (_, i) => (currentYear - 5 + i).toString());
 
 export default function Budidaya() {
   const { theme } = useThemeStore();
@@ -961,7 +960,7 @@ export default function Budidaya() {
                   onChange={(e) => setExportYear(e.target.value)}
                   className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 border-input"
                 >
-                  {TAHUN_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
+                  {tahunOptions.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
               <p className="text-xs text-muted-foreground">
