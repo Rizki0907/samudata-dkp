@@ -990,17 +990,20 @@ export default function AdminKelautanPesisir() {
     let targetStatus = '';
     let namaValidasi = '';
     let expectedKeyword = '';
+    let choiceNumber = '';
     let theme = '';
 
     if (row.status === 'PENDING') {
       targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
+      choiceNumber = '1';
       theme = 'APPROVED';
     } else if (row.status === 'APPROVED') {
       targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
+      choiceNumber = '2';
       theme = 'VERIFIED';
     } else {
       showNotice('Status data tidak valid untuk proses verifikasi.', 'INFO');
@@ -1010,16 +1013,18 @@ export default function AdminKelautanPesisir() {
     setDialogValue('');
     setActionDialog({
       open: true,
-      kind: 'validation-confirm',
+      kind: 'validation-choice',
       title: `Validasi ${namaValidasi}`,
-      message: `Data ini akan diproses menjadi status ${targetStatus}.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`,
+      message: `Data ini sudah berstatus ${row.status}.\nKetik "${choiceNumber}" untuk melanjutkan ke ${targetStatus}.`,
       theme,
       rows: [row],
       isBatch: false,
       input: true,
+      namaValidasi,
       targetStatus,
-      expected: expectedKeyword,
-      confirmLabel: 'Proses',
+      expected: choiceNumber,
+      nextExpected: expectedKeyword,
+      confirmLabel: 'OK',
     });
   };
 
@@ -1056,17 +1061,20 @@ export default function AdminKelautanPesisir() {
     let targetStatus = '';
     let namaValidasi = '';
     let expectedKeyword = '';
+    let choiceNumber = '';
     let theme = '';
 
     if (allPending) {
       targetStatus = 'APPROVED';
       namaValidasi = 'BIDANG';
       expectedKeyword = 'SETUJU';
+      choiceNumber = '1';
       theme = 'APPROVED';
     } else if (allApproved) {
       targetStatus = 'VERIFIED';
       namaValidasi = 'PROGRAM';
       expectedKeyword = 'ACC';
+      choiceNumber = '2';
       theme = 'VERIFIED';
     } else {
       showNotice('Data yang dipilih harus berstatus sama (semua PENDING untuk Validasi Bidang, atau semua APPROVED untuk Validasi Program).', 'INFO');
@@ -1076,16 +1084,18 @@ export default function AdminKelautanPesisir() {
     setDialogValue('');
     setActionDialog({
       open: true,
-      kind: 'validation-confirm',
+      kind: 'validation-choice',
       title: `Validasi ${namaValidasi} Massal`,
-      message: `Anda akan memproses ${selectedRows.length} data menjadi status ${targetStatus}.\nKetik "${expectedKeyword}" (huruf kapital) untuk menyelesaikan Validasi ${namaValidasi}:`,
+      message: `Anda akan memproses ${selectedRows.length} data menjadi status ${targetStatus}.\nKetik "${choiceNumber}" untuk melanjutkan.`,
       theme,
       rows: selectedRows,
       isBatch: true,
       input: true,
+      namaValidasi,
       targetStatus,
-      expected: expectedKeyword,
-      confirmLabel: 'Proses',
+      expected: choiceNumber,
+      nextExpected: expectedKeyword,
+      confirmLabel: 'OK',
     });
   };
 
@@ -1137,6 +1147,22 @@ export default function AdminKelautanPesisir() {
     if (!actionDialog) return;
     if (actionDialog.kind === 'notice') {
       closeActionDialog();
+      return;
+    }
+    if (actionDialog.kind === 'validation-choice') {
+      if (dialogValue !== actionDialog.expected) {
+        setActionDialog(previous => ({ ...previous, error: `Pilihan tidak valid. Ketik "${previous.expected}".` }));
+        return;
+      }
+      const countText = actionDialog.isBatch ? ` pada ${actionDialog.rows.length} data` : '';
+      setDialogValue('');
+      setActionDialog(previous => ({
+        ...previous,
+        kind: 'validation-confirm',
+        message: `Ketik "${previous.nextExpected}" (huruf kapital) untuk menyelesaikan Validasi ${previous.namaValidasi}${countText}:`,
+        expected: previous.nextExpected,
+        error: '',
+      }));
       return;
     }
     if (actionDialog.kind === 'validation-confirm' && dialogValue !== actionDialog.expected) {
