@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import api from '@/services/api';
 import { DataTable } from '@/components/shared/DataTable';
 import SearchableMultiSelect from '@/components/shared/SearchableMultiSelect';
+import { useMasterDataStore } from '@/store/masterDataStore';
 import {
   // eslint-disable-next-line no-unused-vars
   Loader2, Waves, Anchor, FlaskConical, MapPin, Filter,
@@ -57,7 +58,7 @@ const hBarOption = (categories, values, color, unit, isDark = false) => {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID')} ${unit}` },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => `<b>${p[0].name}</b><br/>${numFmt(p[0].value)} ${unit}` },
     grid: { left: 95, right: 85, top: 15, bottom: 20 },
     xAxis: { type: 'value', axisLabel: { color: textColor, fontWeight: 'bold', fontSize: 12 }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
     yAxis: { type: 'category', data: categories, axisLabel: { color: textColor, fontSize: 13, fontWeight: 'bold' }, axisTick: { show: false }, inverse: true },
@@ -69,7 +70,7 @@ const hBarOption = (categories, values, color, unit, isDark = false) => {
       label: {
         show: true,
         position: 'right',
-        formatter: (p) => `${Number(p.value).toLocaleString('id-ID')} ${unit}`,
+        formatter: (p) => `${numFmt(p.value)} ${unit}`,
         color: textColor,
         fontWeight: 'bold',
         fontSize: 12
@@ -111,7 +112,7 @@ const pieOption = (title, data, nameField, valueField, isDark = false) => {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'item', formatter: (p) => `${p.name}: ${numFmt(p.value)} (${p.percent}%)` },
     legend: { type: 'scroll', orient: 'vertical', right: 10, bottom: 10, top: 'auto', maxHeight: 120, textStyle: { color: textColor, fontWeight: 'bold', fontSize: 11 } },
     series: [{
       type: 'pie', radius: ['45%', '78%'], center: ['40%', '44%'],
@@ -192,9 +193,23 @@ const kondisiLamunPieOption = (data, isDark = false) => {
   };
 };
 
+/**
+ * Komponen KelautanPesisir (Tampilan Publik/User)
+ * Berfungsi untuk menampilkan data kelautan dan pesisir kepada masyarakat umum.
+ * Terdiri dari fitur visualisasi data (grafik/ECharts) dan tabel rekapitulasi 
+ * untuk kelima sub-bidang (Garam, Potensi Perairan, Mangrove, Lamun, Terumbu Karang).
+ */
 export default function KelautanPesisir() {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
+  
+  const { getOptions } = useMasterDataStore();
+  const masterDataRaw = useMasterDataStore(state => state.data);
+  const masterKabKotaOptions = useMemo(
+    () => getOptions('KAB_KOTA') || [],
+    [getOptions, masterDataRaw]
+  );
+  
   const [loading, setLoading] = useState(true);
   const [dataGaram, setDataGaram] = useState([]);
   const [dataPotensi, setDataPotensi] = useState([]);
@@ -212,6 +227,7 @@ export default function KelautanPesisir() {
   const [activeVisTab, setActiveVisTab] = useState('garam');
 
   useEffect(() => {
+    // Ambil data publik sub-bidang sekaligus
     const fetchAll = async () => {
       try {
         setLoading(true);
@@ -241,9 +257,10 @@ export default function KelautanPesisir() {
   
   // eslint-disable-next-line no-unused-vars
   const kabupatenOptions = useMemo(() => {
-    const set = new Set([...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang].map(d => d.kabupaten_kota).filter(Boolean));
+    // Gabungkan master data + data aktual untuk opsi dropdown
+    const set = new Set([...masterKabKotaOptions, ...dataGaram, ...dataPotensi, ...dataMangrove, ...dataLamun, ...dataTerumbuKarang].map(d => d.kabupaten_kota || d).filter(Boolean));
     return [...set].sort();
-  }, [dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
+  }, [masterKabKotaOptions, dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
 
   // eslint-disable-next-line no-unused-vars
   const tahunOptions = useMemo(() => {
@@ -258,6 +275,8 @@ export default function KelautanPesisir() {
   }, [dataGaram, dataPotensi, dataMangrove, dataLamun, dataTerumbuKarang]);
 
   // ── KPI Potensi Perairan ──
+  // Agregasi Data & Perhitungan KPI
+
   const filteredVisPotensi = useMemo(() => dataPotensi.filter(d => 
     (filterTahun.length === 0 || filterTahun.includes(String(d.tahun_data))) &&
     (filterKab.length === 0 || filterKab.includes(d.kabupaten_kota))
@@ -349,7 +368,7 @@ export default function KelautanPesisir() {
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           borderColor: isDark ? '#334155' : '#e2e8f0',
           textStyle: { color: isDark ? '#f8fafc' : '#0f172a' },
-          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${p[0].value.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
+          extraCssText: isDark ? 'color: #f8fafc !important;' : 'color: #0f172a !important;', trigger: 'axis', formatter: (p) => `<b>${p[0].name}</b><br/>${numFmt(p[0].value)} Ton` },
       grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
       xAxis: { type: 'category', boundaryGap: false, data: garamTrenLabels, axisLabel: { color: textColor, fontWeight: 'bold' } },
       yAxis: { type: 'value', name: 'Produksi (Ton)', nameTextStyle: { color: textColor }, axisLabel: { color: textColor }, splitLine: { lineStyle: { type: 'dashed', color: gridColor } } },
@@ -501,6 +520,7 @@ export default function KelautanPesisir() {
   }, [filteredVisTerumbu]);
 
   // ── TABEL DATA ──
+
   const filteredTableGaram = useMemo(() => dataGaram.filter(d =>
     (filterBulan.length === 0 || filterBulan.includes(formatBulan(d.bulan))) &&
     (filterTahun.length === 0 || filterTahun.includes(String(d.tahun))) &&
@@ -752,13 +772,13 @@ export default function KelautanPesisir() {
       <div className="flex flex-col gap-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
           <div>
-            <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+            <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={tahunOptions} />
           </div>
           <div>
-            <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+            <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={bulanOptions} />
           </div>
           <div>
-            <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+            <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={kabupatenOptions} />
           </div>
         </div>
         {(filterTahun.length > 0 || filterBulan.length > 0 || filterKab.length > 0) && (
@@ -1279,16 +1299,16 @@ export default function KelautanPesisir() {
           </div>
           <div className="flex flex-col md:flex-row gap-3 w-full">
             <div className="flex-1">
-              <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => String(d.tahun || d.tahun_data)))].filter(Boolean).sort()} />
+              <SearchableMultiSelect value={filterTahun} onChange={setFilterTahun} placeholder="Semua Tahun" options={tahunOptions} />
             </div>
             {activeTable === 'garam' && (
               <div className="flex-1">
-                <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']} />
+                <SearchableMultiSelect value={filterBulan} onChange={setFilterBulan} placeholder="Semua Bulan" options={bulanOptions} />
               </div>
             )}
             {activeTable !== 'potensi' && (
               <div className="flex-1">
-                <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={[...new Set((activeTable === 'garam' ? dataGaram : activeTable === 'mangrove' ? dataMangrove : activeTable === 'terumbu_karang' ? dataTerumbuKarang : activeTable === 'lamun' ? dataLamun : dataPotensi).map(d => d.kabupaten_kota))].filter(Boolean).sort()} />
+                <SearchableMultiSelect value={filterKab} onChange={setFilterKab} placeholder="Semua Kab/Kota" options={kabupatenOptions} />
               </div>
             )}
           </div>

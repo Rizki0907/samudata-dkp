@@ -97,6 +97,12 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
+/**
+ * Komponen GaramForm
+ * Bertugas untuk menampilkan form input/edit data produksi garam rakyat.
+ * Menangani perhitungan otomatis (produktivitas, total produksi, dan total stok)
+ * serta mengirimkan data (payload) kembali ke komponen induk.
+ */
 export const GaramForm = ({
   initialData,
   onSubmit,
@@ -150,6 +156,7 @@ export const GaramForm = ({
     produksi_k3_ton: '', stok_k3_ton: '', harga_k3_rp: ''
   });
 
+  // Handle perubahan input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -171,6 +178,7 @@ export const GaramForm = ({
 
   const kabKotaList = (kabKotaKelautanOptions && kabKotaKelautanOptions.length > 0) ? kabKotaKelautanOptions : KAB_KOTA_KELAUTAN;
 
+  // Validasi dan kirim data
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalData = {

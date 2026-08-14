@@ -92,6 +92,12 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
+/**
+ * Komponen MangroveForm
+ * Bertugas untuk menampilkan form input/edit data ekosistem mangrove.
+ * Terdapat perhitungan otomatis untuk mengkategorikan persentase kondisi 
+ * (Baik, Sedang, Rusak) berdasarkan nilai yang dimasukkan.
+ */
 export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKotaOptions = [] }) {
   const formRef = useRef(null);
 
@@ -147,6 +153,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
 
   const kondisiPreview = useMemo(() => getKondisiMangrove(form.persentase_kondisi), [form.persentase_kondisi]);
 
+  // Handle perubahan input
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -166,6 +173,7 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
     return Object.keys(err).length === 0;
   };
 
+  // Validasi dan kirim data
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;

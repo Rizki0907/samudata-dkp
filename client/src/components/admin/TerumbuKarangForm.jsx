@@ -95,6 +95,12 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
+/**
+ * Komponen TerumbuKarangForm
+ * Bertugas untuk menampilkan form input/edit data ekosistem terumbu karang.
+ * Menghitung secara otomatis persentase kondisi (Sangat Baik, Baik, Sedang, Buruk)
+ * dari input yang dimasukkan.
+ */
 export function TerumbuKarangForm({
   initialData,
   isLoading,
@@ -166,6 +172,7 @@ export function TerumbuKarangForm({
   // ── KATEGORI OTOMATIS REAL-TIME ──
   const kondisiPreview = useMemo(() => getKondisiTerumbu(form.persentase_kondisi), [form.persentase_kondisi]);
 
+  // Handle perubahan input
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -189,6 +196,7 @@ export function TerumbuKarangForm({
   };
 
   // ── SUBMIT FORM ──
+  // Validasi dan kirim data
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;

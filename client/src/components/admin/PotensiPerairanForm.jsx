@@ -88,6 +88,11 @@ const findDirectionalTarget = (formElement, currentElement, direction) => {
 };
 // ==========================================
 
+/**
+ * Komponen PotensiPerairanForm
+ * Bertugas untuk menampilkan form input/edit data potensi wilayah pesisir dan laut.
+ * Berbeda dengan yang lain, data ini bersifat tahunan per kabupaten/kota.
+ */
 export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const formRef = useRef(null);
 
@@ -126,11 +131,13 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
     keterangan: '',
   });
 
+  // Handle perubahan input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Validasi dan kirim data
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
@@ -198,7 +205,7 @@ export const PotensiPerairanForm = ({ initialData, onSubmit, onCancel, isLoading
               <input onWheel={(e) => e.target.blur()} type="number" name="jumlah_pulau_kecil" value={formData.jumlah_pulau_kecil} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div>
-              <label className={labelClass}>Total Panjang Garis Pantai (Km²)</label>
+              <label className={labelClass}>Total Panjang Garis Pantai (Km)</label>
               <input onWheel={(e) => e.target.blur()} type="number" step="0.01" name="total_panjang_garis_pantai_km" value={formData.total_panjang_garis_pantai_km} onChange={handleChange} min="0" className={`${inputClass} ${noSpinnerCls}`} placeholder="0.00" />
             </div>
             <div className="md:col-span-2">
