@@ -1400,18 +1400,19 @@ export default function AdminPengolahanPemasaran() {
         return maxDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + maxDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
       }, [filteredData]);
 
-  // Data sumber visualisasi hanya VERIFIED. Tabel utama tetap satu baris per paket Tahun + Kab/Kota.
-  // Menyiapkan hanya paket berstatus VERIFIED sebagai sumber perhitungan Visualisasi Statistik.
+  // Data sumber visualisasi hanya VERIFIED, dan hanya mengikuti filter Tahun & Kab/Kota.
+  // Filter Kategori Kegiatan dan Skala Usaha sengaja tidak diterapkan di sini,
+  // sehingga tetap konsisten walau tab Tabel Data sedang menyaring dengan filter tersebut.
+  // Tabel utama tetap satu baris per paket Tahun + Kab/Kota.
   const verifiedPackages = useMemo(
     () =>
       data.filter(item => {
         if (item.status !== 'VERIFIED') return false;
         if (filterTahun.length && !filterTahun.includes(String(item.tahun))) return false;
         if (filterKabupaten.length && !filterKabupaten.includes(item.kabupaten_kota)) return false;
-        if (!packageMatchesDetailFilters(item, filterJenisKegiatan, filterSkalaUsaha)) return false;
         return true;
       }),
-    [data, filterKabupaten, filterJenisKegiatan, filterSkalaUsaha, filterTahun],
+    [data, filterKabupaten, filterTahun],
   );
 
   const verifiedData = useMemo(
@@ -1553,16 +1554,11 @@ export default function AdminPengolahanPemasaran() {
     };
   }, [verifiedData, KABUPATEN_KOTA_OPTIONS]);
 
-  const activeDetailKegiatan =
-    filterJenisKegiatan.length === 1 &&
-    ['Pengolahan', 'Pemasaran'].includes(
-      filterJenisKegiatan[0],
-    )
-      ? filterJenisKegiatan[0]
-      : detailKegiatanFilter;
+  // Karena visualisasi tidak lagi mengikuti filter Kategori Kegiatan,
+  // toggle Pengolahan/Pemasaran selalu ditampilkan dan dikontrol manual.
+  const activeDetailKegiatan = detailKegiatanFilter;
 
-  const showDetailKegiatanToggle =
-    filterJenisKegiatan.length !== 1;
+  const showDetailKegiatanToggle = true;
 
   const mapOption = useMemo(() => {
     const mapData = stats.produksiPerKabupaten.map(item => ({
@@ -2784,7 +2780,7 @@ export default function AdminPengolahanPemasaran() {
                 ) : null}
               </div>
 
-              <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${activeTab === 'table' ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+              <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${activeTab === 'table' ? 'xl:grid-cols-5' : 'xl:grid-cols-2'}`}>
                 {activeTab === 'table' ? (
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
@@ -2821,27 +2817,31 @@ export default function AdminPengolahanPemasaran() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Kegiatan</label>
-                  <SearchableMultiSelect
-                    values={filterJenisKegiatan}
-                    options={['Pengolahan', 'Pemasaran']}
-                    onChange={setFilterJenisKegiatan}
-                    placeholder="Semua Kategori Kegiatan"
-                  />
-                </div>
+                {activeTab === 'table' ? (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Kegiatan</label>
+                    <SearchableMultiSelect
+                      values={filterJenisKegiatan}
+                      options={['Pengolahan', 'Pemasaran']}
+                      onChange={setFilterJenisKegiatan}
+                      placeholder="Semua Kategori Kegiatan"
+                    />
+                  </div>
+                ) : null}
 
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Skala Usaha</label>
-                  <SearchableMultiSelect
-                    values={filterSkalaUsaha}
-                    options={SKALA_USAHA_OPTIONS}
-                    onChange={setFilterSkalaUsaha}
-                    placeholder="Semua Skala Usaha"
-                  />
-                </div>
+                {activeTab === 'table' ? (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Skala Usaha</label>
+                    <SearchableMultiSelect
+                      values={filterSkalaUsaha}
+                      options={SKALA_USAHA_OPTIONS}
+                      onChange={setFilterSkalaUsaha}
+                      placeholder="Semua Skala Usaha"
+                    />
+                  </div>
+                ) : null}
               </div>
-              {((activeTab === 'table' && filterStatus.length > 0) || filterTahun.length > 0 || filterKabupaten.length > 0 || filterJenisKegiatan.length > 0 || filterSkalaUsaha.length > 0) && (
+              {((activeTab === 'table' && (filterStatus.length > 0 || filterJenisKegiatan.length > 0 || filterSkalaUsaha.length > 0)) || filterTahun.length > 0 || filterKabupaten.length > 0) && (
                 <div className="flex justify-end mt-2">
                   <button
                     type="button"
