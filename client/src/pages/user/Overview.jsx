@@ -26,7 +26,9 @@ export default function Overview() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [loading, setLoading] = useState(true);
-  const [selectedTahun, setSelectedTahun] = useState(new Date().getFullYear().toString());
+  const [selectedTahun, setSelectedTahun] = useState(
+    isAdminRoute ? new Date().getFullYear().toString() : (new Date().getFullYear() - 1).toString()
+  );
   const [tahunOptions, setTahunOptions] = useState([]);
   const [stats, setStats] = useState({
     tangkap: { produksi: 0, kapal: 0, pelabuhan: 0, nelayan: 0 },

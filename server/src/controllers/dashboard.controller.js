@@ -30,7 +30,14 @@ const getOverviewStats = async (req, res) => {
 
     // Enforce N-1 logic for public users
     if (!isAdmin && tahun && tahun !== 'Semua' && parseInt(tahun) >= currentYear) {
-      // If a public user tries to query the current year or later, return empty early
+      const allOverview = await prisma.masterData.findMany({
+        where: { category: { startsWith: 'OVERVIEW_' } },
+        select: { value: true }
+      });
+      let uniqueYearsSet = new Set(allOverview.map(item => Number(item.value)));
+      uniqueYearsSet = new Set([...uniqueYearsSet].filter(y => y < currentYear));
+      const availableYears = Array.from(uniqueYearsSet).sort((a, b) => b - a).map(String);
+
       return res.status(200).json({
         success: true,
         data: {
@@ -40,7 +47,7 @@ const getOverviewStats = async (req, res) => {
           garam: { produksi: null, petambak: null, luas_lahan: null },
           ekspor: { volume_ton: null, nilai_usd: null },
           kim: { total_konsumsi: null },
-          availableYears: []
+          availableYears
         }
       });
     }
