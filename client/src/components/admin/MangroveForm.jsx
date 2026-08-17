@@ -19,6 +19,9 @@ const kondisiStyle = (kondisi) => {
 
 const currentYear = new Date().getFullYear();
 
+// Daftar tahun untuk dropdown: 10 tahun ke belakang s.d. tahun berjalan
+const tahunOptions = Array.from({ length: 11 }, (_, i) => currentYear - i);
+
 // ==========================================
 // ARROW NAVIGATION HELPERS
 // ==========================================
@@ -135,6 +138,9 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
       spesies: initialData?.spesies ?? '',
       persentase_kondisi: initialData?.persentase_kondisi ?? '',
       luas_rehabilitasi_ha: initialData?.luas_rehabilitasi_ha ?? '',
+      luas_sangat_padat: initialData?.luas_sangat_padat ?? '',
+      luas_sedang: initialData?.luas_sedang ?? '',
+      luas_jarang: initialData?.luas_jarang ?? '',
     };
   });
   const [errors, setErrors] = useState({});
@@ -149,6 +155,9 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
         spesies: initialData.spesies ?? '',
         persentase_kondisi: initialData.persentase_kondisi ?? '',
         luas_rehabilitasi_ha: initialData.luas_rehabilitasi_ha ?? '',
+        luas_sangat_padat: initialData.luas_sangat_padat ?? '',
+        luas_sedang: initialData.luas_sedang ?? '',
+        luas_jarang: initialData.luas_jarang ?? '',
       });
     }
   }, [initialData]);
@@ -188,6 +197,9 @@ export function MangroveForm({ initialData, isLoading, onSubmit, onCancel, kabKo
       persentase_kondisi: parseFloat(form.persentase_kondisi) || 0,
       kondisi: getKondisiMangrove(form.persentase_kondisi),
       luas_rehabilitasi_ha: parseFloat(form.luas_rehabilitasi_ha) || 0,
+      luas_sangat_padat: parseFloat(form.luas_sangat_padat) || 0,
+      luas_sedang: parseFloat(form.luas_sedang) || 0,
+      luas_jarang: parseFloat(form.luas_jarang) || 0,
     };
     onSubmit(payload);
   };
